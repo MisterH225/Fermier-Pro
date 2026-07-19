@@ -17,31 +17,47 @@ import { resolveDeepNavProfile } from "../../lib/resolveDeepNavProfile";
 import { navigateToAlert } from "../../services/navigation/DeepNavigationService";
 import { useSession } from "../../context/SessionContext";
 
-function priorityIcon(p: SmartAlertListItemDto["priority"]): string {
-  if (p === "critical") return "alert-circle";
-  if (p === "warning") return "warning";
-  return "information-circle-outline";
+function moduleIcon(
+  m: SmartAlertListItemDto["module"]
+): keyof typeof Ionicons.glyphMap {
+  switch (m) {
+    case "stock":
+      return "cube-outline";
+    case "health":
+      return "medkit-outline";
+    case "finance":
+      return "wallet-outline";
+    case "gestation":
+      return "heart-outline";
+    case "cheptel":
+      return "paw-outline";
+    case "market":
+      return "trending-up-outline";
+    default:
+      return "notifications-outline";
+  }
 }
 
-function priorityColor(p: SmartAlertListItemDto["priority"]): string {
-  if (p === "critical") return mobileColors.error;
-  if (p === "warning") return mobileColors.warning;
-  return mobileColors.accent;
-}
-
-function moduleLabel(
-  m: SmartAlertListItemDto["module"],
-  t: (key: string) => string
-): string {
-  const map: Record<SmartAlertListItemDto["module"], string> = {
-    stock: "Stock",
-    health: "Santé",
-    finance: "Finance",
-    gestation: "Gestation",
-    cheptel: "Cheptel",
-    market: t("smartAlerts.moduleMarket")
-  };
-  return map[m];
+function moduleIconColors(m: SmartAlertListItemDto["module"]): {
+  bg: string;
+  fg: string;
+} {
+  switch (m) {
+    case "finance":
+      return { bg: "#D1FAE5", fg: "#047857" };
+    case "stock":
+      return { bg: "#FEF3C7", fg: "#B45309" };
+    case "health":
+      return { bg: "#FEE2E2", fg: "#B91C1C" };
+    case "market":
+      return { bg: "#DBEAFE", fg: "#1D4ED8" };
+    case "gestation":
+      return { bg: "#FCE7F3", fg: "#BE185D" };
+    case "cheptel":
+      return { bg: "#E0E7FF", fg: "#4338CA" };
+    default:
+      return { bg: "#D1FAE5", fg: "#047857" };
+  }
 }
 
 type AlertCardProps = {
@@ -51,12 +67,23 @@ type AlertCardProps = {
   onDelete?: (id: string) => void;
 };
 
-export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCardProps) {
+/** Même format inbox que `UserNotificationCard` (icône, titre, corps, date, point vert). */
+export function AlertCard({
+  alert,
+  navigation,
+  onMarkRead,
+  onDelete
+}: AlertCardProps) {
   const { t } = useTranslation();
   const { authMe, activeProfileId } = useSession();
   const display = resolveSmartAlertText(alert, t);
   const profile = resolveDeepNavProfile(authMe, activeProfileId);
+  const colors = moduleIconColors(alert.module);
+
   const onPressCard = useCallback(() => {
+    if (!alert.isRead) {
+      onMarkRead(alert.id);
+    }
     navigateToAlert(
       navigation,
       {
@@ -67,7 +94,7 @@ export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCard
       },
       profile
     );
-  }, [alert, navigation, profile]);
+  }, [alert, navigation, onMarkRead, profile]);
 
   const renderRight = useCallback(() => {
     const actions = [];
@@ -80,7 +107,7 @@ export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCard
           accessibilityRole="button"
           accessibilityLabel={t("smartAlerts.markRead")}
         >
-          <Ionicons name="checkmark-done" size={22} color={mobileColors.onAccent} />
+          <Ionicons name="checkmark-done" size={22} color="#fff" />
         </Pressable>
       );
     }
@@ -93,7 +120,7 @@ export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCard
           accessibilityRole="button"
           accessibilityLabel={t("smartAlerts.delete")}
         >
-          <Ionicons name="trash-outline" size={22} color={mobileColors.onAccent} />
+          <Ionicons name="trash-outline" size={22} color="#fff" />
         </Pressable>
       );
     }
@@ -103,37 +130,35 @@ export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCard
     return <View style={styles.swipeActions}>{actions}</View>;
   }, [alert.id, alert.isRead, onDelete, onMarkRead, t]);
 
+  const stamp = alert.createdAt
+    ? new Date(alert.createdAt).toLocaleString()
+    : "";
+
   const body = (
     <Pressable
       onPress={onPressCard}
       style={({ pressed }) => [
         styles.card,
+        !alert.isRead && styles.cardUnread,
         alert.isRead && styles.cardRead,
-        pressed && styles.cardPressed
+        pressed && { opacity: 0.9 }
       ]}
     >
-      <View style={styles.rowTop}>
-        <Ionicons
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          name={priorityIcon(alert.priority) as any}
-          size={22}
-          color={priorityColor(alert.priority)}
-        />
-        <View style={styles.titleCol}>
-          <Text style={styles.title} numberOfLines={2}>
+      <View style={[styles.iconWrap, { backgroundColor: colors.bg }]}>
+        <Ionicons name={moduleIcon(alert.module)} size={20} color={colors.fg} />
+      </View>
+      <View style={styles.cardBody}>
+        <View style={styles.cardHead}>
+          <Text style={styles.subject} numberOfLines={2}>
             {display.title}
           </Text>
-          <View style={styles.tag}>
-            <Text style={styles.tagTx}>{moduleLabel(alert.module, t)}</Text>
-          </View>
+          {!alert.isRead ? <View style={styles.dot} /> : null}
         </View>
-      </View>
-      <Text style={styles.message}>{display.message}</Text>
-      {alert.action?.route ? (
-        <Text style={styles.actionHint}>
-          → {alert.action.label}
+        <Text style={styles.message} numberOfLines={4}>
+          {display.message}
         </Text>
-      ) : null}
+        {stamp ? <Text style={styles.meta}>{stamp}</Text> : null}
+      </View>
     </Pressable>
   );
 
@@ -150,79 +175,63 @@ export function AlertCard({ alert, navigation, onMarkRead, onDelete }: AlertCard
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: mobileColors.surfaceMuted,
-    borderRadius: mobileRadius.md,
-    padding: mobileSpacing.md,
-    marginBottom: mobileSpacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
-  },
-  cardRead: {
-    opacity: 0.55
-  },
-  cardPressed: {
-    opacity: 0.88
-  },
-  rowTop: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: mobileSpacing.sm,
-    marginBottom: mobileSpacing.xs
+    gap: mobileSpacing.md,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    marginBottom: mobileSpacing.sm
   },
-  titleCol: {
-    flex: 1,
-    minWidth: 0
+  cardUnread: { borderColor: mobileColors.accent },
+  cardRead: { opacity: 0.85 },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center"
   },
-  title: {
-    ...mobileTypography.cardTitle,
-    fontSize: 15,
-    color: mobileColors.textPrimary
-  },
-  tag: {
-    alignSelf: "flex-start",
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: mobileRadius.pill,
-    backgroundColor: `${mobileColors.accent}22`
-  },
-  tagTx: {
-    ...mobileTypography.meta,
-    fontSize: 11,
-    color: mobileColors.accent,
-    fontWeight: "700"
-  },
-  message: {
+  cardBody: { flex: 1, gap: 4 },
+  cardHead: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  subject: {
     ...mobileTypography.body,
-    fontSize: 14,
-    color: mobileColors.textSecondary,
-    lineHeight: 20
+    fontWeight: "700",
+    color: mobileColors.textPrimary,
+    flex: 1
   },
-  actionHint: {
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: mobileColors.accent,
+    marginTop: 6
+  },
+  message: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  meta: {
     ...mobileTypography.meta,
-    marginTop: mobileSpacing.sm,
-    color: mobileColors.accent,
-    fontWeight: "600"
+    color: mobileColors.textSecondary,
+    marginTop: 2
   },
   swipeRead: {
     backgroundColor: mobileColors.success,
     justifyContent: "center",
     alignItems: "center",
     width: 72,
-    height: "100%"
+    marginBottom: mobileSpacing.sm,
+    borderRadius: mobileRadius.md
   },
   swipeDelete: {
     backgroundColor: mobileColors.error,
     justifyContent: "center",
     alignItems: "center",
     width: 72,
-    height: "100%"
+    marginBottom: mobileSpacing.sm,
+    borderRadius: mobileRadius.md
   },
   swipeActions: {
     flexDirection: "row",
-    marginBottom: mobileSpacing.sm,
-    borderTopRightRadius: mobileRadius.md,
-    borderBottomRightRadius: mobileRadius.md,
-    overflow: "hidden"
+    gap: 4
   }
 });

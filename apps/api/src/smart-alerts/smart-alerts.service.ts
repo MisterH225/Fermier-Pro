@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { UserNotificationsService } from "../user-notifications/user-notifications.service";
 import type {
   ComputedSmartAlert,
   FarmAlertThresholds,
@@ -17,13 +18,15 @@ import { evaluateHealthRules } from "./rules/health.rules";
 import { evaluateStockRules } from "./rules/stock.rules";
 
 const READ_VISIBLE_HOURS = 24;
+const EXPENSE_INACTIVE_RULE_PREFIX = "finance-expense-inactive:";
 
 @Injectable()
 export class SmartAlertsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly userNotifications: UserNotificationsService
   ) {}
 
   private async resolveThresholds(farmId: string): Promise<FarmAlertThresholds> {
@@ -150,6 +153,40 @@ export class SmartAlertsService {
     }
   }
 
+  /** Inbox + push pour rappel dépenses inactives (respecte pushFinance). */
+  private async notifyFinanceExpenseInactive(
+    farm: {
+      id: string;
+      name: string;
+      ownerId: string;
+      memberships: { userId: string }[];
+    },
+    draft: ComputedSmartAlert
+  ): Promise<void> {
+    const settings = await this.prisma.farmAlertSettings.findUnique({
+      where: { farmId: farm.id }
+    });
+    if (settings?.pushFinance === false) {
+      return;
+    }
+    const userIds = await this.resolveFarmNotifyUserIds(farm);
+    const params = this.buildActionParams(draft, farm.id, farm.name);
+    const sanitized = this.sanitizeActionParams(params) ?? {};
+    const payload: Record<string, string> = {
+      type: "smart_alert",
+      ruleKey: draft.ruleKey,
+      module: String(draft.module),
+      route: draft.action?.route ?? "FarmFinance",
+      farmId: farm.id,
+      params: JSON.stringify(sanitized)
+    };
+    for (const userId of userIds) {
+      void this.userNotifications
+        .notify(userId, draft.title, draft.message, payload)
+        .catch(() => undefined);
+    }
+  }
+
   async evaluateDrafts(farmId: string): Promise<ComputedSmartAlert[]> {
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
@@ -182,16 +219,26 @@ export class SmartAlertsService {
   async refreshInternal(farmId: string): Promise<number> {
     const farm = await this.prisma.farm.findUnique({
       where: { id: farmId },
-      select: { id: true, name: true }
+      select: {
+        id: true,
+        name: true,
+        ownerId: true,
+        memberships: { select: { userId: true } }
+      }
     });
     if (!farm) {
       return 0;
     }
     const drafts = await this.evaluateDrafts(farmId);
     const keys = new Set(drafts.map((d) => d.ruleKey));
+    const newlyCreatedInactive: ComputedSmartAlert[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       for (const d of drafts) {
+        const existing = await tx.smartAlert.findUnique({
+          where: { farmId_ruleKey: { farmId, ruleKey: d.ruleKey } },
+          select: { id: true }
+        });
         const ap = this.buildActionParams(d, farmId, farm.name);
         await tx.smartAlert.upsert({
           where: { farmId_ruleKey: { farmId, ruleKey: d.ruleKey } },
@@ -217,6 +264,9 @@ export class SmartAlertsService {
               ap != null ? (ap as Prisma.InputJsonValue) : undefined
           }
         });
+        if (!existing && d.ruleKey.startsWith(EXPENSE_INACTIVE_RULE_PREFIX)) {
+          newlyCreatedInactive.push(d);
+        }
       }
       if (keys.size === 0) {
         await tx.smartAlert.deleteMany({ where: { farmId } });
@@ -229,6 +279,10 @@ export class SmartAlertsService {
         });
       }
     });
+
+    for (const draft of newlyCreatedInactive) {
+      await this.notifyFinanceExpenseInactive(farm, draft);
+    }
 
     return drafts.length;
   }
