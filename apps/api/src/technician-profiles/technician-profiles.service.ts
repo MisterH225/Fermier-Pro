@@ -18,6 +18,33 @@ import {
   privacyDisplayName
 } from "./technician-privacy.helper";
 
+/** Convertit le JSON Prisma `MemberActivityLog.detail` en string safe pour les clients UI. */
+function serializeActivityDetail(detail: Prisma.JsonValue | null): string | null {
+  if (detail == null) {
+    return null;
+  }
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (typeof detail === "number" || typeof detail === "boolean") {
+    return String(detail);
+  }
+  if (typeof detail === "object" && !Array.isArray(detail)) {
+    const record = detail as Record<string, unknown>;
+    for (const key of ["summary", "label", "title", "name", "message", "description"]) {
+      const value = record[key];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+  }
+  try {
+    return JSON.stringify(detail);
+  } catch {
+    return null;
+  }
+}
+
 function haversineKm(
   lat1: number,
   lon1: number,
@@ -509,7 +536,8 @@ export class TechnicianProfilesService {
       farmName: r.farm.name,
       module: r.module,
       action: r.action,
-      detail: r.detail,
+      // Prisma Json → string pour les clients mobiles (évite crash React Native Text).
+      detail: serializeActivityDetail(r.detail),
       createdAt: r.createdAt.toISOString()
     }));
   }

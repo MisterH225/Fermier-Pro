@@ -36,8 +36,10 @@ import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
   fetchTechnicianActivity,
-  fetchTechnicianDashboard
+  fetchTechnicianDashboard,
+  type TechnicianActivityRowDto
 } from "../../lib/api";
+import { formatActivityDetail } from "../../lib/formatActivityDetail";
 import {
   canTechQuickAction,
   type TechQuickActionKey
@@ -61,17 +63,18 @@ const QUICK_ACTIONS: {
 ];
 
 function activityToEvent(
-  a: { id: string; action: string; detail: string | null; createdAt: string; module: string },
+  a: TechnicianActivityRowDto,
   locale: string
 ): EventItem {
   const d = new Date(a.createdAt);
   const date = Number.isNaN(d.getTime())
     ? "—"
     : d.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const detailLabel = formatActivityDetail(a.detail, a.module);
   return {
     id: a.id,
     title: a.action,
-    subtitle: a.detail ?? a.module,
+    subtitle: a.farmName ? `${a.farmName} · ${detailLabel}` : detailLabel,
     date,
     valueType: "neutral",
     iconType: "custom",

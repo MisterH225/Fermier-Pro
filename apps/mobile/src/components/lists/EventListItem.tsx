@@ -67,7 +67,7 @@ export function EventListItem({ item, onPress }: Props) {
           <Text style={styles.title} numberOfLines={1}>
             {item.title}
           </Text>
-          {item.subtitle ? (
+          {typeof item.subtitle === "string" && item.subtitle ? (
             <Text style={styles.sub} numberOfLines={2}>
               {item.subtitle}
             </Text>
