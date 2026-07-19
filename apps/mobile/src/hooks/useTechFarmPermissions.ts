@@ -27,8 +27,8 @@ export function useTechFarmPermissions(
     if (!isTech) {
       return undefined;
     }
-    const farm = dashQ.data?.farms.find((f) => f.farmId === farmId);
-    return farm?.scopes ?? dashQ.data?.farms[0]?.scopes;
+    const farm = dashQ.data?.farms?.find((f) => f.farmId === farmId);
+    return farm?.scopes ?? dashQ.data?.farms?.[0]?.scopes;
   }, [isTech, dashQ.data, farmId]);
 
   const canView = !isTech || canTechViewFarmModule(scopes, module);

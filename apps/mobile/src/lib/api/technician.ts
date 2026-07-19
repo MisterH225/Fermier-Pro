@@ -88,7 +88,8 @@ export type TechnicianActivityRowDto = {
   farmName: string;
   module: string;
   action: string;
-  detail: string | null;
+  /** JSON Prisma — objet ou null (jamais un React child sûr sans formatage). */
+  detail: Record<string, unknown> | string | null;
   createdAt: string;
 };
 
