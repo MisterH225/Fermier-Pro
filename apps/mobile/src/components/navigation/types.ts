@@ -23,6 +23,8 @@ export type ExtendedNavMenuId =
   | "vaccinations"
   | "weighings"
   | "feedStock"
+  | "farm"
+  | "tracking"
   | "wallet"
   | "favorites"
   | "priceAlerts"

@@ -3628,11 +3628,16 @@ export const en = {
     }
   },
   tech: {
-    nav: { home: "Home", tasks: "Tasks", farm: "Farm", tracking: "Tracking" },
-    extended: {
+    nav: {
+      home: "Home",
+      tasks: "Tasks",
       vaccinations: "Vaccinations",
       weighings: "Weighings",
-      feedStock: "Feed stock",
+      feedStock: "Feed stock"
+    },
+    extended: {
+      farm: "Farm",
+      tracking: "Tracking",
       reports: "Reports"
     },
     dashboard: {

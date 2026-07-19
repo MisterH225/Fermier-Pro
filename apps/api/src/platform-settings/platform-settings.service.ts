@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { PlatformSettings } from "@prisma/client";
+import { Prisma, type PlatformSettings } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { normalizeWeightArbitrationThresholds } from "../marketplace/escrow/weight-arbitration.util";
 
@@ -7,6 +7,7 @@ const DEFAULT_MARKETPLACE_COMMISSION_RATE = 0.015;
 const DEFAULT_SELLER_COMMISSION_RATE = 0.015;
 const DEFAULT_VET_COMMISSION_RATE = 0.015;
 const CACHE_TTL_MS = 60_000;
+const DEFAULT_SETTINGS_ID = "default";
 
 export type WeightArbitrationSettingsDto = {
   minDiffKg: number;
@@ -36,6 +37,8 @@ export class PlatformSettingsService {
   private cachedSupportAt = 0;
   private cachedWeightArbitration: WeightArbitrationSettingsDto | null = null;
   private cachedWeightArbitrationAt = 0;
+  /** Coalesce les upserts concurrents (ex. Promise.all sur GET /config/client). */
+  private ensureDefaultRowInflight: Promise<PlatformSettings> | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -52,6 +55,42 @@ export class PlatformSettingsService {
     this.cachedWeightArbitrationAt = 0;
   }
 
+  /**
+   * Upsert singleton `default` résistant aux courses P2002
+   * (plusieurs lecteurs parallèles au premier démarrage / e2e).
+   */
+  private async upsertDefaultRow(): Promise<PlatformSettings> {
+    try {
+      return await this.prisma.platformSettings.upsert({
+        where: { id: DEFAULT_SETTINGS_ID },
+        create: { id: DEFAULT_SETTINGS_ID },
+        update: {}
+      });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        const row = await this.prisma.platformSettings.findUnique({
+          where: { id: DEFAULT_SETTINGS_ID }
+        });
+        if (row) {
+          return row;
+        }
+      }
+      throw e;
+    }
+  }
+
+  async getOrCreateSettingsRow(): Promise<PlatformSettings> {
+    if (!this.ensureDefaultRowInflight) {
+      this.ensureDefaultRowInflight = this.upsertDefaultRow().finally(() => {
+        this.ensureDefaultRowInflight = null;
+      });
+    }
+    return this.ensureDefaultRowInflight;
+  }
+
   async getMarketplaceCommissionRate(): Promise<number> {
     const now = Date.now();
     if (
@@ -61,13 +100,7 @@ export class PlatformSettingsService {
       return this.cachedCommissionRate;
     }
 
-    const row = await this.prisma.platformSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {},
-      select: { marketplaceCommissionRate: true }
-    });
-
+    const row = await this.getOrCreateSettingsRow();
     const n = Number(row.marketplaceCommissionRate);
     const rate =
       Number.isFinite(n) && n >= 0 && n < 1
@@ -87,12 +120,7 @@ export class PlatformSettingsService {
     ) {
       return this.cachedSellerCommissionRate;
     }
-    const row = await this.prisma.platformSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {},
-      select: { sellerMarketplaceCommissionRate: true }
-    });
+    const row = await this.getOrCreateSettingsRow();
     const n = Number(row.sellerMarketplaceCommissionRate);
     const rate =
       Number.isFinite(n) && n >= 0 && n < 1 ? n : DEFAULT_SELLER_COMMISSION_RATE;
@@ -109,12 +137,7 @@ export class PlatformSettingsService {
     ) {
       return this.cachedVetCommissionRate;
     }
-    const row = await this.prisma.platformSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {},
-      select: { vetCommissionRate: true }
-    });
+    const row = await this.getOrCreateSettingsRow();
     const n = Number(row.vetCommissionRate);
     const rate =
       Number.isFinite(n) && n >= 0 && n < 1 ? n : DEFAULT_VET_COMMISSION_RATE;
@@ -129,15 +152,32 @@ export class PlatformSettingsService {
     marketplaceSellerCommissionRate: number;
     vetCommissionRate: number;
   }> {
-    const [
-      marketplaceBuyerCommissionRate,
-      marketplaceSellerCommissionRate,
-      vetCommissionRate
-    ] = await Promise.all([
-      this.getMarketplaceCommissionRate(),
-      this.getSellerMarketplaceCommissionRate(),
-      this.getVetCommissionRate()
-    ]);
+    const row = await this.getOrCreateSettingsRow();
+    const buyer = Number(row.marketplaceCommissionRate);
+    const seller = Number(row.sellerMarketplaceCommissionRate);
+    const vet = Number(row.vetCommissionRate);
+    const now = Date.now();
+
+    const marketplaceBuyerCommissionRate =
+      Number.isFinite(buyer) && buyer >= 0 && buyer < 1
+        ? buyer
+        : DEFAULT_MARKETPLACE_COMMISSION_RATE;
+    const marketplaceSellerCommissionRate =
+      Number.isFinite(seller) && seller >= 0 && seller < 1
+        ? seller
+        : DEFAULT_SELLER_COMMISSION_RATE;
+    const vetCommissionRate =
+      Number.isFinite(vet) && vet >= 0 && vet < 1
+        ? vet
+        : DEFAULT_VET_COMMISSION_RATE;
+
+    this.cachedCommissionRate = marketplaceBuyerCommissionRate;
+    this.cachedAt = now;
+    this.cachedSellerCommissionRate = marketplaceSellerCommissionRate;
+    this.cachedSellerAt = now;
+    this.cachedVetCommissionRate = vetCommissionRate;
+    this.cachedVetAt = now;
+
     return {
       marketplaceBuyerCommissionRate,
       marketplaceSellerCommissionRate,
@@ -153,28 +193,11 @@ export class PlatformSettingsService {
     ) {
       return this.cachedWeightArbitration;
     }
-    const row = await this.prisma.platformSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {},
-      select: {
-        marketplaceWeightArbitrationMinDiffKg: true,
-        marketplaceWeightArbitrationCumulativeMinDiffKg: true,
-        marketplaceWeightTolerancePercent: true
-      }
-    });
+    const row = await this.getOrCreateSettingsRow();
     const thresholds = normalizeWeightArbitrationThresholds(row);
     this.cachedWeightArbitration = thresholds;
     this.cachedWeightArbitrationAt = now;
     return thresholds;
-  }
-
-  async getOrCreateSettingsRow(): Promise<PlatformSettings> {
-    return this.prisma.platformSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {}
-    });
   }
 
   /** Valeurs DB + `supportEffective` (même logique que `GET /config/client`). */
@@ -213,12 +236,7 @@ export class PlatformSettingsService {
       return this.cachedSupport;
     }
 
-    const row = await this.prisma.platformSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {},
-      select: { supportPhone: true, supportTelegramUrl: true }
-    });
+    const row = await this.getOrCreateSettingsRow();
 
     const phone =
       normalizePhone(row.supportPhone) ??

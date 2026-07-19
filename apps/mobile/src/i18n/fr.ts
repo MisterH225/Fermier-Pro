@@ -3655,13 +3655,13 @@ export const fr = {
     nav: {
       home: "Accueil",
       tasks: "Tâches",
-      farm: "Ferme",
-      tracking: "Suivi"
-    },
-    extended: {
       vaccinations: "Vaccinations",
       weighings: "Pesées",
-      feedStock: "Stock aliment",
+      feedStock: "Stock aliment"
+    },
+    extended: {
+      farm: "Ferme",
+      tracking: "Suivi",
       reports: "Rapports"
     },
     dashboard: {
