@@ -1,491 +1,453 @@
-# Rapport d'audit de sécurité — Fermier Pro
+# Security Audit Report — Fermier Pro NestJS API
 
-**Date :** 7 juin 2026  
-**Périmètre :** `apps/mobile` (Expo/React Native), `apps/api` (NestJS/Prisma), `apps/admin-platform` (Next.js), Supabase (Auth, Postgres, Storage)  
-**Type :** Revue offensive statique (code + configuration versionnée)  
-**Auditeur :** Analyse automatisée Cursor (lecture seule, aucune modification de code)
-
----
-
-## Résumé exécutif
-
-| Indicateur | Valeur |
-|------------|--------|
-| **Niveau de risque global** | **CRITIQUE** |
-| **Verdict lancement prod (paiements / escrow)** | **NON PRÊT** |
-| **Verdict lancement prod (hors paiements)** | **CONDITIONNEL** (correctifs High requis) |
-| Findings Critiques | 12 |
-| Findings High | 14 |
-| Findings Medium | 18 |
-| Findings Low / Info | 12 |
-
-Fermier Pro dispose d'une architecture de sécurité **conceptuellement solide** (JWT Supabase, guards NestJS, scopes par ferme, commission figée côté serveur, contrôles PigPrice anti-manipulation, throttle global). En revanche, la **couche financière est encore en mode développement** : gateway mobile money simulé, confirmation de paiement pilotée par le client, absence de webhooks signés, et conditions de course sur le règlement escrow. Combiné au stockage des tokens en AsyncStorage, à l'absence de RLS Postgres, et à des politiques Storage permissives, l'application **ne doit pas traiter de fonds réels** avant correction des findings Critiques.
-
-**Priorité absolue avant trafic production :** escrow/paiements, webhooks MM, verrouillages transactionnels, SecureStore, RLS Storage, blocage modification annonce en escrow.
+**Audit Date:** 2026-07-20
+**Scope:** `/workspace/apps/api/src/`
+**Auditor:** Automated Security Agent
 
 ---
 
-## Méthodologie
+## Finding 1: Broken `pg_advisory_lock` in Escrow Settlement — Double-Spend on Fund Release
 
-Chaque contrôle de la spec d'audit a été évalué en **PASS**, **FAIL** ou **CANNOT_DETERMINE** via :
+**Severity:** CRITICAL
+**File:** `apps/api/src/marketplace/escrow/marketplace-transaction.service.ts`
+**Lines:** 2346–2348, 1964–1966
 
-- Lecture systématique du code source et des migrations Supabase
-- `npm audit --audit-level=high` sur `apps/api` et `apps/mobile`
-- Recherche grep (`$queryRaw`, secrets, SecureStore, RLS, webhooks, etc.)
+### Description
 
-**Limites :** configuration Supabase Auth (durée JWT, rate limit OTP) non visible dans le dépôt ; comportement Railway prod ; tests d'intrusion dynamiques non réalisés ; RLS Postgres non testée par appels directs à l'API Supabase PostgREST.
+The `settleTransaction()` and `settleCreditTransaction()` methods use PostgreSQL advisory locks (`pg_advisory_lock`) via `this.prisma.$executeRaw`. However, with Prisma's connection pooling (and especially behind Supabase's PgBouncer transaction pooler), each `$executeRaw` call may use a **different database connection** than subsequent `findUnique()`, `updateMany()`, and `releaseFundsToSeller()` calls. The advisory lock is bound to the PostgreSQL session/connection, so the lock acquired on one connection provides **zero protection** for operations executing on other connections.
 
----
-
-## Findings CRITIQUES
-
-> Exploitables ou bloquants avant tout trafic production impliquant des fonds.
-
----
-
-### C-01 — Gateway mobile money de développement en production de code
-
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement / Escrow |
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/api/src/marketplace/marketplace.module.ts`, `apps/api/src/vet-appointments/vet-appointments.module.ts`, `apps/api/src/marketplace/escrow/dev-mobile-money.gateway.ts` |
-| **Description** | Le provider `MOBILE_MONEY_GATEWAY` est toujours `DevMobileMoneyGateway` (état en mémoire, confirmations simulées sans opérateur réel). |
-| **Reproduction** | Acheteur authentifié appelle `POST /marketplace/transactions/:id/payment/confirm` → statut `PAYMENT_HELD` sans débit réel. |
-| **Impact** | Escrow entièrement contournable ; fonds fictifs ; fausse confiance vendeur/acheteur. |
-| **Correctif recommandé** | Implémenter un gateway production (Orange/MTN/Wave) ; brancher via factory env (`MOBILE_MONEY_PROVIDER=wave`) ; interdire `DevMobileMoneyGateway` si `NODE_ENV=production`. |
-
----
-
-### C-02 — Confirmation de paiement pilotée par le client (pas de webhook provider)
-
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement / Escrow |
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/api/src/marketplace/escrow/marketplace-transaction.controller.ts` (~L42-48), `marketplace-transaction.service.ts` (L148-164), `vet-appointment.service.ts` (L518-533) |
-| **Description** | Aucun endpoint webhook mobile money dans `apps/api/src`. La transition `PAYMENT_PENDING → PAYMENT_HELD` dépend d'un appel REST initié par l'acheteur, pas d'une confirmation asynchrone signée du provider. |
-| **Reproduction** | Appeler `payment/confirm` après `initiatePayment` sans interaction opérateur (dev gateway retourne `success: true`). |
-| **Impact** | Fraude paiement ; non-conformité aux pratiques MM en Afrique de l'Ouest. |
-| **Correctif recommandé** | Webhook HMAC signé comme source de vérité ; endpoint client = polling ou idempotent replay uniquement ; rejeter confirm sans statut provider `SUCCESS`. |
+### Code Evidence
 
 ```typescript
-// Pattern recommandé
-@Post('webhooks/mobile-money')
-async handleWebhook(@Headers('x-signature') sig: string, @Body() body: ProviderEvent) {
-  if (!this.gateway.verifySignature(sig, body)) throw new UnauthorizedException();
-  await this.escrowService.applyProviderEvent(body); // idempotent par providerRef
+// Line 2346-2348
+async settleTransaction(transactionId: string): Promise<void> {
+    const lockKey = `settle:${transactionId}`;
+    await this.prisma.$executeRaw`SELECT pg_advisory_lock(hashtext(${lockKey}))`;
+    try {
+      // These operations may run on DIFFERENT connections:
+      const tx = await this.prisma.marketplaceTransaction.findUnique({...});
+      // ...fund release, status update all happen outside the lock's connection
+```
+
+### Attack Path
+
+1. A buyer confirms receipt on a per-kg marketplace transaction.
+2. `confirmReceipt()` calls `settleTransaction()` to release funds.
+3. Concurrently, the marketplace cron job or a webhook also triggers `settleTransaction()` for the same transaction.
+4. Both processes acquire advisory locks on **different connections** — both succeed.
+5. The `priorRelease` check (line 2367) and `updateMany` (line 2446) could race, causing duplicate `releaseFundsToSeller()` calls, crediting the seller wallet twice.
+
+### Mitigation
+
+Replace `pg_advisory_lock` with the existing `DistributedLockService` (Redis-based), or wrap the entire settlement in a Prisma `$transaction` with serializable isolation.
+
+---
+
+## Finding 2: TOCTOU Race Condition in Wallet Withdrawal Initiation
+
+**Severity:** HIGH
+**File:** `apps/api/src/wallet/withdrawal-orchestrator.service.ts`
+**Lines:** 56–101
+
+### Description
+
+The `initiateWithdrawal()` method has a time-of-check-time-of-use (TOCTOU) race between `assertSufficientBalance()` (line 81) and `lockFundsForWithdrawal()` (lines 97/130). The balance check is a simple read, and the lock is a separate transaction with an atomic `updateMany` WHERE `balance >= amount`. While `lockFundsForWithdrawal` itself is atomic (line 465-478, it uses `updateMany` with a balance condition), the prior `assertSufficientBalance()` call is redundant but misleading — the **real vulnerability** is that between the balance check and the lock, a concurrent transfer or top-up could change the balance, but more critically: two concurrent `initiateWithdrawal` calls can both pass `assertSufficientBalance()` and then both attempt `lockFundsForWithdrawal()`. While only one will succeed at the atomic `updateMany` level, the error handling **after** a gateway failure (lines 173-186) releases funds with a unique idempotency key per attempt, meaning a partial race could leave the system in an inconsistent state if two identical withdrawal initiations occur before the idempotency check (line 85-90) catches them.
+
+### Code Evidence
+
+```typescript
+// Line 81: Non-atomic balance check
+await this.wallet.assertSufficientBalance(user.id, feeBreakdown.totalDebit);
+
+// Line 83-90: Idempotency uses client-provided or random key
+const idempotencyKey =
+  clientRequestId?.trim() || `withdraw-init:${randomUUID()}`;
+const existing = await this.prisma.withdrawalRequest.findUnique({
+  where: { idempotencyKey }
+});
+
+// Line 97-101: Separate atomic lock
+await this.wallet.lockFundsForWithdrawal(
+  user.id, feeBreakdown.totalDebit, summary.currency
+);
+```
+
+### Attack Path
+
+1. Attacker sends two rapid `POST /users/me/wallet/withdraw/initiate` requests (rate limit is 3/min, so this is allowed).
+2. Without a `clientRequestId`, each gets a unique `randomUUID()` idempotency key.
+3. Both pass `assertSufficientBalance()` before either locks funds.
+4. Both call `lockFundsForWithdrawal()` — the atomic `updateMany` ensures only one succeeds, but if the **first** fails at the gateway level and releases, the **second** could then succeed with the remaining balance that should have been considered locked.
+
+### Mitigation
+
+Use a user-scoped distributed lock (`DistributedLockService`) around the entire withdrawal flow to serialize concurrent withdrawal attempts per user.
+
+---
+
+## Finding 3: Inline `@Body()` Types Bypass Global ValidationPipe
+
+**Severity:** HIGH
+**Files:** Multiple controllers
+**Locations:**
+- `apps/api/src/admin-platform/admin-platform.controller.ts` lines 665, 796, 845, 865
+- `apps/api/src/marketplace/escrow/marketplace-transaction.controller.ts` lines 168, 196
+- `apps/api/src/farm-settings/farm-settings.controller.ts` lines 37, 52, 63
+- `apps/api/src/vets/vets.controller.ts` line 117
+- `apps/api/src/vet-appointments/vet-appointment.controller.ts` line 137
+- `apps/api/src/marketplace/credit/credit-offers.controller.ts` line 121
+- `apps/api/src/community-feed/community-feed-admin.controller.ts` line 66
+- `apps/api/src/gestation/gestation.controller.ts` line 164
+
+### Description
+
+The global `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true` only strips/rejects unknown properties when the body parameter is typed as a **class** with `class-validator` decorators. When the body is typed as a plain TypeScript **interface or inline object type** (`@Body() body: { reason?: string }`), the ValidationPipe has no metadata to work with and passes the entire raw body through **unvalidated and unfiltered**.
+
+This means any extra properties sent by a client in the request body are passed to the handler without being stripped.
+
+### Code Evidence
+
+```typescript
+// admin-platform.controller.ts line 796 — admin arbitration weight endpoint
+@Post("marketplace/transactions/:id/arbitrate")
+adminArbitrateWeight(
+  @CurrentUser() admin: User,
+  @Param("id") id: string,
+  @Body() body: { arbitrationWeightKg: number }  // No class-validator, no whitelist filtering
+) {
+  return this.marketplaceTransactions.arbitrateWeight(
+    admin.id, id, body.arbitrationWeightKg
+  );
+}
+
+// admin-platform.controller.ts line 845 — admin vet refund amount
+@Post("vet-appointments/:id/refund")
+adminRefundVetAppointment(
+  @Param("id") id: string,
+  @Body() body: { amount?: number }  // No validation — amount could be NaN, negative, etc.
+) {
+  return this.vetAppointments.adminManualRefund(id, body.amount);
+}
+
+// farm-settings.controller.ts line 63 — passes full unvalidated body to service
+@Patch("notifications")
+patchNotifications(
+  @CurrentUser() user: User,
+  @Param("farmId") farmId: string,
+  @Body() body: {
+    push?: PatchFarmSettingsDto["alerts"];
+    extra?: Record<string, unknown>;  // Arbitrary JSON stored directly to DB
+  }
+) {
+  return this.settings.patchNotifications(user, farmId, body);
 }
 ```
 
----
+### Attack Path
 
-### C-03 — `providerRef` non lié à la transaction (confirmation croisée)
+1. An attacker sends a `PATCH /farms/:id/settings/notifications` request with `body.extra` containing arbitrary large JSON blobs — this data is stored directly to the database `farmAppSettings.notificationExtra` column without size or content validation.
+2. For the admin refund endpoint, `body.amount` could be a string like `"99999999"` which `Number()` converts, or could be omitted entirely to trigger a full refund with no amount specified (depending on service logic).
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement / Escrow |
-| **Statut** | **FAIL** |
-| **Fichiers** | `marketplace-transaction.service.ts` (L153-157), `dev-mobile-money.gateway.ts` (L43-49) |
-| **Description** | `confirmPayment(user, transactionId, providerRef?)` accepte une ref arbitraire. Le gateway dev confirme toute ref pending valide sans vérifier qu'elle appartient à `transactionId`. |
-| **Reproduction** | Acheteur A initie paiement (ref R1). Acheteur B confirme transaction B avec `providerRef=R1`. |
-| **Impact** | Déblocage escrow sans paiement propre ; vol de confirmation. |
-| **Correctif recommandé** | Stocker `transactionId` dans le gateway ; `confirmHold(ref, expectedTxId)` ; rejeter mismatch. |
+### Mitigation
+
+Replace all inline `@Body() body: { ... }` type annotations with proper DTO classes decorated with `class-validator` validators.
 
 ---
 
-### C-04 — Race condition sur `settleTransaction` (double règlement)
+## Finding 4: Buyer Email Exposed to Sellers via Offers Endpoint
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement / Escrow |
-| **Statut** | **FAIL** |
-| **Fichiers** | `marketplace-transaction.service.ts` (L498-596, L267-281, L464-494), `marketplace-transaction.cron.ts` |
-| **Description** | `settleTransaction` lit `WEIGHT_VALIDATED` sans lock ni `updateMany` conditionnel. Appelé depuis validation manuelle, arbitrage admin, et cron auto-24h. Opérations gateway **avant** la transaction Prisma de clôture. |
-| **Reproduction** | Deux requêtes/cron concurrents sur même `transactionId` → double `refundBuyer` / `releaseFundsToSeller`. |
-| **Impact** | Double versement ou double remboursement ; perte plateforme. |
-| **Correctif recommandé** | Transition optimiste : `updateMany({ where: { id, status: WEIGHT_VALIDATED }})` → si count=0, return idempotent ; **puis** gateway ; advisory lock Postgres pour cron multi-instance. |
+**Severity:** MEDIUM
+**File:** `apps/api/src/marketplace/offers.service.ts`
+**Lines:** 256–297
+
+### Description
+
+The `listReceived()` method (called by sellers to view offers on their listings) includes the buyer's **email address** in the response via the Prisma `include`:
 
 ```typescript
-const updated = await prisma.marketplaceTransaction.updateMany({
-  where: { id: transactionId, status: 'WEIGHT_VALIDATED' },
-  data: { status: 'SETTLING' },
-});
-if (updated.count === 0) return; // déjà en cours ou clos
-// ops gateway...
-await prisma.marketplaceTransaction.update({ where: { id }, data: { status: 'TRANSACTION_CLOSED' } });
+buyer: { select: { id: true, fullName: true, email: true } },
 ```
 
----
+This exposes buyer PII (email) to any seller who receives an offer. The `accept()` method (line 389-401) similarly exposes buyer emails when returning the listing with all offers.
 
-### C-05 — Opérations financières hors transaction Prisma atomique
-
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement / Escrow |
-| **Statut** | **FAIL** |
-| **Fichiers** | `marketplace-transaction.service.ts` (L516-596), `escrow.service.ts` |
-| **Description** | `chargeAdditional`, `refundBuyer`, `releaseFundsToSeller`, `collectCommission` s'exécutent avant le `$transaction` Prisma qui passe à `TRANSACTION_CLOSED` et crée `platform_revenue`. |
-| **Reproduction** | Crash API entre appel gateway et update DB → fonds mouvementés, transaction toujours `WEIGHT_VALIDATED` ; retry → double mouvement. |
-| **Impact** | Incohérence ledger/état ; double payout au retry. |
-| **Correctif recommandé** | Pattern saga : statut intermédiaire `SETTLING` + idempotency keys gateway + reconciliation job. |
-
----
-
-### C-06 — Versement vendeur marketplace sans appel gateway réel
-
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement / Escrow |
-| **Statut** | **FAIL** |
-| **Fichiers** | `escrow.service.ts` (L45-58) vs `vet-appointment.service.ts` (L645-652) |
-| **Description** | `releaseFundsToSeller` ne fait qu'un `logMovement` DB. `MobileMoneyGateway.releaseFunds` existe mais n'est pas appelé pour le marketplace (contrairement aux RDV vet). |
-| **Impact** | En prod réelle, vendeur marketplace jamais payé malgré clôture ; asymétrie vet/marketplace. |
-| **Correctif recommandé** | Appeler `gateway.releaseFunds({ sellerUserId, amount, transactionId })` avec même pattern que vet. |
-
----
-
-### C-07 — Tokens Supabase en AsyncStorage (plaintext)
-
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Auth mobile |
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/mobile/src/lib/supabase.ts` (L1, L26-30), `SessionContext.tsx` (L22, L109-143) |
-| **Description** | Session Supabase (access + refresh tokens) persistée via `@react-native-async-storage/async-storage`. Aucun `expo-secure-store` dans le projet. |
-| **Reproduction** | Appareil rooté/jailbreaké ou backup non chiffré → extraction tokens → usurpation session. |
-| **Impact** | Accès compte, paiements, données santé/finance. |
-| **Correctif recommandé** | Adapter Supabase storage vers SecureStore (Keychain/Keystore) ; chiffrer cache `auth_me` ou le retirer. |
+### Code Evidence
 
 ```typescript
-import * as SecureStore from 'expo-secure-store';
-const storage = {
-  getItem: (k) => SecureStore.getItemAsync(k),
-  setItem: (k, v) => SecureStore.setItemAsync(k, v),
-  removeItem: (k) => SecureStore.deleteItemAsync(k),
-};
+// Line 266-268 in listReceived()
+buyer: { select: { id: true, fullName: true, email: true } },
+
+// Line 394-396 in accept()
+buyer: { select: { id: true, fullName: true, email: true } }
 ```
 
----
+### Attack Path
 
-### C-08 — Absence de RLS sur les tables Postgres applicatives
+1. A seller lists an item on the marketplace.
+2. Any buyer submits an offer.
+3. The seller calls `GET /marketplace/offers/received`.
+4. The response includes the buyer's email address, which was never intended to be shared with sellers.
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Exposition données / Supabase |
-| **Statut** | **FAIL** |
-| **Fichiers** | `supabase/migrations/` (13 fichiers — aucun `ENABLE ROW LEVEL SECURITY` sur tables métier) |
-| **Description** | Sécurité reposant uniquement sur NestJS + connexion Prisma privilégiée. Si PostgREST/Realtime/accès direct anon mal configuré, contournement possible. |
-| **Impact** | Fuite masse données (fermes, santé, finance, transactions) si clé anon + endpoint Supabase exposé. |
-| **Correctif recommandé** | RLS sur toutes tables `public` ; policies `auth.uid()` ; tests bypass PostgREST ; documenter que seul le backend écrit. |
+### Mitigation
+
+Remove `email: true` from the `buyer` select clause in `listReceived()` and `accept()`. If needed, use masked/display-only identifiers.
 
 ---
 
-### C-09 — Politiques Storage permissives (finance, photos, annonces)
+## Finding 5: Community Feed Admin Endpoints Expose User Emails to All Console Users
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Exposition données |
-| **Statut** | **FAIL** |
-| **Fichiers** | `supabase/migrations/20260519120000_storage_buckets.sql` (L74-88), `20260520130000_animal_photos_bucket.sql`, `20260530180000_listings_photos_bucket.sql` |
-| **Description** | Tout utilisateur `authenticated` peut INSERT/UPDATE/DELETE sur **tout** le bucket (pas de restriction par préfixe `auth.uid()` sauf avatars). |
-| **Reproduction** | Utilisateur A upload/supprime fichier dans le chemin de l'utilisateur B si URL/path deviné. |
-| **Impact** | Suppression preuves finance ; remplacement photos annonce ; sabotage. |
-| **Correctif recommandé** | Policies `(storage.foldername(name))[1] = auth.uid()::text` par bucket. |
+**Severity:** MEDIUM
+**File:** `apps/api/src/community-feed/community-feed.service.ts`
+**Lines:** 199, 205, 588, 615, 636
 
----
+### Description
 
-### C-10 — Bucket vet-credentials public en lecture
+The community feed admin listing methods (`listPostsAdmin`, `listModEvents`, `listSuspendedUsers`, `listAppeals`) include user email addresses in responses. These endpoints are served by `community-feed-admin.controller.ts` which uses the `ConsoleAccessGuard` — this allows both superadmins **and** institution console users to access them. Institution users are external government/regulatory accounts that should not have access to individual user emails.
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Exposition données |
-| **Statut** | **FAIL** |
-| **Fichiers** | `supabase/migrations/20260523140000_vet_credentials_bucket.sql` (L6-8, L16-19) |
-| **Description** | Bucket `public: true` + policy SELECT `TO public`. |
-| **Impact** | Diplômes/certificats vétérinaires accessibles sans auth si URL connue. |
-| **Correctif recommandé** | Bucket privé ; signed URLs via backend ; SELECT réservé admin/vet owner. |
+### Code Evidence
 
----
+```typescript
+// Line 199 — listPostsAdmin
+authorUser: { select: { id: true, email: true, fullName: true } },
 
-### C-11 — Prix annonce modifiable pendant escrow actif
+// Line 588 — listModEvents
+user: { select: { id: true, email: true, fullName: true } }
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Logique métier / PigPrice |
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/api/src/marketplace/listings.service.ts` (L614-625), `marketplace-transaction.service.ts` (L180-183), `transaction.utils.ts` (`ACTIVE_ESCROW_STATUSES`) |
-| **Description** | `update()` bloque `reserved/sold/cancelled` mais pas les annonces `published` avec transaction escrow active (`PAYMENT_HELD`, etc.). Acceptation offre ne passe pas l'annonce en `reserved`. |
-| **Reproduction** | Vendeur accepte offre → acheteur paie → vendeur modifie `pricePerKg` / `totalPrice` via PATCH listing. |
-| **Impact** | Manipulation PigPrice (poids 0.3 annonces publiées) ; confusion acheteur ; arbitrage incohérent. |
-| **Correctif recommandé** | Avant update, vérifier absence de tx dans `ACTIVE_ESCROW_STATUSES` ; ou passer listing en `reserved` dès `PAYMENT_HELD`. |
+// Line 615 — listSuspendedUsers
+select: { id: true, email: true, fullName: true, feedStatus: true, ... }
+```
+
+### Attack Path
+
+An institution console user (e.g., a government agricultural inspector) accesses the feed moderation endpoints and harvests email addresses of all community feed users.
+
+### Mitigation
+
+Restrict email exposure based on the console role, or remove email from institution-visible responses.
 
 ---
 
-### C-12 — Absence de webhooks mobile money (signature / réconciliation)
+## Finding 6: Missing Rate Limiting on Marketplace Financial Endpoints
 
-| Champ | Détail |
-|-------|--------|
-| **Domaine** | Paiement |
-| **Statut** | **FAIL** |
-| **Fichiers** | Recherche `webhook` dans `apps/api/src` → 0 résultat |
-| **Description** | Aucune validation signature gateway, pas de réconciliation asynchrone. |
-| **Impact** | Modèle de confiance client incompatible production MM. |
-| **Correctif** | Voir C-02. |
+**Severity:** MEDIUM
+**Files:**
+- `apps/api/src/marketplace/escrow/marketplace-transaction.controller.ts`
+- `apps/api/src/marketplace/offers.controller.ts`
+- `apps/api/src/marketplace/listings.controller.ts`
 
----
+### Description
 
-## Findings HIGH
+Critical marketplace endpoints that trigger financial operations (payment initiation, payment confirmation, offer creation, offer acceptance) rely solely on the global rate limit of **200 requests per 60 seconds**. In contrast, wallet endpoints appropriately use `@Throttle({ default: { limit: 3, ttl: 60_000 } })`. The marketplace endpoints have no per-endpoint throttle override.
 
----
+### Code Evidence
 
-### H-01 — Comptes bannis/suspendus contournables hors `/auth/me`
+```typescript
+// marketplace-transaction.controller.ts — NO @Throttle decorator
+@Post(":id/payment/initiate")
+initiatePayment(...) { ... }
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `supabase-jwt.guard.ts` (L13-21), `optional-active-profile.guard.ts` (L22-41) — guard appliqué **uniquement** sur `auth.controller.ts` |
-| **Description** | `SupabaseJwtGuard` ne vérifie pas `accountStatus`. La logique ban/suspend existe dans `OptionalActiveProfileGuard` mais n'est pas globale (`APP_GUARD` = ThrottlerGuard seulement). |
-| **Impact** | Utilisateur banni continue d'appeler API avec JWT valide jusqu'à expiration. |
-| **Correctif** | Enregistrer `OptionalActiveProfileGuard` (ou middleware ban) en `APP_GUARD` global après JWT. |
+@Post(":id/payment/confirm")
+confirmPayment(...) { ... }
 
----
+// offers.controller.ts — NO @Throttle decorator
+@Post("listings/:listingId/offers")
+create(...) { ... }
 
-### H-02 — `confirmPayment` sans idempotence (double confirmation)
+@Post("listings/:listingId/offers/:offerId/accept")
+accept(...) { ... }
+```
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `marketplace-transaction.service.ts` (L148-184) |
-| **Correctif** | `updateMany({ where: { id, status: PAYMENT_PENDING }})` ; retour idempotent si déjà `PAYMENT_HELD`. |
+Compare with wallet controller (properly throttled):
+```typescript
+@Post("top-up/initiate")
+@Throttle({ default: { limit: 3, ttl: 60_000 } })
+initiateTopUp(...) { ... }
+```
 
----
+### Attack Path
 
-### H-03 — `cancelByBuyer` refund non atomique
+1. An attacker can rapidly call `POST /marketplace/transactions/:id/payment/initiate` up to 200 times per minute, triggering 200 GeniusPay payment initiation calls. This can:
+   - Exhaust GeniusPay API quotas
+   - Create 200 pending checkout sessions for a single transaction
+   - Potentially cause webhook confusion with multiple provider references
+2. Offer creation spam: 200 offers/minute across different listings
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `marketplace-transaction.service.ts` (L344-377) |
-| **Description** | Refund gateway puis update statut ; pas de garde « déjà remboursé ». |
-| **Correctif** | Transaction + statut intermédiaire `CANCELLING`. |
+### Mitigation
 
----
-
-### H-04 — CORS WebSocket `origin: "*"`
-
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/api/src/chat/chat.gateway.ts` (~L17-19), `tasks.gateway.ts` (~L16-18) |
-| **Impact** | Sites malveillants peuvent initier connexions cross-origin (JWT toujours requis à la connexion). |
-| **Correctif** | Aligner sur `CORS_ORIGINS` du REST. |
+Add `@Throttle` decorators on all marketplace financial mutation endpoints with limits similar to wallet (3-5 per minute).
 
 ---
 
-### H-05 — Helmet absent (en-têtes HTTP sécurité)
+## Finding 7: `UpdatePlatformSettingsDto` Allows Any Console User to Modify Commission Rates
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/api/src/main.ts`, `apps/api/package.json` |
-| **Correctif** | `app.use(helmet())` ; CSP pour admin-platform. |
+**Severity:** HIGH
+**File:** `apps/api/src/admin-platform/admin-platform.controller.ts`
+**Lines:** 586-589
+**DTO File:** `apps/api/src/admin-platform/dto/admin-platform.dto.ts`
+**Lines:** 35-222
 
----
+### Description
 
-### H-06 — OAuth mobile flux implicit (tokens dans URL)
+The `PATCH /admin/settings` endpoint uses `ConsoleAccessGuard` + `AdminConsoleMenuGuard` but does **not** use `SuperAdminGuard`. The `UpdatePlatformSettingsDto` includes highly sensitive fields like `marketplaceCommissionRate`, `sellerMarketplaceCommissionRate`, `vetCommissionRate`, and `withdrawalAutoApproveThreshold`.
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `apps/mobile/src/lib/supabase.ts` (L13-14), `googleAuth.ts` (L48-82) |
-| **Description** | `flowType: "implicit"` natif ; tokens extraits du fragment URL. |
-| **Impact** | Fuite tokens via logs/deep links/historique. |
-| **Correctif** | PKCE natif Supabase ; `hostUri` production vérifié (partiellement OK : `fermier-pro://` L18-22 `googleAuth.ts`). |
+Institution console users (external government accounts) can potentially modify these financial settings if they have the correct menu permissions.
 
----
+### Code Evidence
 
-### H-07 — IDOR lecture RDV vétérinaire (membres ferme)
+```typescript
+// admin-platform.controller.ts line 586-589
+@Patch("settings")
+updateSettings(@Body() dto: UpdatePlatformSettingsDto) {
+  return this.admin.updateSettings(dto);
+}
+// Note: NO @UseGuards(SuperAdminGuard) — only ConsoleAccessGuard + AdminConsoleMenuGuard from class
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `vet-appointment.service.ts` (L359-376) |
-| **Description** | `getById` : tout membre ferme peut lire RDV (producteur, vet, notes, prix). |
-| **Correctif** | Restreindre aux rôles producteur/vet concernés + scopes `vetRead`. |
+// DTO includes:
+marketplaceCommissionRate?: number;      // 0-99% commission
+sellerMarketplaceCommissionRate?: number;
+vetCommissionRate?: number;
+withdrawalAutoApproveThreshold?: number; // Can set to infinity to auto-approve all withdrawals
+```
 
----
+### Attack Path
 
-### H-08 — Vet appointments sans FarmScopesGuard
+1. An institution console user (or compromised institution account) sends `PATCH /admin/settings` with `{ "withdrawalAutoApproveThreshold": 999999999 }`.
+2. All withdrawals are now auto-approved without admin review.
+3. Or set `marketplaceCommissionRate: 0` to eliminate platform fees.
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `vet-appointment.controller.ts` (L19-37), `vet-appointment.service.ts` (L154-165) |
-| **Correctif** | `@RequireFarmScopes('vetWrite')` ou équivalent. |
+### Mitigation
 
----
-
-### H-09 — DTO inline sans class-validator
-
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `vet-appointment.controller.ts`, `marketplace-transaction.controller.ts`, `gestation.controller.ts`, `farm-settings.controller.ts` |
-| **Description** | `@Body() body: { ... }` bypass ValidationPipe. |
-| **Correctif** | DTO classes avec `@IsString()`, `@Min()`, `@MaxLength()`. |
+Add `@UseGuards(SuperAdminGuard)` to the `updateSettings()` endpoint, or split financial settings into a separate superadmin-only endpoint.
 
 ---
 
-### H-10 — `adminManualRefund` sans garde statut / idempotence
+## Finding 8: `pg_advisory_lock` Usage Is Documented as Broken with Supabase Pooler
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `vet-appointment.service.ts` (L1020-1052) |
-| **Impact** | Remboursements multiples sur même RDV. |
-| **Correctif** | Vérifier statut ; journal audit ; idempotency key. |
+**Severity:** HIGH
+**File:** `apps/api/src/common/distributed-lock.service.ts`
+**Lines:** 31-42 (comment block)
+**File:** `apps/api/src/marketplace/escrow/marketplace-transaction.service.ts`
+**Lines:** 2348, 1966
 
----
+### Description
 
-### H-11 — Cron auto-validation poids sans lock distribué
+The codebase itself documents that advisory locks are incompatible with the Supabase transaction pooler:
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `marketplace-transaction.cron.ts`, `marketplace-transaction.service.ts` (L464-494) |
-| **Correctif** | Advisory lock Postgres ; singleton cron Railway. |
+> *"Remplace les advisory locks Postgres, incompatibles avec le pooler transactionnel Supabase (port 6543) : chaque requête Prisma peut changer de connexion serveur"*
 
----
+Yet `settleTransaction()` and `settleCreditTransaction()` still use `pg_advisory_lock` via `$executeRaw` instead of the `DistributedLockService` that was created specifically to replace them.
 
-### H-12 — Secrets/config sensibles dans `eas.json` versionné
+### Code Evidence
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** (config) |
-| **Fichiers** | `apps/mobile/eas.json` (L18-44) |
-| **Description** | Anon key Supabase + Google OAuth client IDs en clair (anon key = public by design, mais rotation/exposition accrue). |
-| **Correctif** | EAS Secrets ; retirer clés du repo ; rotation si historique git public. |
+```typescript
+// distributed-lock.service.ts lines 31-42 — explains the problem
+/**
+ * Verrou distribué Redis (SET NX PX + release Lua).
+ *
+ * Remplace les advisory locks Postgres, incompatibles avec le pooler
+ * transactionnel Supabase (port 6543) : chaque requête Prisma peut changer
+ * de connexion serveur, donc lock/unlock n'étaient pas fiables.
+ */
 
----
+// BUT marketplace-transaction.service.ts still uses the broken mechanism:
+await this.prisma.$executeRaw`SELECT pg_advisory_lock(hashtext(${lockKey}))`;
+```
 
-### H-13 — Cache auth/profil en AsyncStorage
+### Attack Path
 
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `SessionContext.tsx`, `queryPersist.ts` |
-| **Impact** | PII (email, statuts modération) extractibles. |
-| **Correctif** | SecureStore ou pas de cache offline auth. |
+Same as Finding 1 — the advisory lock provides no actual mutual exclusion, enabling double fund release.
 
----
+### Mitigation
 
-### H-14 — Charge additionnelle poids > buffer bloque transaction
-
-| Champ | Détail |
-|-------|--------|
-| **Statut** | **FAIL** |
-| **Fichiers** | `transaction.utils.ts`, `marketplace-transaction.service.ts` (L516-525) |
-| **Impact** | Transaction bloquée indéfiniment en `WEIGHT_VALIDATED` si poids > 110% estimé. |
-| **Correctif** | Workflow litige / paiement complémentaire manuel / plafond négocié. |
+Replace `pg_advisory_lock`/`pg_advisory_unlock` in `settleTransaction()` and `settleCreditTransaction()` with `DistributedLockService.withLock()`.
 
 ---
 
-## Findings MEDIUM
+## Finding 9: Wallet Transfer `counterpartyUserId` Leaks Internal User IDs
 
-| ID | Domaine | Titre | Statut | Fichiers / notes |
-|----|---------|-------|--------|------------------|
-| M-01 | API | Pas de `forbidNonWhitelisted` sur ValidationPipe | FAIL | `main.ts` L25-29 |
-| M-02 | API | Endpoints publics sans throttle | FAIL | `app.controller.ts`, `config-client.controller.ts` |
-| M-03 | API | Ops internes protégées par secret partagé | FAIL* | `admin-vets.controller.ts`, `admin-pen-allocation.controller.ts` — dépend force secret |
-| M-04 | API | Erreurs prod non configurées explicitement | CANNOT_DETERMINE | Pas de `ExceptionFilter` custom |
-| M-05 | Auth | Rate limit login/OTP côté Supabase | CANNOT_DETERMINE | Auth directe Supabase, cooldown client 60s OTP |
-| M-06 | Auth | Pas de 2FA / re-auth paiements | FAIL | Aucune step-up auth |
-| M-07 | Auth | Session invalidation logout | PARTIAL | Supabase signOut mobile ; pas de révocation globale devices |
-| M-08 | Mobile | Pas de certificate pinning | FAIL | Aucune implémentation |
-| M-09 | Mobile | Pas de détection root/jailbreak | FAIL | Aucune implémentation |
-| M-10 | Mobile | Deep link push navigation sans allowlist | FAIL | `DeepNavigationService.ts` L356-359 |
-| M-11 | Admin | Cookie OAuth sans HttpOnly/Secure | FAIL | `admin-oauth.ts` L43 |
-| M-12 | Escrow | Ré-initiation paiement écrase `paymentProviderRef` | FAIL | `marketplace-transaction.service.ts` L121-140 |
-| M-13 | Escrow | Commission vet via env vs marketplace via DB | FAIL | `platform-settings.service.ts` vs `vet-appointment.service.ts` |
-| M-14 | Escrow | `photoUrl` poids non validée (SSRF futur) | FAIL | `marketplace-transaction.service.ts` L255 |
-| M-15 | Business | Montants `@Min(0)` autorisent zéro | FAIL | DTOs finance/marketplace |
-| M-16 | Business | PigPrice — annonces publiées pondérées 0.3 | FAIL | Manipulation prix pendant escrow (C-11) |
-| M-17 | Upload | Validation MIME/taille côté mobile absente | FAIL | `uploadFinanceProofToSupabase.ts`, etc. |
-| M-18 | Infra | `SUPABASE_SERVICE_ROLE_KEY` absent `.env.example` | FAIL | Documentation incomplète |
+**Severity:** MEDIUM
+**File:** `apps/api/src/wallet/user-wallet.service.ts`
+**Lines:** 1118-1142
 
----
+### Description
 
-## Findings LOW / Informationnel
+The `serializeEntry()` method returns `counterpartyUserId` in wallet entry responses. When a user calls `GET /users/me/wallet/entries`, each transfer entry reveals the internal UUID of the counterparty. Combined with the phone lookup endpoint, this enables enumeration of user IDs.
 
-| ID | Domaine | Titre | Statut |
-|----|---------|-------|--------|
-| L-01 | Auth | JWT expiry Supabase | **PASS** — `supabase-jwt.verifier.ts` |
-| L-02 | Auth | JWT secret serveur uniquement | **PASS** — pas dans mobile |
-| L-03 | Auth | Google redirect `fermier-pro://` en prod native | **PASS** — `googleAuth.ts` L18-22 |
-| L-04 | Auth | Password policy | **CANNOT_DETERMINE** — OTP/Google only |
-| L-05 | API | `$queryRaw` paramétré | **PASS** — tagged templates |
-| L-06 | API | Throttle global 200/min | **PASS** — `app.module.ts` |
-| L-07 | API | Throttle delete account 1/min | **PASS** — `auth.controller.ts` |
-| L-08 | API | SuperAdmin guard admin routes | **PASS** — `admin-platform.controller.ts` |
-| L-09 | API | IDOR transactions marketplace | **PASS** — `getById` vérifie buyer/seller L115-116 |
-| L-10 | API | Commission rate figée à création tx | **PASS** — L72, L95 |
-| L-11 | API | PigPrice public index agrégé | **PASS** — `pig-price-index.controller.ts` retourne agrégats |
-| L-12 | Deps | npm audit high/critical | **PASS** (aucun critical/high) — moderate uniquement (ajv, qs, ws, postcss) |
+### Code Evidence
 
----
+```typescript
+// Line 1130-1137
+private serializeEntry(row: { ... }): WalletEntryDto {
+  return {
+    id: row.id,
+    kind: row.kind,
+    amount: Number(row.amount),
+    balanceAfter: Number(row.balanceAfter),
+    currency: row.currency,
+    transactionId: row.transactionId,
+    counterpartyUserId: row.counterpartyUserId ?? null, // Internal UUID exposed
+    providerRef: row.providerRef ?? null,               // Payment provider reference exposed
+    note: row.note,
+    createdAt: row.createdAt.toISOString()
+  };
+}
+```
 
-## Matrice de conformité par domaine d'audit
+### Attack Path
 
-| Domaine | PASS | FAIL | CANNOT_DETERMINE | Verdict |
-|---------|------|------|------------------|---------|
-| 1. Auth & session | 4 | 4 | 3 | **High** |
-| 2. API security | 6 | 7 | 1 | **High** |
-| 3. Payment & escrow | 3 | 12 | 1 | **CRITIQUE** |
-| 4. Data exposure | 4 | 5 | 0 | **CRITIQUE** |
-| 5. Input validation | 3 | 4 | 1 | **Medium** |
-| 6. Mobile app | 2 | 8 | 0 | **High** |
-| 7. Rate limiting | 3 | 4 | 2 | **Medium** |
-| 8. Infrastructure | 3 | 5 | 2 | **Medium** |
-| 9. Business logic | 2 | 4 | 0 | **High** |
+1. User A transfers money to User B via phone number.
+2. User A checks their wallet entries.
+3. Response reveals User B's internal UUID.
+4. User A can now use this UUID to probe other endpoints.
+
+### Mitigation
+
+Return a masked display name instead of raw `counterpartyUserId`, or omit it from the response.
 
 ---
 
-## Plan de remédiation recommandé
+## Finding 10: Admin Vet Refund Endpoint Accepts Unvalidated Amount
 
-### Phase 0 — Bloquant prod (0-2 semaines)
+**Severity:** MEDIUM
+**File:** `apps/api/src/admin-platform/admin-platform.controller.ts`
+**Lines:** 842-848
 
-1. Remplacer `DevMobileMoneyGateway` + webhooks signés (C-01, C-02, C-12)
-2. Lier `providerRef` ↔ `transactionId` (C-03)
-3. Verrouillages idempotents `settleTransaction` / `confirmPayment` (C-04, C-05, H-02)
-4. Appeler gateway `releaseFunds` marketplace (C-06)
-5. SecureStore pour tokens (C-07)
-6. RLS Storage + bucket vet privé (C-09, C-10)
-7. Bloquer update listing en escrow (C-11)
+### Description
 
-### Phase 1 — High (2-4 semaines)
+The `adminRefundVetAppointment` endpoint accepts `body: { amount?: number }` as an inline type without DTO validation. The `amount` field has no minimum, maximum, or type enforcement from `class-validator`. A negative amount, zero, or extremely large number could be passed.
 
-8. Guard global ban/suspend (H-01)
-9. Helmet + CORS WS (H-04, H-05)
-10. DTO validation complète (H-09)
-11. EAS Secrets / retirer eas.json keys (H-12)
-12. PKCE OAuth natif (H-06)
+### Code Evidence
 
-### Phase 2 — Durcissement (1-2 mois)
+```typescript
+@Post("vet-appointments/:id/refund")
+adminRefundVetAppointment(
+  @Param("id") id: string,
+  @Body() body: { amount?: number }   // No class-validator — arbitrary value accepted
+) {
+  return this.vetAppointments.adminManualRefund(id, body.amount);
+}
+```
 
-13. RLS Postgres tables (C-08)
-14. Certificate pinning + root detection (M-08, M-09)
-15. 2FA step-up paiements (M-06)
-16. Pen test externe + bug bounty pilote
+### Attack Path
 
----
+A console user sends `{ "amount": -50000 }` or `{ "amount": 99999999 }` to refund an arbitrary amount for a vet appointment, potentially creating money or stealing funds.
 
-## Conclusion
+### Mitigation
 
-Fermier Pro **ne doit pas ouvrir les paiements mobile money en production** dans l'état actuel du code audité. Les fonds escrow, commissions et remboursements sont **simulés et vulnérables aux races, confirmations client frauduleuses et incohérences ledger**. Les données sensibles (tokens, preuves finance, diplômes vet) présentent des risques d'exposition sur mobile et Supabase Storage.
-
-Le socle NestJS (scopes ferme, validation partielle, throttle, PigPrice anti-manipulation) est une base saine pour itérer rapidement sur les correctifs listés en Phase 0.
+Create a proper DTO class with `@IsOptional()`, `@IsNumber()`, `@Min(0)`, `@Max(...)` decorators.
 
 ---
 
-*Rapport généré par analyse statique du dépôt au commit `0daec55` (main). Aucune modification de code effectuée durant cet audit.*
+## Summary Table
+
+| # | Finding | Severity | Category |
+|---|---------|----------|----------|
+| 1 | Broken `pg_advisory_lock` in settlement — double fund release | **CRITICAL** | Race Condition |
+| 2 | TOCTOU in wallet withdrawal initiation | **HIGH** | Race Condition |
+| 3 | Inline `@Body()` types bypass ValidationPipe (13+ endpoints) | **HIGH** | Mass Assignment |
+| 4 | Buyer email exposed to sellers in offer responses | **MEDIUM** | Data Exposure |
+| 5 | User emails exposed to institution console users in feed admin | **MEDIUM** | Data Exposure |
+| 6 | Missing rate limiting on marketplace financial endpoints | **MEDIUM** | Rate Limiting |
+| 7 | Platform settings (commissions, thresholds) modifiable by non-superadmin | **HIGH** | Business Logic |
+| 8 | Known-broken `pg_advisory_lock` still used in financial settlement | **HIGH** | Race Condition |
+| 9 | Wallet entries leak internal `counterpartyUserId` | **MEDIUM** | Data Exposure |
+| 10 | Admin vet refund accepts unvalidated amount | **MEDIUM** | Mass Assignment |
