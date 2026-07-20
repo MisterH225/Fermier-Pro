@@ -20,6 +20,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
+import { MarketplaceBrowseListings } from "../components/marketplace/MarketplaceBrowseListings";
 import {
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
@@ -256,6 +257,9 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       Boolean(isBuyerProfile && favoritesOnly && accessToken)
   });
 
+  /** Liste annonces buyerView : déléguée à MarketplaceBrowseListings. */
+  const useSharedBrowseListings = marketBrowseAsBuyer && !favoritesOnly;
+
   const listingsQuery = useQuery({
     queryKey: ["marketplaceListings", activeProfileId, category, searchParam],
     queryFn: () =>
@@ -267,7 +271,8 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     enabled:
       clientFeatures.marketplace &&
       marketTab === "listings" &&
-      !favoritesOnly
+      !favoritesOnly &&
+      !useSharedBrowseListings
   });
 
   const myListingsQuery = useQuery({
@@ -514,6 +519,20 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       : t("marketScreen.emptySearch");
 
   const listingsTabContent = () => {
+    if (useSharedBrowseListings) {
+      return (
+        <MarketplaceBrowseListings
+          enabled={marketTab === "listings"}
+          buyerTheme={buyerView}
+          contentPaddingBottom={scrollBottomPad}
+          initialSearch={
+            typeof route.params?.searchQuery === "string"
+              ? route.params.searchQuery
+              : ""
+          }
+        />
+      );
+    }
     if (listingsQuery.isPending && !listingsQuery.data) {
       return (
         <View style={[styles.listingsPane, styles.skeletonGrid, { paddingHorizontal: mobileSpacing.lg }]}>

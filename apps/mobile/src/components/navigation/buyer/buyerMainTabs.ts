@@ -7,12 +7,15 @@ const ROUTES: Record<BuyerMainTab, string> = {
   orders: "BuyerHistory"
 };
 
+/** Deep links Marché (segments Favoris / Alertes). */
+const MARKET_DEEP_LINKS = new Set(["BuyerFavorites", "BuyerAlerts"]);
+
 export function buyerMainTabFromRoute(
   routeName: string | undefined,
-  params?: Record<string, unknown>
+  _params?: Record<string, unknown>
 ): BuyerMainTab | null {
   if (!routeName) return null;
-  if (routeName === "MarketplaceList" && params?.buyerView === true) {
+  if (MARKET_DEEP_LINKS.has(routeName)) {
     return "market";
   }
   const hit = (Object.entries(ROUTES) as [BuyerMainTab, string][]).find(

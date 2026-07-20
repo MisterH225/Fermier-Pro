@@ -3819,12 +3819,13 @@ export const en = {
     market: {
       segmentListings: "Listings",
       segmentFavorites: "Favorites",
-      segmentAlerts: "Alerts",
-      searchPlaceholder: "Search listings…",
+      segmentAlerts: "Price alerts",
+      searchPlaceholder: "Pig, lot, producer…",
       filterMaxPrice: "Max price / kg",
       filterRadius: "Radius (km)",
       allCategories: "All",
-      emptyListings: "No listings for these filters."
+      emptyListings: "No listings for these filters.",
+      emptyListingsHint: "Widen your filters or try other categories."
     },
     account: {
       title: "My account",
@@ -4031,6 +4032,13 @@ export const en = {
     title: "My favorites",
     subtitle: "Listings and shop products you follow on the marketplace.",
     sectionList: "Saved favorites",
+    sectionListings: "Favorite listings",
+    sectionProducers: "Followed producers",
+    emptyListings: "No favorite listings yet.",
+    emptyProducers:
+      "Producers from your favorites and purchase partners will appear here.",
+    producerFromFavorite: "From a favorite listing",
+    producerPartner: "Purchase partner",
     emptyTitle: "No favorites yet",
     emptyBody: "Tap the heart on a listing or shop product to save it here.",
     explore: "Browse marketplace",

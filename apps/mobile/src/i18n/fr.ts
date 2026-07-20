@@ -3843,12 +3843,13 @@ export const fr = {
     market: {
       segmentListings: "Annonces",
       segmentFavorites: "Favoris",
-      segmentAlerts: "Alertes",
-      searchPlaceholder: "Rechercher une annonce…",
+      segmentAlerts: "Alertes prix",
+      searchPlaceholder: "Porc, lot, producteur…",
       filterMaxPrice: "Prix max / kg",
       filterRadius: "Rayon (km)",
       allCategories: "Toutes",
-      emptyListings: "Aucune annonce pour ces critères."
+      emptyListings: "Aucune annonce pour ces critères.",
+      emptyListingsHint: "Élargissez vos filtres ou explorez d'autres catégories."
     },
     account: {
       title: "Mon compte",
@@ -4056,6 +4057,13 @@ export const fr = {
     title: "Mes favoris",
     subtitle: "Annonces et produits que vous suivez sur le marketplace.",
     sectionList: "Favoris enregistrés",
+    sectionListings: "Annonces favorites",
+    sectionProducers: "Producteurs suivis",
+    emptyListings: "Aucune annonce en favori pour le moment.",
+    emptyProducers:
+      "Les producteurs de vos favoris et partenaires d'achat apparaîtront ici.",
+    producerFromFavorite: "Via une annonce favorite",
+    producerPartner: "Partenaire d'achat",
     emptyTitle: "Aucun favori",
     emptyBody:
       "Appuyez sur le cœur sur une annonce ou un produit boutique pour l'ajouter ici.",
