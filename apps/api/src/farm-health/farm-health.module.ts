@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { CheptelModule } from "../cheptel/cheptel.module";
 import { CommonModule } from "../common/common.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PrismaModule } from "../prisma/prisma.module";
@@ -18,6 +19,7 @@ import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
     CommonModule,
     PrismaModule,
     FinanceModule,
+    CheptelModule,
     SmartAlertsModule,
     MemberActivityLogsModule
   ],
