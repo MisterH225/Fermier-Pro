@@ -20,7 +20,10 @@ import {
 } from "@prisma/client";
 import {
   aggregateHealthVerifiedByFarm,
+  aggregateLatestVerifiedVisitByFarm,
+  HEALTH_BADGE_EXPIRED_RECENT_DAYS,
   HEALTH_VERIFIED_WINDOW_MS,
+  MS_PER_DAY,
   type HealthVerifiedAppointmentCandidate
 } from "./health-verified.util";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -623,6 +626,11 @@ export class ListingsService {
       T & {
         healthVerified: boolean;
         healthVerifiedAt: string | null;
+        /**
+         * Dernière visite verified (fenêtre 30 j + 15 j post-expiration).
+         * N'altère pas le calcul de `healthVerifiedAt`.
+         */
+        healthVerifiedLastCompletedAt: string | null;
         healthVerifiedBy: {
           vetProfileId: string;
           vetName: string;
@@ -643,11 +651,16 @@ export class ListingsService {
         ...r,
         healthVerified: false,
         healthVerifiedAt: null,
+        healthVerifiedLastCompletedAt: null,
         healthVerifiedBy: null
       }));
     }
 
-    const since30 = new Date(Date.now() - HEALTH_VERIFIED_WINDOW_MS);
+    // 30 j de validité + 15 j pour le CTA « expiré récemment » (lecture seule).
+    const lookbackMs =
+      HEALTH_VERIFIED_WINDOW_MS +
+      HEALTH_BADGE_EXPIRED_RECENT_DAYS * MS_PER_DAY;
+    const sinceLookback = new Date(Date.now() - lookbackMs);
     const completedAppointments = await this.prisma.vetAppointment.findMany({
       where: {
         farmId: { in: farmIds },
@@ -657,7 +670,7 @@ export class ListingsService {
             VetAppointmentStatus.APPOINTMENT_RATED
           ]
         },
-        completedAt: { gte: since30 },
+        completedAt: { gte: sinceLookback },
         vetProfile: {
           verificationStatus: VetVerificationStatus.verified
         }
@@ -683,14 +696,22 @@ export class ListingsService {
             a.vetProfile.verificationStatus === VetVerificationStatus.verified
         }));
 
+    // Calcul historique inchangé : uniquement la fenêtre 30 j.
     const latestByFarm = aggregateHealthVerifiedByFarm(candidates);
+    const lastVisitByFarm = aggregateLatestVerifiedVisitByFarm(candidates);
 
     return rows.map((r) => {
       const info = r.farmId ? latestByFarm.get(r.farmId) ?? null : null;
+      const lastVisit = r.farmId
+        ? lastVisitByFarm.get(r.farmId) ?? null
+        : null;
       return {
         ...r,
         healthVerifiedAt: info ? info.completedAt.toISOString() : null,
         healthVerified: info != null,
+        healthVerifiedLastCompletedAt: lastVisit
+          ? lastVisit.completedAt.toISOString()
+          : null,
         healthVerifiedBy: info
           ? {
               vetProfileId: info.vetProfileId,

@@ -6,29 +6,40 @@ import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
+  mobileStatusSurfaces,
   mobileTypography
 } from "../../theme/mobileTheme";
 
-const storageKey = (userId: string) =>
-  `@fermier/healthVerifyCtaDismissed:${userId}`;
+export type HealthVerifyCtaVariant = "default" | "expired";
+
+const storageKey = (userId: string, variant: HealthVerifyCtaVariant) =>
+  `@fermier/healthVerifyCtaDismissed:${variant}:${userId}`;
 
 type Props = {
   userId: string | null | undefined;
   visible: boolean;
   onPressCta: () => void;
+  /** `expired` = badge perdu récemment (&lt; 15 j). */
+  variant?: HealthVerifyCtaVariant;
 };
 
 /**
  * Encart discret producteur — « Faites vérifier votre élevage ».
+ * Variante `expired` après perte récente du badge.
  * Dismissible (AsyncStorage), non intrusif (1 bandeau).
  */
 export function HealthVerifyCtaBanner({
   userId,
   visible,
-  onPressCta
+  onPressCta,
+  variant = "default"
 }: Props) {
   const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(true);
+  const i18nPrefix =
+    variant === "expired"
+      ? "marketScreen.healthVerifyCtaExpired"
+      : "marketScreen.healthVerifyCta";
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +49,7 @@ export function HealthVerifyCtaBanner({
     }
     void (async () => {
       try {
-        const raw = await AsyncStorage.getItem(storageKey(userId));
+        const raw = await AsyncStorage.getItem(storageKey(userId, variant));
         if (!cancelled) setDismissed(raw === "1");
       } catch {
         if (!cancelled) setDismissed(false);
@@ -47,31 +58,33 @@ export function HealthVerifyCtaBanner({
     return () => {
       cancelled = true;
     };
-  }, [userId, visible]);
+  }, [userId, visible, variant]);
 
   if (!visible || dismissed || !userId) return null;
 
   return (
-    <View style={styles.wrap}>
+    <View
+      style={[styles.wrap, variant === "expired" && styles.wrapExpired]}
+    >
       <View style={styles.texts}>
-        <Text style={styles.title}>
-          {t("marketScreen.healthVerifyCta.title")}
-        </Text>
-        <Text style={styles.body}>
-          {t("marketScreen.healthVerifyCta.body")}
-        </Text>
+        <Text style={styles.title}>{t(`${i18nPrefix}.title`)}</Text>
+        <Text style={styles.body}>{t(`${i18nPrefix}.body`)}</Text>
         <Pressable onPress={onPressCta} hitSlop={8}>
-          <Text style={styles.link}>{t("marketScreen.healthVerifyCta.action")}</Text>
+          <Text
+            style={[styles.link, variant === "expired" && styles.linkExpired]}
+          >
+            {t(`${i18nPrefix}.action`)}
+          </Text>
         </Pressable>
       </View>
       <Pressable
         onPress={() => {
           setDismissed(true);
-          void AsyncStorage.setItem(storageKey(userId), "1");
+          void AsyncStorage.setItem(storageKey(userId, variant), "1");
         }}
         hitSlop={10}
         accessibilityRole="button"
-        accessibilityLabel={t("marketScreen.healthVerifyCta.dismiss")}
+        accessibilityLabel={t(`${i18nPrefix}.dismiss`)}
       >
         <Text style={styles.dismiss}>×</Text>
       </Pressable>
@@ -90,6 +103,10 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm
   },
+  wrapExpired: {
+    backgroundColor: mobileStatusSurfaces.warningBg,
+    borderColor: mobileStatusSurfaces.warningText + "44"
+  },
   texts: { flex: 1, gap: 4 },
   title: {
     ...mobileTypography.meta,
@@ -105,6 +122,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: mobileColors.accent,
     marginTop: 2
+  },
+  linkExpired: {
+    color: mobileStatusSurfaces.warningText
   },
   dismiss: {
     fontSize: 22,

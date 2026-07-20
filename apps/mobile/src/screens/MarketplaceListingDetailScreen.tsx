@@ -29,7 +29,10 @@ import { HealthVerifyCtaBanner } from "../components/marketplace/HealthVerifyCta
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
   formatMarketMoney,
+  HEALTH_BADGE_EXPIRY_WARNING_DAYS,
   healthVerifiedDaysAgo,
+  healthVerifiedDaysRemaining,
+  isHealthBadgeRecentlyExpired,
   parseMarketNum
 } from "../components/marketplace/MarketplaceListingCard";
 import { ListingImage } from "../components/marketplace/ListingImage";
@@ -76,6 +79,7 @@ import { presentListingShareOptions } from "../lib/shareMarketplaceListing";
 import { marketplaceColors } from "../theme/marketplaceTheme";
 import {
   mobileColors,
+  mobileStatusSurfaces,
   mobileRadius,
   mobileShadows,
   mobileSpacing,
@@ -369,6 +373,11 @@ export function MarketplaceListingDetailScreen({
   const L = q.data;
   const myId = authMe?.user.id;
   const isSeller = Boolean(myId && L.sellerUserId === myId);
+  const healthDaysLeft = healthVerifiedDaysRemaining(L.healthVerifiedAt);
+  const sellerSeesExpiryWarning =
+    isSeller &&
+    healthDaysLeft != null &&
+    healthDaysLeft <= HEALTH_BADGE_EXPIRY_WARNING_DAYS;
   const photos = listingPhotoUrlsArray(L.photoUrls);
   const wKg = parseMarketNum(L.totalWeightKg);
   const pKg = parseMarketNum(L.pricePerKg);
@@ -549,9 +558,23 @@ export function MarketplaceListingDetailScreen({
         </View>
       ) : null}
       {healthVerifiedDaysAgo(L.healthVerifiedAt) != null ? (
-        <View style={styles.healthVerifiedBanner}>
-          <Text style={styles.healthVerifiedTx}>
-            {t("marketScreen.badgeHealthVerified")}
+        <View
+          style={[
+            styles.healthVerifiedBanner,
+            sellerSeesExpiryWarning && styles.healthVerifiedBannerWarning
+          ]}
+        >
+          <Text
+            style={[
+              styles.healthVerifiedTx,
+              sellerSeesExpiryWarning && styles.healthVerifiedTxWarning
+            ]}
+          >
+            {sellerSeesExpiryWarning
+              ? t("marketScreen.badgeHealthExpiresIn", {
+                  days: healthDaysLeft
+                })
+              : t("marketScreen.badgeHealthVerified")}
           </Text>
           {L.healthVerifiedBy ? (
             <Pressable onPress={() => setVetProfileOpen(true)}>
@@ -580,6 +603,11 @@ export function MarketplaceListingDetailScreen({
         <HealthVerifyCtaBanner
           userId={authMe?.user.id}
           visible
+          variant={
+            isHealthBadgeRecentlyExpired(L.healthVerifiedLastCompletedAt)
+              ? "expired"
+              : "default"
+          }
           onPressCta={() =>
             navigation.navigate("VetSearch", {
               farmId: L.farm!.id,
@@ -1017,10 +1045,17 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.success + "55",
     gap: 4
   },
+  healthVerifiedBannerWarning: {
+    backgroundColor: mobileStatusSurfaces.warningBg,
+    borderColor: mobileStatusSurfaces.warningText + "55"
+  },
   healthVerifiedTx: {
     ...mobileTypography.body,
     fontWeight: "700",
     color: mobileColors.success
+  },
+  healthVerifiedTxWarning: {
+    color: mobileStatusSurfaces.warningText
   },
   healthVerifiedHint: {
     ...mobileTypography.meta,

@@ -359,6 +359,7 @@ export const en = {
     badgeSold: "Sold",
     badgeHealthVerified: "Health verified",
     badgeHealthVerifiedDays: "✓ Health verified · {{days}} d",
+    badgeHealthExpiresIn: "Expires in {{days}} d",
     healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
     healthVerifiedBy: "Verified by {{name}} on {{date}}",
     healthVerifiedViewVet: "View veterinarian profile",
@@ -367,6 +368,12 @@ export const en = {
       title: "Get your farm verified",
       body: "A verified vet visits your farm → Health badge on your listings.",
       action: "Book an appointment",
+      dismiss: "Dismiss"
+    },
+    healthVerifyCtaExpired: {
+      title: "Your badge has expired",
+      body: "Your badge has expired — your listings lost their certification.",
+      action: "Book again",
       dismiss: "Dismiss"
     },
     meteoBuyer: {

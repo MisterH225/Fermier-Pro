@@ -40,6 +40,11 @@ export type MarketplaceListingListItem = {
    * Le badge carte s'affiche uniquement si cette date est présente et récente.
    */
   healthVerifiedAt?: string | null;
+  /**
+   * Dernière visite verified (jusqu'à 45 j) — pour CTA « expiré récemment ».
+   * Présent même si `healthVerifiedAt` est null (badge expiré).
+   */
+  healthVerifiedLastCompletedAt?: string | null;
   /** @deprecated préférer healthVerifiedAt — conservé pour le détail. */
   healthVerified?: boolean;
   /** Véto ayant réalisé la dernière visite vérifiée (détail / CTA). */

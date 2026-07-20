@@ -31,6 +31,11 @@ import {
 } from "../../theme/mobileTheme";
 
 const HEALTH_VERIFIED_MS = 30 * 24 * 60 * 60 * 1000;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+/** Seuil producteur : libellé « Expire dans N j » si ≤ 5 j restants. */
+export const HEALTH_BADGE_EXPIRY_WARNING_DAYS = 5;
+/** CTA « expiré récemment » si expiration < 15 j. */
+export const HEALTH_BADGE_EXPIRED_RECENT_DAYS = 15;
 
 /** Jours écoulés depuis healthVerifiedAt si < 30 j, sinon null. */
 export function healthVerifiedDaysAgo(
@@ -41,7 +46,33 @@ export function healthVerifiedDaysAgo(
   if (!Number.isFinite(at)) return null;
   const elapsed = Date.now() - at;
   if (elapsed < 0 || elapsed >= HEALTH_VERIFIED_MS) return null;
-  return Math.max(0, Math.floor(elapsed / (24 * 60 * 60 * 1000)));
+  return Math.max(0, Math.floor(elapsed / MS_PER_DAY));
+}
+
+/** Jours restants avant expiration du badge (floor), sinon null. */
+export function healthVerifiedDaysRemaining(
+  healthVerifiedAt: string | null | undefined
+): number | null {
+  if (!healthVerifiedAt) return null;
+  const at = new Date(healthVerifiedAt).getTime();
+  if (!Number.isFinite(at)) return null;
+  const expiresAt = at + HEALTH_VERIFIED_MS;
+  const remaining = expiresAt - Date.now();
+  if (remaining < 0 || remaining >= HEALTH_VERIFIED_MS) return null;
+  return Math.floor(remaining / MS_PER_DAY);
+}
+
+/** True si le badge a expiré depuis moins de 15 jours. */
+export function isHealthBadgeRecentlyExpired(
+  lastCompletedAt: string | null | undefined
+): boolean {
+  if (!lastCompletedAt) return false;
+  const at = new Date(lastCompletedAt).getTime();
+  if (!Number.isFinite(at)) return false;
+  const expiresAt = at + HEALTH_VERIFIED_MS;
+  const sinceExpiry = Date.now() - expiresAt;
+  if (sinceExpiry < 0) return false;
+  return sinceExpiry < HEALTH_BADGE_EXPIRED_RECENT_DAYS * MS_PER_DAY;
 }
 
 export function parseMarketNum(
@@ -79,6 +110,8 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   showShare?: boolean;
   navigation?: NativeStackNavigationProp<RootStackParamList>;
+  /** Producteur voyant sa propre annonce — libellé d'expiration warning. */
+  viewerIsOwner?: boolean;
 };
 
 export function MarketplaceListingCard({
@@ -91,7 +124,8 @@ export function MarketplaceListingCard({
   farmRating,
   style,
   showShare,
-  navigation
+  navigation,
+  viewerIsOwner
 }: Props) {
   const { t } = useTranslation();
   const wKg = parseMarketNum(item.totalWeightKg);
@@ -109,6 +143,13 @@ export function MarketplaceListingCard({
   const healthDays = !isMerchant
     ? healthVerifiedDaysAgo(item.healthVerifiedAt)
     : null;
+  const healthDaysLeft = !isMerchant
+    ? healthVerifiedDaysRemaining(item.healthVerifiedAt)
+    : null;
+  const showExpiryWarning =
+    Boolean(viewerIsOwner) &&
+    healthDaysLeft != null &&
+    healthDaysLeft <= HEALTH_BADGE_EXPIRY_WARNING_DAYS;
   const statusBadgeTopRight = Boolean(isNew || sold || expired);
 
   const totalDisplay = isMerchant
@@ -188,11 +229,24 @@ export function MarketplaceListingCard({
           <View
             style={[
               styles.badgeHealth,
+              showExpiryWarning && styles.badgeHealthWarning,
               statusBadgeTopRight && styles.badgeHealthBesideStatus
             ]}
           >
-            <Text style={styles.badgeHealthTx} numberOfLines={1}>
-              {t("marketScreen.badgeHealthVerifiedDays", { days: healthDays })}
+            <Text
+              style={[
+                styles.badgeHealthTx,
+                showExpiryWarning && styles.badgeHealthWarningTx
+              ]}
+              numberOfLines={1}
+            >
+              {showExpiryWarning
+                ? t("marketScreen.badgeHealthExpiresIn", {
+                    days: healthDaysLeft
+                  })
+                : t("marketScreen.badgeHealthVerifiedDays", {
+                    days: healthDays
+                  })}
             </Text>
           </View>
         ) : null}
@@ -416,6 +470,9 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill,
     maxWidth: "55%"
   },
+  badgeHealthWarning: {
+    backgroundColor: mobileStatusSurfaces.warningBg
+  },
   /** À côté de badgeNew / sold / expired (même bandeau haut-droite). */
   badgeHealthBesideStatus: {
     right: mobileSpacing.sm + 72
@@ -425,6 +482,9 @@ const styles = StyleSheet.create({
     color: mobileStatusSurfaces.successText,
     fontWeight: "700",
     fontSize: 10
+  },
+  badgeHealthWarningTx: {
+    color: mobileStatusSurfaces.warningText
   },
   favBtn: {
     position: "absolute",

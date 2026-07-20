@@ -359,6 +359,7 @@ export const fr = {
     badgeSold: "Vendu",
     badgeHealthVerified: "Santé vérifiée",
     badgeHealthVerifiedDays: "✓ Santé vérifiée · {{days}} j",
+    badgeHealthExpiresIn: "Expire dans {{days}} j",
     healthVerifiedHint: "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
     healthVerifiedBy: "Vérifié par {{name}} le {{date}}",
     healthVerifiedViewVet: "Voir la fiche du vétérinaire",
@@ -367,6 +368,12 @@ export const fr = {
       title: "Faites vérifier votre élevage",
       body: "Un vétérinaire vérifié visite votre ferme → badge Santé sur vos annonces.",
       action: "Prendre rendez-vous",
+      dismiss: "Fermer"
+    },
+    healthVerifyCtaExpired: {
+      title: "Votre badge a expiré",
+      body: "Votre badge a expiré — vos annonces ont perdu leur certification.",
+      action: "Reprendre rendez-vous",
       dismiss: "Fermer"
     },
     meteoBuyer: {
