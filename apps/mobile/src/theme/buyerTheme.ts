@@ -19,11 +19,14 @@ export const buyerColors = {
   warning: "#FF8C00",
   danger: "#C2185B",
   border: "rgba(124, 58, 237, 0.08)",
-  /** Pastels KPI accueil */
-  kpiPurple: "#F3E8FF",
-  kpiGreen: "#E8F5E9",
-  kpiRose: "#FCE4EC",
-  kpiAmber: "#FFF3E0"
+  modalScrim: "rgba(26, 29, 35, 0.4)",
+  /** Pastels KPI (alignés vetTheme / maquette) */
+  kpiBlue: "#E3F0FF",
+  kpiGreen: "#E8F8F0",
+  kpiAmber: "#FFF8E6",
+  kpiRose: "#FCE8F0",
+  /** @deprecated alias — préférer kpiBlue */
+  kpiPurple: "#E3F0FF"
 } as const;
 
 export const buyerRadius = { card: 22, button: 16, pill: 999 } as const;

@@ -155,7 +155,7 @@ export function BuyerDashboardScreen() {
             <KpiTile
               label={t("buyer.kpi.pending")}
               value={kpis?.pendingProposals ?? 0}
-              bg={buyerColors.kpiPurple}
+              bg={buyerColors.kpiBlue}
               accent={buyerColors.primary}
               palette={buyerPalette}
               onPress={() => openBuyerOffersHub(navigation)}
