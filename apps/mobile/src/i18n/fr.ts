@@ -4026,6 +4026,8 @@ export const fr = {
     kpi: {
       pending: "Propositions",
       purchases: "Achats",
+      purchasesInProgress: "Achats en cours",
+      proposalsSent: "Propositions envoyées",
       favorites: "Favoris",
       alerts: "Alertes"
     },

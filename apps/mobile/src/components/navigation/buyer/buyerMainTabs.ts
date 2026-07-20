@@ -1,10 +1,11 @@
 import type { BuyerMainTab } from "./types";
 
+/** `orders` → route historique `BuyerHistory` (alias conservé). */
 const ROUTES: Record<BuyerMainTab, string> = {
   home: "BuyerDashboard",
   market: "BuyerMarket",
-  messages: "BuyerMessages",
-  orders: "BuyerHistory"
+  orders: "BuyerHistory",
+  messages: "BuyerMessages"
 };
 
 /** Deep links Marché (segments Favoris / Alertes). */

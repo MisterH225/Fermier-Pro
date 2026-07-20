@@ -4001,6 +4001,8 @@ export const en = {
     kpi: {
       pending: "Proposals",
       purchases: "Purchases",
+      purchasesInProgress: "Purchases in progress",
+      proposalsSent: "Proposals sent",
       favorites: "Favorites",
       alerts: "Alerts"
     },
