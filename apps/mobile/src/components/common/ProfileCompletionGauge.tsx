@@ -6,7 +6,9 @@ type Props = {
   percent: number;
   palette: RolePalette;
   label: string;
-  ctaLabel: string;
+  /** Suggestion du prochain champ vide (sous la jauge). */
+  hint?: string | null;
+  ctaLabel?: string;
   onPressCta?: () => void;
 };
 
@@ -14,6 +16,7 @@ export function ProfileCompletionGauge({
   percent,
   palette,
   label,
+  hint,
   ctaLabel,
   onPressCta
 }: Props) {
@@ -47,7 +50,10 @@ export function ProfileCompletionGauge({
           ]}
         />
       </View>
-      {onPressCta && clamped < 100 ? (
+      {hint && clamped < 100 ? (
+        <Text style={[styles.hint, { color: palette.textMuted }]}>{hint}</Text>
+      ) : null}
+      {onPressCta && ctaLabel && clamped < 100 ? (
         <Pressable
           onPress={onPressCta}
           style={({ pressed }) => [
@@ -87,6 +93,7 @@ const styles = StyleSheet.create({
     overflow: "hidden"
   },
   fill: { height: "100%", borderRadius: 999 },
+  hint: { ...mobileTypography.meta, marginTop: mobileSpacing.xs },
   cta: {
     alignSelf: "flex-start",
     paddingHorizontal: mobileSpacing.md,

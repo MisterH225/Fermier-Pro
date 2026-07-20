@@ -402,6 +402,7 @@ export const fr = {
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
     badgeHealthVerified: "Santé vérifiée",
+    badgeHealthVerifiedDays: "✓ Santé vérifiée · {{days}} j",
     healthVerifiedHint: "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
     meteoBuyer: {
       label: "Météo Acheteur :"
@@ -3843,17 +3844,18 @@ export const fr = {
     market: {
       segmentListings: "Annonces",
       segmentFavorites: "Favoris",
-      segmentAlerts: "Alertes",
-      searchPlaceholder: "Rechercher une annonce…",
+      segmentAlerts: "Alertes prix",
+      searchPlaceholder: "Porc, lot, producteur…",
       filterMaxPrice: "Prix max / kg",
       filterRadius: "Rayon (km)",
       allCategories: "Toutes",
-      emptyListings: "Aucune annonce pour ces critères."
+      emptyListings: "Aucune annonce pour ces critères.",
+      emptyListingsHint: "Élargissez vos filtres ou explorez d'autres catégories."
     },
     account: {
       title: "Mon compte",
       errorTitle: "Compte",
-      completionLabel: "Profil complété à {{percent}}%",
+      completionLabel: "Profil complété",
       completeCta: "Compléter",
       sectionIdentity: "Identité",
       sectionMeteo: "Météo Acheteur",
@@ -3861,15 +3863,48 @@ export const fr = {
       sectionWallet: "Portefeuille",
       businessName: "Entreprise",
       meteoHint:
-        "Score visible par les producteurs sur vos propositions. Payez à temps pour l'améliorer.",
+        "Visible par les producteurs sur vos propositions.",
+      meteoLevelOf: "Votre Météo Acheteur · niveau {{n}}/{{total}}",
+      meteoStats:
+        "{{total}} transactions · {{onTime}} paiements à l'heure · Visible par les producteurs sur vos propositions.",
+      meteoLevel: {
+        debutant: "Nuage gris",
+        eclaircie: "Éclaircie",
+        brise: "Brise légère",
+        ciel_degage: "Ciel dégagé",
+        grande_chaleur: "Grande chaleur",
+        soleil_plomb: "Soleil de plomb",
+        legende: "Légende"
+      },
       punctuality:
         "Ponctualité : {{onTime}} à l'heure · {{late}} en retard · {{total}} transactions crédit",
-      priceRange: "Fourchette de prix",
+      priceRange: "Fourchette prix",
+      priceRangeValue: "{{min}} – {{max}} F/kg",
+      priceMinPh: "Min",
+      priceMaxPh: "Max",
       typicalVolume: "Volume habituel",
       searchRadius: "Rayon de recherche",
+      radiusValue: "{{km}} km",
+      radiusPh: "km",
       location: "Localisation",
+      locationPh: "Ville, commune…",
+      toComplete: "À compléter",
+      edit: "Modifier",
+      add: "Ajouter",
       editPrefs: "Modifier les préférences",
       openWallet: "Ouvrir mon portefeuille",
+      openShort: "Ouvrir",
+      walletRow: "Portefeuille",
+      nextField: {
+        buyerType: "Indiquez votre type d'acheteur pour personnaliser le marché →",
+        businessName: "Ajoutez le nom de votre entreprise →",
+        locationLabel: "Ajoutez votre localisation pour des annonces proches →",
+        searchRadiusKm: "Définissez votre rayon de recherche →",
+        preferredCategories: "Choisissez vos catégories préférées →",
+        priceRange: "Indiquez votre fourchette de prix →",
+        typicalVolume: "Ajoutez votre volume d'achat habituel pour recevoir de meilleures annonces →",
+        profilePhotoUrl: "Ajoutez une photo de profil pour rassurer les producteurs →"
+      },
       scoreLevel: {
         excellent: "⭐ Excellent",
         bon: "✅ Bon",
@@ -3992,6 +4027,8 @@ export const fr = {
     kpi: {
       pending: "Propositions",
       purchases: "Achats",
+      purchasesInProgress: "Achats en cours",
+      proposalsSent: "Propositions envoyées",
       favorites: "Favoris",
       alerts: "Alertes"
     },
@@ -4023,6 +4060,13 @@ export const fr = {
     title: "Mes favoris",
     subtitle: "Annonces et produits que vous suivez sur le marketplace.",
     sectionList: "Favoris enregistrés",
+    sectionListings: "Annonces favorites",
+    sectionProducers: "Producteurs suivis",
+    emptyListings: "Aucune annonce en favori pour le moment.",
+    emptyProducers:
+      "Les producteurs de vos favoris et partenaires d'achat apparaîtront ici.",
+    producerFromFavorite: "Via une annonce favorite",
+    producerPartner: "Partenaire d'achat",
     emptyTitle: "Aucun favori",
     emptyBody:
       "Appuyez sur le cœur sur une annonce ou un produit boutique pour l'ajouter ici.",

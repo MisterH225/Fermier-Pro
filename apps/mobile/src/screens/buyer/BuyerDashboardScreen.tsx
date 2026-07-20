@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Text,
   View
 } from "react-native";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
@@ -16,11 +17,9 @@ import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerActiveProposalsSection } from "../../components/buyer/BuyerActiveProposalsSection";
 import { BuyerPendingMarketplaceBanner } from "../../components/buyer/BuyerPendingMarketplaceBanner";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
-import { KpiTile, buyerPalette } from "../../components/common";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
-import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
   profileScreenScrollContent,
   ScreenSection
@@ -28,12 +27,11 @@ import {
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
-import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
 import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing } from "../../theme/mobileTheme";
-import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
+import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function BuyerDashboardScreen() {
@@ -85,10 +83,6 @@ export function BuyerDashboardScreen() {
             iconColor={buyerColors.primary}
             style={styles.heroIconBtn}
           />
-          <SupportHeaderButton
-            iconColor={buyerColors.primary}
-            style={styles.heroIconBtn}
-          />
           <Pressable
             onPress={() => navigation.navigate("BuyerAccount")}
             style={({ pressed }) => [
@@ -108,7 +102,6 @@ export function BuyerDashboardScreen() {
           </Pressable>
         </View>
       </View>
-      <WalletDashboardCard variant="buyer" />
     </View>
   );
 
@@ -134,32 +127,34 @@ export function BuyerDashboardScreen() {
           backgroundColor={buyerColors.primaryLight}
         />
 
+        {/* 1) Action requise */}
         <BuyerActiveProposalsSection />
 
+        {/* 2) Portefeuille */}
+        <WalletDashboardCard variant="buyer" />
+
+        {/* 3) Index prix porc */}
         <PigPriceIndex />
 
+        {/* 4) Duo KPI info (non cliquables) */}
         <ScreenSection title={t("buyer.dashboard.sectionStats")} plain>
-          <View style={styles.kpiGrid}>
-            <KpiTile
-              label={t("buyer.kpi.purchases")}
-              value={kpis?.purchasesCount ?? 0}
-              bg={buyerColors.kpiGreen}
-              accent={buyerColors.success}
-              palette={buyerPalette}
-              onPress={() =>
-                navigation.navigate("BuyerHistory", {
-                  initialSegment: "active"
-                })
-              }
-            />
-            <KpiTile
-              label={t("buyer.kpi.pending")}
-              value={kpis?.pendingProposals ?? 0}
-              bg={buyerColors.kpiPurple}
-              accent={buyerColors.primary}
-              palette={buyerPalette}
-              onPress={() => openBuyerOffersHub(navigation)}
-            />
+          <View style={styles.duo}>
+            <View style={[styles.infoCard, buyerShadow.card]}>
+              <Text style={styles.infoValue}>
+                {kpis?.purchasesCount ?? 0}
+              </Text>
+              <Text style={styles.infoLabel}>
+                {t("buyer.kpi.purchasesInProgress")}
+              </Text>
+            </View>
+            <View style={[styles.infoCard, buyerShadow.card]}>
+              <Text style={styles.infoValue}>
+                {kpis?.pendingProposals ?? 0}
+              </Text>
+              <Text style={styles.infoLabel}>
+                {t("buyer.kpi.proposalsSent")}
+              </Text>
+            </View>
           </View>
         </ScreenSection>
       </ScrollView>
@@ -189,10 +184,33 @@ const styles = StyleSheet.create({
   },
   heroIconBtn: {
     padding: mobileSpacing.sm,
-    borderRadius: buyerRadius.pill
+    borderRadius: buyerRadius.pill,
+    backgroundColor: buyerColors.cardBg
   },
   heroIconBtnPressed: {
     opacity: 0.85
   },
-  kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm }
+  duo: {
+    flexDirection: "row",
+    gap: 10
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: buyerColors.cardBg,
+    borderRadius: buyerRadius.card,
+    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: buyerColors.border
+  },
+  infoValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    color: buyerColors.primary
+  },
+  infoLabel: {
+    ...mobileTypography.meta,
+    color: buyerColors.textSecondary,
+    marginTop: 2
+  }
 });

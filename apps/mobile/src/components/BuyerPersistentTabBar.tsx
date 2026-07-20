@@ -49,7 +49,7 @@ export function BuyerPersistentTabBar() {
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isBuyer = profileType === "buyer";
   const buyerTabs = useMemo(
-    (): BuyerMainTab[] => ["home", "market", "messages", "orders"],
+    (): BuyerMainTab[] => ["home", "market", "orders", "messages"],
     []
   );
 

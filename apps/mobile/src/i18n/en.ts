@@ -402,6 +402,7 @@ export const en = {
     badgeNew: "New",
     badgeSold: "Sold",
     badgeHealthVerified: "Health verified",
+    badgeHealthVerifiedDays: "✓ Health verified · {{days}} d",
     healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
     meteoBuyer: {
       label: "Buyer weather:"
@@ -3819,33 +3820,66 @@ export const en = {
     market: {
       segmentListings: "Listings",
       segmentFavorites: "Favorites",
-      segmentAlerts: "Alerts",
-      searchPlaceholder: "Search listings…",
+      segmentAlerts: "Price alerts",
+      searchPlaceholder: "Pig, lot, producer…",
       filterMaxPrice: "Max price / kg",
       filterRadius: "Radius (km)",
       allCategories: "All",
-      emptyListings: "No listings for these filters."
+      emptyListings: "No listings for these filters.",
+      emptyListingsHint: "Widen your filters or try other categories."
     },
     account: {
       title: "My account",
       errorTitle: "Account",
-      completionLabel: "Profile {{percent}}% complete",
+      completionLabel: "Profile complete",
       completeCta: "Complete",
       sectionIdentity: "Identity",
       sectionMeteo: "Buyer weather",
       sectionPrefs: "Buying preferences",
       sectionWallet: "Wallet",
       businessName: "Business",
-      meteoHint:
-        "Score shown to producers on your offers. Pay on time to improve it.",
+      meteoHint: "Visible to producers on your offers.",
+      meteoLevelOf: "Your Buyer Weather · level {{n}}/{{total}}",
+      meteoStats:
+        "{{total}} transactions · {{onTime}} on-time payments · Visible to producers on your offers.",
+      meteoLevel: {
+        debutant: "Grey cloud",
+        eclaircie: "Clearing",
+        brise: "Light breeze",
+        ciel_degage: "Clear sky",
+        grande_chaleur: "Warm sun",
+        soleil_plomb: "Blazing sun",
+        legende: "Legend"
+      },
       punctuality:
         "Punctuality: {{onTime}} on time · {{late}} late · {{total}} credit transactions",
       priceRange: "Price range",
+      priceRangeValue: "{{min}} – {{max}} F/kg",
+      priceMinPh: "Min",
+      priceMaxPh: "Max",
       typicalVolume: "Typical volume",
       searchRadius: "Search radius",
+      radiusValue: "{{km}} km",
+      radiusPh: "km",
       location: "Location",
+      locationPh: "City, area…",
+      toComplete: "To complete",
+      edit: "Edit",
+      add: "Add",
       editPrefs: "Edit preferences",
       openWallet: "Open wallet",
+      openShort: "Open",
+      walletRow: "Wallet",
+      nextField: {
+        buyerType: "Set your buyer type to personalize the market →",
+        businessName: "Add your business name →",
+        locationLabel: "Add your location for nearby listings →",
+        searchRadiusKm: "Set your search radius →",
+        preferredCategories: "Choose your preferred categories →",
+        priceRange: "Set your price range →",
+        typicalVolume: "Add your usual purchase volume for better listings →",
+        profilePhotoUrl: "Add a profile photo to reassure producers →"
+      },
       scoreLevel: {
         excellent: "⭐ Excellent",
         bon: "✅ Good",
@@ -3968,6 +4002,8 @@ export const en = {
     kpi: {
       pending: "Proposals",
       purchases: "Purchases",
+      purchasesInProgress: "Purchases in progress",
+      proposalsSent: "Proposals sent",
       favorites: "Favorites",
       alerts: "Alerts"
     },
@@ -3999,6 +4035,13 @@ export const en = {
     title: "My favorites",
     subtitle: "Listings and shop products you follow on the marketplace.",
     sectionList: "Saved favorites",
+    sectionListings: "Favorite listings",
+    sectionProducers: "Followed producers",
+    emptyListings: "No favorite listings yet.",
+    emptyProducers:
+      "Producers from your favorites and purchase partners will appear here.",
+    producerFromFavorite: "From a favorite listing",
+    producerPartner: "Purchase partner",
     emptyTitle: "No favorites yet",
     emptyBody: "Tap the heart on a listing or shop product to save it here.",
     explore: "Browse marketplace",

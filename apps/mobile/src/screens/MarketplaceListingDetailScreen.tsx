@@ -544,7 +544,7 @@ export function MarketplaceListingDetailScreen({
           />
         </View>
       ) : null}
-      {L.healthVerified ? (
+      {L.healthVerified || L.healthVerifiedAt ? (
         <View style={styles.healthVerifiedBanner}>
           <Text style={styles.healthVerifiedTx}>
             {t("marketScreen.badgeHealthVerified")}

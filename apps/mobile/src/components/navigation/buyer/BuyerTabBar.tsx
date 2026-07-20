@@ -13,7 +13,8 @@ type Props = {
   visibleTabs?: BuyerMainTab[];
 };
 
-const TAB_ORDER: BuyerMainTab[] = ["home", "market", "messages", "orders"];
+/** Ordre Sprint 1 : Accueil · Marché · Commandes · Messages. */
+const TAB_ORDER: BuyerMainTab[] = ["home", "market", "orders", "messages"];
 
 const TAB_META: Record<
   BuyerMainTab,

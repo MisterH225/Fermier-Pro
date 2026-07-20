@@ -26,8 +26,23 @@ import {
   mobileRadius,
   mobileShadows,
   mobileSpacing,
+  mobileStatusSurfaces,
   mobileTypography
 } from "../../theme/mobileTheme";
+
+const HEALTH_VERIFIED_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Jours écoulés depuis healthVerifiedAt si < 30 j, sinon null. */
+export function healthVerifiedDaysAgo(
+  healthVerifiedAt: string | null | undefined
+): number | null {
+  if (!healthVerifiedAt) return null;
+  const at = new Date(healthVerifiedAt).getTime();
+  if (!Number.isFinite(at)) return null;
+  const elapsed = Date.now() - at;
+  if (elapsed < 0 || elapsed >= HEALTH_VERIFIED_MS) return null;
+  return Math.max(0, Math.floor(elapsed / (24 * 60 * 60 * 1000)));
+}
 
 export function parseMarketNum(
   v: string | number | null | undefined
@@ -91,6 +106,10 @@ export function MarketplaceListingCard({
   const isNew = isNewListing(item.publishedAt ?? null);
   const expired = !isMerchant && isListingExpired(item.status, item.expiresAt);
   const sold = !isMerchant && item.status === "sold";
+  const healthDays = !isMerchant
+    ? healthVerifiedDaysAgo(item.healthVerifiedAt)
+    : null;
+  const statusBadgeTopRight = Boolean(isNew || sold || expired);
 
   const totalDisplay = isMerchant
     ? unit != null
@@ -165,10 +184,15 @@ export function MarketplaceListingCard({
             </Text>
           </View>
         ) : null}
-        {!isMerchant && item.healthVerified ? (
-          <View style={styles.badgeHealth}>
-            <Text style={styles.badgeHealthTx}>
-              {t("marketScreen.badgeHealthVerified")}
+        {healthDays != null ? (
+          <View
+            style={[
+              styles.badgeHealth,
+              statusBadgeTopRight && styles.badgeHealthBesideStatus
+            ]}
+          >
+            <Text style={styles.badgeHealthTx} numberOfLines={1}>
+              {t("marketScreen.badgeHealthVerifiedDays", { days: healthDays })}
             </Text>
           </View>
         ) : null}
@@ -384,19 +408,23 @@ const styles = StyleSheet.create({
   },
   badgeHealth: {
     position: "absolute",
-    bottom: mobileSpacing.sm,
-    left: mobileSpacing.sm,
-    backgroundColor: mobileColors.success,
+    top: mobileSpacing.sm,
+    right: mobileSpacing.sm,
+    backgroundColor: mobileStatusSurfaces.successBg,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: mobileRadius.sm,
-    maxWidth: "70%"
+    borderRadius: mobileRadius.pill,
+    maxWidth: "55%"
+  },
+  /** À côté de badgeNew / sold / expired (même bandeau haut-droite). */
+  badgeHealthBesideStatus: {
+    right: mobileSpacing.sm + 72
   },
   badgeHealthTx: {
     ...mobileTypography.meta,
-    color: mobileColors.onAccent,
+    color: mobileStatusSurfaces.successText,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: 10
   },
   favBtn: {
     position: "absolute",

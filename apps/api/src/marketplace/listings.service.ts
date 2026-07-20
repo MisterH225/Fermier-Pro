@@ -14,7 +14,8 @@ import {
   LivestockExitKind,
   MarketplaceTransactionStatus,
   OfferStatus,
-  Prisma
+  Prisma,
+  VetAppointmentStatus
 } from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
@@ -603,10 +604,16 @@ export class ListingsService {
     });
   }
 
-  /** Badge « Santé vérifiée » : visite vétérinaire < 30 jours. */
+  /**
+   * Badge « Santé vérifiée » : date de la dernière consultation véto complétée
+   * (VetAppointment) ou, à défaut, dernier enregistrement `vet_visit` —
+   * uniquement si < 30 jours. Sinon `healthVerifiedAt: null`.
+   */
   private async attachHealthVerified<T extends { farmId?: string | null }>(
     rows: T[]
-  ): Promise<Array<T & { healthVerified: boolean }>> {
+  ): Promise<
+    Array<T & { healthVerified: boolean; healthVerifiedAt: string | null }>
+  > {
     const farmIds = [
       ...new Set(
         rows
@@ -615,23 +622,61 @@ export class ListingsService {
       )
     ];
     if (farmIds.length === 0) {
-      return rows.map((r) => ({ ...r, healthVerified: false }));
+      return rows.map((r) => ({
+        ...r,
+        healthVerified: false,
+        healthVerifiedAt: null
+      }));
     }
+
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recent = await this.prisma.farmHealthRecord.findMany({
+    const latestByFarm = new Map<string, Date>();
+
+    const completedAppointments = await this.prisma.vetAppointment.findMany({
       where: {
         farmId: { in: farmIds },
-        kind: FarmHealthRecordKind.vet_visit,
-        occurredAt: { gte: since30 }
+        status: {
+          in: [
+            VetAppointmentStatus.APPOINTMENT_COMPLETED,
+            VetAppointmentStatus.APPOINTMENT_RATED
+          ]
+        },
+        completedAt: { gte: since30 }
       },
-      select: { farmId: true },
-      distinct: ["farmId"]
+      select: { farmId: true, completedAt: true },
+      orderBy: { completedAt: "desc" }
     });
-    const verified = new Set(recent.map((r) => r.farmId));
-    return rows.map((r) => ({
-      ...r,
-      healthVerified: Boolean(r.farmId && verified.has(r.farmId))
-    }));
+    for (const appt of completedAppointments) {
+      if (!appt.completedAt || latestByFarm.has(appt.farmId)) continue;
+      latestByFarm.set(appt.farmId, appt.completedAt);
+    }
+
+    const missingFarmIds = farmIds.filter((id) => !latestByFarm.has(id));
+    if (missingFarmIds.length > 0) {
+      // Fallback : dossier santé (visite enregistrée) si pas de RDV complété.
+      const recentRecords = await this.prisma.farmHealthRecord.findMany({
+        where: {
+          farmId: { in: missingFarmIds },
+          kind: FarmHealthRecordKind.vet_visit,
+          occurredAt: { gte: since30 }
+        },
+        select: { farmId: true, occurredAt: true },
+        orderBy: { occurredAt: "desc" }
+      });
+      for (const rec of recentRecords) {
+        if (latestByFarm.has(rec.farmId)) continue;
+        latestByFarm.set(rec.farmId, rec.occurredAt);
+      }
+    }
+
+    return rows.map((r) => {
+      const at = r.farmId ? latestByFarm.get(r.farmId) ?? null : null;
+      return {
+        ...r,
+        healthVerifiedAt: at ? at.toISOString() : null,
+        healthVerified: at != null
+      };
+    });
   }
 
   private async farmHealthSnapshot(farmId: string) {
