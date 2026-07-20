@@ -1,4 +1,4 @@
-import { apiGetJson, apiPostJson } from "./http";
+import { apiGetJson, apiPatchJson, apiPostJson } from "./http";
 import type { VetVerificationStatus } from "./auth";
 
 export type VetSearchItemDto = {
@@ -23,6 +23,7 @@ export type VetPublicProfileDto = {
   /** userId de l'utilisateur vétérinaire (pour ouvrir un chat direct). */
   userId: string;
   fullName: string;
+  orderNumber?: string;
   primarySpecialty: string;
   otherSpecialties: string[];
   locationLabel: string;
@@ -122,6 +123,30 @@ export function upsertVetProfile(
   activeProfileId?: string | null
 ): Promise<unknown> {
   return apiPostJson("/vet-profiles", body, accessToken, activeProfileId);
+}
+
+export type PatchVetPublicProfileBody = {
+  bio?: string;
+  primarySpecialty?: string;
+  otherSpecialties?: string[];
+  locationCity?: string;
+  availability?: boolean;
+  interventionRadiusKm?: number;
+  profilePhotoUrl?: string;
+};
+
+/** PATCH /api/v1/vet-profiles/me — profil public sans reset de vérification. */
+export function patchVetPublicProfile(
+  accessToken: string,
+  body: PatchVetPublicProfileBody,
+  activeProfileId?: string | null
+): Promise<VetPublicProfileDto> {
+  return apiPatchJson<VetPublicProfileDto>(
+    "/vet-profiles/me",
+    body,
+    accessToken,
+    activeProfileId
+  );
 }
 
 export type VetDashboardDto = {

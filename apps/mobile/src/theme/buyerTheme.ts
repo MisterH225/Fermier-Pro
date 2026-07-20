@@ -18,7 +18,12 @@ export const buyerColors = {
   success: "#2E7D32",
   warning: "#FF8C00",
   danger: "#C2185B",
-  border: "rgba(124, 58, 237, 0.08)"
+  border: "rgba(124, 58, 237, 0.08)",
+  /** Pastels KPI accueil */
+  kpiPurple: "#F3E8FF",
+  kpiGreen: "#E8F5E9",
+  kpiRose: "#FCE4EC",
+  kpiAmber: "#FFF3E0"
 } as const;
 
 export const buyerRadius = { card: 22, button: 16, pill: 999 } as const;

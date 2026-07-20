@@ -1,28 +1,31 @@
-import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { VetMobileShell } from "../../components/layout";
-import { useBottomInset } from "../../hooks/useBottomInset";
 import { vetColors } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import type { RootStackParamList } from "../../types/navigation";
 
+/** Deep link → liste des élevages (ordonnances dans le dossier). */
 export function VetReportsScreen() {
-  const { t } = useTranslation();
-  const bottomInset = useBottomInset();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  useFocusEffect(
+    useCallback(() => {
+      navigation.navigate("VetFarms");
+    }, [navigation])
+  );
 
   return (
     <VetMobileShell hideTopBar>
-      <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
-        <Text style={styles.body}>{t("vet.reports.body")}</Text>
-      </ScrollView>
+      <View style={styles.wrap}>
+        <ActivityIndicator color={vetColors.primary} />
+      </View>
     </VetMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: mobileSpacing.lg },
-  body: {
-    ...mobileTypography.body,
-    color: vetColors.textSecondary,
-    lineHeight: 22
-  }
+  wrap: { flex: 1, justifyContent: "center", alignItems: "center" }
 });

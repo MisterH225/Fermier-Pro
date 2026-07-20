@@ -6,6 +6,7 @@ export { VetDashboardScreen } from "../../screens/vet/VetDashboardScreen";
 export { VetAgendaScreen } from "../../screens/vet/VetAgendaScreen";
 export { VetFarmsScreen } from "../../screens/vet/VetFarmsScreen";
 export { VetFarmDetailScreen } from "../../screens/vet/VetFarmDetailScreen";
+export { VetAccountScreen } from "../../screens/vet/VetAccountScreen";
 export { VetMessagesScreen } from "../../screens/vet/VetMessagesScreen";
 export { VetTasksScreen } from "../../screens/vet/VetTasksScreen";
 export { VetReportsScreen } from "../../screens/vet/VetReportsScreen";

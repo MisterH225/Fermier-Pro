@@ -184,9 +184,23 @@ export function VetProfileModal({
             <Text style={styles.pending}>{t("health.vetSearch.notVerified")}</Text>
           )}
           <Text style={styles.meta}>
+            {profile.primarySpecialty}
+            {profile.otherSpecialties?.length
+              ? ` · ${profile.otherSpecialties.join(", ")}`
+              : ""}
+          </Text>
+          <Text style={styles.meta}>
             {profile.schoolName} ({profile.schoolCountry}) · {profile.graduationYear}
           </Text>
           <Text style={styles.meta}>{profile.locationLabel}</Text>
+          {profile.interventionRadiusKm != null ? (
+            <Text style={styles.meta}>
+              {t("health.vetSearch.radiusKm", {
+                km: profile.interventionRadiusKm,
+                defaultValue: `Rayon ${profile.interventionRadiusKm} km`
+              })}
+            </Text>
+          ) : null}
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
           {profile.ratingAvg != null ? (
             <Text style={styles.meta}>

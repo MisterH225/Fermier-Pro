@@ -18,6 +18,7 @@ export const fr = {
   common: {
     error: "Erreur",
     cancel: "Annuler",
+    save: "Enregistrer",
     delete: "Supprimer",
     ok: "OK",
     close: "Fermer",
@@ -400,6 +401,11 @@ export const fr = {
     searchPlaceholder: "Ferme, lieu, race…",
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
+    badgeHealthVerified: "Santé vérifiée",
+    healthVerifiedHint: "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
+    meteoBuyer: {
+      label: "Météo Acheteur :"
+    },
     badgeExpired: "Expiré",
     badgeActiveOffers: "{{count}} offre(s) en cours",
     activeOfferCta: "Voir votre offre active",
@@ -1352,6 +1358,8 @@ export const fr = {
       tabs: {
         health: "Santé",
         livestock: "Cheptel",
+        visits: "Visites",
+        prescriptions: "Ordonnances",
         history: "Historique",
         tasks: "Tâches"
       },
@@ -1360,7 +1368,51 @@ export const fr = {
       declareCase: "Déclarer un cas",
       openLivestock: "Voir le cheptel",
       openHistory: "Historique consultations",
-      openTasks: "Tâches de la ferme"
+      openTasks: "Tâches de la ferme",
+      alertsTitle: "Alertes actives",
+      activeDiseases: "Cas actifs",
+      overdueVaccines: "Vaccins en retard",
+      mortality30d: "Mortalité 30 j",
+      recentCases: "Derniers cas",
+      caseFallback: "Cas déclaré",
+      noCases: "Aucun cas déclaré récemment.",
+      vaccinations: "Vaccinations",
+      vaccineFallback: "Vaccination",
+      headcount: "Effectif",
+      batches: "Lots actifs",
+      livestockReadonly: "Lecture seule — données du cheptel producteur.",
+      appointments: "Rendez-vous",
+      consultations: "Consultations",
+      visitFallback: "Visite",
+      noVisits: "Aucune visite pour cet élevage.",
+      noPrescriptions: "Aucun rapport de visite pour le moment.",
+      reportHint: "Rapport de visite"
+    },
+    account: {
+      title: "Mon compte",
+      errorTitle: "Compte",
+      sectionIdentity: "Identité professionnelle",
+      sectionPublic: "Profil public",
+      sectionReputation: "Réputation",
+      sectionIncome: "Revenus",
+      sectionDiploma: "Diplôme / formation",
+      sectionSettings: "Paramètres",
+      orderNumber: "N° d'ordre",
+      specialty: "Spécialité",
+      verification: "Statut",
+      verified: "Vérifié",
+      pending: "En attente de vérification",
+      bio: "Bio",
+      city: "Ville",
+      radius: "Rayon d'intervention",
+      availability: "Disponible",
+      editPublic: "Modifier le profil public",
+      rating: "Note",
+      reviews: "Avis",
+      visitsDone: "Visites",
+      openWallet: "Voir mon portefeuille",
+      school: "Formation",
+      diplomaReadonly: "Visible en lecture seule après vérification."
     },
     agenda: {
       title: "Agenda",
@@ -1369,7 +1421,9 @@ export const fr = {
       bookNow: "Planifier la visite",
       scheduleTitle: "Planifier une visite",
       scheduleRoadmap: "La planification de visites avec notification producteur arrive dans une prochaine version.",
-      empty: "Aucun rendez-vous"
+      empty: "Aucun rendez-vous",
+      filterAllFarms: "Tous les élevages",
+      filterFarm: "Élevage"
     },
     schedule: {
       title: "Planifier une visite",
@@ -1484,7 +1538,9 @@ export const fr = {
       reports: "Rapports",
       messages: "Messages",
       buyerHistory: "Commandes",
+      buyerAccount: "Mon compte",
       buyerFinance: "Finance",
+      vetAccount: "Mon compte",
       merchantShop: "Boutique",
       merchantProduct: "Produit",
       merchantOrder: "Commande",
@@ -3778,10 +3834,49 @@ export const fr = {
     backToHome: "Accueil",
     nav: {
       home: "Accueil",
-      market: "Market",
+      market: "Marché",
       finance: "Finance",
       messages: "Messages",
-      history: "Commandes"
+      history: "Commandes",
+      orders: "Commandes"
+    },
+    market: {
+      segmentListings: "Annonces",
+      segmentFavorites: "Favoris",
+      segmentAlerts: "Alertes",
+      searchPlaceholder: "Rechercher une annonce…",
+      filterMaxPrice: "Prix max / kg",
+      filterRadius: "Rayon (km)",
+      allCategories: "Toutes",
+      emptyListings: "Aucune annonce pour ces critères."
+    },
+    account: {
+      title: "Mon compte",
+      errorTitle: "Compte",
+      completionLabel: "Profil complété à {{percent}}%",
+      completeCta: "Compléter",
+      sectionIdentity: "Identité",
+      sectionMeteo: "Météo Acheteur",
+      sectionPrefs: "Préférences d'achat",
+      sectionWallet: "Portefeuille",
+      businessName: "Entreprise",
+      meteoHint:
+        "Score visible par les producteurs sur vos propositions. Payez à temps pour l'améliorer.",
+      punctuality:
+        "Ponctualité : {{onTime}} à l'heure · {{late}} en retard · {{total}} transactions crédit",
+      priceRange: "Fourchette de prix",
+      typicalVolume: "Volume habituel",
+      searchRadius: "Rayon de recherche",
+      location: "Localisation",
+      editPrefs: "Modifier les préférences",
+      openWallet: "Ouvrir mon portefeuille",
+      scoreLevel: {
+        excellent: "⭐ Excellent",
+        bon: "✅ Bon",
+        nouveau: "🆕 Nouveau",
+        attention: "⚠️ Attention",
+        risque: "🔴 Risqué"
+      }
     },
     extended: {
       favorites: "Favoris",

@@ -36,6 +36,7 @@ export function VetAgendaScreen() {
   const [listView, setListView] = useState(false);
   const [selectedDay, setSelectedDay] = useState(() => new Date());
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [farmFilterId, setFarmFilterId] = useState<string | null>(null);
 
   const dashQ = useQuery({
     queryKey: ["vetDashboard", activeProfileId, "agenda"],
@@ -59,9 +60,16 @@ export function VetAgendaScreen() {
     });
   }, [selectedDay]);
 
+  const assignedFarms = dashQ.data?.assignedFarms ?? [];
+  const filteredVisits = useMemo(() => {
+    const all = dashQ.data?.upcomingVisits ?? [];
+    if (!farmFilterId) return all;
+    return all.filter((v) => v.farmId === farmFilterId);
+  }, [dashQ.data?.upcomingVisits, farmFilterId]);
+
   const events: EventItem[] = useMemo(
     () =>
-      (dashQ.data?.upcomingVisits ?? []).map((v) => ({
+      filteredVisits.map((v) => ({
         id: v.id,
         title: v.subject,
         subtitle: `${v.farmName} · ${v.producerName ?? ""}`,
@@ -76,10 +84,10 @@ export function VetAgendaScreen() {
         customIcon: "calendar-outline",
         iconColor: vetColors.primary
       })),
-    [dashQ.data?.upcomingVisits, locale]
+    [filteredVisits, locale]
   );
 
-  const firstVisit = dashQ.data?.upcomingVisits[0];
+  const firstVisit = filteredVisits[0];
 
   const openUpcomingVisit = (
     v: NonNullable<typeof dashQ.data>["upcomingVisits"][number]
@@ -108,6 +116,47 @@ export function VetAgendaScreen() {
   return (
     <VetMobileShell hideTopBar>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
+        {assignedFarms.length > 1 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.farmFilter}
+          >
+            <Pressable
+              style={[styles.farmChip, !farmFilterId && styles.farmChipOn]}
+              onPress={() => setFarmFilterId(null)}
+            >
+              <Text
+                style={[
+                  styles.farmChipTx,
+                  !farmFilterId && styles.farmChipTxOn
+                ]}
+              >
+                {t("vet.agenda.filterAllFarms")}
+              </Text>
+            </Pressable>
+            {assignedFarms.map((f) => (
+              <Pressable
+                key={f.id}
+                style={[
+                  styles.farmChip,
+                  farmFilterId === f.id && styles.farmChipOn
+                ]}
+                onPress={() => setFarmFilterId(f.id)}
+              >
+                <Text
+                  style={[
+                    styles.farmChipTx,
+                    farmFilterId === f.id && styles.farmChipTxOn
+                  ]}
+                  numberOfLines={1}
+                >
+                  {f.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
         {!listView ? (
           <>
             <View style={styles.monthRow}>
@@ -195,7 +244,7 @@ export function VetAgendaScreen() {
             layout="embedded"
             emptyMessage={t("vet.agenda.empty")}
             onItemPress={(item) => {
-              const v = dashQ.data?.upcomingVisits.find((x) => x.id === item.id);
+              const v = filteredVisits.find((x) => x.id === item.id);
               if (!v) return;
               openUpcomingVisit(v);
             }}
@@ -214,6 +263,22 @@ export function VetAgendaScreen() {
 
 const styles = StyleSheet.create({
   wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  farmFilter: { marginBottom: mobileSpacing.xs, maxHeight: 44 },
+  farmChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: vetColors.cardBg,
+    borderWidth: 1,
+    borderColor: vetColors.border,
+    marginRight: 8
+  },
+  farmChipOn: {
+    backgroundColor: vetColors.primary,
+    borderColor: vetColors.primary
+  },
+  farmChipTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: 13 },
+  farmChipTxOn: { color: vetColors.onPrimary },
   toggle: { fontSize: 20, paddingHorizontal: 8 },
   monthRow: {
     flexDirection: "row",

@@ -6,6 +6,8 @@ export type RootStackParamList = {
    */
   ProducerFarmSettings: { farmId?: string; farmName?: string } | undefined;
   BuyerDashboard: undefined;
+  /** Compte acheteur (profil éditable, météo, préférences). */
+  BuyerAccount: undefined;
   MerchantDashboard: undefined;
   MerchantShops: undefined;
   MerchantShopDetail: { shopId: string };
@@ -35,6 +37,8 @@ export type RootStackParamList = {
   MerchantMyProductDetail: { productId: string };
   BuyerMarket:
     | {
+        /** Segment interne Marché : annonces / favoris / alertes. */
+        segment?: "listings" | "favorites" | "alerts";
         favoritesOnly?: boolean;
         searchQuery?: string;
         tab?: "listings" | "prices" | "offers" | "partners";
@@ -62,11 +66,19 @@ export type RootStackParamList = {
   BuyerAlerts: undefined;
   BuyerFavorites: undefined;
   VeterinarianDashboard: undefined;
+  /** Compte vétérinaire (profil public éditable). */
+  VetAccount: undefined;
   VetAgenda: undefined;
   VetFarms: undefined;
-  VetFarmDetail: { farmId: string; farmName: string };
+  VetFarmDetail: {
+    farmId: string;
+    farmName: string;
+    initialTab?: "health" | "livestock" | "visits" | "prescriptions";
+  };
   VetMessages: undefined;
+  /** @deprecated contenu dans dossier élevage — deep link conservé. */
   VetTasks: undefined;
+  /** @deprecated contenu dans dossier élevage — deep link conservé. */
   VetReports: undefined;
   TechnicianDashboard: undefined;
   TechTasks: undefined;

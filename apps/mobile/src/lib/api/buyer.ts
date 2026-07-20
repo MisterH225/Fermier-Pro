@@ -20,10 +20,17 @@ export type UpsertBuyerProfileBody = {
 export type BuyerDashboardDto = {
   profile: {
     buyerType: string;
+    businessName?: string | null;
     onboardingComplete: boolean;
     preferredCategories: string[];
     priceRangeMin: string | null;
     priceRangeMax: string | null;
+    locationLabel?: string | null;
+    homeLatitude?: number | null;
+    homeLongitude?: number | null;
+    searchRadiusKm?: number | null;
+    typicalVolume?: string | null;
+    profilePhotoUrl?: string | null;
   } | null;
   kpis: {
     pendingProposals: number;

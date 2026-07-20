@@ -251,13 +251,14 @@ export function ProposalCard(props: ProposalCardProps) {
               days: balanceDueDays ?? "—"
             })}
           </Text>
-          {variant === "received" ? (
-            <CreditScoreBadge
-              score={buyerCreditScore}
-              prefix={t("marketScreen.credit.buyerScore")}
-            />
-          ) : null}
         </View>
+      ) : null}
+
+      {variant === "received" ? (
+        <CreditScoreBadge
+          score={buyerCreditScore}
+          prefix={t("marketScreen.meteoBuyer.label")}
+        />
       ) : null}
 
       {isCredit &&

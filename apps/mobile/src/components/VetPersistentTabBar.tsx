@@ -118,22 +118,19 @@ export function VetPersistentTabBar() {
           navigation.navigate("CommunityFeed");
           return;
         case "tasks":
-          navigation.navigate("VetTasks");
+          navigation.navigate("VetFarms");
           return;
         case "reports":
-          navigation.navigate("VetReports");
+          navigation.navigate("VetFarms");
           return;
         case "wallet":
           navigation.navigate("UserWallet");
           return;
         case "prescriptions":
-          navigation.navigate("ModuleRoadmap", {
-            title: t("vet.extended.prescriptions"),
-            body: t("vet.extended.prescriptionsRoadmap")
-          });
+          navigation.navigate("VetFarms");
           return;
         case "settings":
-          navigation.navigate("ProducerFarmSettings");
+          navigation.navigate("VetAccount");
           return;
         default:
           return;

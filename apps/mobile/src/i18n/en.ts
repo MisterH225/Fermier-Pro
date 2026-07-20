@@ -18,6 +18,7 @@ export const en = {
   common: {
     error: "Error",
     cancel: "Cancel",
+    save: "Save",
     delete: "Delete",
     ok: "OK",
     close: "Close",
@@ -400,6 +401,11 @@ export const en = {
     searchPlaceholder: "Farm, location, breed…",
     badgeNew: "New",
     badgeSold: "Sold",
+    badgeHealthVerified: "Health verified",
+    healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
+    meteoBuyer: {
+      label: "Buyer weather:"
+    },
     badgeExpired: "Expired",
     badgeActiveOffers: "{{count}} active offer(s)",
     activeOfferCta: "View your active offer",
@@ -1347,6 +1353,8 @@ export const en = {
       tabs: {
         health: "Health",
         livestock: "Herd",
+        visits: "Visits",
+        prescriptions: "Prescriptions",
         history: "History",
         tasks: "Tasks"
       },
@@ -1355,7 +1363,51 @@ export const en = {
       declareCase: "Report a case",
       openLivestock: "View herd",
       openHistory: "Consultation history",
-      openTasks: "Farm tasks"
+      openTasks: "Farm tasks",
+      alertsTitle: "Active alerts",
+      activeDiseases: "Active cases",
+      overdueVaccines: "Overdue vaccines",
+      mortality30d: "Mortality 30d",
+      recentCases: "Recent cases",
+      caseFallback: "Reported case",
+      noCases: "No recent cases.",
+      vaccinations: "Vaccinations",
+      vaccineFallback: "Vaccination",
+      headcount: "Headcount",
+      batches: "Active batches",
+      livestockReadonly: "Read-only — producer herd data.",
+      appointments: "Appointments",
+      consultations: "Consultations",
+      visitFallback: "Visit",
+      noVisits: "No visits for this farm.",
+      noPrescriptions: "No visit reports yet.",
+      reportHint: "Visit report"
+    },
+    account: {
+      title: "My account",
+      errorTitle: "Account",
+      sectionIdentity: "Professional identity",
+      sectionPublic: "Public profile",
+      sectionReputation: "Reputation",
+      sectionIncome: "Earnings",
+      sectionDiploma: "Diploma / training",
+      sectionSettings: "Settings",
+      orderNumber: "License number",
+      specialty: "Specialty",
+      verification: "Status",
+      verified: "Verified",
+      pending: "Pending verification",
+      bio: "Bio",
+      city: "City",
+      radius: "Service radius",
+      availability: "Available",
+      editPublic: "Edit public profile",
+      rating: "Rating",
+      reviews: "Reviews",
+      visitsDone: "Visits",
+      openWallet: "Open wallet",
+      school: "Training",
+      diplomaReadonly: "Read-only after verification."
     },
     agenda: {
       title: "Schedule",
@@ -1364,7 +1416,9 @@ export const en = {
       bookNow: "Schedule visit",
       scheduleTitle: "Schedule a visit",
       scheduleRoadmap: "Visit scheduling with producer notifications is coming in a future release.",
-      empty: "No appointments"
+      empty: "No appointments",
+      filterAllFarms: "All farms",
+      filterFarm: "Farm"
     },
     schedule: {
       title: "Schedule a visit",
@@ -1479,7 +1533,9 @@ export const en = {
       reports: "Reports",
       messages: "Messages",
       buyerHistory: "Orders",
+      buyerAccount: "My account",
       buyerFinance: "Finance",
+      vetAccount: "My account",
       merchantShop: "Shop",
       merchantProduct: "Product",
       merchantOrder: "Order",
@@ -3752,7 +3808,52 @@ export const en = {
   },
   buyer: {
     backToHome: "Home",
-    nav: { home: "Home", market: "Market", finance: "Finance", messages: "Messages", history: "Orders" },
+    nav: {
+      home: "Home",
+      market: "Market",
+      finance: "Finance",
+      messages: "Messages",
+      history: "Orders",
+      orders: "Orders"
+    },
+    market: {
+      segmentListings: "Listings",
+      segmentFavorites: "Favorites",
+      segmentAlerts: "Alerts",
+      searchPlaceholder: "Search listings…",
+      filterMaxPrice: "Max price / kg",
+      filterRadius: "Radius (km)",
+      allCategories: "All",
+      emptyListings: "No listings for these filters."
+    },
+    account: {
+      title: "My account",
+      errorTitle: "Account",
+      completionLabel: "Profile {{percent}}% complete",
+      completeCta: "Complete",
+      sectionIdentity: "Identity",
+      sectionMeteo: "Buyer weather",
+      sectionPrefs: "Buying preferences",
+      sectionWallet: "Wallet",
+      businessName: "Business",
+      meteoHint:
+        "Score shown to producers on your offers. Pay on time to improve it.",
+      punctuality:
+        "Punctuality: {{onTime}} on time · {{late}} late · {{total}} credit transactions",
+      priceRange: "Price range",
+      typicalVolume: "Typical volume",
+      searchRadius: "Search radius",
+      location: "Location",
+      editPrefs: "Edit preferences",
+      openWallet: "Open wallet",
+      scoreLevel: {
+        excellent: "⭐ Excellent",
+        bon: "✅ Good",
+        nouveau: "🆕 New",
+        attention: "⚠️ Attention",
+        risque: "🔴 Risky"
+      }
+    },
     extended: {
       favorites: "Favorites",
       priceAlerts: "Price alerts",
