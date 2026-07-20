@@ -115,8 +115,18 @@ export function buildVetCardModel(
   vet: VetSearchItemDto,
   t: (key: string, opts?: Record<string, unknown>) => string
 ) {
-  const location = vet.locationLabel?.trim() || null;
+  const location =
+    vet.locationCity?.trim() || vet.locationLabel?.trim() || null;
   const metaTiles: DirectoryProfileMetaTile[] = [];
+  const visits = vet.completedAppointments ?? 0;
+  const secondary = (vet.otherSpecialties ?? [])
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  const titleParts = [
+    vet.primarySpecialty?.trim(),
+    ...secondary
+  ].filter(Boolean);
 
   if (vet.primarySpecialty) {
     metaTiles.push({
@@ -124,34 +134,39 @@ export function buildVetCardModel(
       value: vet.primarySpecialty
     });
   }
-  if (vet.ratingCount > 0) {
+  metaTiles.push({
+    label: t("collab.directory.metaVisits"),
+    value: t("health.vetSearch.completedAppointmentsShort", {
+      count: visits
+    })
+  });
+  if (vet.interventionRadiusKm != null && vet.interventionRadiusKm > 0) {
+    metaTiles.push({
+      label: t("collab.directory.metaRadius"),
+      value: t("health.vetSearch.radiusKmShort", {
+        km: vet.interventionRadiusKm
+      })
+    });
+  } else if (vet.ratingCount > 0) {
     metaTiles.push({
       label: t("collab.directory.metaReviews"),
       value: String(vet.ratingCount)
     });
   }
-  metaTiles.push({
-    label: t("collab.directory.metaStatus"),
-    value: vet.isVerified
-      ? t("collab.directory.verifiedShort")
-      : vet.availability
-        ? t("collab.directory.online")
-        : t("collab.directory.offline")
-  });
 
   return {
     name: vet.fullName,
-    title: vet.primarySpecialty || t("collab.directory.vetRoleTitle"),
+    title:
+      titleParts.join(" · ") || t("collab.directory.vetRoleTitle"),
     photoUrl: vet.profilePhotoUrl,
     available: vet.availability,
     ratingLabel: formatDirectoryRating(vet.ratingAvg, vet.ratingCount, t),
     distanceLabel: formatDirectoryDistanceKm(vet.distanceKm, t),
-    highlightLabel: vet.isVerified
-      ? t("collab.directory.verifiedLong")
-      : null,
+    // Recherche API = uniquement vérifiés → badge systématique.
+    highlightLabel: t("collab.directory.verifiedLong"),
     highlightIcon: "shield-checkmark-outline" as const,
     locationLabel: location,
     metaTiles: metaTiles.slice(0, 3),
-    verified: vet.isVerified
+    verified: true
   };
 }

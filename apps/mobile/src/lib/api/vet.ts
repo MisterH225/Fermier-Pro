@@ -5,6 +5,11 @@ export type VetSearchItemDto = {
   id: string;
   fullName: string;
   primarySpecialty: string;
+  otherSpecialties?: string[];
+  bio?: string | null;
+  interventionRadiusKm?: number | null;
+  completedAppointments?: number;
+  locationCity?: string;
   locationLabel: string;
   profilePhotoUrl: string | null;
   availability: boolean;

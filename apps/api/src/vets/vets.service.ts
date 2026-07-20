@@ -480,10 +480,19 @@ export class VetsService {
           }
         }
 
+        const otherSpecialties = Array.isArray(row.otherSpecialties)
+          ? (row.otherSpecialties as string[])
+          : [];
+
         return {
           id: row.id,
           fullName: row.fullName,
           primarySpecialty: row.primarySpecialty,
+          otherSpecialties,
+          bio: row.bio,
+          interventionRadiusKm: row.interventionRadiusKm,
+          completedAppointments: row.completedAppointments,
+          locationCity: row.locationCity,
           locationLabel: `${row.locationCity}, ${row.locationCountry}`,
           profilePhotoUrl: row.profilePhotoUrl,
           availability: row.availability,
@@ -495,11 +504,31 @@ export class VetsService {
       })
       .filter((item): item is NonNullable<typeof item> => item != null);
 
+    /**
+     * Tri défaut Sprint 3 :
+     * 1) disponibles d'abord
+     * 2) ratingAvg desc
+     * 3) distance asc si locationCity exploitable + coords
+     */
     mapped.sort((a, b) => {
-      if (a.distanceKm != null && b.distanceKm != null) {
-        return a.distanceKm - b.distanceKm;
+      if (a.availability !== b.availability) {
+        return a.availability ? -1 : 1;
       }
-      return (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0);
+      const ratingDiff = (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0);
+      if (ratingDiff !== 0) {
+        return ratingDiff;
+      }
+      const aDistOk =
+        Boolean(a.locationCity?.trim()) && a.distanceKm != null;
+      const bDistOk =
+        Boolean(b.locationCity?.trim()) && b.distanceKm != null;
+      if (aDistOk && bDistOk) {
+        return (a.distanceKm as number) - (b.distanceKm as number);
+      }
+      if (aDistOk !== bDistOk) {
+        return aDistOk ? -1 : 1;
+      }
+      return a.fullName.localeCompare(b.fullName, "fr");
     });
 
     return { items: mapped };

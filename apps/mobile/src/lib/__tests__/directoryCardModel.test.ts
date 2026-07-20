@@ -21,6 +21,8 @@ const t = (key: string, opts?: Record<string, unknown>) => {
   if (key === "collab.directory.metaSpecialty") return "Spécialité";
   if (key === "collab.directory.metaReviews") return "Avis";
   if (key === "collab.directory.metaStatus") return "Statut";
+  if (key === "collab.directory.metaVisits") return "Visites";
+  if (key === "collab.directory.metaRadius") return "Rayon";
   if (key === "collab.directory.verifiedShort") return "Vérifié";
   if (key === "collab.directory.verifiedLong") return "Profil vérifié";
   if (key === "collab.directory.online") return "En ligne";
@@ -28,6 +30,10 @@ const t = (key: string, opts?: Record<string, unknown>) => {
   if (key === "collab.directory.techFallbackName") return "Technicien";
   if (key === "collab.directory.techRoleTitle") return "Technicien agricole";
   if (key === "collab.directory.vetRoleTitle") return "Vétérinaire";
+  if (key === "health.vetSearch.completedAppointmentsShort") {
+    return String(opts?.count ?? 0);
+  }
+  if (key === "health.vetSearch.radiusKmShort") return `${opts?.km} km`;
   if (key.startsWith("techOnboarding.spec.")) {
     const map: Record<string, string> = {
       "techOnboarding.spec.all": "Tout terrain",
@@ -81,27 +87,37 @@ describe("directoryCardModel", () => {
     expect(model.metaTiles[0]?.value).toBe("5 ans");
   });
 
-  it("construit une carte vétérinaire avec notes et localité", () => {
+  it("construit une carte vétérinaire avec notes, visites et badge vérifié", () => {
     const vet = {
       id: "v1",
       fullName: "Dr. Putri",
       primarySpecialty: "Soins primaires",
+      otherSpecialties: ["porcin"],
+      locationCity: "Sunnyvale",
       locationLabel: "Sunnyvale, CA",
       profilePhotoUrl: null,
       availability: true,
       isVerified: true,
       ratingAvg: 4.85,
       ratingCount: 255,
+      completedAppointments: 47,
+      interventionRadiusKm: 30,
       distanceKm: 16.8
     } as VetSearchItemDto;
 
     const model = buildVetCardModel(vet, t);
     expect(model.name).toBe("Dr. Putri");
+    expect(model.title).toContain("porcin");
     expect(model.ratingLabel).toBe("4,85 (255 avis)");
     expect(model.distanceLabel).toBe("16.8 km");
-    expect(model.locationLabel).toBe("Sunnyvale, CA");
+    expect(model.locationLabel).toBe("Sunnyvale");
     expect(model.verified).toBe(true);
     expect(model.highlightLabel).toBe("Profil vérifié");
-    expect(model.metaTiles.length).toBeGreaterThan(0);
+    expect(model.metaTiles.map((m) => m.label)).toEqual([
+      "Spécialité",
+      "Visites",
+      "Rayon"
+    ]);
+    expect(model.metaTiles[1]?.value).toBe("47");
   });
 });
