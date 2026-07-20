@@ -36,9 +36,6 @@ export const en = {
   cgu: {
     title: "Terms of use",
     subtitle: "Please read and accept before continuing",
-    updateBadge: "Terms updated",
-    updateSubtitle:
-      "Our terms of use have been updated. Please read and accept them to continue.",
     scrollHint: "Scroll to read the full terms",
     acceptLabel: "I have read and accept the Terms of Use",
     privacyLink: "Privacy policy",
@@ -47,8 +44,7 @@ export const en = {
     errorTitle: "Could not accept",
     refuseModal: {
       title: "Decline the terms?",
-      message:
-        "You cannot use the app without accepting the terms of use.",
+      message: "You cannot use the app without accepting the terms of use.",
       reread: "Read terms again",
       quit: "Quit the app"
     },
@@ -65,18 +61,15 @@ export const en = {
     unitPerHead: "per head sold",
     unitPerKg: "per kg sold",
     unitPerService: "for this service",
-    previewHint:
-      "Estimate based on current rates. No extra Terms confirmation is required to list an item for sale."
+    previewHint: "Estimate based on current rates. No extra Terms confirmation is required to list an item for sale."
   },
   farmListScreen: {
     addFarm: "+ Farm",
     signOut: "Sign out",
-    apiHint:
-      "Check EXPO_PUBLIC_API_URL (emulator: often http://10.0.2.2:3000).",
+    apiHint: "Check EXPO_PUBLIC_API_URL (emulator: often http://10.0.2.2:3000).",
     welcome: "Hello {{name}}",
     emptyTitle: "No farms yet",
-    emptySub:
-      "Create a farm with the “+ Farm” button (producer profile), or via API POST /farms. You can also browse the market.",
+    emptySub: "Create a farm with the “+ Farm” button (producer profile), or via API POST /farms. You can also browse the market.",
     cardMode: "{{species}} · {{mode}} mode",
     headerMessages: "Messages",
     headerMarket: "Market",
@@ -89,19 +82,15 @@ export const en = {
   loginGate: {
     logoA11y: "Fermier Pro",
     lead: "Run your farms, herd and daily operations from one place.",
-    envWarn:
-      "Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in apps/mobile/.env to your real Supabase project URL (not the <project-ref> placeholder), then restart Expo with --clear.",
+    envWarn: "Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in apps/mobile/.env to your real Supabase project URL (not the <project-ref> placeholder), then restart Expo with --clear.",
     redirectTitle: "Redirect URL (Supabase)",
-    redirectBody:
-      "Supabase → Authentication → URL configuration:\n1. Site URL = the exp://… URL above (not localhost).\n2. Redirect URLs = the same URL (+ button).\nGoogle: Providers → Google (Client ID / Secret).",
-    redirectLocalhostWarn:
-      "This URL contains localhost — it will fail on iPhone. Restart Expo on LAN (same Wi‑Fi) and rescan the QR code.",
+    redirectBody: "Supabase → Authentication → URL configuration:\n1. Site URL = the exp://… URL above (not localhost).\n2. Redirect URLs = the same URL (+ button).\nGoogle: Providers → Google (Client ID / Secret).",
+    redirectLocalhostWarn: "This URL contains localhost — it will fail on iPhone. Restart Expo on LAN (same Wi‑Fi) and rescan the QR code.",
     or: "or"
   },
   phoneAuth: {
     title: "Phone sign-in",
-    hintPhone:
-      "Create your account or sign in with your mobile number. You’ll receive a code by SMS.",
+    hintPhone: "Create your account or sign in with your mobile number. You’ll receive a code by SMS.",
     hintOtp: "Enter the 6-digit code received by SMS.",
     countryA11y: "Country and dial code, {{country}} {{dial}}",
     nationalPlaceholder: "07 00 00 00 00",
@@ -111,27 +100,22 @@ export const en = {
     resend: "Resend code",
     resendCooldown: "Resend code ({{seconds}}s)",
     changeNumber: "Change number",
-    codeSent:
-      "Code sent by SMS. Check spam filters if you don’t receive it.",
+    codeSent: "Code sent by SMS. Check spam filters if you don’t receive it.",
     loginSuccess: "Signed in…",
-    invalidPhone:
-      "Choose your country, then enter your mobile number (without the country code). Check the full number is correct.",
+    invalidPhone: "Choose your country, then enter your mobile number (without the country code). Check the full number is correct.",
     invalidOtp: "Enter the code received by SMS.",
     otpPlaceholder: "SMS code",
-    footerNote:
-      "No account yet? Your first SMS sign-in automatically creates your Fermier Pro access.",
+    footerNote: "No account yet? Your first SMS sign-in automatically creates your Fermier Pro access.",
     countryModalTitle: "Country / dial code",
     countrySearchPlaceholder: "Search for a country…",
     countryEmpty: "No matching country."
   },
   moduleRoadmap: {
-    note:
-      "Matching API routes are already protected by server-side feature flags; this screen prepares full mobile integration."
+    note: "Matching API routes are already protected by server-side feature flags; this screen prepares full mobile integration."
   },
   firstConnection: {
     title: "First sign-in",
-    subtitle:
-      "Choose your role: you’ll get a tailored dashboard. You can add more roles later from your profile.",
+    subtitle: "Choose your role: you’ll get a tailored dashboard. You can add more roles later from your profile.",
     continue: "Continue",
     signOut: "Use another account",
     pickProfile: "Choose a profile to continue.",
@@ -165,8 +149,7 @@ export const en = {
     validationIncomplete: "Please complete all required fields.",
     skipModal: {
       title: "Your dashboard will be empty",
-      message:
-        "Without setting up your project, no data can be displayed. You can complete this anytime from your profile.",
+      message: "Without setting up your project, no data can be displayed. You can complete this anytime from your profile.",
       continue: "Continue setup",
       skipAnyway: "Skip anyway"
     },
@@ -217,13 +200,11 @@ export const en = {
       fatteningHelper: "Final phase before sale or processing",
       preview: "Total headcount: {{total}}",
       estimatedAge: "Estimated average age (weeks)",
-      estimatedAgeHelper:
-        "Applied to each production animal created — enables dynamic age tracking"
+      estimatedAgeHelper: "Applied to each production animal created — enables dynamic age tracking"
     },
     step4: {
       title: "Pen setup",
-      subtitle:
-        "Left column = Building A, right column = Building B (editable later). Animals are assigned automatically from your headcounts.",
+      subtitle: "Left column = Building A, right column = Building B (editable later). Animals are assigned automatically from your headcounts.",
       buildings: "Number of buildings (columns)",
       pensPerBuilding: "Pens per column (numbered top to bottom)",
       capacity: "Max capacity per pen",
@@ -271,10 +252,6 @@ export const en = {
   adminMessages: {
     title: "Admin messages",
     empty: "No messages yet.",
-    bannerTitle: "Admin message",
-    bannerOne: "1 new message — tap to open",
-    bannerCount: "{{count}} unread messages",
-    bannerA11y: "Open admin messages",
     openCta: "View admin messages"
   },
   support: {
@@ -297,22 +274,15 @@ export const en = {
     noName: "Name not provided",
     linkedAccount: "Account linked to your sign-in.",
     activeProfile: "Active profile",
-    profileHint:
-      "To switch role, use the selector on the “My farms” screen or the equivalent on your dashboard.",
     noProfile: "No profile selected.",
     language: "Language",
     localeHints: {
       fr: "French interface and help texts",
       en: "English UI"
     },
-    languagePersistHint:
-      "The language is saved on this device and applied to translated screens.",
-    help: "Help & information",
+    languagePersistHint: "The language is saved on this device and applied to translated screens.",
     refresh: "Refresh my data",
     signOut: "Sign out",
-    helpTitle: "Fermier Pro help",
-    helpBody:
-      "Field documentation, FAQ and support contact: content to integrate according to your offer.",
     profileTypes: {
       producer: "Producer",
       technician: "Technician",
@@ -321,27 +291,19 @@ export const en = {
       merchant: "Merchant"
     },
     switchProfileModalTitle: "Your profiles",
-    switchProfileSubtitle:
-      "Switch role (producer, merchant, veterinarian, etc.) or add another profile linked to the same account.",
+    switchProfileSubtitle: "Switch role (producer, merchant, veterinarian, etc.) or add another profile linked to the same account.",
     addProfile: "Add a profile",
     addProfileHint: "Pick a profile type to create. It will be linked to your unique account.",
     allProfilesAdded: "You already have every available profile.",
-    addProfileDemoBlocked: "Demo mode: you cannot add a profile.",
-    languageSelectShort: "Language",
     languageSelectA11y: "Choose interface language",
     tapToChangeProfile: "Tap to switch profile or add one.",
     notificationsTitle: "Notifications",
     notificationsLabel: "Alerts on this device",
-    notificationsHint:
-      "Turn on notifications to receive alerts (system permission required).",
-    notificationsPermissionDenied:
-      "Notifications are blocked in your device settings. You can enable them later in Settings.",
-    notificationsTokenError:
-      "Could not get a push token (network or device). Try again on a phone with Expo Go or a development build.",
-    notificationsTokenMissingProject:
-      "Alerts are enabled, but the push token could not be saved: the Expo (EAS) project is not configured. In apps/mobile, run « npx eas init », copy the projectId to EXPO_PUBLIC_EAS_PROJECT_ID (.env), then restart Expo.",
+    notificationsHint: "Turn on notifications to receive alerts (system permission required).",
+    notificationsPermissionDenied: "Notifications are blocked in your device settings. You can enable them later in Settings.",
+    notificationsTokenError: "Could not get a push token (network or device). Try again on a phone with Expo Go or a development build.",
+    notificationsTokenMissingProject: "Alerts are enabled, but the push token could not be saved: the Expo (EAS) project is not configured. In apps/mobile, run « npx eas init », copy the projectId to EXPO_PUBLIC_EAS_PROJECT_ID (.env), then restart Expo.",
     notificationsSaveError: "Could not save notification preferences.",
-    notificationsDemoBlocked: "Demo mode: notification API settings are disabled.",
     notificationsA11y: "Enable or disable push notifications",
     dangerZone: {
       label: "Danger",
@@ -349,15 +311,13 @@ export const en = {
     },
     deleteAccount: {
       warningTitle: "Delete your account?",
-      warningMessage:
-        "This action cannot be undone. All your data will be permanently deleted: farm, livestock, finances, health, feed stock, gestations, and reports. People with access to your project will immediately lose that access.",
+      warningMessage: "This action cannot be undone. All your data will be permanently deleted: farm, livestock, finances, health, feed stock, gestations, and reports. People with access to your project will immediately lose that access.",
       consequences: {
         farm: "✗ Your farm and all its settings",
         animals: "✗ All your animals and their history",
         finance: "✗ All your financial transactions",
         reports: "✗ All generated reports",
-        collaborators:
-          "✗ All collaborator access (vet, technician, partner)",
+        collaborators: "✗ All collaborator access (vet, technician, partner)",
         health: "✗ Your gestation and health history"
       },
       cancel: "Cancel",
@@ -368,12 +328,10 @@ export const en = {
       confirmAction: "Delete permanently",
       processing: "Deleting account…",
       doneTitle: "Account deleted",
-      doneMessage:
-        "All your data has been deleted. Thank you for using the app.",
+      doneMessage: "All your data has been deleted. Thank you for using the app.",
       close: "Close",
       errorTitle: "Deletion failed",
-      errorGeneric:
-        "Account deletion could not be completed. Try again in a minute or contact support."
+      errorGeneric: "Account deletion could not be completed. Try again in a minute or contact support."
     }
   },
   marketScreen: {
@@ -391,11 +349,9 @@ export const en = {
       directSale: "Direct livestock sale",
       messageErrorTitle: "Messaging unavailable",
       emptyClientsTitle: "No clients yet",
-      emptyClientsBody:
-        "Buyers you complete a sale with (marketplace or direct livestock sale) will appear here.",
+      emptyClientsBody: "Buyers you complete a sale with (marketplace or direct livestock sale) will appear here.",
       emptySuppliersTitle: "No suppliers yet",
-      emptySuppliersBody:
-        "Producers you complete a purchase with (marketplace or direct sale) will appear here."
+      emptySuppliersBody: "Producers you complete a purchase with (marketplace or direct sale) will appear here."
     },
     create: "Create listing",
     searchPlaceholder: "Farm, location, breed…",
@@ -418,18 +374,15 @@ export const en = {
       newBuyer: "New buyer",
       suspended: "Buyer suspended",
       suspendedHint: "This buyer cannot complete a sale right now.",
-      acceptDisabled:
-        "Cannot accept — buyer suspended by the platform.",
+      acceptDisabled: "Cannot accept — buyer suspended by the platform.",
       sheetTitle: "Buyer weather",
-      sheetIntro:
-        "Reliability indicator based on credit payment history. Clearer skies mean a more reliable buyer.",
+      sheetIntro: "Reliability indicator based on credit payment history. Clearer skies mean a more reliable buyer.",
       levelIndex: "Level {{n}}/{{total}}",
       current: "Current",
       stats: "{{total}} transactions, {{onTime}} on time"
     },
     badgeExpired: "Expired",
     badgeActiveOffers: "{{count}} active offer(s)",
-    activeOfferCta: "View your active offer",
     activeTransactionCtaBuyer: "Track purchase in progress",
     activeTransactionCtaSeller: "Track sale in progress",
     detailTitle: "Listing",
@@ -443,18 +396,10 @@ export const en = {
       message: "{{summary}} — on Fermier Pro: {{url}}",
       a11y: "Share listing"
     },
-    listingStatus: "Status:",
     emptyListingsHint: "Publish a listing from My listings or livestock.",
     soldBanner: "Sale completed — this listing is closed.",
     cancelledBanner: "This listing was cancelled.",
-    reservedBanner:
-      "Deal agreed — set pickup below, then complete the sale.",
-    noDescription: "No description.",
     healthTitle: "Health summary",
-    healthVaccinesOk: "Vaccinations up to date.",
-    healthVaccinesKo: "Vaccinations need review.",
-    healthDisease: "Recent disease:",
-    healthMortality: "30-day mortality:",
     renewAction: "Renew 14 days",
     renewSuccess: "Listing renewed.",
     cancelSuccess: "Listing cancelled.",
@@ -465,15 +410,12 @@ export const en = {
     acceptCounter: "Accept counter-offer",
     myOffersTitle: "My offers on this listing",
     acceptSuccessTitle: "Offer accepted",
-    acceptSuccessBody:
-      "Proceed to payment to secure your purchase.",
-    acceptSuccessBodySeller:
-      "The buyer can now pay. Track delivery and closing here.",
+    acceptSuccessBody: "Proceed to payment to secure your purchase.",
+    acceptSuccessBodySeller: "The buyer can now pay. Track delivery and closing here.",
     transaction: {
       reference: "Transaction no.",
       copyReference: "Copy reference",
       referenceCopied: "Reference copied",
-      respondBefore: "Respond before {{when}}",
       saleDetails: "Sale details",
       counterparty: "Counterparty",
       counterpartyBuyer: "Buyer",
@@ -516,10 +458,6 @@ export const en = {
         OFFER_EXPIRED: "Offer expired",
         unknown: "Unknown status"
       },
-      agreedPrice: "Agreed price:",
-      agreedPricePerKg: "Agreed price/kg:",
-      amountAdjustHint:
-        "This amount will be adjusted to the actual weight at delivery.",
       payCta: "Pay {{amount}}",
       paymentSummaryTitle: "Payment breakdown",
       dealPriceLabel: "Purchase amount",
@@ -529,39 +467,24 @@ export const en = {
       platformFeeZeroLabel: "Platform fee",
       feeIncluded: "Included",
       totalPaymentLabel: "Total to pay",
-      feeBufferNote: "",
-      feePerKgNote:
-        "Estimated amount. The total will be adjusted to the actual weight measured at delivery.",
+      feePerKgNote: "Estimated amount. The total will be adjusted to the actual weight measured at delivery.",
       feeConsentTitle: "Confirm payment",
-      feeConsentBody:
-        "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\n🔒 Your money is safely held by Fermier Pro. It will only be released to the seller once you confirm receipt and weight.\n\nBy tapping \"Confirm\", you agree to pay this amount.",
+      feeConsentBody: "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\n🔒 Your money is safely held by Fermier Pro. It will only be released to the seller once you confirm receipt and weight.\n\nBy tapping \"Confirm\", you agree to pay this amount.",
       feeConsentConfirm: "Confirm and pay",
       feeConsentCancel: "Cancel",
       paymentSuccessTitle: "Payment confirmed",
-      paymentSuccessBody:
-        "Your payment is recorded. Coordinate delivery with the seller.",
+      paymentSuccessBody: "Your payment is recorded. Coordinate delivery with the seller.",
       paymentPendingTitle: "Payment in progress",
-      paymentPendingBody:
-        "Complete the payment in your browser. The transaction will update automatically once payment is validated.",
+      paymentPendingBody: "Complete the payment in your browser. The transaction will update automatically once payment is validated.",
       paymentAlreadyHeldTitle: "Payment already recorded",
-      paymentAlreadyHeldBody:
-        "This transaction is already paid (often via wallet or a GeniusPay webhook). Continue to the delivery step.",
-      paymentInvalidStatus:
-        "This transaction is no longer awaiting payment (status: {{status}}). Refresh the screen or create a new offer.",
-      paymentFailedRetryHint:
-        "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
-      checkoutUrlMissing:
-        "GeniusPay did not return a payment link. Retry shortly or contact support.",
-      checkoutUrlInvalid:
-        "The GeniusPay link is invalid. Try again or contact support.",
-      transactionNotFound:
-        "Transaction not found. Refresh the screen or reopen it from your proposals.",
-      paymentApiUnavailable:
-        "Payment service unavailable (outdated API or offline). Try again later.",
-      providerError:
-        "The payment provider rejected the request. Retry or contact support.",
-      paymentSessionExpired:
-        "Payment session expired. Tap Pay again to reopen the GeniusPay checkout.",
+      paymentAlreadyHeldBody: "This transaction is already paid (often via wallet or a GeniusPay webhook). Continue to the delivery step.",
+      paymentInvalidStatus: "This transaction is no longer awaiting payment (status: {{status}}). Refresh the screen or create a new offer.",
+      paymentFailedRetryHint: "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
+      checkoutUrlMissing: "GeniusPay did not return a payment link. Retry shortly or contact support.",
+      checkoutUrlInvalid: "The GeniusPay link is invalid. Try again or contact support.",
+      transactionNotFound: "Transaction not found. Refresh the screen or reopen it from your proposals.",
+      paymentApiUnavailable: "Payment service unavailable (outdated API or offline). Try again later.",
+      providerError: "The payment provider rejected the request. Retry or contact support.",
       paymentErrorTitle: "Payment failed",
       pickupSection: "Pickup appointment",
       pickupDate: "Pickup date",
@@ -572,48 +495,36 @@ export const en = {
       pickupProposedTitle: "Appointment proposed",
       pickupProposedBody: "The seller must confirm this date works for them.",
       pickupConfirmedTitle: "Appointment confirmed",
-      pickupConfirmedBody:
-        "The buyer can enter the weight on pickup day.",
-      confirmEstimatedWeight: "Confirm estimated weight",
+      pickupConfirmedBody: "The buyer can enter the weight on pickup day.",
       weightSection: "Weight at delivery",
       realWeight: "Actual weight (kg)",
       declareWeight: "Confirm received weight",
       declareWeightModalTitle: "Weight at pickup",
-      declareWeightPerAnimalHint:
-        "Weigh each animal at pickup. A photo per animal is optional.",
+      declareWeightPerAnimalHint: "Weigh each animal at pickup. A photo per animal is optional.",
       animalWeightLabel: "Animal {{index}} (kg)",
       addWeightPhoto: "Add photo (optional)",
       weightPhotoAdded: "Photo added",
       declaredTotalWeight: "Declared total: {{kg}} kg",
-      invalidWeight: "Invalid weight",
       weightDeclaredTitle: "Weight recorded",
-      weightDeclaredBody:
-        "The seller can accept your weight or declare their own.",
+      weightDeclaredBody: "The seller can accept your weight or declare their own.",
       sellerWeightReview: "Weight declared by buyer",
       sellerDeclareWeightTitle: "Your weigh-in",
-      sellerDeclareWeightHint:
-        "Enter the weight you measured at handover. If the gap is small, the sale continues; otherwise arbitration may be requested.",
-      autoToleranceHint:
-        "If your weigh-in differs by less than {{percent}}% (or {{minKg}} kg minimum) from the buyer's, the transaction will be validated automatically at the average weight.",
+      sellerDeclareWeightHint: "Enter the weight you measured at handover. If the gap is small, the sale continues; otherwise arbitration may be requested.",
+      autoToleranceHint: "If your weigh-in differs by less than {{percent}}% (or {{minKg}} kg minimum) from the buyer's, the transaction will be validated automatically at the average weight.",
       sellerDeclareWeightCta: "Enter my weight",
       sellerWeightLabel: "Your weight (kg)",
       buyerDeclaredWeight: "Buyer weight: {{kg}} kg",
       sellerDeclaredWeightLine: "Seller weight: {{kg}} kg",
       sellerWeightDeclaredTitle: "Weight recorded",
-      sellerWeightDeclaredBody:
-        "The gap with the buyer is shown. Accept or request arbitration if thresholds are met.",
+      sellerWeightDeclaredBody: "The gap with the buyer is shown. Accept or request arbitration if thresholds are met.",
       weightDiffSection: "Weight difference",
       weightDiffLine: "Difference: {{kg}} kg",
-      arbitrationThresholdsHint:
-        "Arbitration thresholds: {{min}} kg per animal · {{cumulative}} kg cumulative",
+      arbitrationThresholdsHint: "Arbitration thresholds: {{min}} kg per animal · {{cumulative}} kg cumulative",
       requestArbitration: "Request arbitration",
-      belowArbitrationThreshold:
-        "Gap below arbitration threshold — negotiate or accept with the other party.",
+      belowArbitrationThreshold: "Gap below arbitration threshold — negotiate or accept with the other party.",
       arbitrationRequestedTitle: "Arbitration requested",
-      arbitrationRequestedBody:
-        "A platform admin will review this transaction.",
+      arbitrationRequestedBody: "A platform admin will review this transaction.",
       validateWeight: "Validate weight",
-      disputeWeight: "Dispute weight",
       cancel: "Cancel transaction",
       closed: "Transaction completed.",
       receiptTitle: "Transaction receipt",
@@ -626,12 +537,7 @@ export const en = {
       receiptErrorTitle: "Download failed",
       receiptErrorBody: "Could not fetch the receipt.",
       receiptNotReady: "Receipt not available yet.",
-      statusLabel: "Step",
       stepPayment: "Payment",
-      stepPickup: "Appointment",
-      stepWeight: "Weight",
-      stepHandover: "Handover",
-      stepClosing: "Closing",
       status: {
         PAYMENT_PENDING: "Awaiting payment",
         PAYMENT_HELD: "Payment secured — propose pickup",
@@ -650,42 +556,23 @@ export const en = {
         PAYMENT_FAILED: "Payment failed"
       },
       scheduledPickup: "Pickup: {{date}} — {{location}}",
-      schedulePickupHint:
-        "Propose the date and place where you want to pick up the animal. The seller will confirm if it works.",
-      weightAtDeliveryHint:
-        "On pickup day, enter the actual measured weight.",
-      weightAtDeliveryFlatHint:
-        "Enter the actual weight on pickup day. The agreed amount stays the same.",
+      schedulePickupHint: "Propose the date and place where you want to pick up the animal. The seller will confirm if it works.",
+      weightAtDeliveryFlatHint: "Enter the actual weight on pickup day. The agreed amount stays the same.",
       projectedFinalCost: "Estimated final cost: {{amount}}",
-      finalCost: "Final amount: {{amount}}",
-      sellerWaitPayment:
-        "Waiting for the buyer to pay. You will be notified once funds are secured.",
-      sellerWaitBuyerPickup:
-        "Payment received. Waiting for the buyer to propose a pickup date.",
-      sellerConfirmPickup:
-        "The buyer proposed an appointment. Confirm if this date works for you.",
-      sellerWaitWeight:
-        "Appointment confirmed. The buyer will enter the weight on pickup day.",
-      sellerConfirmHandover:
-        "Weight confirmed. Confirm handover of the animals to the buyer.",
-      sellerWaitReceipt:
-        "Handover confirmed. Waiting for the buyer's final confirmation.",
-      buyerProposePickup:
-        "Propose a date and location to pick up the animal.",
-      buyerWaitPickupConfirm:
-        "Appointment proposed. The seller must confirm the date.",
-      buyerDeclareWeight:
-        "Appointment confirmed. Enter the actual weight measured at pickup.",
-      buyerWaitHandover:
-        "Weight confirmed. The seller will validate handover.",
-      buyerWaitReceipt:
-        "The seller confirmed handover. Confirm receipt to finalize and release payment.",
-      deliveryDisputed:
-        "A delivery dispute is open. Funds remain secured pending resolution.",
-      finalizing:
-        "Receipt confirmed — paying the seller and closing the transaction.",
-      weightDisputed:
-        "Weight is disputed. Arbitration is in progress — you will be notified."
+      sellerWaitPayment: "Waiting for the buyer to pay. You will be notified once funds are secured.",
+      sellerWaitBuyerPickup: "Payment received. Waiting for the buyer to propose a pickup date.",
+      sellerConfirmPickup: "The buyer proposed an appointment. Confirm if this date works for you.",
+      sellerWaitWeight: "Appointment confirmed. The buyer will enter the weight on pickup day.",
+      sellerConfirmHandover: "Weight confirmed. Confirm handover of the animals to the buyer.",
+      sellerWaitReceipt: "Handover confirmed. Waiting for the buyer's final confirmation.",
+      buyerProposePickup: "Propose a date and location to pick up the animal.",
+      buyerWaitPickupConfirm: "Appointment proposed. The seller must confirm the date.",
+      buyerDeclareWeight: "Appointment confirmed. Enter the actual weight measured at pickup.",
+      buyerWaitHandover: "Weight confirmed. The seller will validate handover.",
+      buyerWaitReceipt: "The seller confirmed handover. Confirm receipt to finalize and release payment.",
+      deliveryDisputed: "A delivery dispute is open. Funds remain secured pending resolution.",
+      finalizing: "Receipt confirmed — paying the seller and closing the transaction.",
+      weightDisputed: "Weight is disputed. Arbitration is in progress — you will be notified."
     },
     shipmentModal: {
       open: "Confirm shipment",
@@ -718,14 +605,12 @@ export const en = {
       dayOption: "{{count}} day",
       message: "Message to seller",
       messagePh: "Introduce yourself and your reseller activity…",
-      scoreWarning:
-        "Your current credit score is weak. The seller will see your history.",
+      scoreWarning: "Your current credit score is weak. The seller will see your history.",
       yourScore: "Your credit score:",
       submit: "Send credit offer",
       success: "Credit offer sent to the seller.",
       errorTitle: "Credit offer failed",
-      blocked:
-        "Your credit score does not allow credit offers at this time.",
+      blocked: "Your credit score does not allow credit offers at this time.",
       badge: "CREDIT"
     },
     credit: {
@@ -735,44 +620,25 @@ export const en = {
       counterSubmit: "Send counter-offer",
       counterSuccess: "Credit counter-offer sent.",
       acceptCounter: "Accept counter-offer",
-      agreedSuccess:
-        "Credit deal agreed — secure the advance on the platform to start delivery.",
+      agreedSuccess: "Credit deal agreed — secure the advance on the platform to start delivery.",
       escrow: {
-        transactionMissing: "Escrow transaction not found — try again shortly.",
-        advanceHeld: "The advance stays held on the platform until delivery.",
-        balanceRecalculated:
-          "The balance is recalculated from real weight after seller validation."
+        transactionMissing: "Escrow transaction not found — try again shortly."
       },
-      buyerScore: "Buyer credit score:",
       termsAdvance: "Advance: {{pct}}% = {{amount}}",
       termsBalance: "Balance: {{amount}} in {{days}} days",
-      paymentMode: "Payment method used",
-      paymentRef: "Payment reference",
-      paymentRefPh: "Transaction number, receipt…",
       advance: {
-        title: "Confirm advance payment",
-        info: "By confirming, you declare that you have paid or transferred the advance to the seller.",
-        due: "Advance due",
-        balance: "Remaining balance",
-        delay: "Balance due {{count}} days after delivery",
         confirm: "✅ I paid the advance",
-        declare: "💰 I paid the advance",
         payEscrow: "💳 Pay advance (escrow)",
         viewTransaction: "View transaction",
-        declaredSuccess: "Advance declared — the seller will confirm receipt.",
         confirmReceived: "✅ Confirm advance received",
-        notReceived: "❌ I did not receive the advance",
-        confirmedSuccess: "Advance confirmed — delivery can start."
+        notReceived: "❌ I did not receive the advance"
       },
       balance: {
         title: "Confirm balance payment",
-        amount: "Amount paid",
         confirm: "✅ I paid the balance",
         declare: "💰 I paid the balance",
         payEscrow: "💳 Pay balance (escrow)",
         remaining: "Remaining balance",
-        dueOn: "Due on {{date}}",
-        inDays: "in {{count}} day(s)",
         statusPending: "Awaiting payment",
         statusDeclared: "Payment declared",
         statusPaid: "Settled",
@@ -794,8 +660,7 @@ export const en = {
     transferModal: {
       open: "Add to my herd",
       title: "Import to my farm",
-      info:
-        "{{count}} animal(s) ready to be added to your herd after this sale.",
+      info: "{{count}} animal(s) ready to be added to your herd after this sale.",
       farm: "Destination farm",
       penOptional: "Pen (optional)",
       noPen: "No pen — animals will be created without placement.",
@@ -809,18 +674,11 @@ export const en = {
       info: "Confirm you received the animals as expected. Weight was already declared at pickup.",
       animals: "Animals received",
       animalsReceived: "Check received animals",
-      animalsWeigh: "Animals received — weight each (kg)",
       declaredWeightReminder: "Weight declared at pickup: {{weight}} kg",
-      weightKgPh: "Weight (kg)",
       headcount: "Number of animals received",
-      totalWeight: "Total weight: {{weight}} kg",
-      estimatedWeight: "Estimated listing weight: {{weight}} kg",
-      refundHint:
-        "Expected refund: {{amount}} (actual weight below blocked estimate)",
-      extraHint:
-        "Additional amount due to seller off-platform: {{amount}} (cash or mobile money)",
+      refundHint: "Expected refund: {{amount}} (actual weight below blocked estimate)",
+      extraHint: "Additional amount due to seller off-platform: {{amount}} (cash or mobile money)",
       exactHint: "Blocked amount matches actual weight — no adjustment.",
-      date: "Receipt date",
       receivedAt: "Receipt date",
       condition: "Animal condition",
       conditions: {
@@ -828,8 +686,6 @@ export const en = {
         minor_issue: "Minor issue",
         major_issue: "Major issue"
       },
-      comment: "Comment",
-      commentPh: "Describe the issue…",
       notes: "Comment",
       notesPh: "Describe the issue…",
       confirm: "Confirm receipt",
@@ -846,7 +702,6 @@ export const en = {
       unknown: "Lot"
     },
     proposalModal: {
-      open: "Make an offer",
       title: "Offer",
       pricePerKg: "Proposed price/kg",
       message: "Message to seller",
@@ -870,22 +725,10 @@ export const en = {
       success: "Counter-offer sent.",
       accepted: "Counter-offer accepted."
     },
-    saleModal: {
-      open: "Complete sale",
-      title: "Sale confirmation",
-      buyer: "Buyer:",
-      weight: "Final weight (kg)",
-      total: "Final total price",
-      notes: "Notes",
-      confirm: "Confirm sale",
-      footer: "Livestock and Finance will update automatically.",
-      success: "Sale recorded — Finance and livestock updated."
-    },
     flatPriceLabel: "Flat price",
     flatLotPricing: "{{perHead}} / head × {{count}} head(s)",
     pricePerHeadShort: "{{amount}} / head",
     totalWeight: "Total weight:",
-    totalWeightEmpty: "Total weight: —",
     weightBasis: {
       live: "Live weight",
       carcass: "Carcass weight",
@@ -895,18 +738,12 @@ export const en = {
       carcassHint: "Weight after slaughter and evisceration."
     },
     pricePerKg: "Price/kg:",
-    pricePerKgEmpty: "Price/kg: —",
     price: "Price:",
     pricePerUnit: "{{amount}} / unit",
     totalPrice: "Total price:",
     detail: {
       chatTitle: "Conversation",
       contactErrorTitle: "Messaging",
-      vaccines: "Vaccinations",
-      vetVisit: "Last vet visit",
-      none: "None",
-      activeCases: "Active cases",
-      noneOk: "None",
       noHealthData: "No health data available.",
       health: {
         globalStatus: "Vaccination status",
@@ -944,7 +781,6 @@ export const en = {
       breed: "Breed",
       weight: "Weight",
       category: "Category",
-      sellerSection: "Seller",
       reviews: "reviews",
       description: "Description",
       sellerActions: "Seller actions",
@@ -960,17 +796,12 @@ export const en = {
     emptySearch: "No results. Try other keywords or filters.",
     emptyMyListings: "No listings yet. Tap « Create listing » to start.",
     emptyMyFilter: "No listings in this filter.",
-    emptyOffers: "You have not made any offers yet.",
     kpiListings: "Listings",
     kpiViews: "Views",
     kpiConsults: "Consultations",
     myOffer: "My offer:",
-    offerStatus: "Offer status:",
-    offerListingLabel: "Listing:",
-    viewListing: "View listing →",
     withdrawTitle: "Withdraw this offer?",
-    withdrawBody:
-      "You can submit a new one later if the listing is still published.",
+    withdrawBody: "You can submit a new one later if the listing is still published.",
     withdrawCancel: "Cancel",
     withdrawConfirm: "Withdraw",
     withdrawAction: "Withdraw my offer",
@@ -1002,8 +833,7 @@ export const en = {
         fromGallery: "Choose from gallery",
         fromCamera: "Take a photo",
         emptyHint: "No photo — a default illustration will be shown on the listing.",
-        animalPhotoOffer:
-          "Photo available on record {{label}} — use it for this listing?",
+        animalPhotoOffer: "Photo available on record {{label}} — use it for this listing?",
         useAnimalPhoto: "Yes, use this photo",
         addOwn: "Add my own photos",
         farmRequiredTitle: "Farm required",
@@ -1014,20 +844,15 @@ export const en = {
       },
       sectionFarm: "Linked farm",
       noFarm: "No farm",
-      farmHint:
-        "Link a farm to attach livestock and complete sales (Finance + herd).",
+      farmHint: "Link a farm to attach livestock and complete sales (Finance + herd).",
       sectionCategory: "Category",
-      categoryHint:
-        "Piglet: auto-classified from average weight (< 15 kg). Breeder, butcher, or culled sow: your sale intent is kept.",
+      categoryHint: "Piglet: auto-classified from average weight (< 15 kg). Breeder, butcher, or culled sow: your sale intent is kept.",
       sectionAnimal: "Lot animals",
       animalMultiHint: "Select one or more active animals (required).",
-      animalIndividualListedHint:
-        "Animals marked « solo » already have an individual listing — add more animals to create a lot.",
+      animalIndividualListedHint: "Animals marked « solo » already have an individual listing — add more animals to create a lot.",
       animalIndividualBlockedTitle: "Individual listing already exists",
-      animalIndividualBlockedBody:
-        "This animal already has an individual marketplace listing. Remove the other listing or select multiple animals for a lot.",
+      animalIndividualBlockedBody: "This animal already has an individual marketplace listing. Remove the other listing or select multiple animals for a lot.",
       noActiveAnimals: "No active animals on this farm.",
-      noAnimal: "None",
       sectionListing: "Listing",
       title: "Title",
       titlePlaceholder: "E.g. Lot of 12 piglets — 450 kg",
@@ -1037,18 +862,15 @@ export const en = {
       breedPlaceholder: "E.g. Large White",
       sectionPricingPork: "Weight and price",
       sectionPricingFlat: "Flat price",
-      flatPriceHint:
-        "Flat price per head (e.g. 28,000 XOF per piglet). The lot total is calculated automatically from the number of animals selected.",
+      flatPriceHint: "Flat price per head (e.g. 28,000 XOF per piglet). The lot total is calculated automatically from the number of animals selected.",
       pricePerHead: "Price per head (flat rate)",
       lotTotalPrice: "Total lot price",
-      flatLotAuto:
-        "{{count}} head(s) × {{perHead}} = {{amount}}",
+      flatLotAuto: "{{count}} head(s) × {{perHead}} = {{amount}}",
       flatPrice: "Flat price",
       weightOptional: "Weight (kg, optional)",
       totalWeight: "Total weight (kg)",
       weightBasisLabel: "Weight type",
-      weightBasisHint:
-        "Check whether the weight entered is live weight or carcass weight.",
+      weightBasisHint: "Check whether the weight entered is live weight or carcass weight.",
       pricePerKg: "Asked price/kg",
       totalPrice: "Total price",
       totalAuto: "Auto-calculated: {{amount}}",
@@ -1060,32 +882,28 @@ export const en = {
       durationHint: "Applied when you publish the listing.",
       durationDays: "{{count}} days",
       draftHint: "Draft: not visible until published.",
-      footerNote:
-        "Saved as draft. Publish from the detail screen to go live.",
+      footerNote: "Saved as draft. Publish from the detail screen to go live.",
       errors: {
         titleRequired: "Title is required.",
         weightRequired: "Enter total weight (kg).",
-        weightBasisRequired:
-          "Specify whether the weight is live weight or carcass weight.",
+        weightBasisRequired: "Specify whether the weight is live weight or carcass weight.",
         pricePerKgRequired: "Enter price per kg.",
         flatPriceRequired: "Enter the flat price.",
         totalRequired: "Enter a valid total price."
       },
       sectionCredit: "Credit sales",
       creditEnabledLabel: "Accept credit offers",
-      creditEnabledHint:
-        "Buyers can propose split payment (secured advance + balance within 7 days). Butcher listings only."
+      creditEnabledHint: "Buyers can propose split payment (secured advance + balance within 7 days). Butcher listings only."
     },
     publishConfirmTitle: "Publish this listing?",
-    publishConfirmBody:
-      "It will be visible to buyers for the selected duration.",
+    publishConfirmBody: "It will be visible to buyers for the selected duration.",
     publishCancel: "Cancel",
     publishAction: "Publish to market",
     publishing: "Publishing…",
     publishSuccess: "Listing published — visible on the market.",
     editForm: {
       success: "Listing updated."
-    },
+    }
   },
   pigPriceIndex: {
     title: "📊 Pig prices",
@@ -1097,8 +915,7 @@ export const en = {
     period12m: "12M",
     unit: "FCFA/kg",
     emptyData: "Insufficient data",
-    emptyDataHint:
-      "The chart appears once the platform has enough sales or listings recorded (at least 3 data points in the period). This is normal in test or early launch environments.",
+    emptyDataHint: "The chart appears once the platform has enough sales or listings recorded (at least 3 data points in the period). This is normal in test or early launch environments.",
     categoryAll: "All",
     categoryPorcelet: "Piglets 🐣",
     categoryCroissance: "Growth 📈",
@@ -1116,10 +933,6 @@ export const en = {
     basedOn: "Based on {{count}} transactions"
   },
   ordersTracking: {
-    buyerTitle: "Track my shop orders",
-    buyerSub: "Status, delivery and disputes",
-    merchantTitle: "Track my orders",
-    merchantSub: "Acceptance, delivery and disputes",
     sectionTitle: "Current tracking",
     trackingLabel: "Tracking no.",
     sender: "Sender",
@@ -1134,47 +947,18 @@ export const en = {
       inTransit: "In transit",
       delivered: "Delivered",
       disputed: "Dispute"
-    },
-    steps: {
-      received: "Picked up",
-      in_transit: "In transit",
-      delivered: "Delivered"
     }
   },
   smartAlerts: {
-    sectionTitle: "Notifications",
-    seeAll: "See all",
     empty: "No notifications yet.",
     adminEmpty: "No messages from administration.",
     adminTag: "Administration",
-    hideInfo: "Hide info alerts",
-    showInfo: "Show {{n}} info alert(s)",
     bellA11y: "Notifications",
     markRead: "Mark as read",
     delete: "Delete",
     deleteConfirmTitle: "Delete this notification?",
     deleteConfirmBody: "This action cannot be undone.",
-    moduleMarket: "Market",
-    finance: {
-      expenseInactive: {
-        title: "Expense reminder",
-        messageShort:
-          "No expenses today, or yesterday? Log them so you don’t forget.",
-        messageLong:
-          "It’s been a few days since you logged anything. Record your expenses so you don’t forget them."
-      }
-    },
     market: {
-      priceUp: {
-        title: "{{category}} price rising",
-        message:
-          "{{category}} price rose {{pct}}% in 24h ({{price}} FCFA/kg, platform index)."
-      },
-      priceDown: {
-        title: "{{category}} price falling",
-        message:
-          "{{category}} price fell {{pct}}% in 24h ({{price}} FCFA/kg, platform index)."
-      },
       categories: {
         porcelet: "piglets",
         croissance: "growers",
@@ -1183,8 +967,6 @@ export const en = {
       }
     },
     settings: {
-      title: "SmartAlerts notifications",
-      subtitle: "Choose which alerts to receive as push on this device.",
       pushStock: "Feed stock",
       pushHealth: "Health",
       pushFinance: "Finance",
@@ -1211,13 +993,9 @@ export const en = {
     fieldAnimalEmpty: "No animals registered on this farm.",
     fieldDue: "Due date",
     dueDateNone: "No due date",
-    dueDateHint: "Tap to set a date, or use ◀ ▶",
     dueDateClear: "Remove date",
-    dueDatePrev: "Previous day",
-    dueDateNext: "Next day",
     viewGrid: "Grid",
     viewList: "List",
-    createShort: "New task",
     fieldDescription: "Description (optional)",
     fieldReminder: "Reminder",
     priorityUrgent: "Urgent",
@@ -1278,15 +1056,12 @@ export const en = {
     extended: {
       tasks: "Tasks",
       reports: "Reports",
-      prescriptions: "Prescriptions",
-      prescriptionsRoadmap: "Prescription hub and reminders: coming soon.",
-      settings: "Settings"
+      prescriptions: "Prescriptions"
     },
     dashboard: {
       welcome: "Welcome back",
       defaultName: "Veterinarian",
       pendingBanner: "Profile pending verification",
-      searchPlaceholder: "Search farm, animal…",
       upcomingTitle: "Upcoming visits",
       seeAll: "See all →",
       noVisits: "No scheduled visits — see my farms",
@@ -1297,7 +1072,11 @@ export const en = {
       kpiTasks: "Pending tasks",
       pendingEarnings: "Awaiting service completion",
       tasksTitle: "My tasks",
-      taskFilter: { today: "Today", week: "This week", all: "All" },
+      taskFilter: {
+        today: "Today",
+        week: "This week",
+        all: "All"
+      },
       activityTitle: "Recent clinical activity",
       activityEmpty: "No recent activity",
       quickActions: "Quick actions",
@@ -1323,23 +1102,19 @@ export const en = {
       acceptedBody: "The producer was notified and must pay to confirm the appointment.",
       refuseCta: "Decline request",
       refusalPlaceholder: "Reason for declining (optional)",
-      paymentHint:
-        "Payment secures your appointment. The vet is paid after the service is completed.",
+      paymentHint: "Payment secures your appointment. The vet is paid after the service is completed.",
       paymentDeadline: "Expires in {{time}} if unpaid",
       payCta: "Pay {{amount}} via Mobile Money",
       paymentSuccessTitle: "Payment confirmed",
       paymentSuccessBody: "Your appointment is confirmed. The vet has been notified.",
-      completeHint:
-        "Confirm only if the service was delivered. This triggers payment to the vet.",
+      completeHint: "Confirm only if the service was delivered. This triggers payment to the vet.",
       completeCta: "Confirm service completed",
       completeConfirmTitle: "Confirm service",
-      completeConfirmBody:
-        "This triggers payment to the vet. Make sure the service was actually delivered.",
+      completeConfirmBody: "This triggers payment to the vet. Make sure the service was actually delivered.",
       cancelCta: "Cancel request",
       cancelConfirmTitle: "Cancel appointment?",
       cancelConfirmBody: "No charge if you have not paid yet.",
-      waitingVetHint:
-        "Your request was sent to the veterinarian. You can cancel it while waiting for their response.",
+      waitingVetHint: "Your request was sent to the veterinarian. You can cancel it while waiting for their response.",
       ratingTitle: "Rate the veterinarian",
       ratingRequired: "Choose a rating from 1 to 5",
       ratingCommentPlaceholder: "Comment (optional)",
@@ -1347,20 +1122,7 @@ export const en = {
       rated: "Review saved",
       requestPending: "Pending request"
     },
-    profile: {
-      title: "Vet profile",
-      verified: "Verified profile",
-      sectionProfessional: "Professional profile",
-      sectionAccount: "Account",
-      zone: "Service area",
-      school: "Education",
-      availability: "Available",
-      statsFarms: "Farms",
-      statsVisits: "Visits",
-      statsRating: "Avg. rating"
-    },
     farms: {
-      title: "My farms",
       search: "Search a farm…",
       empty: "No assigned farms",
       filter: {
@@ -1383,26 +1145,17 @@ export const en = {
       selectorA11y: "Select a farm",
       selectorChange: "Change",
       selectorTitle: "My farms",
-      healthHint: "View health KPIs and alerts for this farm.",
-      openHealth: "Open health module",
       declareCase: "Report a case",
-      openLivestock: "View herd",
-      openHistory: "Consultation history",
-      openTasks: "Farm tasks",
-      alertsTitle: "Active alerts",
       activeAlertTitle: "{{count}} active health alert(s)",
       activeAlertBody: "Cases are currently open on this farm.",
       vaccineCoverage: "Vaccine coverage",
       vaccineCoverageHint: "{{name}} · {{overdue}} overdue",
       lastVisit: "Last visit",
-      activeDiseases: "Active cases",
       overdueVaccines: "Overdue vaccines",
       mortality30d: "Mortality 30d",
       recentCases: "Recent cases",
       caseFallback: "Reported case",
       noCases: "No recent cases.",
-      vaccinations: "Vaccinations",
-      vaccineFallback: "Vaccination",
       headcount: "Headcount",
       batches: "Active batches",
       batchesList: "Batches",
@@ -1428,11 +1181,8 @@ export const en = {
       title: "My account",
       errorTitle: "Account",
       completionLabel: "Public profile complete",
-      sectionIdentity: "Professional identity",
-      sectionPublic: "Public profile",
       sectionShowcase: "My showcase (visible to producers)",
       sectionReputation: "Reputation",
-      sectionIncome: "Earnings",
       sectionDiploma: "Diploma / training",
       sectionSettings: "Account",
       orderNumber: "License number",
@@ -1440,16 +1190,13 @@ export const en = {
       specialty: "Main specialty",
       otherSpecialties: "Other specialties",
       otherSpecialtiesPh: "Comma-separated",
-      verification: "Status",
       verified: "Verified",
       pending: "Pending verification",
       rejected: "Rejected",
       pendingBannerTitle: "Profile under review",
-      pendingBannerBody:
-        "Your file is being reviewed. You will appear in producer search once approved.",
+      pendingBannerBody: "Your file is being reviewed. You will appear in producer search once approved.",
       rejectedBannerTitle: "Profile rejected",
-      rejectedBannerBody:
-        "Contact support to restart diploma verification.",
+      rejectedBannerBody: "Contact support to restart diploma verification.",
       bio: "Bio",
       bioPh: "Describe your experience in a few lines…",
       city: "City",
@@ -1463,11 +1210,7 @@ export const en = {
       add: "Add",
       toComplete: "To complete",
       editPublic: "Edit public profile",
-      rating: "Rating",
-      reviews: "Reviews",
-      visitsDone: "Visits",
-      reputationMeta:
-        "{{reviews}} reviews · {{visits}} completed visits · {{cancellations}}",
+      reputationMeta: "{{reviews}} reviews · {{visits}} completed visits · {{cancellations}}",
       zeroCancellations: "0 cancellations",
       cancellationsCount: "{{count}} cancellation(s)",
       openWallet: "Earnings & withdrawals",
@@ -1485,15 +1228,15 @@ export const en = {
       }
     },
     agenda: {
-      title: "Schedule",
       chooseSlot: "Choose a time slot",
-      period: { morning: "Morning", afternoon: "Afternoon", evening: "Evening" },
+      period: {
+        morning: "Morning",
+        afternoon: "Afternoon",
+        evening: "Evening"
+      },
       bookNow: "Schedule visit",
-      scheduleTitle: "Schedule a visit",
-      scheduleRoadmap: "Visit scheduling with producer notifications is coming in a future release.",
       empty: "No appointments",
-      filterAllFarms: "All farms",
-      filterFarm: "Farm"
+      filterAllFarms: "All farms"
     },
     schedule: {
       title: "Schedule a visit",
@@ -1509,8 +1252,7 @@ export const en = {
       missingFields: "Choose a farm and time slot.",
       successTitle: "Appointment confirmed",
       successBody: "Visit scheduled for {{farm}} — {{date}}",
-      successBodyPayment:
-        "Visit proposed for {{farm}} — {{date}}. The producer must complete payment to confirm.",
+      successBodyPayment: "Visit proposed for {{farm}} — {{date}}. The producer must complete payment to confirm.",
       reasons: {
         routine: "Routine",
         urgency: "Urgent",
@@ -1527,15 +1269,6 @@ export const en = {
     call: {
       errorTitle: "Call",
       error: "Phone number unavailable."
-    },
-    tasks: {
-      title: "Tasks",
-      noFarm: "No farm — join a farm as veterinarian first.",
-      redirect: "Opening tasks…"
-    },
-    reports: {
-      title: "Reports",
-      body: "Visit reports, prescriptions and personal stats will be grouped here (PDF export coming soon)."
     }
   },
   quickActions: {
@@ -1572,12 +1305,9 @@ export const en = {
       home: "Home",
       cheptel: "Herd",
       health: "Health",
-      messages: "Messages",
       finance: "Finance",
-      collaboration: "Team",
       feed: "Com",
-      marketplace: "Market",
-      profile: "Profile"
+      marketplace: "Market"
     },
     extended: {
       menuShort: "Menu",
@@ -1586,10 +1316,7 @@ export const en = {
       teamDescription: "Manage your collaborators",
       settings: "Settings",
       nutrition: "Feed",
-      nutritionRoadmap:
-        "Feed purchases and stock tracking will be available when the feed module is enabled for your farm.",
-      collaboration: "Collaboration",
-      market: "Market",
+      nutritionRoadmap: "Feed purchases and stock tracking will be available when the feed module is enabled for your farm.",
       communityFeed: "Community",
       communityFeedDescription: "Community feed and posts",
       gestation: "Gestation",
@@ -1677,15 +1404,13 @@ export const en = {
     cityPlaceholder: "e.g. Abidjan, Bouaké…",
     country: "Country",
     countryPlaceholder: "e.g. Côte d'Ivoire",
-    locationHint:
-      "Location (GPS or city) automatically links the farm to its department and region for statistics.",
+    locationHint: "Location (GPS or city) automatically links the farm to its department and region for statistics.",
     useGps: "Use my GPS location",
     orManual: "Or enter manually:",
     gpsCaptured: "GPS captured: {{lat}}, {{lng}}",
     gpsError: "Could not get location. Try again or enter the city.",
     locationRequiredTitle: "Location required",
-    locationRequiredBody:
-      "Use GPS or enter at least a city / sector so the farm can be linked.",
+    locationRequiredBody: "Use GPS or enter at least a city / sector so the farm can be linked.",
     addressExtra: "Address details (optional)",
     addressExtraPlaceholder: "Street, landmark…"
   },
@@ -1717,13 +1442,6 @@ export const en = {
       confirm: "Delete"
     },
     transaction: {
-      edit: "Edit",
-      editCreateHint: "Editing an existing transaction will be available in a future update.",
-      duplicate: "Duplicate",
-      duplicateHint: "Duplicating from this form will be available in a future update.",
-      delete: "Delete",
-      deleteCreateHint:
-        "To delete a transaction, close this form and use the transaction list.",
       descriptionPh: "Details or notes (optional)",
       linkSection: "Link (batch / animal)",
       linkNone: "None",
@@ -1734,7 +1452,6 @@ export const en = {
     }
   },
   feedStock: {
-    title: "Feed",
     tabOverview: "Overview",
     tabMovements: "Movements",
     tabControls: "Stock checks",
@@ -1742,17 +1459,9 @@ export const en = {
     globalStock: "Total stock",
     chartTitle: "Stock over time",
     chartWeekLabel: "W{{week}} · {{date}}",
-    period3: "3M",
-    period6: "6M",
-    period12: "12M",
     statsTitle: "Stats by feed type",
     current: "Current stock",
     avgDaily: "Avg. daily: {{kg}} kg/d",
-    depletion: "Est. depletion",
-    statusOk: "OK",
-    statusWarn: "Watch",
-    statusCrit: "Critical",
-    recoTitle: "Recommendations",
     movementsTitle: "Movements",
     filterType: "Type",
     filterAll: "All",
@@ -1764,7 +1473,6 @@ export const en = {
     kindIn: "Stock in",
     kindCheck: "Checks",
     loadMore: "Load more",
-    qtyKg: "{{n}} kg",
     modalTitle: "Feed stock",
     sectionOperation: "Operation",
     tabIn: "Stock in",
@@ -1780,7 +1488,6 @@ export const en = {
     fieldWeightOverride: "Weight per bag (override)",
     fieldDate: "Date",
     fieldSupplier: "Supplier (optional)",
-    fieldUnitPrice: "Unit price (optional)",
     fieldTotalCost: "Total cost (optional)",
     fieldTotalCostHint: "Unit price is calculated automatically",
     fieldPriceBasis: "Price basis",
@@ -1790,8 +1497,7 @@ export const en = {
     cancel: "Cancel",
     confirm: "Save",
     successMessage: "Stock updated successfully",
-    noStats:
-      "No consumption data yet. Log a stock-in then a stock check.",
+    noStats: "No consumption data yet. Log a stock-in then a stock check.",
     noMovements: "No movements for these filters.",
     checkHint: "Enter counted bags to preview estimated consumption.",
     previewPrevBags: "Previous stock: {{n}} bags",
@@ -1800,19 +1506,14 @@ export const en = {
     previewDepletion: "Estimated stock-out: {{date}}",
     gaugePercent: "{{value}}%",
     gaugePercentRemaining: "{{value}}% remaining",
-    gaugeDaily: "{{kg}} kg/d",
     gaugeNoDaily: "consumption —",
-    gaugeDaysLeft: "{{count}} d left",
     gaugeDaysEstimate: "~{{count}} days remaining",
     gaugeUnknownDays: "estimate —",
-    gaugeInsufficientData:
-      "Record at least 2 stock checks to see estimates",
-    gaugeCenterDays: "{{count}} d",
+    gaugeInsufficientData: "Record at least 2 stock checks to see estimates",
     lastCheckAgo: "Last check: {{count}} d ago",
     unknownFeedType: "Feed",
     phaseReviewTitle: "Specify feed phase",
-    phaseReviewBody:
-      "Set each feed type's production phase to allocate costs to the right batches (under sow, transition, starter…).",
+    phaseReviewBody: "Set each feed type's production phase to allocate costs to the right batches (under sow, transition, starter…).",
     phaseSuggestion: "Suggested: {{phase}}",
     phases: {
       sous_mere: "Under sow",
@@ -1824,10 +1525,8 @@ export const en = {
       unknown: "Unspecified"
     },
     gaugeDashboardSubtitle: "{{kg}} kg · {{count}} d left",
-    gaugeDashboardNoDays: "{{kg}} kg · unknown duration",
     smartAlertsHintTitle: "Notifications",
-    smartAlertsHintBody:
-      "Feed and consumption alerts are available via the bell icon at the top of the dashboard.",
+    smartAlertsHintBody: "Feed and consumption alerts are available via the bell icon at the top of the dashboard.",
     filterMissingCost: "No cost",
     badgeMissingCost: "No cost",
     editMovement: "Edit",
@@ -1836,22 +1535,18 @@ export const en = {
     edit: {
       title: "Edit stock entry",
       checkTitle: "Edit stock check",
-      linkedWarning:
-        "This entry is linked to a Finance expense. Editing the cost here also updates the Finance transaction.",
+      linkedWarning: "This entry is linked to a Finance expense. Editing the cost here also updates the Finance transaction.",
       costSection: "Cost",
       costHelper: "Leave empty if unknown",
       totalCostPh: "Total cost",
-      unitPricePh: "Unit price / kg",
       calculatedPerKg: "Calculated price/kg: {{price}}",
       calculatedPerSac: "Calculated price/bag: {{price}}",
       deleteBtn: "Delete this entry",
       checkDeleteBtn: "Delete this check",
       deleteTitle: "Delete entry?",
       checkDeleteTitle: "Delete check?",
-      deleteMessage:
-        "This entry will be deleted. If linked to Finance, the link is removed (expense remains).",
-      checkDeleteMessage:
-        "This check will be deleted and stock will be recalculated from other movements.",
+      deleteMessage: "This entry will be deleted. If linked to Finance, the link is removed (expense remains).",
+      checkDeleteMessage: "This check will be deleted and stock will be recalculated from other movements.",
       savedTitle: "Entry updated",
       checkSavedTitle: "Check updated",
       savedMessage: "Stock entry saved.",
@@ -1882,11 +1577,8 @@ export const en = {
     }
   },
   offline: {
-    bannerOffline:
-      "Offline — your entries are saved on device and will sync when the network is back.",
+    bannerOffline: "Offline — your entries are saved on device and will sync when the network is back.",
     queuePending: "{{count}} entr(y/ies) waiting to sync",
-    queueFailed:
-      "{{pending}} pending · {{failed}} failed (tap Sync)",
     queueSyncedOnly: "Sync complete",
     syncNow: "Sync",
     retry: "Retry",
@@ -1904,13 +1596,9 @@ export const en = {
     navOverview: "Overview",
     navBatches: "Batches",
     navCheptel: "Herd",
-    navAnimals: "Animals",
     navGestation: "Gestations",
-    navPens: "Pens",
     navWeight: "Weight & ADG",
     navHistory: "History",
-    navConfig: "Configuration",
-    navStatuses: "Statuses",
     totalHeadcount: "Total headcount",
     kpiSectionTitle: "Key indicators",
     kpiBreedingFemales: "Breeding females",
@@ -1919,9 +1607,6 @@ export const en = {
     kpiNursing: "Nursing",
     kpiSick: "Sick animals",
     kpiUnitSows: "sows",
-    sexSplit: "Boars / sows",
-    availablePens: "Available pens",
-    unassignedAnimals: "Unassigned animals",
     headcountTrend: "Headcount trend",
     categoryBreakdown: "Breakdown by category",
     categoryPieCenter: "Total headcount",
@@ -1938,18 +1623,13 @@ export const en = {
       breeders: "Breeders",
       other: "Other"
     },
-    openBarns: "Manage barns and pens",
     batches: {
       detectedTitle: "Automatically detected batches",
-      confirmTitle: "Confirm this batch",
-      confirmBody:
-        "These animals will be grouped as a batch for tracking and profitability (like a gestation litter).",
       confirmName: "Batch name",
       confirmAction: "Confirm",
       editAction: "Edit",
       editTitle: "Compose batch",
-      editBody:
-        "Review the grouping before confirming. Remove animals from another generation, or split them into several batches.",
+      editBody: "Review the grouping before confirming. Remove animals from another generation, or split them into several batches.",
       editNeedAnimals: "Select at least one animal.",
       generation: "Generation",
       selectAll: "All",
@@ -1958,20 +1638,15 @@ export const en = {
       splitModeOff: "Back to a single batch",
       confirmSplitAction: "Create {{count}} batches",
       deleteTitle: "Delete this batch?",
-      deleteBody:
-        "Batch « {{name}} » will be permanently deleted. This cannot be undone.",
+      deleteBody: "Batch « {{name}} » will be permanently deleted. This cannot be undone.",
       deleteConfirm: "Delete",
       deleteAction: "Delete batch",
       deleteA11y: "Delete batch",
       deleting: "Deleting…",
       deleteFailed: "Could not delete",
       deleteBlockedHint: "Empty the batch (0 animals) before you can delete it.",
-      listHint:
-        "Batches with 0 animals: tap the trash icon to delete. In a pen, swipe the batch left.",
-      penSwipeHint: "Swipe an empty batch left to delete it."
+      listHint: "Batches with 0 animals: tap the trash icon to delete. In a pen, swipe the batch left."
     },
-    pensOccupancyHint:
-      "Overall occupancy: {{rate}} · {{available}} pen(s) with free space.",
     exits: {
       sectionTitle: "Exits",
       kindLocked: "Type: {{kind}} (selected)",
@@ -1994,21 +1669,16 @@ export const en = {
       }
     },
     actions: {
-      transfer: "Transfer",
-      changeStatus: "Change status",
       addVaccine: "Add vaccine",
       weigh: "Weigh",
-      listForSale: "List for sale",
       fullRecord: "Full record",
       declareGestation: "Declare pregnant",
-      gestationAlreadyActive:
-        "This sow already has an active gestation — see the Gestation menu.",
+      gestationAlreadyActive: "This sow already has an active gestation — see the Gestation menu.",
       currentWeight: "Current weight: {{weight}}",
       gestationActive: "Active gestation"
     },
     pens: {
       allBarns: "All buildings",
-      newPen: "New pen",
       subjects: "{{count}} head",
       avgWeight: "{{kg}} kg avg.",
       avgAgeWeeksShort: "{{weeks}} w.",
@@ -2018,8 +1688,7 @@ export const en = {
       avgAgeSection: "Average age",
       avgAgeCalculated: "{{weeks}} weeks",
       avgAgeFromAnimals: "Calculated from {{count}} animals",
-      avgAgePartial:
-        "Based on {{with}} / {{total}} animals ({{without}} age unknown)",
+      avgAgePartial: "Based on {{with}} / {{total}} animals ({{without}} age unknown)",
       avgAgeAutoBadge: "Updated automatically",
       avgAgeManualBadge: "Manual entry",
       avgAgeManualEdit: "Estimated average age (weeks)",
@@ -2055,16 +1724,6 @@ export const en = {
         mixed: "Mixed",
         empty: "Empty"
       },
-      usage: {
-        starter: "Starter / growth",
-        fattening: "Finishing",
-        sows: "Sows",
-        nursing: "Nursing piglets",
-        boar: "Boar",
-        boars: "Boars",
-        mixed: "Mixed",
-        empty: "Empty"
-      },
       avgWeightInitial: "Initial avg. weight (optional)",
       avgAgeInitial: "Initial avg. age (weeks)",
       avgAgeHelper: "Average age of subjects in weeks (max 104 = 2 years)",
@@ -2072,7 +1731,6 @@ export const en = {
       penDetail: "Pen",
       occupancy: "Occupancy",
       avgWeightField: "Avg. weight (kg)",
-      avgAgeField: "Avg. age (weeks)",
       filterAll: "All",
       filterMale: "Boars",
       filterFemale: "Sows",
@@ -2091,16 +1749,6 @@ export const en = {
       columnLeft: "Left column",
       columnRight: "Right column",
       topToBottom: "Numbered top to bottom",
-      places: "places",
-      tagStarter: "Starter",
-      tagFattening: "Finishing",
-      sanitary: {
-        healthy: "Healthy",
-        alert: "Alert",
-        critical: "Critical",
-        overcrowded: "Overcrowded",
-        empty: "Available"
-      },
       empty: "No pens configured.",
       createTitle: "New pen",
       createSubmit: "Create",
@@ -2115,14 +1763,12 @@ export const en = {
       editCapacitySave: "Save",
       editCapacityAction: "Edit",
       editCapacityA11y: "Edit pen capacity",
-      editCapacityHint:
-        "Leave empty for unlimited capacity. The occupancy gauge uses this value.",
+      editCapacityHint: "Leave empty for unlimited capacity. The occupancy gauge uses this value.",
       editCapacityPlaceholder: "e.g. 15",
       editCapacityInvalid: "Invalid capacity",
       editCapacityMissingPen: "Pen not found",
       editCapacitySuccess: "Capacity updated",
-      editCapacityBelowOccupancy:
-        "Warning: {{occupancy}} subjects are already in this pen (capacity below current occupancy).",
+      editCapacityBelowOccupancy: "Warning: {{occupancy}} subjects are already in this pen (capacity below current occupancy).",
       noAnimals: "No animals in this pen."
     },
     weight: {
@@ -2157,19 +1803,7 @@ export const en = {
       }
     },
     animals: {
-      searchPlaceholder: "Search by ID or breed…",
       noPen: "No pen assigned",
-      addFab: "New animal",
-      heads: "head(s)",
-      filter: {
-        all: "In herd",
-        male: "Boars",
-        female: "Sows",
-        active: "Active",
-        sold: "Sold",
-        dead: "Dead",
-        exited: "Exited from herd"
-      },
       sexMale: "Boar",
       sexFemale: "Sow",
       create: {
@@ -2191,7 +1825,6 @@ export const en = {
         notes: "Notes",
         submit: "Create animal",
         success: "Animal created successfully",
-        successInPen: "Animal added to pen {{pen}}",
         targetPen: "Placement: {{barn}} · {{pen}}",
         errorTitle: "Could not create"
       },
@@ -2212,8 +1845,7 @@ export const en = {
         errorTitle: "Could not update",
         financeLinked: "A revenue entry is created in Finance when a sale price is set.",
         healthLinked: "A mortality exit is recorded (Health module).",
-        exitedHint:
-          "The animal leaves the active herd (headcount, pens, listings). You can still find it under the « Exited from herd » filter."
+        exitedHint: "The animal leaves the active herd (headcount, pens, listings). You can still find it under the « Exited from herd » filter."
       },
       sale: {
         title: "Record sale",
@@ -2237,8 +1869,7 @@ export const en = {
         validation: "Enter weight and total sale price.",
         errorTitle: "Sale failed",
         successTitle: "Sale recorded ✅",
-        successMessage:
-          "{{tag}} marked as sold — {{amount}} {{currency}} added to Finance > Income",
+        successMessage: "{{tag}} marked as sold — {{amount}} {{currency}} added to Finance > Income",
         useSaleModal: "Use the sale form to mark an animal as sold."
       },
       transfer: {
@@ -2317,8 +1948,6 @@ export const en = {
         breed: "Breed",
         pen: "Pen",
         origin: "Origin",
-        origin_farm_born: "Born on farm",
-        origin_purchased: "Purchased",
         supplier: "Supplier / source",
         supplierPlaceholder: "Breeder, market, other…",
         pedigree: "Pedigree",
@@ -2335,11 +1964,7 @@ export const en = {
         photoUploadError: "Could not upload photo. Check Supabase bucket animal-photos.",
         photoUploadUnavailable: "Photo storage unavailable.",
         sex: "Sex",
-        sexUnknownTap: "Set sex",
         sexRequired: "Set sex before saving.",
-        sexSave: "Save sex",
-        sexSaved: "Sex saved",
-        sexErrorTitle: "Could not update",
         reclassifyTitle: "Reclassify as breeder?",
         reclassifyMessage: "Do you want to reclassify this animal as a breeder?",
         reclassifyYes: "Yes",
@@ -2351,66 +1976,29 @@ export const en = {
         birthDate: "Birth date",
         bornOn: "Born {{date}} — {{weeks}} w.",
         ageAtEntry: "Age at entry (weeks)",
-        enteredAt:
-          "Entered at {{weeks}} w. on {{date}} — currently {{current}} w.",
+        enteredAt: "Entered at {{weeks}} w. on {{date}} — currently {{current}} w.",
         currentAgeEstimated: "Estimated current age",
         currentAgeWeeks: "{{weeks}} weeks",
         currentAgeAuto: "Calculated automatically",
         health: "Health",
         healthSoon: "Health summary coming soon.",
         openHealth: "Open Health module",
-        edit: "Edit",
-        transfer: "Transfer",
         movePen: "Move pen",
-        addWeight: "Add weighing",
-        changeStatus: "Change status"
+        addWeight: "Add weighing"
       }
     },
-    sectionOverview: "Overview",
-    sectionConfig: "Farm configuration",
-    sectionAnimals: "Animals",
-    sectionBatches: "Batches",
-    sectionStatuses: "Status history",
-    totalAnimals: "Total animals (individual)",
-    males: "Boars",
-    females: "Sows",
     unknownSex: "Unknown sex",
-    gestating: "Gestating sows",
-    batchHead: "Active batch headcount",
-    activeBatches: "Active batches",
-    closedBatches: "Closed batches",
-    penCap: "Pen capacity (places)",
-    penOcc: "Animals in pens (est.)",
     occupancy: "Occupancy rate",
-    barnCount: "Barns (actual)",
-    modeLabel: "Production mode",
     modeIndividual: "Individual",
     modeBatch: "Batch",
     modeMixed: "Mixed",
-    buildings: "Number of buildings",
-    pensPerBuilding: "Pens per building",
-    maxPerPen: "Max headcount per pen",
-    saveConfig: "Save configuration",
-    saving: "Saving…",
-    emptyAnimals: "No animals recorded.",
     emptyBatches: "No batches recorded.",
-    openDetail: "Open detail",
-    changeStatus: "Status",
-    exportCsv: "Export CSV",
     noLogs: "No status changes recorded.",
     loadMore: "Load more",
-    filterAll: "All",
-    filterAnimal: "Animals",
-    filterBatch: "Batches",
-    hybridHint:
-      "Mixed mode: individual tracking for breeders, batches for growth / nursery.",
+    hybridHint: "Mixed mode: individual tracking for breeders, batches for growth / nursery.",
     batchOnlyHint: "Batch mode: group entries, no per-animal detail.",
     individualHint: "Individual mode: one card per animal.",
-    expectedExit: "Expected exit",
-    closedAt: "Closed at",
-    reproductors: "Breeders",
     growthBatches: "Growth & nursery (batches)",
-    lastWeight: "Last weight:",
     cancel: "Cancel"
   },
   settings: {
@@ -2482,13 +2070,10 @@ export const en = {
     vaccineCalendarSub: "Enable/disable and adjust timings",
     sectionSecurity: "🔐 Security & sign-in",
     changePassword: "Change password",
-    changePasswordHint:
-      "Use “Forgot password” on the sign-in screen.",
+    changePasswordHint: "Use “Forgot password” on the sign-in screen.",
     signOutConfirm: "Do you want to sign out?",
     sectionAbout: "ℹ️ About",
     appVersion: "App version",
-    cguHint: "Terms are accepted on first sign-in.",
-    privacyHint: "View the privacy policy from the terms screen.",
     cguSubtitle: "Read the terms and conditions",
     privacySubtitle: "Read the privacy policy",
     legalLoading: "Loading document…"
@@ -2496,12 +2081,8 @@ export const en = {
   producerScore: {
     badgePrefix: "Reliability",
     dashboard: {
-      title: "Your producer score",
       metricTitle: "Overall score",
-      global: "Overall index: {{value}}/100",
-      hint:
-        "This score reflects data entry regularity, platform usage, and responsiveness (offers, credit).",
-      pillarsTitle: "The 4 pillars",
+      hint: "This score reflects data entry regularity, platform usage, and responsiveness (offers, credit).",
       chartTitle: "The 4 pillars",
       pillarShort: {
         data: "Entries",
@@ -2510,55 +2091,35 @@ export const en = {
         chat: "Chat"
       },
       achievementBestTitle: "Strong pillar",
-      achievementBestBody:
-        "Your best result: {{pillar}} ({{value}}%).",
+      achievementBestBody: "Your best result: {{pillar}} ({{value}}%).",
       achievementBestFallback: "Keep logging data to strengthen your score.",
       achievementTierTitle: "Top producer",
-      achievementTierBody:
-        "Your profile builds trust with buyers and partners.",
+      achievementTierBody: "Your profile builds trust with buyers and partners.",
       achievementProgressTitle: "Improving",
-      achievementProgressBody:
-        "Your index is {{value}}/100 — steady effort will make a difference.",
+      achievementProgressBody: "Your index is {{value}}/100 — steady effort will make a difference.",
       achievementCreditBlockedTitle: "Credit suspended",
-      achievementCreditBlockedBody:
-        "Credit sales are temporarily blocked.",
+      achievementCreditBlockedBody: "Credit sales are temporarily blocked.",
       achievementCreditDeniedTitle: "Credit unavailable",
-      achievementCreditDeniedBody:
-        "Improve your score to unlock credit sales.",
+      achievementCreditDeniedBody: "Improve your score to unlock credit sales.",
       achievementCreditLimitedTitle: "Credit caution",
-      achievementCreditLimitedBody:
-        "Credit allowed with caution while your score stabilizes.",
+      achievementCreditLimitedBody: "Credit allowed with caution while your score stabilizes.",
       updatedAt: "Last updated: {{date}}",
       dataRegularity: "Data entry regularity",
-      dataRegularityDetail:
-        "{{days}} day(s) with at least one entry in the last 30 days.",
+      dataRegularityDetail: "{{days}} day(s) with at least one entry in the last 30 days.",
       platformUsage: "Platform usage",
-      platformUsageDetail:
-        "{{days}} active day(s) in the last 30 days.",
+      platformUsageDetail: "{{days}} active day(s) in the last 30 days.",
       responsiveness: "Responsiveness",
-      responsivenessDetail:
-        "{{responded}}/{{received}} offers handled within 48 h (last 90 days).",
+      responsivenessDetail: "{{responded}}/{{received}} offers handled within 48 h (last 90 days).",
       chatResponsiveness: "Chat responsiveness",
-      chatResponsivenessDetail:
-        "{{replied}}/{{messages}} buyer messages answered within 24 h.",
-      creditBlocked: "Credit sales suspended by the platform.",
-      creditLimited: "Credit sales allowed with caution (score still building).",
-      creditDenied: "Credit sales unavailable until your score improves.",
+      chatResponsivenessDetail: "{{replied}}/{{messages}} buyer messages answered within 24 h.",
       recompute: "Recalculate now"
-    },
-    dashboardCard: {
-      title: "Producer score",
-      subtitle: "Data entry, usage and responsiveness",
-      open: "View details"
     }
   },
   producer: {
     messages: {
       new: "New",
       emptyTitle: "No messages",
-      emptySub:
-        "Find conversations with buyers (marketplace) and your professional contacts here.",
-      noMessage: "No messages yet"
+      emptySub: "Find conversations with buyers (marketplace) and your professional contacts here."
     },
     vetAppointments: {
       title: "Vet appointments",
@@ -2569,7 +2130,6 @@ export const en = {
     },
     welcomeLine: "Welcome",
     settingsButton: "Settings",
-    farmSettingsTitle: "Settings",
     subscription: {
       title: "Team Premium",
       subtitle: "Invite and manage your farm team",
@@ -2592,8 +2152,7 @@ export const en = {
       payMobileMoney: "Wave / Mobile money",
       payWallet: "Wallet",
       paymentWaitingTitle: "Payment in progress",
-      paymentWaitingBody:
-        "Your Team Premium will activate automatically after payment confirmation.",
+      paymentWaitingBody: "Your Team Premium will activate automatically after payment confirmation.",
       reopenPaymentCta: "Open payment link",
       confirmPaymentCta: "I paid — activate Premium",
       alreadyPremium: "Your Team Premium is active."
@@ -2605,36 +2164,22 @@ export const en = {
       bannerSalesHint: "{{count}} sale(s) to handle",
       bannerProposalsHint: "{{count}} pending proposal(s)",
       continue: "Continue →",
-      view: "View →",
-      tx: {
-        PICKUP_PROPOSED: "Confirm pickup",
-        WEIGHT_DECLARED: "Validate weight",
-        WEIGHT_VALIDATED: "Confirm handover"
-      }
+      view: "View →"
     },
-    farmCheptelConfigSaved: "Farm configuration saved.",
-    profileTitle: "My profile",
     close: "Close",
-    identitySection: "Identity & farm",
-    photoHint: "Photo (gallery or camera)",
     pickGallery: "Gallery",
     pickCamera: "Camera",
     firstName: "First name",
     lastName: "Last name",
     farmName: "Farm name (home)",
     farmNameHint: "Shown at the top when set; otherwise your first created farm.",
-    locationSection: "Location",
     locationPlaceholder: "Address or place (manual)",
     useGps: "Use my current position",
     gpsSuccess: "GPS position saved (you can edit the label above).",
     gpsDenied: "Location permission denied or unavailable.",
     save: "Save",
-    saving: "Saving…",
-    settingsSection: "Account settings",
-    demoNoSave: "Demo mode: profile API save is disabled.",
     saveError: "Could not save. Check your connection.",
-    photoUploadError:
-      "Photo upload failed. Create the Supabase “avatars” bucket (see docs/SUPABASE_AUTH.md → Storage).",
+    photoUploadError: "Photo upload failed. Create the Supabase “avatars” bucket (see docs/SUPABASE_AUTH.md → Storage).",
     changePhotoTitle: "Profile photo",
     changePhotoMessage: "Choose a source to update your photo.",
     cancelPhoto: "Cancel",
@@ -2643,8 +2188,6 @@ export const en = {
     profileSectionLocation: "Location",
     profileSectionCollab: "Collaboration",
     profileSectionAccount: "Account",
-    accountStatusActive: "Active account",
-    accountStatusInactive: "Inactive account",
     useGpsShort: "Use current location",
     placeOnMap: "Place on map",
     mapPickerTitle: "Farm location",
@@ -2656,13 +2199,10 @@ export const en = {
       allProposals: "View all →",
       anonymousBuyer: "Buyer",
       noFarmTitle: "No farm selected",
-      noFarmBody:
-        "Link a farm or pick one from the list.",
+      noFarmBody: "Link a farm or pick one from the list.",
       openFarmList: "Open my farms",
       financeTitle: "Finance",
       financeDisabled: "Finance module is disabled on this server.",
-      legendExpenses: "Expenses",
-      legendRevenues: "Revenues",
       gestationsTitle: "Critical gestations",
       healthTitle: "Health",
       healthVaccines: "Upcoming vaccines",
@@ -2671,43 +2211,28 @@ export const en = {
       healthMortality: "Mortality rate",
       feedTitle: "Feed",
       feedDisabled: "Feed module is disabled on this server.",
-      feedCritical: "Stock below critical threshold",
       dayAbbr: "d",
       urgentBadge: "Urgent"
     }
   },
   collab: {
-    sectionTitle: "Collaboration",
-    scanHint:
-      "Scan or share this QR with a vet, technician or partner — they can request to join the farm.",
+    scanHint: "Scan or share this QR with a vet, technician or partner — they can request to join the farm.",
     defaultQrInfoTitle: "Project QR — access request",
-    defaultQrInfoBody:
-      "They scan this QR and send a request. You pick their role (partner, vet, technician) under “Scan requests” before they get farm access.",
+    defaultQrInfoBody: "They scan this QR and send a request. You pick their role (partner, vet, technician) under “Scan requests” before they get farm access.",
     scopedInviteInfoTitle: "Direct link — role pre-set",
-    scopedInviteInfoBody:
-      "Use “Invite someone” to generate a link with role and permissions already set: they join directly without manual approval.",
-    noFarm:
-      "Create or pick your home farm to generate a collaborative access link.",
-    demoBlocked: "Demo mode: targeted invitations (API) are not available.",
-    demoQrFootnote:
-      "Sample QR and link: no real invitation is created while you are in demo mode.",
+    scopedInviteInfoBody: "Use “Invite someone” to generate a link with role and permissions already set: they join directly without manual approval.",
+    noFarm: "Create or pick your home farm to generate a collaborative access link.",
     loadError: "Could not load the collaborative link.",
     retry: "Retry",
     copyLink: "Copy link",
-    copyDone: "Link copied",
     shareDefault: "Share link",
     openShareModal: "Invite someone",
-    shareModalHint:
-      "“Invite someone” creates a scoped link (role + permissions) you can share via SMS, WhatsApp or email.",
     shareTitle: "Share access",
-    shareCancel: "Cancel",
     shareConfirm: "Share",
     fieldRecipient: "Recipient",
     fieldPermissions: "Permissions",
-    permissionsHint:
-      "At least “Read only” must remain. Other rights are additive.",
-    shareFooterHint:
-      "Once confirmed, we send a unique link that opens the app directly on the invitation page.",
+    permissionsHint: "At least “Read only” must remain. Other rights are additive.",
+    shareFooterHint: "Once confirmed, we send a unique link that opens the app directly on the invitation page.",
     shareMessage: "Join {{farm}} on Fermier Pro: {{url}}",
     createError: "Could not create the invitation. Check your connection.",
     recipientKinds: {
@@ -2728,11 +2253,9 @@ export const en = {
       finance: "See and record expenses and revenues."
     },
     screenTitle: "Collaboration",
-    invitesReadOnly:
-      "Only team managers can invite collaborators or manage the access QR code.",
+    invitesReadOnly: "Only team managers can invite collaborators or manage the access QR code.",
     teamPremiumRequiredTitle: "Team Premium required",
-    teamPremiumRequiredBody:
-      "Invite partners, veterinarians and collaborators with a producer Premium subscription.",
+    teamPremiumRequiredBody: "Invite partners, veterinarians and collaborators with a producer Premium subscription.",
     teamPremiumCta: "View Premium plans",
     tabInvite: "Invitation",
     tabMembers: "Members",
@@ -2767,7 +2290,6 @@ export const en = {
       metaFormation: "Training",
       metaSalary: "Salary",
       metaReviews: "Reviews",
-      metaDistance: "Distance",
       metaStatus: "Status",
       metaSpecialty: "Specialty",
       metaVisits: "Visits",
@@ -2795,15 +2317,9 @@ export const en = {
       radiusKm: "{{km}} km",
       radiusCountry: "Whole country",
       filterExperience: "Minimum experience",
-      expany: "Any",
-      exp1: "1+ year",
-      exp3: "3+ years",
-      exp5: "5+ years",
-      exp10: "10+ years",
       filterSpecialization: "Specialization",
       filterSalaryMax: "Max monthly expectation",
       filterSalaryMaxPh: "Max amount / month",
-      openFilters: "Filters",
       inviteMessagePh: "Optional message…",
       inviteSentTitle: "Invitation sent",
       inviteSentBody: "{{name}} was invited to {{farm}}.",
@@ -2813,8 +2329,7 @@ export const en = {
     inviteSent: "Invitation sent!",
     regenerateLink: "Regenerate link",
     regenerateConfirmTitle: "Regenerate link?",
-    regenerateConfirmBody:
-      "The old link will be invalidated. Anyone using it will no longer be able to join.",
+    regenerateConfirmBody: "The old link will be invalidated. Anyone using it will no longer be able to join.",
     regenerateConfirmAction: "Continue",
     membersTitle: "Members",
     addMember: "Add",
@@ -2846,8 +2361,7 @@ export const en = {
       placeholder: "+1 555 000 0000 or email@example.com",
       hint: "Enter the exact identifier the person uses to sign in.",
       searchAction: "Search",
-      notFound:
-        "No account found with this identifier. Make sure the person is registered and uses this sign-in method.",
+      notFound: "No account found with this identifier. Make sure the person is registered and uses this sign-in method.",
       selfSearch: "You cannot invite yourself.",
       alreadyMember: "This person is already part of your project.",
       alreadyMemberBadge: "Already a member",
@@ -2856,10 +2370,8 @@ export const en = {
       inviteCta: "Invite this person",
       sendInvite: "Send",
       messageLabel: "Personal message (optional)",
-      messagePlaceholder:
-        "E.g. Hi, I'd like to give you access to my farm...",
-      successMsg:
-        "Invitation sent to {{name}} — awaiting their confirmation."
+      messagePlaceholder: "E.g. Hi, I'd like to give you access to my farm...",
+      successMsg: "Invitation sent to {{name}} — awaiting their confirmation."
     },
     pendingInvitations: {
       bannerTitle: "Invitation received",
@@ -2876,8 +2388,7 @@ export const en = {
       acceptedToast: "You have joined the farm.",
       cancel: "Cancel",
       confirmRejectTitle: "Decline the invitation?",
-      confirmRejectBody:
-        "You will no longer have access to {{farm}} through this invitation."
+      confirmRejectBody: "You will no longer have access to {{farm}} through this invitation."
     },
     scanRequests: {
       sectionTitle: "Pending QR requests",
@@ -2887,13 +2398,11 @@ export const en = {
       review: "Review",
       reviewA11y: "Review request from {{name}}",
       modalTitle: "Review request",
-      configureHint:
-        "Choose the role and permissions granted to this collaborator.",
+      configureHint: "Choose the role and permissions granted to this collaborator.",
       accept: "Accept",
       reject: "Decline",
       rejectConfirmTitle: "Decline this request?",
-      rejectConfirmBody:
-        "{{name}} will not be able to join the farm through this request.",
+      rejectConfirmBody: "{{name}} will not be able to join the farm through this request.",
       acceptedToast: "Collaborator added to the farm.",
       rejectedToast: "Request declined."
     },
@@ -2902,14 +2411,12 @@ export const en = {
       emailPlaceholder: "example@domain.com",
       phoneLabel: "Invitee phone (optional)",
       phonePlaceholder: "+221 …",
-      note:
-        "An email or phone helps match the invitation; the link can also be shared after creation.",
+      note: "An email or phone helps match the invitation; the link can also be shared after creation.",
       submit: "Create invitation",
       submitting: "Creating…"
     }
   },
   financeScreen: {
-    overview: "Overview",
     tabOverview: "Overview",
     tabRentability: "Profitability",
     balance: "Balance (all time)",
@@ -2933,28 +2440,23 @@ export const en = {
     tabExpenses: "Expenses",
     tabBudget: "Budget",
     tabWallet: "Wallet",
-    trend3Months: "3-month trend",
     trend6Months: "6-month trend",
     expensesVsBudget: "Expenses vs budget",
     legendExpenses: "Expenses",
     legendBudget: "Budget (ref.)",
     budgetMonthLine: "This month: {{spent}} / {{budget}} ({{pct}}% of budget)",
-    budgetHint: "Budget estimated from the 6-month average (projections).",
     periodMonth: "Monthly",
     periodYear: "Yearly",
     reportPeriodPrev: "Previous period",
     reportPeriodNext: "Next period",
     trendRevenues: "Revenue trend",
     trendExpenses: "Expense trend",
-    trendNet: "Net trend",
     sourcesRevenues: "Revenue sources",
     sourcesExpenses: "Expense breakdown",
-    budgetSplit: "Revenue / expenses (period)",
     recentTx: "Recent transactions",
     viewAll: "View all",
     viewLess: "Show less",
     noTx: "No transactions yet.",
-    advancedTitle: "Advanced analysis",
     marginByBand: "Margin by batch",
     selectBand: "Select a batch.",
     projections: "Projections",
@@ -2962,23 +2464,13 @@ export const en = {
     projRevExpSplit: "Revenue / expenses breakdown",
     projectedRevenues: "Projected revenues",
     projectedExpenses: "Projected expenses",
-    settings: "Currency settings",
-    saveSettings: "Save settings",
     newTx: "+ Transaction",
     modalTitle: "New transaction",
     expense: "Expense",
     income: "Income",
     autoGenerated: "Auto-generated",
-    chargesList: "Charges (excerpt)",
-    salesList: "Sales (excerpt)",
-    reports: "Reports by category",
-    topExpYear: "Top expenses (year)",
     lowBalanceBanner: "Low balance: below your configured threshold.",
     deficitBanner: "Heads-up: negative net trend based on the last 6 months.",
-    savedSettings: "Finance settings updated.",
-    savedTitle: "Saved",
-    netLabel: "Net:",
-    catHint: "Revenue vs expenses by category",
     editShort: "Edit",
     editModalTitle: "Edit transaction",
     save: "Save",
@@ -2988,8 +2480,6 @@ export const en = {
     fieldNotePh: "Details…",
     deleteShort: "Delete",
     projNet: "estimated net:",
-    currencySymbolPh: "Display symbol",
-    lowBalancePh: "Low balance alert threshold",
     fieldCategory: "Category",
     fieldAmount: "Amount",
     fieldDescription: "Description",
@@ -3001,8 +2491,7 @@ export const en = {
     addProofPhoto: "Add a photo",
     changeProofPhoto: "Change photo",
     removeProofPhoto: "Remove photo",
-    proofNoSupabase:
-      "Photos: set EXPO_PUBLIC_SUPABASE_URL and the anon key, and create a public « finance-proofs » bucket.",
+    proofNoSupabase: "Photos: set EXPO_PUBLIC_SUPABASE_URL and the anon key, and create a public « finance-proofs » bucket.",
     proofUploadError: "Could not upload the photo. Check your Supabase bucket.",
     errorTitle: "Error",
     cancel: "Cancel",
@@ -3019,42 +2508,31 @@ export const en = {
   financeStockLink: {
     stockSectionTitle: "Stock details",
     recordStock: "Also record in stock",
-    toggleOn: "Yes",
-    toggleOff: "No",
     quantity: "Quantity received",
     quantityWithUnit: "Quantity ({{unit}})",
     unitSac: "bags",
     unitKg: "kg",
     unitTonne: "tonnes",
     unitPrice: "Unit price (per kg)",
-    unitPriceSac: "Unit price (per bag)",
     totalCost: "Total cost",
     calculatedUnitPrice: "Calculated unit price: {{price}} {{currency}} / kg",
-    calculatedUnitPriceSac:
-      "Calculated unit price: {{price}} {{currency}} / bag",
+    calculatedUnitPriceSac: "Calculated unit price: {{price}} {{currency}} / bag",
     line: "Line {{n}}",
     lineSubtotal: "Subtotal: {{amount}} {{currency}}",
     addLine: "+ Add another feed type",
-    totalGap:
-      "Gap of {{gap}} {{currency}} — adjust quantities or total amount",
+    totalGap: "Gap of {{gap}} {{currency}} — adjust quantities or total amount",
     newFeedType: "New type",
     useExistingType: "Existing type",
     weightPerBag: "Weight per bag (kg)",
     weightPerBagHint: "Required to convert bags to kg",
     linkedStockTitle: "Linked stock",
-    unitPriceShort: "{{price}} / unit",
     openStock: "View in Feed Stock",
-    createFinanceExpense: "Also create expense in Finance",
-    financeLabel: "Expense label",
     financeBadge: "Linked Finance",
     linkedFinanceTitle: "Linked finance expense",
     deleteLinkedTitle: "Linked deletion",
-    deleteLinkedBody:
-      "This transaction is linked to a stock entry. Delete the stock entry too?",
+    deleteLinkedBody: "This transaction is linked to a stock entry. Delete the stock entry too?",
     deleteBoth: "Delete both",
-    deleteFinanceOnly: "Finance only",
-    txWithStockSuccess: "Expense recorded — stock updated",
-    historicalRecordsLink: "Pre-app history (expenses & revenue)"
+    deleteFinanceOnly: "Finance only"
   },
   historicalRecords: {
     title: "Pre-app history",
@@ -3062,8 +2540,7 @@ export const en = {
     totalIncome: "Prior revenue",
     totalExpense: "Prior expenses",
     netResult: "Pre-app net result",
-    walletHint:
-      "These amounts feed project profitability and P&L. They do not affect the wallet balance.",
+    walletHint: "These amounts feed project profitability and P&L. They do not affect the wallet balance.",
     addData: "Add data",
     quickTotalTitle: "Quick total by category",
     quickTotalBody: "One aggregated total per category, no line-by-line detail.",
@@ -3073,8 +2550,7 @@ export const en = {
     noRecords: "No pre-app history for this project yet.",
     importMode: "import",
     periodEndLabel: "Period end date",
-    importFormat:
-      "Expected columns: date | type (income/expense) | categorie | montant | description",
+    importFormat: "Expected columns: date | type (income/expense) | categorie | montant | description",
     pickFile: "Choose file",
     previewTitle: "{{valid}} valid row(s), {{invalid}} rejected",
     previewIncome: "Revenue",
@@ -3127,22 +2603,12 @@ export const en = {
     editLine: "Edit",
     uncategorizedLine: "Uncategorized",
     addCategory: "➕ Configure / add lines",
-    simTitle: "🔮 What-if simulation",
-    simSubtitle: "What if I changed my budget?",
     aiTitle: "💡 AI analysis & recommendations",
     aiSubtitle: "Budget optimization based on your expenses and herd",
     aiCurrent: "Current budget",
     aiSavings: "Savings: {{amount}}",
     aiRefresh: "🔄 Regenerate analysis",
     aiApply: "✅ Apply selection",
-    simCurrent: "Current budget:",
-    simNew: "New budget",
-    simImpact: "Immediate impact",
-    simTotal: "Total budget:",
-    simMargin: "Available margin:",
-    simStatus: "Overall status:",
-    simApply: "Apply this budget",
-    simReset: "Reset",
     suggestionsTitle: "💡 Smart suggestions",
     suggestionApply: "Apply",
     suggestionDismiss: "Dismiss",
@@ -3187,20 +2653,17 @@ export const en = {
     next: "Next",
     back: "Back",
     cancelLink: "Cancel",
-    cancelNoProfile:
-      "No other profile available. Create a producer or buyer profile to leave this onboarding.",
+    cancelNoProfile: "No other profile available. Create a producer or buyer profile to leave this onboarding.",
     cancelModal: {
       title: "Leave veterinarian onboarding?",
-      message:
-        "You will return to your main profile. You can complete your veterinarian profile later by switching profiles.",
+      message: "You will return to your main profile. You can complete your veterinarian profile later by switching profiles.",
       continue: "Continue onboarding",
       confirm: "Return to main profile"
     },
     submit: "Submit profile",
     uploadError: "Could not upload files.",
     completionTitle: "Profile submitted for review ⏳",
-    completionBody:
-      "Your profile is being reviewed. You will be notified once approved. Limited app access until then.",
+    completionBody: "Your profile is being reviewed. You will be notified once approved. Limited app access until then.",
     completionCta: "Open the app",
     rejected: "Profile rejected: {{reason}}. Please fix and submit again.",
     rejectedGeneric: "document not accepted",
@@ -3228,7 +2691,6 @@ export const en = {
     },
     pickAnimal: "Animal",
     pickBatch: "Batch",
-    activeDiseases: "Active disease cases",
     mortality30: "Mortality (30 d.)",
     mortality90: "Mortality (90 d.)",
     mortalityMonth: "Deaths this month",
@@ -3241,7 +2703,6 @@ export const en = {
     filterTreatmentAll: "All",
     formSectionWhen: "Date",
     formSectionVaccine: "Vaccine",
-    formSectionDisease: "Disease",
     formSectionVet: "Visit",
     formSectionTreatment: "Treatment",
     formSectionMortality: "Mortality",
@@ -3252,8 +2713,7 @@ export const en = {
     },
     vetQuotes: {
       title: "Pending quotes (legacy flow)",
-      legacyNotice:
-        "These quotes are from older visits. New visits use secure appointment payments.",
+      legacyNotice: "These quotes are from older visits. New visits use secure appointment payments.",
       accept: "✅ Accept",
       refuse: "❌ Decline"
     },
@@ -3271,10 +2731,11 @@ export const en = {
     fieldVaccineType: "Type / lab",
     fieldNextReminder: "Next reminder (date)",
     fieldPractitioner: "Practitioner",
-    fieldDiagnosis: "Diagnosis",
-    fieldCaseStatus: "Case status",
     fieldVetStatus: "Visit status",
-    vetStatus: { completed: "Done", planned: "Planned" },
+    vetStatus: {
+      completed: "Done",
+      planned: "Planned"
+    },
     fieldVetName: "Veterinarian",
     fieldVetReason: "Reason",
     fieldVetContact: "Contact",
@@ -3284,8 +2745,7 @@ export const en = {
     fieldMortCause: "Cause",
     fieldHeadcount: "Headcount",
     fieldExpenseId: "Expense id",
-    mortalityHint:
-      "After saving, animal status / exit is updated on the server — pull to refresh.",
+    mortalityHint: "After saving, animal status / exit is updated on the server — pull to refresh.",
     linkShort: "Link expense",
     deleteVisitTitle: "Delete planned visit?",
     deleteVisitBody: "This planned visit will be permanently removed.",
@@ -3294,7 +2754,6 @@ export const en = {
     linkSubmit: "Associate",
     linkOk: "Link saved.",
     historyTitle: "History",
-    pillAll: "All",
     pillVaccination: "Vaccines",
     pillDisease: "Diseases",
     pillVet: "Visits",
@@ -3313,12 +2772,6 @@ export const en = {
       treatment: "Treatment",
       mortality: "Mortality"
     },
-    caseStatus: {
-      active: "Active",
-      recovered: "Recovered",
-      dead: "Dead",
-      slaughtered: "Slaughtered"
-    },
     mortCause: {
       disease: "Disease",
       accident: "Accident",
@@ -3327,7 +2780,6 @@ export const en = {
     },
     findVetShort: "Find vet",
     kpiMortality30: "Mortality rate",
-    kpiMortality30Hint: "Rolling 30 days",
     kpiActiveCases: "Active cases",
     kpiOverdueVaccines: "Overdue vaccines",
     kpiNextVet: "Next vet appointment",
@@ -3383,7 +2835,6 @@ export const en = {
       details: "Information",
       declared: "Reported on",
       treatmentYes: "Treatment ongoing",
-      isolationYes: "In isolation",
       markRecovered: "Mark recovered",
       timeline: "Timeline",
       timelineDeclared: "Case reported",
@@ -3396,8 +2847,7 @@ export const en = {
       edit: "Edit",
       declareDeath: "Report death",
       declareDeathTitle: "Confirm death?",
-      declareDeathMessage:
-        "The animal will be marked deceased and the disease case closed. This cannot be undone.",
+      declareDeathMessage: "The animal will be marked deceased and the disease case closed. This cannot be undone.",
       declareDeathConfirm: "Confirm"
     },
     treatmentModal: {
@@ -3436,9 +2886,6 @@ export const en = {
     chartEmpty: "No data for this period yet.",
     vetSearch: {
       title: "Find a veterinarian",
-      intro: "Verified veterinarians near {{farm}}.",
-      comingSoon:
-        "Search by location and specialty will be available soon.",
       searchPlaceholder: "Name, city, specialty…",
       filterAll: "All",
       filterPorcin: "Swine",
@@ -3459,13 +2906,9 @@ export const en = {
       completedAppointmentsShort: "{{count}}",
       priceRange: "Services from {{min}} to {{max}} {{currency}}",
       statsFarms: "{{count}} farms followed",
-      statsVisits: "{{count}} visits",
       planVisit: "Schedule a visit",
-      contact: "Contact",
       call: "Call",
       message: "Message",
-      shareMessage:
-        "Vet contact {{vet}} for farm {{farm}} — {{phone}}",
       callErrorTitle: "Cannot call",
       callError: "Phone number unavailable."
     },
@@ -3480,8 +2923,7 @@ export const en = {
       notesPlaceholder: "Describe the need (symptoms, batch…)",
       confirm: "Request appointment",
       successTitle: "Request sent",
-      successBody:
-        "Your request was sent to {{vet}}. You will be notified when they respond.",
+      successBody: "Your request was sent to {{vet}}. You will be notified when they respond.",
       callErrorTitle: "Call",
       callError: "Phone number unavailable."
     },
@@ -3527,8 +2969,7 @@ export const en = {
     }
   },
   invite: {
-    introText:
-      "Paste the token you received: we’ll verify the invitation and the matching farm.",
+    introText: "Paste the token you received: we’ll verify the invitation and the matching farm.",
     tokenLabel: "Invitation token",
     tokenPlaceholder: "Hex token from the link or message",
     joinCta: "Join the farm",
@@ -3542,18 +2983,14 @@ export const en = {
     refusedTitle: "Invitation refused",
     previewOwner: "You are the owner of this farm.",
     previewAlreadyMember: "You are already {{role}} on this farm.",
-    previewScanRequest:
-      "Request sent: the owner will validate your access and assign your role.",
+    previewScanRequest: "Request sent: the owner will validate your access and assign your role.",
     previewShareLink: "Invitation pre-configured for the {{role}} role.",
-    scanRequestNote:
-      "Your request is pending. You will be notified once the owner reviews it.",
+    scanRequestNote: "Your request is pending. You will be notified once the owner reviews it.",
     ownerNote: "You already own this farm: no further action needed.",
     scanQrTitle: "Scan invitation QR",
     scanQrCta: "Scan QR code",
-    scanQrHint:
-      "Frame the QR shown by the farm owner or in their share message.",
-    cameraPermissionBody:
-      "Camera access is required to read the invitation QR code.",
+    scanQrHint: "Frame the QR shown by the farm owner or in their share message.",
+    cameraPermissionBody: "Camera access is required to read the invitation QR code.",
     cameraPermissionCta: "Allow camera"
   },
   reportsScreen: {
@@ -3576,12 +3013,10 @@ export const en = {
     downloading: "Downloading…",
     downloadReport: "Download PDF",
     exportErrorTitle: "Export failed",
-    shareUnavailable: "System sharing is not available on this device.",
     scoreDetailTitle: "Farm score breakdown",
     scoreTapDetail: "Tap for criteria details",
     scoreA11y: "Farm score {{score}} out of 100, band {{band}}",
-    bankHint:
-      "This score may be shared with your bank (indicative, based on data entered in the app).",
+    bankHint: "This score may be shared with your bank (indicative, based on data entered in the app).",
     sectionNoData: "Not enough data for this period.",
     financeTitle: "Financial summary",
     revTotal: "Total revenues",
@@ -3654,9 +3089,7 @@ export const en = {
     kpiDue7: "Farrowing < 7 d",
     kpiDueMonth: "Farrowing this month",
     kpiAvailable: "Sows available",
-    kpiAvgInterval: "Avg interval (d)",
     kpiAvgLitter: "Avg litter size",
-    kpiNeonatal: "Neonatal mortality",
     chartTitle: "Farrowings per month",
     chartBirths: "Farrowings",
     chartEmpty: "No farrowings recorded yet",
@@ -3689,8 +3122,7 @@ export const en = {
     weekProgress: "W{{week}}/{{total}} · {{days}} d",
     createTitle: "New gestation",
     createSuccessTitle: "Gestation recorded",
-    createSuccessWithDate:
-      "Gestation recorded — expected farrowing on {{date}}",
+    createSuccessWithDate: "Gestation recorded — expected farrowing on {{date}}",
     pickSow: "Select a sow",
     invalidFarmId: "Invalid active project. Reload the app.",
     invalidBoarId: "Invalid boar.",
@@ -3743,11 +3175,9 @@ export const en = {
     continueToPen: "Continue — choose pen",
     back: "Back",
     penStepTitle: "Litter pen",
-    penStepNoEmptyHint:
-      "No empty pen is available. Choose where to place the sow and her {{count}} piglet(s). A suggestion is highlighted.",
+    penStepNoEmptyHint: "No empty pen is available. Choose where to place the sow and her {{count}} piglet(s). A suggestion is highlighted.",
     penSuggested: "suggested",
-    autoEmptyPenHint:
-      "An empty pen is available — the sow and her litter will be placed there automatically.",
+    autoEmptyPenHint: "An empty pen is available — the sow and her litter will be placed there automatically.",
     sowMovesWithLitter: "The sow will be moved to the same pen as her litter.",
     penRequired: "Select a pen for the litter",
     penFull: "This pen does not have enough space for the whole litter",
@@ -3757,8 +3187,7 @@ export const en = {
     noPens: "No pens available on this farm",
     litterSuccessTitle: "Farrowing recorded",
     litterSuccessBody: "{{count}} piglet(s) added to herd",
-    litterSuccessWithPen:
-      "{{count}} piglet(s) recorded and placed in the selected pen",
+    litterSuccessWithPen: "{{count}} piglet(s) recorded and placed in the selected pen",
     eventTypes: {
       mating: "Mating",
       farrowing: "Farrowing",
@@ -3810,21 +3239,21 @@ export const en = {
       gestation: "Farrowings",
       stock: "Critical stock"
     },
-    tasks: { noFarm: "No farm assigned yet." },
+    tasks: {
+      noFarm: "No farm assigned yet."
+    },
     farm: {
-      title: "My farm",
-      tabs: { loges: "Pens", cheptel: "Herd", sante: "Health", gestation: "Gestation" },
-      openLoges: "Open pens",
-      openCheptel: "Open herd",
-      openSante: "Open health",
-      openGestation: "Open gestation",
+      tabs: {
+        loges: "Pens",
+        cheptel: "Herd",
+        sante: "Health",
+        gestation: "Gestation"
+      },
       openModule: "Open module",
       sectionModules: "Available modules",
       sectionAction: "Access"
     },
     tracking: {
-      title: "Tracking",
-      subtitle: "History of your work on assigned farms.",
       sectionLog: "Activity log"
     },
     vaccinePicker: {
@@ -3835,7 +3264,6 @@ export const en = {
       sectionList: "Available vaccines"
     },
     permissionDenied: "Permission not granted by the producer.",
-    permissionReadOnly: "Read-only access on this module.",
     readOnlyBanner: "Read-only mode — you cannot edit this module.",
     farmReadOnlyBadge: "Read only",
     profile: {
@@ -3853,7 +3281,6 @@ export const en = {
       pretension: "Monthly salary expectation"
     },
     profileEdit: {
-      title: "My profile",
       identity: "Personal information",
       city: "City",
       country: "Country",
@@ -3884,9 +3311,6 @@ export const en = {
       hideBalance: "Hide balance",
       showBalance: "Show balance",
       openWallet: "Open wallet"
-    },
-    panel: {
-      fullHistory: "Full history"
     }
   },
   buyer: {
@@ -3896,7 +3320,6 @@ export const en = {
       market: "Market",
       finance: "Finance",
       messages: "Messages",
-      history: "Orders",
       orders: "Orders"
     },
     market: {
@@ -3904,9 +3327,6 @@ export const en = {
       segmentFavorites: "Favorites",
       segmentAlerts: "Price alerts",
       searchPlaceholder: "Pig, lot, producer…",
-      filterMaxPrice: "Max price / kg",
-      filterRadius: "Radius (km)",
-      allCategories: "All",
       emptyListings: "No listings for these filters.",
       emptyListingsHint: "Widen your filters or try other categories."
     },
@@ -3914,16 +3334,10 @@ export const en = {
       title: "My account",
       errorTitle: "Account",
       completionLabel: "Profile complete",
-      completeCta: "Complete",
-      sectionIdentity: "Identity",
-      sectionMeteo: "Buyer weather",
       sectionPrefs: "Buying preferences",
-      sectionWallet: "Wallet",
       businessName: "Business",
-      meteoHint: "Visible to producers on your offers.",
       meteoLevelOf: "Your Buyer Weather · level {{n}}/{{total}}",
-      meteoStats:
-        "{{total}} transactions · {{onTime}} on-time payments · Visible to producers on your offers.",
+      meteoStats: "{{total}} transactions · {{onTime}} on-time payments · Visible to producers on your offers.",
       meteoLevel: {
         debutant: "Grey cloud",
         eclaircie: "Clearing",
@@ -3933,8 +3347,6 @@ export const en = {
         soleil_plomb: "Blazing sun",
         legende: "Legend"
       },
-      punctuality:
-        "Punctuality: {{onTime}} on time · {{late}} late · {{total}} credit transactions",
       priceRange: "Price range",
       priceRangeValue: "{{min}} – {{max}} F/kg",
       priceMinPh: "Min",
@@ -3948,8 +3360,6 @@ export const en = {
       toComplete: "To complete",
       edit: "Edit",
       add: "Add",
-      editPrefs: "Edit preferences",
-      openWallet: "Open wallet",
       openShort: "Open",
       walletRow: "Wallet",
       nextField: {
@@ -3961,30 +3371,16 @@ export const en = {
         priceRange: "Set your price range →",
         typicalVolume: "Add your usual purchase volume for better listings →",
         profilePhotoUrl: "Add a profile photo to reassure producers →"
-      },
-      scoreLevel: {
-        excellent: "⭐ Excellent",
-        bon: "✅ Good",
-        nouveau: "🆕 New",
-        attention: "⚠️ Attention",
-        risque: "🔴 Risky"
       }
     },
     extended: {
-      favorites: "Favorites",
-      priceAlerts: "Price alerts",
-      reviews: "My reviews",
-      preferences: "Preferences"
+      reviews: "My reviews"
     },
     dashboard: {
       welcomeLine: "Hello",
       welcome: "Hello, {{name}} 👋",
       defaultName: "Buyer",
-      searchPlaceholder: "Search animals…",
-      offersForYou: "Offers for you",
-      allOffers: "View all offers →",
       activeProposals: "Active proposals",
-      noProposals: "No pending proposals",
       allProposals: "View all proposals →",
       sectionStats: "Overview"
     },
@@ -4003,10 +3399,7 @@ export const en = {
       }
     },
     wallet: {
-      availableBalance: "Available balance",
       monthCredits: "+{{amount}} this month",
-      monthCreditsEmpty: "No credits this month",
-      refundsBadge: "Refunds",
       payWithBalance: "Pay with my balance",
       payWithMobileMoney: "Mobile money",
       balanceAvailable: "Available: {{amount}}",
@@ -4032,8 +3425,7 @@ export const en = {
         topUpSuccessTitle: "Top-up confirmed",
         topUpSuccessBody: "Your balance has been credited.",
         topUpPendingTitle: "Top-up in progress",
-        topUpPendingBody:
-          "Complete the payment in your browser. Your balance will update automatically once payment is validated.",
+        topUpPendingBody: "Complete the payment in your browser. Your balance will update automatically once payment is validated.",
         topUpInvalid: "Could not complete top-up",
         withdraw: "Withdraw",
         withdrawCta: "Withdraw to mobile money",
@@ -4059,19 +3451,16 @@ export const en = {
       }
     },
     finance: {
-      title: "Finance",
       history: "History",
       historyHint: "Top-ups, withdrawals, transfers, purchases and refunds.",
       emptyTitle: "No activity yet",
       emptyBody: "Escrow refunds and payments will appear here."
     },
     profile: {
-      sectionBuyer: "Buyer profile",
       sectionAccount: "Account",
       buyerType: "Buyer type",
       preferredCategories: "Preferred categories",
       typeIndividual: "Individual",
-      typeProfessional: "Professional",
       changePhotoTitle: "Profile photo",
       changePhotoMessage: "Choose a source to update your photo.",
       pickGallery: "Gallery",
@@ -4082,59 +3471,34 @@ export const en = {
       saveError: "Could not save. Try again in a moment."
     },
     kpi: {
-      pending: "Proposals",
       purchases: "Purchases",
       purchasesInProgress: "Purchases in progress",
-      proposalsSent: "Proposals sent",
-      favorites: "Favorites",
-      alerts: "Alerts"
+      proposalsSent: "Proposals sent"
     },
     messages: {
-      title: "Messages",
-      subtitle: "Conversations with sellers and producers.",
       new: "New",
-      emptyTitle: "No conversations",
-      emptySub: "Contact a seller from a listing or start a new chat.",
-      noMessage: "No messages yet"
+      emptySub: "Contact a seller from a listing or start a new chat."
     },
     history: {
-      title: "My orders",
-      tabs: {
-        proposals: "Proposals",
-        purchases: "Farm purchases",
-        shopOrders: "Shop",
-        reviews: "Reviews"
-      },
-      comingSoon: "Detailed history coming soon.",
-      sectionFilter: "Filter by type",
-      noProposals: "No pending or declined proposals.",
-      noPurchases: "No confirmed purchases yet.",
-      noShopOrders: "No shop orders yet.",
       shopOrderFallback: "Shop order",
       noReviews: "You have not left any reviews yet."
     },
-  favorites: {
-    title: "My favorites",
-    subtitle: "Listings and shop products you follow on the marketplace.",
-    sectionList: "Saved favorites",
-    sectionListings: "Favorite listings",
-    sectionProducers: "Followed producers",
-    emptyListings: "No favorite listings yet.",
-    emptyProducers:
-      "Producers from your favorites and purchase partners will appear here.",
-    producerFromFavorite: "From a favorite listing",
-    producerPartner: "Purchase partner",
-    emptyTitle: "No favorites yet",
-    emptyBody: "Tap the heart on a listing or shop product to save it here.",
-    explore: "Browse marketplace",
-    remove: "Remove from favorites",
-    errorTitle: "Favorites",
-    merchantBadge: "Shop"
-  },
+    favorites: {
+      sectionList: "Saved favorites",
+      sectionListings: "Favorite listings",
+      sectionProducers: "Followed producers",
+      emptyListings: "No favorite listings yet.",
+      emptyProducers: "Producers from your favorites and purchase partners will appear here.",
+      producerFromFavorite: "From a favorite listing",
+      producerPartner: "Purchase partner",
+      emptyTitle: "No favorites yet",
+      emptyBody: "Tap the heart on a listing or shop product to save it here.",
+      explore: "Browse marketplace",
+      remove: "Remove from favorites",
+      errorTitle: "Favorites",
+      merchantBadge: "Shop"
+    },
     alerts: {
-      title: "Price alerts",
-      subtitle: "Get notified when a listing matches your criteria.",
-      comingSoon: "Price alert creation coming soon.",
       emptyTitle: "No alerts yet",
       emptyBody: "Create an alert to track marketplace prices.",
       createTitle: "New alert",
@@ -4158,10 +3522,12 @@ export const en = {
       invalidWeight: "Invalid minimum weight.",
       invalidRadius: "Invalid radius.",
       categoryOther: "Other",
-      sectionList: "My active alerts",
       sectionCriteria: "Price criteria",
       sectionZone: "Search area",
-      freq: { immediate: "Immediate", daily: "Daily" }
+      freq: {
+        immediate: "Immediate",
+        daily: "Daily"
+      }
     }
   },
   chat: {
@@ -4170,11 +3536,9 @@ export const en = {
     emptyRooms: "No conversations yet.",
     inputPlaceholder: "Your message…",
     phoneWarning: {
-      realtime:
-        "Phone numbers are automatically masked for your security.",
+      realtime: "Phone numbers are automatically masked for your security.",
       masked: "Phone number masked automatically for your protection.",
-      imageBlocked:
-        "This image appears to contain a phone number and cannot be sent.",
+      imageBlocked: "This image appears to contain a phone number and cannot be sent.",
       analyzing: "Security check…"
     }
   },
@@ -4239,15 +3603,19 @@ export const en = {
       butcher: "Finishers",
       reformed: "Culled sows"
     },
-    vol: { "1-5": "1-5", "5-20": "5-20", "20-50": "20-50", "50+": "50+" }
+    vol: {
+      "1-5": "1-5",
+      "5-20": "5-20",
+      "20-50": "20-50",
+      "50+": "50+"
+    }
   },
   predictions: {
     unavailable: "AI unavailable — check GEMINI_API_KEY on the API.",
     refresh: "Refresh forecasts",
     generatedAt: "Calculated on {{datetime}}",
     insufficientTitle: "Forecasts in preparation",
-    insufficientMessage:
-      "Forecasts will be available in {{days}} days. Keep recording data to enable this feature.",
+    insufficientMessage: "Forecasts will be available in {{days}} days. Keep recording data to enable this feature.",
     progressLabel: "Progress toward activation: {{current}}/{{total}} days",
     missingGmq: "Add weigh-ins to enable weight projections",
     missingPrice: "Not enough price data to estimate revenue",
@@ -4296,8 +3664,7 @@ export const en = {
     reorderDate: "Order before {{date}}",
     recordStockEntry: "Record stock entry",
     naissancesPrevuesTitle: "Expected farrowings",
-    birthLine:
-      "Sow {{sow}} — farrowing expected {{date}} — ~{{count}} piglets",
+    birthLine: "Sow {{sow}} — farrowing expected {{date}} — ~{{count}} piglets",
     piglets30j: "~{{count}} piglets expected in 30 days",
     sailliesRecommandeesTitle: "Sows available for mating",
     sowAvailable: "Sow {{sow}} — available from {{date}} — {{reason}}",
@@ -4319,8 +3686,7 @@ export const en = {
     breakeven: "Breakeven",
     minPrice: "Min profitable price",
     vsMarket: "Market {{price}}/kg",
-    batchSummary:
-      "{{count}} active batches — Best: {{best}} ({{bestPct}}%) / Worst: {{worst}} ({{worstPct}}%)",
+    batchSummary: "{{count}} active batches — Best: {{best}} ({{bestPct}}%) / Worst: {{worst}} ({{worstPct}}%)",
     viewDetail: "View batch detail",
     insufficientData: "Insufficient data to calculate profitability.",
     globalTitle: "📊 Farm profitability",
@@ -4358,8 +3724,7 @@ export const en = {
     resultProfit: "✅ Profit",
     resultLoss: "❌ Loss",
     breakevenTitle: "📍 Breakeven point",
-    breakevenExplain:
-      "You must sell at least {{price}} {{currency}}/kg to cover costs.",
+    breakevenExplain: "You must sell at least {{price}} {{currency}}/kg to cover costs.",
     currentMarket: "Current market price: {{price}} {{currency}}/kg",
     safetyMargin: "Safety margin: {{direction}}{{delta}} {{currency}}/kg",
     aiTitle: "💡 AI analysis",
@@ -4376,18 +3741,12 @@ export const en = {
     countdownMinutes: "{{m}} min left",
     overdue: "Deadline passed",
     outcome: {
-      offerPaymentExpire:
-        "Without payment before the deadline, the offer will be cancelled and the listing put back on sale.",
-      weightAutoValidate:
-        "Without a reply from the seller before the deadline, the weight will be validated automatically.",
-      deliveryAutoDispute:
-        "Without receipt confirmation before the deadline, an issue will be opened and Fermier Pro will review it.",
-      shopConfirmRefund:
-        "Without the seller's agreement before the deadline, the order will be cancelled and your money refunded.",
-      shopAutoComplete:
-        "Without an issue reported before the deadline, the order will be closed and the seller paid.",
-      creditBalanceArbitration:
-        "Without balance payment within 2 days after the deadline, Fermier Pro will review the case.",
+      offerPaymentExpire: "Without payment before the deadline, the offer will be cancelled and the listing put back on sale.",
+      weightAutoValidate: "Without a reply from the seller before the deadline, the weight will be validated automatically.",
+      deliveryAutoDispute: "Without receipt confirmation before the deadline, an issue will be opened and Fermier Pro will review it.",
+      shopConfirmRefund: "Without the seller's agreement before the deadline, the order will be cancelled and your money refunded.",
+      shopAutoComplete: "Without an issue reported before the deadline, the order will be closed and the seller paid.",
+      creditBalanceArbitration: "Without balance payment within 2 days after the deadline, Fermier Pro will review the case.",
       offerProposalExpire: "Without a reply before the deadline, your offer will expire."
     }
   },
@@ -4419,45 +3778,12 @@ export const en = {
         disputed: "Disputes",
         closed: "Completed"
       },
-      empty: {
-        action_required: "No orders to handle 👍",
-        active: "No orders in progress.",
-        disputed: "No open disputes.",
-        closed: "No completed orders yet."
-      },
       escrowStatus: {
-        PAYMENT_PENDING: "Payment pending",
-        PAYMENT_FAILED: "Payment failed",
-        PAYMENT_HELD: "Funds held",
-        PICKUP_PROPOSED: "Pickup proposed",
-        PICKUP_SCHEDULED: "Pickup scheduled",
-        WEIGHT_DECLARED: "Weight declared",
-        WEIGHT_COUNTER_DECLARED: "Counter-weight",
-        WEIGHT_DISPUTED: "Weight dispute",
-        WEIGHT_VALIDATED: "Weight validated",
-        SELLER_SHIPPED: "Shipped",
-        BUYER_RECEIVED: "Received",
-        DELIVERY_DISPUTED: "Delivery dispute",
-        TRANSACTION_CLOSED: "Closed",
-        CANCELLED_BY_BUYER: "Cancelled (buyer)",
-        CANCELLED_BY_SELLER: "Cancelled (seller)",
-        CANCELLED_SOLD_TO_OTHER: "Sold to another",
-        OFFER_EXPIRED: "Expired",
-        OFFER_ACCEPTED: "Offer accepted"
+        PAYMENT_PENDING: "Payment pending"
       }
     },
     action: {
-      pay: "Pay",
-      retryPayment: "Retry payment",
-      proposePickup: "Propose pickup",
-      confirmPickup: "Confirm pickup",
-      declareWeight: "Declare weight",
-      validateWeight: "Validate weight",
-      confirmShipment: "Confirm shipment",
-      confirmReceipt: "Confirm receipt",
-      confirmShopOrder: "Accept order",
-      shipShopOrder: "Start delivery",
-      markShopDelivered: "Mark delivered"
+      pay: "Pay"
     }
   },
   merchant: {
@@ -4469,17 +3795,12 @@ export const en = {
       orders: "Orders"
     },
     dashboard: {
-      title: "My shop",
       welcomeLine: "Hello",
       defaultName: "Merchant",
       tier: "Plan: {{tier}}",
       tierNone: "not chosen",
-      shops: "Shops",
-      products: "Products",
-      orders: "Orders",
       stock: "in stock",
       noProducts: "No products",
-      addProduct: "Add a product",
       nudgeShop: "Create your first shop to start selling.",
       nudgeCreateShop: "No shop yet — create yours before adding products.",
       nudgeProduct: "Add your first product to your shop.",
@@ -4503,13 +3824,10 @@ export const en = {
       swap: "Activate (swap)",
       delete: "Delete",
       deleteTitle: "Delete this product?",
-      deleteBody:
-        "The product will be removed from your shop and the marketplace. This cannot be undone.",
-      deleteBodyNamed:
-        "“{{name}}” will be removed from your shop and the marketplace. This cannot be undone.",
+      deleteBody: "The product will be removed from your shop and the marketplace. This cannot be undone.",
+      deleteBodyNamed: "“{{name}}” will be removed from your shop and the marketplace. This cannot be undone.",
       deleteConfirm: "Delete",
-      deleteBlocked:
-        "Cannot delete: this product still has orders in progress.",
+      deleteBlocked: "Cannot delete: this product still has orders in progress.",
       freeLimitHint: "Free limit reached — disable a product or go Premium.",
       stockLabel: "Stock {{count}}",
       stats: {
@@ -4529,10 +3847,6 @@ export const en = {
         resubmission_review: "Under review"
       },
       status: {
-        published: "Active",
-        disabled: "Disabled",
-        draft: "Draft",
-        moderated_removed: "Removed",
         resubmission_review: "Awaiting validation"
       },
       sales: {
@@ -4553,26 +3867,11 @@ export const en = {
           info: "Info"
         },
         reason: {
-          out_of_stock:
-            "Out of stock. {{sold}} sale(s) in 30 days — restock about {{qty}} unit(s).",
-          low_stock_fast:
-            "Stock {{stock}} · ~{{days}} days cover ({{sold}} sold / 30d). Plan {{qty}} unit(s).",
-          low_stock:
-            "Low stock ({{stock}}). Add about {{qty}} unit(s) to secure sales.",
-          cover_soon:
-            "~{{days}} days cover with {{sold}} sale(s) / 30d. Anticipate {{qty}} unit(s)."
+          out_of_stock: "Out of stock. {{sold}} sale(s) in 30 days — restock about {{qty}} unit(s).",
+          low_stock_fast: "Stock {{stock}} · ~{{days}} days cover ({{sold}} sold / 30d). Plan {{qty}} unit(s).",
+          low_stock: "Low stock ({{stock}}). Add about {{qty}} unit(s) to secure sales.",
+          cover_soon: "~{{days}} days cover with {{sold}} sale(s) / 30d. Anticipate {{qty}} unit(s)."
         }
-      }
-    },
-    marketplace: {
-      title: "Shops",
-      search: "Search products…",
-      allCategories: "All",
-      sort: {
-        recent: "Recent",
-        price_asc: "Price ↑",
-        price_desc: "Price ↓",
-        popular: "Popular"
       }
     },
     orders: {
@@ -4580,19 +3879,12 @@ export const en = {
       empty: "No orders",
       buyer: "Buyer",
       seller: "Merchant",
-      quantity: "Quantity",
       qtyItems: "{{count}} item(s)",
-      items: "Items",
       amount: "Amount",
       payment: "Payment",
       paidBadge: "Paid",
-      total: "Amount",
-      commission: "Platform fee",
       net: "Seller net",
-      message: "Message",
-      timeline: "Order tracking",
       trackShipping: "Track shipping",
-      respondBefore: "Respond before {{when}}",
       accept: "Accept",
       reject: "Decline",
       rejectConfirm: "Decline this order and refund the buyer?",
@@ -4605,20 +3897,12 @@ export const en = {
       disputeOpen: "Dispute in progress",
       acceptReturn: "Accept return",
       acceptReturnTitle: "Take the item back?",
-      acceptReturnConfirm:
-        "You acknowledge the defect. Your wallet will be debited for the amount received, the buyer will be refunded the full amount paid, and platform commissions will be reversed.",
+      acceptReturnConfirm: "You acknowledge the defect. Your wallet will be debited for the amount received, the buyer will be refunded the full amount paid, and platform commissions will be reversed.",
       acceptReturnNote: "Merchant: item return accepted",
-      sellerNote: "Seller note",
-      buyerNote: "Buyer note",
       tracking: {
         label: "Tracking ID",
         copy: "Copy tracking ID",
         copied: "Tracking ID copied"
-      },
-      progress: {
-        received: "Received",
-        in_transit: "In transit",
-        delivered: "Delivered"
       },
       deliveryDetails: {
         title: "Delivery details",
@@ -4630,23 +3914,13 @@ export const en = {
         note: "Note"
       },
       contact: {
-        call: "Call",
         buyerHint: "Contact buyer",
         sellerHint: "Contact merchant"
       },
       activity: {
         title: "Activity",
         empty: "No activity yet.",
-        generic: "Status updated: {{status}}",
-        paid: "Payment confirmed — waiting for the merchant to accept.",
-        confirmed: "Order accepted by the merchant.",
-        shipping: "Package is out for delivery.",
-        delivered: "Package marked as delivered.",
-        completed: "Order closed — sale completed.",
-        rejected: "Order declined.",
-        disputed: "A dispute was opened on this order.",
-        refunded: "Order refunded.",
-        auto_rejected: "Order expired due to no response."
+        generic: "Status updated: {{status}}"
       },
       filter: {
         all: "All",
@@ -4656,13 +3930,6 @@ export const en = {
         shipping: "Shipping",
         delivered: "Delivered",
         disputed: "Dispute",
-        completed: "Completed"
-      },
-      timelineStep: {
-        paid: "Payment confirmed",
-        confirmed: "Order accepted",
-        shipping: "Out for delivery",
-        delivered: "Delivered",
         completed: "Completed"
       },
       status: {
@@ -4704,10 +3971,7 @@ export const en = {
       productStock: "Stock",
       createShop: "Create shop",
       createProduct: "Create product",
-      publish: "Publish on marketplace",
-      skip: "Skip",
-      loadCategories: "Load categories",
-      invalidProduct: "Invalid product"
+      skip: "Skip"
     },
     subscription: {
       title: "Choose your plan",
@@ -4745,10 +4009,8 @@ export const en = {
       premiumPending: "Complete Premium payment (Wave link or SMS) to activate your subscription.",
       statusPaymentPending: "Payment pending",
       paymentWaitingTitle: "Payment in progress",
-      paymentWaitingBody:
-        "Your Premium subscription will activate automatically once GeniusPay confirms payment. You can reopen the Wave link if needed.",
-      paymentWaitingBodyEmail:
-        "A payment link was sent to your email. Your Premium subscription will activate automatically after payment is confirmed.",
+      paymentWaitingBody: "Your Premium subscription will activate automatically once GeniusPay confirms payment. You can reopen the Wave link if needed.",
+      paymentWaitingBodyEmail: "A payment link was sent to your email. Your Premium subscription will activate automatically after payment is confirmed.",
       reopenPaymentCta: "Open payment link",
       retryPaymentCta: "Retry payment",
       confirmPaymentCta: "I paid — activate Premium",
@@ -4793,7 +4055,9 @@ export const en = {
         }
       }
     },
-    shop: { title: "New shop" },
+    shop: {
+      title: "New shop"
+    },
     shops: {
       title: "My shops",
       addProduct: "Add product",
@@ -4802,12 +4066,10 @@ export const en = {
       notFound: "Shop not found.",
       delete: "Delete shop",
       deleteTitle: "Delete this shop?",
-      deleteBody:
-        "Its {{count}} product(s) will be unpublished. This archives the shop — it will disappear from your account and the catalog.",
+      deleteBody: "Its {{count}} product(s) will be unpublished. This archives the shop — it will disappear from your account and the catalog.",
       deleteConfirm: "Delete",
       deleteSuccess: "Shop archived.",
-      deleteBlocked:
-        "Cannot delete: orders are still in progress on this shop’s products."
+      deleteBlocked: "Cannot delete: orders are still in progress on this shop’s products."
     },
     shopDetail: {
       noProducts: "No products in this shop yet."
@@ -4839,11 +4101,9 @@ export const en = {
         title: "Product removed by moderation",
         reason: "Reason: {{reason}}",
         hint: "Fix the product, then submit it again for validation.",
-        pendingHint:
-          "Your product is awaiting re-validation. It is not visible on the marketplace.",
+        pendingHint: "Your product is awaiting re-validation. It is not visible on the marketplace.",
         resubmit: "Fix and submit for validation",
-        limitReached:
-          "Resubmission limit reached. Contact support for another review."
+        limitReached: "Resubmission limit reached. Contact support for another review."
       },
       photos: {
         title: "Product photos",
@@ -4862,8 +4122,7 @@ export const en = {
       fields: {
         unit: "Sales unit",
         unitPh: "e.g. kg, dozen, 25 kg bag…",
-        unitHint:
-          "Pick a suggested unit or type your own (kg, dozen, piece…).",
+        unitHint: "Pick a suggested unit or type your own (kg, dozen, piece…).",
         expiry: "Expiry",
         expiryPh: "e.g. 12/2026",
         brand: "Brand",
@@ -4877,18 +4136,15 @@ export const en = {
       }
     },
     catalog: {
-      empty: "No shop products yet.",
       stock: "{{count}} in stock",
       stockShort: "📦 {{count}}",
-      category: "Category",
       description: "Description",
       noDescription: "No description for this product.",
       shopSection: "Shop",
       shopName: "Shop name",
       seller: "Merchant",
       location: "Location",
-      shopAbout: "About the shop",
-      noPhotos: "No photos"
+      shopAbout: "About the shop"
     },
     profile: {
       sectionMerchant: "Merchant profile",
@@ -4901,8 +4157,7 @@ export const en = {
       graceEnds: "Grace period ends",
       cancelSubscription: "Cancel Premium subscription",
       cancelSubscriptionTitle: "Cancel Premium subscription?",
-      cancelSubscriptionMessage:
-        "You will switch to the Free plan: 1 shop and up to 5 active products. Extra products will be disabled. This takes effect immediately.",
+      cancelSubscriptionMessage: "You will switch to the Free plan: 1 shop and up to 5 active products. Extra products will be disabled. This takes effect immediately.",
       cancelSubscriptionConfirm: "Cancel subscription",
       cancelSubscriptionSuccess: "Your Premium subscription has been cancelled.",
       cancelSubscriptionError: "Could not cancel the subscription. Try again shortly.",
@@ -4918,31 +4173,18 @@ export const en = {
     purchase: {
       quantity: "Quantity",
       buy: "Buy",
-      escrowHint:
-        "🔒 Your money is safely held by Fermier Pro. It will only be released to the seller after you confirm receipt.",
+      escrowHint: "🔒 Your money is safely held by Fermier Pro. It will only be released to the seller after you confirm receipt.",
       contact: "Contact seller",
       success: "Order confirmed",
       trackHint: "Track it under My purchases → Shop.",
       trackCta: "Track order",
-      chatOpened: "Conversation opened",
       paymentWaitingTitle: "Payment in progress",
-      paymentWaitingBody:
-        "Complete the GeniusPay checkout to confirm your order. It will activate automatically once payment is validated.",
+      paymentWaitingBody: "Complete the GeniusPay checkout to confirm your order. It will activate automatically once payment is validated.",
       reopenPaymentCta: "Open payment link",
       paymentLinkMissing: "Payment link unavailable. Try again shortly."
     }
   },
   insights: {
-    firstWeighing: "First weighing recorded — ADG tracking starts here.",
-    firstGmq: "Estimated ADG: {{gmq}} g/d on this first interval.",
-    gmqUp: "ADG: {{gmq}} g/d ({{delta}}% vs previous period)",
-    gmqDown: "ADG: {{gmq}} g/d ({{delta}}% vs previous period)",
-    gmqFlat: "ADG: {{gmq}} g/d (unchanged vs previous period)",
-    saleVsIndex:
-      "Sold at {{pricePerKg}} {{currency}}/kg — today's index: {{index}} {{currency}}/kg ({{delta}}%)",
-    salePriceOnly: "Sold at {{pricePerKg}} {{currency}}/kg.",
-    firstLitter: "First litter recorded — {{bornAlive}} born alive.",
-    litterVsFarmAvg:
-      "{{bornAlive}} born alive — farm 12-month average: {{avg}} ({{delta}})"
+    firstWeighing: "First weighing recorded — ADG tracking starts here."
   }
 } as const;
