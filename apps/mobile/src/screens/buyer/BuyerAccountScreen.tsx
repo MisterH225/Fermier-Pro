@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -236,6 +239,7 @@ export function BuyerAccountScreen() {
   });
 
   const saveCurrentModal = () => {
+    Keyboard.dismiss();
     if (editModal === "identity") {
       saveMut.mutate({
         buyerType,
@@ -621,152 +625,198 @@ export function BuyerAccountScreen() {
         visible={editModal != null}
         animationType="slide"
         transparent
-        onRequestClose={() => setEditModal(null)}
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setEditModal(null);
+        }}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <ScrollView
-              style={styles.modalScroll}
-              keyboardShouldPersistTaps="handled"
-            >
-              {editModal === "identity" ? (
-                <>
+        <KeyboardAvoidingView
+          style={styles.modalRoot}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.modalBackdrop}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => {
+                Keyboard.dismiss();
+                setEditModal(null);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.cancel")}
+            />
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle} numberOfLines={2}>
+                  {modalTitle}
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setEditModal(null);
+                  }}
+                  hitSlop={12}
+                  style={styles.modalCloseBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.cancel")}
+                  testID="buyer-pref-modal-close"
+                >
+                  <Ionicons
+                    name="close"
+                    size={22}
+                    color={buyerColors.textPrimary}
+                  />
+                </Pressable>
+              </View>
+              <ScrollView
+                style={styles.modalScroll}
+                contentContainerStyle={styles.modalScrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                automaticallyAdjustKeyboardInsets
+                showsVerticalScrollIndicator={false}
+              >
+                {editModal === "identity" ? (
+                  <>
+                    <View style={styles.chips}>
+                      {BUYER_TYPES.map((bt) => (
+                        <Pressable
+                          key={bt}
+                          style={[
+                            styles.chip,
+                            buyerType === bt && styles.chipOn
+                          ]}
+                          onPress={() => setBuyerType(bt)}
+                        >
+                          <Text
+                            style={[
+                              styles.chipTx,
+                              buyerType === bt && styles.chipTxOn
+                            ]}
+                          >
+                            {buyerTypeLabel(bt)}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    {buyerType !== "individual" ? (
+                      <>
+                        <Text style={styles.fieldLbl}>
+                          {t("buyer.account.businessName")}
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={businessName}
+                          onChangeText={setBusinessName}
+                        />
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+                {editModal === "categories" ? (
                   <View style={styles.chips}>
-                    {BUYER_TYPES.map((bt) => (
+                    {CATEGORIES.map((c) => (
                       <Pressable
-                        key={bt}
+                        key={c}
                         style={[
                           styles.chip,
-                          buyerType === bt && styles.chipOn
+                          categories.includes(c) && styles.chipOn
                         ]}
-                        onPress={() => setBuyerType(bt)}
+                        onPress={() => toggleCategory(c)}
                       >
                         <Text
                           style={[
                             styles.chipTx,
-                            buyerType === bt && styles.chipTxOn
+                            categories.includes(c) && styles.chipTxOn
                           ]}
                         >
-                          {buyerTypeLabel(bt)}
+                          {t(`buyerOnboarding.cat.${c}`, { defaultValue: c })}
                         </Text>
                       </Pressable>
                     ))}
                   </View>
-                  {buyerType !== "individual" ? (
-                    <>
-                      <Text style={styles.fieldLbl}>
-                        {t("buyer.account.businessName")}
-                      </Text>
-                      <TextInput
-                        style={styles.input}
-                        value={businessName}
-                        onChangeText={setBusinessName}
-                      />
-                    </>
-                  ) : null}
-                </>
-              ) : null}
-              {editModal === "categories" ? (
-                <View style={styles.chips}>
-                  {CATEGORIES.map((c) => (
-                    <Pressable
-                      key={c}
-                      style={[
-                        styles.chip,
-                        categories.includes(c) && styles.chipOn
-                      ]}
-                      onPress={() => toggleCategory(c)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipTx,
-                          categories.includes(c) && styles.chipTxOn
-                        ]}
-                      >
-                        {t(`buyerOnboarding.cat.${c}`, { defaultValue: c })}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-              {editModal === "priceRange" ? (
-                <View style={styles.rowInputs}>
+                ) : null}
+                {editModal === "priceRange" ? (
+                  <View style={styles.rowInputs}>
+                    <TextInput
+                      style={[styles.input, styles.inputHalf]}
+                      keyboardType="numeric"
+                      placeholder={t("buyer.account.priceMinPh")}
+                      value={priceMin}
+                      onChangeText={setPriceMin}
+                    />
+                    <TextInput
+                      style={[styles.input, styles.inputHalf]}
+                      keyboardType="numeric"
+                      placeholder={t("buyer.account.priceMaxPh")}
+                      value={priceMax}
+                      onChangeText={setPriceMax}
+                    />
+                  </View>
+                ) : null}
+                {editModal === "radius" ? (
                   <TextInput
-                    style={[styles.input, styles.inputHalf]}
+                    style={styles.input}
                     keyboardType="numeric"
-                    placeholder={t("buyer.account.priceMinPh")}
-                    value={priceMin}
-                    onChangeText={setPriceMin}
+                    value={radiusKm}
+                    onChangeText={setRadiusKm}
+                    placeholder={t("buyer.account.radiusPh")}
                   />
-                  <TextInput
-                    style={[styles.input, styles.inputHalf]}
-                    keyboardType="numeric"
-                    placeholder={t("buyer.account.priceMaxPh")}
-                    value={priceMax}
-                    onChangeText={setPriceMax}
-                  />
-                </View>
-              ) : null}
-              {editModal === "radius" ? (
-                <TextInput
-                  style={styles.input}
-                  keyboardType="numeric"
-                  value={radiusKm}
-                  onChangeText={setRadiusKm}
-                  placeholder={t("buyer.account.radiusPh")}
-                />
-              ) : null}
-              {editModal === "volume" ? (
-                <View style={styles.chips}>
-                  {VOLUMES.map((v) => (
-                    <Pressable
-                      key={v}
-                      style={[styles.chip, volume === v && styles.chipOn]}
-                      onPress={() => setVolume(v)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipTx,
-                          volume === v && styles.chipTxOn
-                        ]}
+                ) : null}
+                {editModal === "volume" ? (
+                  <View style={styles.chips}>
+                    {VOLUMES.map((v) => (
+                      <Pressable
+                        key={v}
+                        style={[styles.chip, volume === v && styles.chipOn]}
+                        onPress={() => setVolume(v)}
                       >
-                        {v}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-              {editModal === "location" ? (
-                <TextInput
-                  style={styles.input}
-                  value={locationLabel}
-                  onChangeText={setLocationLabel}
-                  placeholder={t("buyer.account.locationPh")}
-                />
-              ) : null}
-            </ScrollView>
-            <View style={styles.saveRow}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => setEditModal(null)}
-              >
-                <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
-              </Pressable>
-              <Pressable
-                style={styles.saveBtn}
-                onPress={saveCurrentModal}
-                disabled={saveMut.isPending}
-              >
-                {saveMut.isPending ? (
-                  <ActivityIndicator color={buyerColors.onPrimary} />
-                ) : (
-                  <Text style={styles.saveTx}>{t("buyer.profile.save")}</Text>
-                )}
-              </Pressable>
+                        <Text
+                          style={[
+                            styles.chipTx,
+                            volume === v && styles.chipTxOn
+                          ]}
+                        >
+                          {v}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+                {editModal === "location" ? (
+                  <TextInput
+                    style={styles.input}
+                    value={locationLabel}
+                    onChangeText={setLocationLabel}
+                    placeholder={t("buyer.account.locationPh")}
+                  />
+                ) : null}
+              </ScrollView>
+              <View style={[styles.saveRow, { paddingBottom: bottomInset }]}>
+                <Pressable
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setEditModal(null);
+                  }}
+                >
+                  <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.saveBtn}
+                  onPress={saveCurrentModal}
+                  disabled={saveMut.isPending}
+                >
+                  {saveMut.isPending ? (
+                    <ActivityIndicator color={buyerColors.onPrimary} />
+                  ) : (
+                    <Text style={styles.saveTx}>{t("buyer.profile.save")}</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </BuyerMobileShell>
   );
@@ -891,6 +941,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: buyerColors.border
   },
+  modalRoot: { flex: 1 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: buyerColors.modalScrim,
@@ -900,16 +951,34 @@ const styles = StyleSheet.create({
     backgroundColor: buyerColors.cardBg,
     borderTopLeftRadius: buyerRadius.card,
     borderTopRightRadius: buyerRadius.card,
-    padding: mobileSpacing.lg,
-    maxHeight: "75%",
-    gap: mobileSpacing.md
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.md,
+    maxHeight: "88%",
+    gap: mobileSpacing.sm
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.xs
   },
   modalTitle: {
+    flex: 1,
     fontSize: 17,
     fontWeight: "700",
     color: buyerColors.textPrimary
   },
-  modalScroll: { maxHeight: 360 },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: buyerColors.primaryLight
+  },
+  modalScroll: { flexGrow: 0 },
+  modalScrollContent: { paddingBottom: mobileSpacing.sm, gap: mobileSpacing.sm },
   fieldLbl: {
     ...mobileTypography.meta,
     color: buyerColors.textSecondary,

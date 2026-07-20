@@ -20,6 +20,7 @@ import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
+import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
 import {
   profileScreenScrollContent,
   ScreenSection
@@ -79,6 +80,10 @@ export function BuyerDashboardScreen() {
           onPressAvatar={() => navigation.navigate("BuyerAccount")}
         />
         <View style={styles.heroActions}>
+          <SupportHeaderButton
+            iconColor={buyerColors.primary}
+            style={styles.heroIconBtn}
+          />
           <NotificationsHeaderButton
             iconColor={buyerColors.primary}
             style={styles.heroIconBtn}
