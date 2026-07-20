@@ -1,7 +1,8 @@
 /**
  * Pre-deploy Railway : migrations Prisma avec récupération P3009 (wallet / orchestrateur).
  * Le schéma peut déjà exister sur Supabase alors que _prisma_migrations marque failed.
- * Redeploy trigger: 2026-07-18T15:15Z — InsightsModule AuthModule (boot DI).
+ * Redeploy trigger: 2026-07-20T23:40Z — sync main après merges mobile #244–#248
+ * (Railway était resté sur b8c3a7f / PR #243 faute de diff apps/api).
  */
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
