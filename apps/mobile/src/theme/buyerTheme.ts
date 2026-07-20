@@ -19,6 +19,8 @@ export const buyerColors = {
   warning: "#FF8C00",
   danger: "#C2185B",
   border: "rgba(124, 58, 237, 0.08)",
+  /** Thumb Switch inactif (React Native Switch). */
+  switchThumbOff: "#f4f4f5",
   modalScrim: "rgba(26, 29, 35, 0.4)",
   /** Pastels KPI (alignés vetTheme / maquette) */
   kpiBlue: "#E3F0FF",

@@ -19,6 +19,8 @@ export const vetColors = {
   textMuted: "#B0B8C4",
   success: "#10B981",
   warning: "#F59E0B",
+  /** Ambre soutenu (prix / CTA secondaires). */
+  warningDeep: "#B45309",
   danger: "#EF4444",
   border: "rgba(43, 127, 255, 0.08)",
   modalScrim: "rgba(26, 29, 35, 0.4)",
@@ -30,6 +32,8 @@ export const vetColors = {
   kpiBlue: "#E3F0FF",
   kpiGreen: "#E8F8F0",
   kpiAmber: "#FFF8E6",
+  /** Ambre clair (badges conflit / warning soft). */
+  kpiAmberSoft: "#FEF3C7",
   kpiRose: "#FCE8F0"
 } as const;
 

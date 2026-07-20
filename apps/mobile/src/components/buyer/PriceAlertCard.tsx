@@ -53,7 +53,9 @@ export function PriceAlertCard({
           onValueChange={onToggleActive}
           disabled={toggling}
           trackColor={{ false: buyerColors.border, true: `${buyerColors.primary}88` }}
-          thumbColor={alert.isActive ? buyerColors.primary : "#f4f4f5"}
+          thumbColor={
+            alert.isActive ? buyerColors.primary : buyerColors.switchThumbOff
+          }
         />
       </View>
 

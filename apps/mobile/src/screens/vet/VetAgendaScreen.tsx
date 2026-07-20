@@ -340,7 +340,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: vetColors.border
   },
-  slotOccupied: { backgroundColor: "#6B7280", borderColor: "#6B7280" },
+  slotOccupied: {
+    backgroundColor: vetColors.slotOccupied,
+    borderColor: vetColors.slotOccupied
+  },
   slotSelected: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
   slotTx: { fontWeight: "600", color: vetColors.textPrimary },
   slotTxInv: { color: "#fff" },
