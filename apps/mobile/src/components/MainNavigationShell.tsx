@@ -104,8 +104,6 @@ import {
   UserWalletScreen,
   WalletOperationScreen,
   walletOperationScreenTitle,
-  BuyerAlertsScreen,
-  BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
   VetAccountScreen,
   VetAgendaScreen,
@@ -354,12 +352,14 @@ function MainStack() {
       />
       <Stack.Screen
         name="BuyerAlerts"
-        component={BuyerAlertsScreen}
+        component={BuyerMarketScreen}
+        initialParams={{ segment: "alerts" }}
         options={{ ...buyerStackScreenOptions, title: st("buyerAlerts") }}
       />
       <Stack.Screen
         name="BuyerFavorites"
-        component={BuyerFavoritesScreen}
+        component={BuyerMarketScreen}
+        initialParams={{ segment: "favorites" }}
         options={{ ...buyerStackScreenOptions, title: st("buyerFavorites") }}
       />
       <Stack.Screen
