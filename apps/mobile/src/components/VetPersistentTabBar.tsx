@@ -11,6 +11,7 @@ import { vetMainTabFromRoute } from "./navigation/vet/vetMainTabs";
 import { VET_NAV_FLOAT_BOTTOM } from "./navigation/vet/vetNavMetrics";
 import type { ExtendedNavMenuId } from "./navigation/types";
 import type { VetMainTab } from "./navigation/vet/types";
+import { VetQuickActionsHost } from "./quickactions/VetQuickActionsHost";
 import { useSession } from "../context/SessionContext";
 import { useVetFarms } from "../hooks/useVetFarms";
 import { mobileSpacing } from "../theme/mobileTheme";
@@ -162,6 +163,10 @@ export function VetPersistentTabBar() {
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
+      <VetQuickActionsHost
+        visible={!extendedOpen}
+        focusedRouteName={focused?.name}
+      />
       <View
         style={[styles.barAnchor, { bottom: insets.bottom + VET_NAV_FLOAT_BOTTOM }]}
         pointerEvents="box-none"

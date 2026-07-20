@@ -397,50 +397,10 @@ export function VetDashboardScreen() {
             />
             )}
 
-            <Text style={[styles.sectionTitle, styles.sectionGap]}>
-              {t("vet.dashboard.quickActions")}
-            </Text>
-            <View style={styles.quickActions}>
-              <QuickBtn
-                label={t("vet.dashboard.actionFarms")}
-                primary
-                onPress={() => navigation.navigate("VetFarms")}
-              />
-              <QuickBtn
-                label={t("vet.dashboard.actionSchedule")}
-                onPress={() => navigation.navigate("VetAgenda")}
-              />
-              <QuickBtn
-                label={t("vet.dashboard.actionCase")}
-                onPress={() => navigation.navigate("VetFarms")}
-              />
-            </View>
           </>
         )}
       </ScrollView>
     </VetMobileShell>
-  );
-}
-
-function QuickBtn({
-  label,
-  primary,
-  onPress
-}: {
-  label: string;
-  primary?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.quickBtn,
-        primary ? styles.quickBtnPrimary : styles.quickBtnOutline
-      ]}
-    >
-      <Text style={[styles.quickBtnTx, primary && styles.quickBtnTxPrimary]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -552,23 +512,6 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
   pillTx: { fontSize: 13, color: vetColors.textSecondary, fontWeight: "600" },
   pillTxActive: { color: vetColors.onPrimary },
-  quickActions: { gap: mobileSpacing.sm },
-  quickBtn: {
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: "center"
-  },
-  quickBtnPrimary: {
-    backgroundColor: vetColors.primary,
-    ...vetShadow.soft
-  },
-  quickBtnOutline: {
-    borderWidth: 1.5,
-    borderColor: vetColors.primary,
-    backgroundColor: vetColors.cardBg
-  },
-  quickBtnTx: { fontWeight: "700", color: vetColors.primary, fontSize: 15 },
-  quickBtnTxPrimary: { color: vetColors.onPrimary },
   earningsCard: {
     marginTop: mobileSpacing.md,
     backgroundColor: vetColors.kpiGreen,

@@ -1091,6 +1091,15 @@ export const en = {
       actionSchedule: "Schedule a visit",
       actionCase: "Report a case"
     },
+    quickActions: {
+      fabA11y: "Quick actions",
+      sheetTitle: "Quick actions",
+      actions: {
+        farmsA11y: "View my farms",
+        scheduleA11y: "Schedule a visit",
+        caseA11y: "Report a case"
+      }
+    },
     appointment: {
       title: "Vet appointment",
       farm: "Farm",

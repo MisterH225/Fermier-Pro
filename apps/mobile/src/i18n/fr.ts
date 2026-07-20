@@ -1091,6 +1091,15 @@ export const fr = {
       actionSchedule: "Planifier une visite",
       actionCase: "Déclarer un cas"
     },
+    quickActions: {
+      fabA11y: "Actions rapides",
+      sheetTitle: "Actions rapides",
+      actions: {
+        farmsA11y: "Voir mes fermes",
+        scheduleA11y: "Planifier une visite",
+        caseA11y: "Déclarer un cas"
+      }
+    },
     appointment: {
       title: "Rendez-vous vétérinaire",
       farm: "Ferme",
