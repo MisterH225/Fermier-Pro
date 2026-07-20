@@ -26,6 +26,7 @@ import { SupportHeaderButton } from "../../components/support/SupportHeaderButto
 import { VisitCard } from "../../components/vet/VisitCard";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { useBottomInset } from "../../hooks/useBottomInset";
+import { useVetFarms } from "../../hooks/useVetFarms";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard, fetchVetAppointmentFinanceSummary } from "../../lib/api";
@@ -80,7 +81,6 @@ export function VetDashboardScreen() {
     useSession();
   const [refreshing, setRefreshing] = useState(false);
   const [taskFilter, setTaskFilter] = useState<(typeof TASK_FILTERS)[number]>("today");
-  const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
 
   const vetStatus = authMe?.vetProfessional?.verificationStatus;
   const isPending = vetStatus === "pending";
@@ -99,14 +99,17 @@ export function VetDashboardScreen() {
     enabled: Boolean(accessToken && !isPending)
   });
 
-  const assignedFarms = dashQ.data?.assignedFarms ?? [];
+  const {
+    farms: assignedFarms,
+    selectedFarm,
+    setSelectedFarmId
+  } = useVetFarms(isPending ? null : activeProfileId);
 
-  const selectedFarm = useMemo(() => {
-    if (!assignedFarms.length) return null;
-    return (
-      assignedFarms.find((f) => f.id === selectedFarmId) ?? assignedFarms[0]
-    );
-  }, [assignedFarms, selectedFarmId]);
+  /** 1 élevage → notifications scopées ; plusieurs → globales (sans farmId). */
+  const notificationsFarmId =
+    assignedFarms.length === 1 ? selectedFarm?.id : undefined;
+  const notificationsFarmName =
+    assignedFarms.length === 1 ? selectedFarm?.name : undefined;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -153,8 +156,8 @@ export function VetDashboardScreen() {
           />
           <NotificationsHeaderButton
             iconColor={vetColors.primary}
-            farmId={selectedFarm?.id}
-            farmName={selectedFarm?.name}
+            farmId={notificationsFarmId}
+            farmName={notificationsFarmName}
             style={[styles.heroIconBtn, vetShadow.soft]}
           />
           <Pressable
@@ -477,26 +480,17 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   pendingBanner: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: vetColors.kpiAmber,
     borderRadius: vetRadius.card,
     padding: mobileSpacing.lg,
-    borderWidth: 1,
-    borderColor: "#F59E0B"
-  },
-  pendingTx: { color: "#92400E", fontWeight: "600", textAlign: "center" },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: vetColors.cardBg,
-    borderRadius: vetRadius.search,
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 12,
-    gap: mobileSpacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border,
-    ...vetShadow.soft
+    borderColor: vetColors.border
   },
-  searchInput: { flex: 1, fontSize: 15, color: vetColors.textPrimary },
+  pendingTx: {
+    color: vetColors.textPrimary,
+    fontWeight: "600",
+    textAlign: "center"
+  },
   sectionHead: {
     flexDirection: "row",
     alignItems: "center",
@@ -550,7 +544,7 @@ const styles = StyleSheet.create({
   },
   pillActive: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
   pillTx: { fontSize: 13, color: vetColors.textSecondary, fontWeight: "600" },
-  pillTxActive: { color: "#fff" },
+  pillTxActive: { color: vetColors.onPrimary },
   quickActions: { gap: mobileSpacing.sm },
   quickBtn: {
     borderRadius: 999,
@@ -567,7 +561,7 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.cardBg
   },
   quickBtnTx: { fontWeight: "700", color: vetColors.primary, fontSize: 15 },
-  quickBtnTxPrimary: { color: "#fff" },
+  quickBtnTxPrimary: { color: vetColors.onPrimary },
   earningsCard: {
     marginTop: mobileSpacing.md,
     backgroundColor: vetColors.kpiGreen,
@@ -577,13 +571,13 @@ const styles = StyleSheet.create({
   },
   earningsLabel: {
     ...mobileTypography.meta,
-    color: "#2E7D32",
+    color: vetColors.success,
     fontWeight: "600"
   },
   earningsValue: {
     ...mobileTypography.title,
     fontSize: 22,
     fontWeight: "800",
-    color: "#166534"
+    color: vetColors.success
   }
 });
