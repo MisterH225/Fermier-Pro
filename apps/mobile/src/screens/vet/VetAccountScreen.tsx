@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
@@ -523,75 +525,126 @@ export function VetAccountScreen() {
         visible={editModal != null}
         animationType="slide"
         transparent
-        onRequestClose={() => setEditModal(null)}
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setEditModal(null);
+        }}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            {editModal === "bio" ? (
-              <TextInput
-                style={[styles.input, styles.inputMulti]}
-                multiline
-                value={bio}
-                onChangeText={setBio}
-                placeholder={t("vet.account.bioPh")}
-                placeholderTextColor={vetColors.textMuted}
-              />
-            ) : null}
-            {editModal === "specialty" ? (
-              <TextInput
-                style={styles.input}
-                value={specialty}
-                onChangeText={setSpecialty}
-              />
-            ) : null}
-            {editModal === "others" ? (
-              <TextInput
-                style={styles.input}
-                value={others}
-                onChangeText={setOthers}
-                placeholder={t("vet.account.otherSpecialtiesPh")}
-                placeholderTextColor={vetColors.textMuted}
-              />
-            ) : null}
-            {editModal === "city" ? (
-              <TextInput
-                style={styles.input}
-                value={city}
-                onChangeText={setCity}
-              />
-            ) : null}
-            {editModal === "radius" ? (
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={radiusKm}
-                onChangeText={setRadiusKm}
-                placeholder={t("vet.account.radiusPh")}
-                placeholderTextColor={vetColors.textMuted}
-              />
-            ) : null}
-            <View style={styles.saveRow}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => setEditModal(null)}
+        <KeyboardAvoidingView
+          style={styles.modalRoot}
+          behavior="padding"
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.modalBackdrop}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => {
+                Keyboard.dismiss();
+                setEditModal(null);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.cancel")}
+            />
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle} numberOfLines={2}>
+                  {modalTitle}
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setEditModal(null);
+                  }}
+                  hitSlop={12}
+                  style={styles.modalCloseBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.cancel")}
+                  testID="vet-pref-modal-close"
+                >
+                  <Ionicons
+                    name="close"
+                    size={22}
+                    color={vetColors.textPrimary}
+                  />
+                </Pressable>
+              </View>
+              <ScrollView
+                style={styles.modalScroll}
+                contentContainerStyle={styles.modalScrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                automaticallyAdjustKeyboardInsets
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
-              </Pressable>
-              <Pressable
-                style={styles.saveBtn}
-                onPress={saveCurrentModal}
-                disabled={saveMut.isPending}
-              >
-                {saveMut.isPending ? (
-                  <ActivityIndicator color={vetColors.onPrimary} />
-                ) : (
-                  <Text style={styles.saveTx}>{t("common.save")}</Text>
-                )}
-              </Pressable>
+                {editModal === "bio" ? (
+                  <TextInput
+                    style={[styles.input, styles.inputMulti]}
+                    multiline
+                    value={bio}
+                    onChangeText={setBio}
+                    placeholder={t("vet.account.bioPh")}
+                    placeholderTextColor={vetColors.textMuted}
+                  />
+                ) : null}
+                {editModal === "specialty" ? (
+                  <TextInput
+                    style={styles.input}
+                    value={specialty}
+                    onChangeText={setSpecialty}
+                  />
+                ) : null}
+                {editModal === "others" ? (
+                  <TextInput
+                    style={styles.input}
+                    value={others}
+                    onChangeText={setOthers}
+                    placeholder={t("vet.account.otherSpecialtiesPh")}
+                    placeholderTextColor={vetColors.textMuted}
+                  />
+                ) : null}
+                {editModal === "city" ? (
+                  <TextInput
+                    style={styles.input}
+                    value={city}
+                    onChangeText={setCity}
+                  />
+                ) : null}
+                {editModal === "radius" ? (
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={radiusKm}
+                    onChangeText={setRadiusKm}
+                    placeholder={t("vet.account.radiusPh")}
+                    placeholderTextColor={vetColors.textMuted}
+                  />
+                ) : null}
+              </ScrollView>
+              <View style={[styles.saveRow, { paddingBottom: bottomInset }]}>
+                <Pressable
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setEditModal(null);
+                  }}
+                >
+                  <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.saveBtn}
+                  onPress={saveCurrentModal}
+                  disabled={saveMut.isPending}
+                >
+                  {saveMut.isPending ? (
+                    <ActivityIndicator color={vetColors.onPrimary} />
+                  ) : (
+                    <Text style={styles.saveTx}>{t("common.save")}</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </VetMobileShell>
   );
@@ -742,6 +795,7 @@ const styles = StyleSheet.create({
     color: vetColors.textMuted,
     paddingVertical: mobileSpacing.sm
   },
+  modalRoot: { flex: 1 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: vetColors.modalScrim,
@@ -751,13 +805,36 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.cardBg,
     borderTopLeftRadius: vetRadius.card,
     borderTopRightRadius: vetRadius.card,
-    padding: mobileSpacing.lg,
-    gap: mobileSpacing.md
+    paddingHorizontal: mobileSpacing.lg,
+    paddingTop: mobileSpacing.md,
+    maxHeight: "88%",
+    gap: mobileSpacing.sm
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.xs
   },
   modalTitle: {
+    flex: 1,
     fontSize: 17,
     fontWeight: "700",
     color: vetColors.textPrimary
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: vetColors.primaryLight
+  },
+  modalScroll: { flexGrow: 0 },
+  modalScrollContent: {
+    paddingBottom: mobileSpacing.sm,
+    gap: mobileSpacing.sm
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
