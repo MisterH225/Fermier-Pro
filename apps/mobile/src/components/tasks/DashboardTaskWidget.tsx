@@ -37,6 +37,8 @@ type Props = {
   /** Masque titre + filtres (déjà affichés par l’écran parent, ex. accueil véto). */
   embedded?: boolean;
   period?: PeriodKey;
+  /** Override « Voir tout » (ex. dossier élevage véto au lieu de FarmTasks). */
+  onViewAll?: () => void;
 };
 
 export function DashboardTaskWidget({
@@ -45,7 +47,8 @@ export function DashboardTaskWidget({
   accessToken,
   activeProfileId,
   embedded = false,
-  period: periodProp
+  period: periodProp,
+  onViewAll
 }: Props) {
   const { t } = useTranslation();
   const navigation =
@@ -135,7 +138,13 @@ export function DashboardTaskWidget({
 
       <Pressable
         style={styles.link}
-        onPress={() => navigation.navigate("FarmTasks", { farmId, farmName })}
+        onPress={() => {
+          if (onViewAll) {
+            onViewAll();
+            return;
+          }
+          navigation.navigate("FarmTasks", { farmId, farmName });
+        }}
       >
         <Text style={styles.linkTx}>{t("tasksScreen.viewAll")}</Text>
       </Pressable>

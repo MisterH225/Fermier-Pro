@@ -262,6 +262,8 @@ export class VetsService {
       ratingAvg: Prisma.Decimal | null;
       ratingCount: number;
       completedAppointments: number;
+      cancelledAppointmentsAsVet: number;
+      verifiedAt: Date | null;
     },
     viewerUserId?: string
   ) {
@@ -365,8 +367,10 @@ export class VetsService {
       interventionRadiusKm: row.interventionRadiusKm,
       verificationStatus: row.verificationStatus,
       isVerified: row.verificationStatus === VetStatus.verified,
+      verifiedAt: row.verifiedAt ? row.verifiedAt.toISOString() : null,
       ratingAvg: row.ratingAvg ? Number(row.ratingAvg) : null,
       ratingCount: row.ratingCount,
+      cancelledAppointmentsAsVet: row.cancelledAppointmentsAsVet,
       stats: {
         farmsFollowed: farmsCount,
         visitsCompleted: visitsCount + row.completedAppointments,

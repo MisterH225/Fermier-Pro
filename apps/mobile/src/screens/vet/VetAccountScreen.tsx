@@ -2,12 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,26 +20,78 @@ import {
 import { AccountSettingsPanel } from "../../components/account/AccountSettingsPanel";
 import { ActiveProfileSwitcherControl } from "../../components/account/ActiveProfileSwitcherControl";
 import {
-  InfoRow,
+  ProfileCompletionGauge,
   SectionHeader,
-  StatCard,
   vetPalette
 } from "../../components/common";
 import { VetMobileShell } from "../../components/layout";
-import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
-import {
-  fetchVetDashboard,
-  fetchVetProfileMe,
-  patchVetPublicProfile
-} from "../../lib/api";
+import { useBottomInset } from "../../hooks/useBottomInset";
+import { fetchVetProfileMe, patchVetPublicProfile } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { getUserFacingError } from "../../lib/userFacingError";
-import { vetColors, vetRadius } from "../../theme/vetTheme";
+import {
+  vetProfileCompletionPercent,
+  vetProfileNextEmptyField,
+  type VetProfileFieldKey
+} from "../../lib/vetProfileCompletion";
+import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-const AVATAR = 96;
+const AVATAR = 54;
+
+type EditModalKey =
+  | "bio"
+  | "specialty"
+  | "city"
+  | "radius"
+  | "others"
+  | null;
+
+function PrefRow({
+  label,
+  value,
+  empty,
+  actionLabel,
+  onEdit,
+  trailing
+}: {
+  label: string;
+  value?: string;
+  empty?: boolean;
+  actionLabel?: string;
+  onEdit?: () => void;
+  trailing?: ReactNode;
+}) {
+  return (
+    <View style={styles.frow}>
+      <Text style={styles.frowLabel}>{label}</Text>
+      {trailing ?? (
+        <>
+          <Text
+            style={[styles.frowValue, empty && styles.frowValueEmpty]}
+            numberOfLines={2}
+          >
+            {value}
+          </Text>
+          {onEdit && actionLabel ? (
+            <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button">
+              <Text style={styles.frowEdit}>{actionLabel}</Text>
+            </Pressable>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+}
+
+function withDoctorPrefix(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return trimmed;
+  if (/^dr\.?\s/i.test(trimmed)) return trimmed;
+  return `Dr. ${trimmed}`;
+}
 
 export function VetAccountScreen() {
   const { t } = useTranslation();
@@ -47,7 +100,7 @@ export function VetAccountScreen() {
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
-  const [editing, setEditing] = useState(false);
+  const [editModal, setEditModal] = useState<EditModalKey>(null);
 
   const profileQ = useQuery({
     queryKey: ["vetProfileMe", activeProfileId],
@@ -55,17 +108,11 @@ export function VetAccountScreen() {
     enabled: Boolean(accessToken)
   });
 
-  const dashQ = useQuery({
-    queryKey: ["vetDashboard", activeProfileId, "account"],
-    queryFn: () => fetchVetDashboard(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken)
-  });
-
   const vet = profileQ.data;
-  const stats = dashQ.data?.stats;
 
   const [bio, setBio] = useState("");
   const [specialty, setSpecialty] = useState("");
+  const [others, setOthers] = useState("");
   const [city, setCity] = useState("");
   const [radiusKm, setRadiusKm] = useState("");
   const [available, setAvailable] = useState(true);
@@ -74,260 +121,376 @@ export function VetAccountScreen() {
     if (!vet) return;
     setBio(vet.bio ?? "");
     setSpecialty(vet.primarySpecialty ?? "");
-    setCity(vet.locationLabel?.split(",")[0]?.trim() ?? "");
+    setOthers((vet.otherSpecialties ?? []).join(", "));
+    setCity(
+      vet.locationCity?.trim() ||
+        vet.locationLabel?.split(",")[0]?.trim() ||
+        ""
+    );
     setRadiusKm(
       vet.interventionRadiusKm != null ? String(vet.interventionRadiusKm) : ""
     );
     setAvailable(vet.availability);
-  }, [vet]);
+  }, [vet, editModal]);
 
-  const avatarUri = useMemo(() => {
-    return (
+  const avatarUri = useMemo(
+    () =>
       resolveActiveProfileAvatarUrl(authMe, activeProfileId) ??
       vet?.profilePhotoUrl ??
-      null
-    );
-  }, [authMe, activeProfileId, vet?.profilePhotoUrl]);
+      null,
+    [authMe, activeProfileId, vet?.profilePhotoUrl]
+  );
 
-  const displayName = vet?.fullName ?? authMe?.user.fullName ?? "—";
+  const displayName = withDoctorPrefix(
+    vet?.fullName ?? authMe?.user.fullName ?? "—"
+  );
+
+  const completion = useMemo(
+    () => vetProfileCompletionPercent(vet),
+    [vet]
+  );
+  const nextField = useMemo(() => vetProfileNextEmptyField(vet), [vet]);
+
+  const nextFieldHint = useMemo(() => {
+    if (!nextField) return null;
+    const map: Record<VetProfileFieldKey, string> = {
+      bio: t("vet.account.nextField.bio"),
+      otherSpecialties: t("vet.account.nextField.otherSpecialties"),
+      interventionRadiusKm: t("vet.account.nextField.interventionRadiusKm"),
+      profilePhotoUrl: t("vet.account.nextField.profilePhotoUrl"),
+      availability: t("vet.account.nextField.availability")
+    };
+    return map[nextField];
+  }, [nextField, t]);
+
+  const isPending = vet?.verificationStatus === "pending";
+  const isRejected = vet?.verificationStatus === "rejected";
+  const isVerified = vet?.isVerified === true;
+
+  const verificationLabel = isVerified
+    ? t("vet.account.verified")
+    : isRejected
+      ? t("vet.account.rejected")
+      : t("vet.account.pending");
+
+  const headerSubtitle = useMemo(() => {
+    const order = vet?.orderNumber
+      ? t("vet.account.orderNumberShort", { n: vet.orderNumber })
+      : null;
+    return [order, verificationLabel].filter(Boolean).join(" · ");
+  }, [vet?.orderNumber, verificationLabel, t]);
 
   const saveMut = useMutation({
-    mutationFn: () => {
-      const radius = radiusKm.trim() ? Number(radiusKm) : undefined;
-      return patchVetPublicProfile(
-        accessToken!,
-        {
-          bio: bio.trim(),
-          primarySpecialty: specialty.trim() || undefined,
-          locationCity: city.trim() || undefined,
-          availability: available,
-          interventionRadiusKm: Number.isFinite(radius) ? radius : undefined
-        },
-        activeProfileId
-      );
-    },
+    mutationFn: (body: Parameters<typeof patchVetPublicProfile>[1]) =>
+      patchVetPublicProfile(accessToken!, body, activeProfileId),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["vetProfileMe"] });
       await qc.invalidateQueries({ queryKey: ["vetDashboard"] });
-      setEditing(false);
+      setEditModal(null);
     },
     onError: (e: Error) =>
       Alert.alert(t("vet.account.errorTitle"), getUserFacingError(e, t))
   });
 
-  const verificationLabel = vet?.isVerified
-    ? t("vet.account.verified")
-    : t("vet.account.pending");
+  const saveCurrentModal = () => {
+    if (editModal === "bio") {
+      saveMut.mutate({ bio: bio.trim() });
+      return;
+    }
+    if (editModal === "specialty") {
+      saveMut.mutate({ primarySpecialty: specialty.trim() || undefined });
+      return;
+    }
+    if (editModal === "others") {
+      const list = others
+        .split(/[,;]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      saveMut.mutate({ otherSpecialties: list });
+      return;
+    }
+    if (editModal === "city") {
+      saveMut.mutate({ locationCity: city.trim() || undefined });
+      return;
+    }
+    if (editModal === "radius") {
+      const radius = radiusKm.trim() ? Number(radiusKm) : undefined;
+      saveMut.mutate({
+        interventionRadiusKm: Number.isFinite(radius) ? radius : undefined
+      });
+    }
+  };
+
+  const toggleAvailability = (next: boolean) => {
+    setAvailable(next);
+    saveMut.mutate({ availability: next });
+  };
+
+  const openNextField = () => {
+    if (!nextField) return;
+    if (nextField === "bio") setEditModal("bio");
+    else if (nextField === "otherSpecialties") setEditModal("others");
+    else if (nextField === "interventionRadiusKm") setEditModal("radius");
+    else if (nextField === "availability") {
+      /* toggle visible in vitrine */
+    }
+  };
+
+  const ratingDisplay =
+    vet?.ratingAvg != null ? vet.ratingAvg.toFixed(1) : "—";
+  const cancellations = vet?.cancelledAppointmentsAsVet ?? 0;
+  const completed =
+    vet?.stats.completedAppointments ?? vet?.stats.visitsCompleted ?? 0;
+
+  const verifiedAtLabel = vet?.verifiedAt
+    ? new Date(vet.verifiedAt).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      })
+    : null;
+
+  const bioDisplay = vet?.bio?.trim() || t("vet.account.toComplete");
+  const specialtyDisplay =
+    vet?.primarySpecialty?.trim() || t("vet.account.toComplete");
+  const othersDisplay = vet?.otherSpecialties?.length
+    ? vet.otherSpecialties.join(", ")
+    : t("vet.account.toComplete");
+  const cityDisplay =
+    vet?.locationCity?.trim() ||
+    vet?.locationLabel?.split(",")[0]?.trim() ||
+    t("vet.account.toComplete");
+  const radiusDisplay =
+    vet?.interventionRadiusKm != null
+      ? t("vet.account.radiusValue", { km: vet.interventionRadiusKm })
+      : t("vet.account.toComplete");
+
+  const modalTitle =
+    editModal === "bio"
+      ? t("vet.account.bio")
+      : editModal === "specialty"
+        ? t("vet.account.specialty")
+        : editModal === "others"
+          ? t("vet.account.otherSpecialties")
+          : editModal === "city"
+            ? t("vet.account.city")
+            : editModal === "radius"
+              ? t("vet.account.radius")
+              : "";
+
+  if (profileQ.isLoading && !vet) {
+    return (
+      <VetMobileShell hideTopBar>
+        <View style={styles.loader}>
+          <ActivityIndicator color={vetColors.primary} />
+        </View>
+      </VetMobileShell>
+    );
+  }
 
   return (
     <VetMobileShell hideTopBar>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomInset }]}
+        showsVerticalScrollIndicator={false}
       >
+        {isPending ? (
+          <View style={styles.pendingBanner}>
+            <Text style={styles.pendingTitle}>
+              {t("vet.account.pendingBannerTitle")}
+            </Text>
+            <Text style={styles.pendingBody}>
+              {t("vet.account.pendingBannerBody")}
+            </Text>
+          </View>
+        ) : null}
+        {isRejected ? (
+          <View style={[styles.pendingBanner, styles.rejectedBanner]}>
+            <Text style={styles.pendingTitle}>
+              {t("vet.account.rejectedBannerTitle")}
+            </Text>
+            <Text style={styles.pendingBody}>
+              {t("vet.account.rejectedBannerBody")}
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.hero}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPh]}>
-              <Ionicons name="medical" size={40} color={vetColors.primary} />
+          <View style={styles.who}>
+            <View style={styles.avatarWrap}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPh]}>
+                  <Ionicons
+                    name="medical"
+                    size={22}
+                    color={vetColors.primary}
+                  />
+                </View>
+              )}
+              {isVerified ? (
+                <View style={styles.vbadge}>
+                  <Ionicons
+                    name="checkmark"
+                    size={10}
+                    color={vetColors.onPrimary}
+                  />
+                </View>
+              ) : null}
             </View>
-          )}
-          <Text style={styles.name}>{displayName}</Text>
-          <Text style={styles.badge}>{verificationLabel}</Text>
-          <ActiveProfileSwitcherControl variant="hero" />
+            <View style={styles.hi}>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.subtitle}>{headerSubtitle}</Text>
+            </View>
+          </View>
+          <Pressable
+            style={styles.iconBtn}
+            onPress={() => setEditModal("bio")}
+            accessibilityRole="button"
+            accessibilityLabel={t("vet.account.editPublic")}
+          >
+            <Ionicons
+              name="create-outline"
+              size={18}
+              color={vetColors.textPrimary}
+            />
+          </Pressable>
         </View>
 
-        <SectionHeader
-          label={t("vet.account.sectionIdentity")}
-          palette={vetPalette}
-        />
-        <View style={styles.card}>
-          <InfoRow
-            label={t("vet.account.orderNumber")}
-            value={vet?.orderNumber ?? "—"}
-            palette={vetPalette}
-          />
-          <InfoRow
-            label={t("vet.account.specialty")}
-            value={vet?.primarySpecialty ?? "—"}
-            palette={vetPalette}
-          />
-          <InfoRow
-            label={t("vet.account.verification")}
-            value={verificationLabel}
-            palette={vetPalette}
-          />
-        </View>
-
-        <SectionHeader
-          label={t("vet.account.sectionPublic")}
-          palette={vetPalette}
-        />
-        <View style={styles.card}>
-          {!editing ? (
-            <>
-              <InfoRow
-                label={t("vet.account.bio")}
-                value={vet?.bio?.trim() || "—"}
-                palette={vetPalette}
-              />
-              <InfoRow
-                label={t("vet.account.specialty")}
-                value={vet?.primarySpecialty ?? "—"}
-                palette={vetPalette}
-              />
-              <InfoRow
-                label={t("vet.account.city")}
-                value={vet?.locationLabel ?? "—"}
-                palette={vetPalette}
-              />
-              <InfoRow
-                label={t("vet.account.radius")}
-                value={
-                  vet?.interventionRadiusKm != null
-                    ? `${vet.interventionRadiusKm} km`
-                    : "—"
-                }
-                palette={vetPalette}
-              />
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLbl}>
-                  {t("vet.account.availability")}
-                </Text>
-                <Switch
-                  value={vet?.availability ?? false}
-                  disabled
-                  trackColor={{
-                    false: vetColors.border,
-                    true: vetColors.primarySoft
-                  }}
-                />
-              </View>
-              <Pressable style={styles.editBtn} onPress={() => setEditing(true)}>
-                <Text style={styles.editBtnTx}>{t("vet.account.editPublic")}</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Text style={styles.fieldLbl}>{t("vet.account.bio")}</Text>
-              <TextInput
-                style={[styles.input, styles.inputMulti]}
-                multiline
-                value={bio}
-                onChangeText={setBio}
-              />
-              <Text style={styles.fieldLbl}>{t("vet.account.specialty")}</Text>
-              <TextInput
-                style={styles.input}
-                value={specialty}
-                onChangeText={setSpecialty}
-              />
-              <Text style={styles.fieldLbl}>{t("vet.account.city")}</Text>
-              <TextInput
-                style={styles.input}
-                value={city}
-                onChangeText={setCity}
-              />
-              <Text style={styles.fieldLbl}>{t("vet.account.radius")}</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={radiusKm}
-                onChangeText={setRadiusKm}
-              />
-              <View style={styles.switchRow}>
-                <Text style={styles.switchLbl}>
-                  {t("vet.account.availability")}
-                </Text>
-                <Switch
-                  value={available}
-                  onValueChange={setAvailable}
-                  trackColor={{
-                    false: vetColors.border,
-                    true: vetColors.primarySoft
-                  }}
-                  thumbColor={available ? vetColors.primary : undefined}
-                />
-              </View>
-              <View style={styles.saveRow}>
-                <Pressable
-                  style={styles.cancelBtn}
-                  onPress={() => setEditing(false)}
-                >
-                  <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.saveBtn}
-                  onPress={() => saveMut.mutate()}
-                  disabled={saveMut.isPending}
-                >
-                  {saveMut.isPending ? (
-                    <ActivityIndicator color={vetColors.onPrimary} />
-                  ) : (
-                    <Text style={styles.saveTx}>{t("common.save")}</Text>
-                  )}
-                </Pressable>
-              </View>
-            </>
-          )}
-        </View>
-
-        <SectionHeader
-          label={t("vet.account.sectionReputation")}
-          palette={vetPalette}
-        />
-        <View style={styles.statsRow}>
-          <StatCard
-            label={t("vet.account.rating")}
-            value={
-              stats?.averageRating != null
-                ? stats.averageRating.toFixed(1)
-                : "—"
-            }
-            palette={vetPalette}
-          />
-          <StatCard
-            label={t("vet.account.reviews")}
-            value={vet?.ratingCount ?? 0}
-            palette={vetPalette}
-          />
-          <StatCard
-            label={t("vet.account.visitsDone")}
-            value={stats?.visitsCompleted ?? 0}
-            palette={vetPalette}
-          />
-        </View>
-
-        <SectionHeader
-          label={t("vet.account.sectionIncome")}
-          palette={vetPalette}
-        />
         <Pressable
-          style={styles.linkCard}
-          onPress={() => navigation.navigate("UserWallet")}
+          onPress={nextField ? openNextField : undefined}
+          disabled={!nextField}
         >
-          <Ionicons name="wallet-outline" size={22} color={vetColors.primary} />
-          <Text style={styles.linkTx}>{t("vet.account.openWallet")}</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={vetColors.textMuted}
+          <ProfileCompletionGauge
+            percent={completion}
+            palette={vetPalette}
+            label={t("vet.account.completionLabel")}
+            hint={nextFieldHint}
           />
         </Pressable>
+
+        <View style={[styles.card, styles.reputationCard]}>
+          <View style={styles.repRow}>
+            <Text style={styles.repTitle}>{t("vet.account.sectionReputation")}</Text>
+            <Text style={styles.stars}>
+              ★★★★★{" "}
+              <Text style={styles.ratingNum}>{ratingDisplay}</Text>
+            </Text>
+          </View>
+          <Text style={styles.repMeta}>
+            {t("vet.account.reputationMeta", {
+              reviews: vet?.ratingCount ?? 0,
+              visits: completed,
+              cancellations:
+                cancellations === 0
+                  ? t("vet.account.zeroCancellations")
+                  : t("vet.account.cancellationsCount", {
+                      count: cancellations
+                    })
+            })}
+          </Text>
+        </View>
+
+        <SectionHeader
+          label={t("vet.account.sectionShowcase")}
+          palette={vetPalette}
+        />
+        <View style={styles.card}>
+          <PrefRow
+            label={t("vet.account.specialty")}
+            value={specialtyDisplay}
+            empty={!vet?.primarySpecialty?.trim()}
+            actionLabel={
+              vet?.primarySpecialty?.trim()
+                ? t("vet.account.edit")
+                : t("vet.account.add")
+            }
+            onEdit={() => setEditModal("specialty")}
+          />
+          <PrefRow
+            label={t("vet.account.otherSpecialties")}
+            value={othersDisplay}
+            empty={!vet?.otherSpecialties?.length}
+            actionLabel={
+              vet?.otherSpecialties?.length
+                ? t("vet.account.edit")
+                : t("vet.account.add")
+            }
+            onEdit={() => setEditModal("others")}
+          />
+          <PrefRow
+            label={t("vet.account.zone")}
+            value={
+              vet?.interventionRadiusKm != null
+                ? t("vet.account.zoneValue", {
+                    city: cityDisplay,
+                    km: vet.interventionRadiusKm
+                  })
+                : cityDisplay
+            }
+            empty={
+              !vet?.locationCity?.trim() &&
+              !vet?.locationLabel?.trim() &&
+              vet?.interventionRadiusKm == null
+            }
+            actionLabel={t("vet.account.edit")}
+            onEdit={() => setEditModal("city")}
+          />
+          <PrefRow
+            label={t("vet.account.radius")}
+            value={radiusDisplay}
+            empty={vet?.interventionRadiusKm == null}
+            actionLabel={
+              vet?.interventionRadiusKm != null
+                ? t("vet.account.edit")
+                : t("vet.account.add")
+            }
+            onEdit={() => setEditModal("radius")}
+          />
+          <PrefRow
+            label={t("vet.account.bio")}
+            value={bioDisplay}
+            empty={!vet?.bio?.trim()}
+            actionLabel={
+              vet?.bio?.trim() ? t("vet.account.edit") : t("vet.account.add")
+            }
+            onEdit={() => setEditModal("bio")}
+          />
+          <PrefRow
+            label={t("vet.account.availability")}
+            trailing={
+              <Switch
+                value={available}
+                onValueChange={toggleAvailability}
+                disabled={saveMut.isPending}
+                trackColor={{
+                  false: vetColors.border,
+                  true: vetColors.success
+                }}
+                thumbColor={vetColors.cardBg}
+              />
+            }
+          />
+        </View>
 
         <SectionHeader
           label={t("vet.account.sectionDiploma")}
           palette={vetPalette}
         />
         <View style={styles.card}>
-          <InfoRow
+          <PrefRow
             label={t("vet.account.school")}
             value={
               vet
-                ? `${vet.schoolName} (${vet.schoolCountry}) · ${vet.graduationYear}`
+                ? `${vet.schoolName} · ${vet.graduationYear}`
                 : "—"
             }
-            palette={vetPalette}
+          />
+          <PrefRow
+            label={t("vet.account.verifiedAt")}
+            value={verifiedAtLabel ?? "—"}
+            empty={!verifiedAtLabel}
           />
           <Text style={styles.readonlyHint}>
             {t("vet.account.diplomaReadonly")}
@@ -338,19 +501,136 @@ export function VetAccountScreen() {
           label={t("vet.account.sectionSettings")}
           palette={vetPalette}
         />
-        <AccountSettingsPanel compact hideActiveProfileSwitcher />
+        <View style={styles.card}>
+          <PrefRow
+            label={t("vet.account.walletRow")}
+            value={t("vet.account.openWallet")}
+            actionLabel={t("vet.account.openShort")}
+            onEdit={() => navigation.navigate("UserWallet")}
+          />
+          <View style={styles.switcherWrap}>
+            <ActiveProfileSwitcherControl variant="default" />
+          </View>
+          <AccountSettingsPanel
+            compact
+            hideLanguagePicker={false}
+            hideActiveProfileSwitcher
+          />
+        </View>
       </ScrollView>
+
+      <Modal
+        visible={editModal != null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setEditModal(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
+            {editModal === "bio" ? (
+              <TextInput
+                style={[styles.input, styles.inputMulti]}
+                multiline
+                value={bio}
+                onChangeText={setBio}
+                placeholder={t("vet.account.bioPh")}
+                placeholderTextColor={vetColors.textMuted}
+              />
+            ) : null}
+            {editModal === "specialty" ? (
+              <TextInput
+                style={styles.input}
+                value={specialty}
+                onChangeText={setSpecialty}
+              />
+            ) : null}
+            {editModal === "others" ? (
+              <TextInput
+                style={styles.input}
+                value={others}
+                onChangeText={setOthers}
+                placeholder={t("vet.account.otherSpecialtiesPh")}
+                placeholderTextColor={vetColors.textMuted}
+              />
+            ) : null}
+            {editModal === "city" ? (
+              <TextInput
+                style={styles.input}
+                value={city}
+                onChangeText={setCity}
+              />
+            ) : null}
+            {editModal === "radius" ? (
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={radiusKm}
+                onChangeText={setRadiusKm}
+                placeholder={t("vet.account.radiusPh")}
+                placeholderTextColor={vetColors.textMuted}
+              />
+            ) : null}
+            <View style={styles.saveRow}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setEditModal(null)}
+              >
+                <Text style={styles.cancelTx}>{t("common.cancel")}</Text>
+              </Pressable>
+              <Pressable
+                style={styles.saveBtn}
+                onPress={saveCurrentModal}
+                disabled={saveMut.isPending}
+              >
+                {saveMut.isPending ? (
+                  <ActivityIndicator color={vetColors.onPrimary} />
+                ) : (
+                  <Text style={styles.saveTx}>{t("common.save")}</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </VetMobileShell>
   );
 }
 
 const styles = StyleSheet.create({
+  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.md,
     gap: mobileSpacing.sm
   },
-  hero: { alignItems: "center", paddingBottom: mobileSpacing.md },
+  pendingBanner: {
+    backgroundColor: vetColors.kpiAmber,
+    borderRadius: vetRadius.card,
+    padding: mobileSpacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: vetColors.border,
+    gap: 4
+  },
+  rejectedBanner: { backgroundColor: vetColors.kpiRose },
+  pendingTitle: {
+    fontWeight: "700",
+    color: vetColors.textPrimary,
+    fontSize: 14
+  },
+  pendingBody: {
+    ...mobileTypography.meta,
+    color: vetColors.textSecondary
+  },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: mobileSpacing.sm
+  },
+  who: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  hi: { flex: 1, gap: 2 },
+  avatarWrap: { position: "relative" },
   avatar: {
     width: AVATAR,
     height: AVATAR,
@@ -361,38 +641,123 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
+  vbadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: vetColors.success,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: vetColors.cardBg
+  },
   name: {
-    marginTop: mobileSpacing.md,
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: "700",
     color: vetColors.textPrimary
   },
-  badge: {
-    marginTop: 4,
+  subtitle: {
     ...mobileTypography.meta,
-    color: vetColors.primary,
-    fontWeight: "700"
+    color: vetColors.textSecondary
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: vetColors.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
+    ...vetShadow.soft
   },
   card: {
     backgroundColor: vetColors.cardBg,
     borderRadius: vetRadius.card,
-    padding: mobileSpacing.lg,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border,
-    gap: mobileSpacing.md
+    borderColor: vetColors.border
   },
-  switchRow: {
+  reputationCard: {
+    padding: mobileSpacing.lg,
+    gap: 6
+  },
+  repRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
+    alignItems: "center"
   },
-  switchLbl: { color: vetColors.textPrimary, fontWeight: "500" },
-  editBtn: { alignSelf: "flex-start", paddingVertical: mobileSpacing.sm },
-  editBtnTx: { color: vetColors.primary, fontWeight: "700" },
-  fieldLbl: {
+  repTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: vetColors.textPrimary
+  },
+  stars: { color: vetColors.warning, fontSize: 13, letterSpacing: 1 },
+  ratingNum: {
+    color: vetColors.textPrimary,
+    fontWeight: "800",
+    fontFamily: undefined
+  },
+  repMeta: {
+    ...mobileTypography.meta,
+    color: vetColors.textMuted
+  },
+  frow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: vetColors.border,
+    gap: 8
+  },
+  frowLabel: {
     ...mobileTypography.meta,
     color: vetColors.textSecondary,
-    fontWeight: "600"
+    width: "34%"
+  },
+  frowValue: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: vetColors.textPrimary,
+    textAlign: "right"
+  },
+  frowValueEmpty: { color: vetColors.textMuted },
+  frowEdit: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: vetColors.primary,
+    marginLeft: 4
+  },
+  switcherWrap: {
+    paddingVertical: mobileSpacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: vetColors.border
+  },
+  readonlyHint: {
+    ...mobileTypography.meta,
+    color: vetColors.textMuted,
+    paddingVertical: mobileSpacing.sm
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: vetColors.modalScrim,
+    justifyContent: "flex-end"
+  },
+  modalCard: {
+    backgroundColor: vetColors.cardBg,
+    borderTopLeftRadius: vetRadius.card,
+    borderTopRightRadius: vetRadius.card,
+    padding: mobileSpacing.lg,
+    gap: mobileSpacing.md
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: vetColors.textPrimary
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -403,7 +768,7 @@ const styles = StyleSheet.create({
     color: vetColors.textPrimary,
     backgroundColor: vetColors.canvas
   },
-  inputMulti: { minHeight: 80, textAlignVertical: "top" },
+  inputMulti: { minHeight: 100, textAlignVertical: "top" },
   saveRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -419,21 +784,5 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: "center"
   },
-  saveTx: { color: vetColors.onPrimary, fontWeight: "700" },
-  statsRow: { flexDirection: "row", gap: mobileSpacing.sm },
-  linkCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: mobileSpacing.sm,
-    backgroundColor: vetColors.cardBg,
-    borderRadius: vetRadius.card,
-    padding: mobileSpacing.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border
-  },
-  linkTx: { flex: 1, fontWeight: "600", color: vetColors.textPrimary },
-  readonlyHint: {
-    ...mobileTypography.meta,
-    color: vetColors.textMuted
-  }
+  saveTx: { color: vetColors.onPrimary, fontWeight: "700" }
 });

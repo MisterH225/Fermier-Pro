@@ -116,6 +116,7 @@ export type FarmHealthRecordRowDto = {
     vetName: string;
     reason: string;
     cost: string | number | null;
+    prescriptionUrl?: string | null;
   } | null;
   treatment?: {
     drugName: string;

@@ -112,8 +112,6 @@ import {
   VetFarmDetailScreen,
   VetFarmsScreen,
   VetMessagesScreen,
-  VetReportsScreen,
-  VetTasksScreen,
   VetConsultationDetailScreen
 } from "../features";
 import type { RootStackParamList } from "../types/navigation";
@@ -416,16 +414,6 @@ function MainStack() {
         name="VetMessages"
         component={VetMessagesScreen}
         options={{ ...vetStackScreenOptions, title: st("messages") }}
-      />
-      <Stack.Screen
-        name="VetTasks"
-        component={VetTasksScreen}
-        options={{ ...vetStackScreenOptions, title: st("tasks") }}
-      />
-      <Stack.Screen
-        name="VetReports"
-        component={VetReportsScreen}
-        options={{ ...vetStackScreenOptions, title: st("vetReports") }}
       />
       <Stack.Screen
         name="TechnicianDashboard"

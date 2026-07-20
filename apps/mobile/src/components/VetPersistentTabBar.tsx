@@ -12,6 +12,7 @@ import { VET_NAV_FLOAT_BOTTOM } from "./navigation/vet/vetNavMetrics";
 import type { ExtendedNavMenuId } from "./navigation/types";
 import type { VetMainTab } from "./navigation/vet/types";
 import { useSession } from "../context/SessionContext";
+import { useVetFarms } from "../hooks/useVetFarms";
 import { mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -41,10 +42,26 @@ export function VetPersistentTabBar() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { authMe, activeProfileId, clientFeatures } = useSession();
+  const { selectedFarm } = useVetFarms(activeProfileId);
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isVet = profileType === "veterinarian";
+
+  const openFarmDetail = useCallback(
+    (initialTab?: RootStackParamList["VetFarmDetail"]["initialTab"]) => {
+      if (selectedFarm) {
+        navigation.navigate("VetFarmDetail", {
+          farmId: selectedFarm.id,
+          farmName: selectedFarm.name,
+          ...(initialTab ? { initialTab } : {})
+        });
+        return;
+      }
+      navigation.navigate("VetFarms");
+    },
+    [navigation, selectedFarm]
+  );
 
   const focused = useNavigationState((state) =>
     getFocusedRoute(state as NavigationState | undefined)
@@ -118,16 +135,16 @@ export function VetPersistentTabBar() {
           navigation.navigate("CommunityFeed");
           return;
         case "tasks":
-          navigation.navigate("VetFarms");
+          openFarmDetail("health");
           return;
         case "reports":
-          navigation.navigate("VetFarms");
+          openFarmDetail("visits");
           return;
         case "wallet":
           navigation.navigate("UserWallet");
           return;
         case "prescriptions":
-          navigation.navigate("VetFarms");
+          openFarmDetail("prescriptions");
           return;
         case "settings":
           navigation.navigate("VetAccount");
@@ -136,7 +153,7 @@ export function VetPersistentTabBar() {
           return;
       }
     },
-    [navigation, t]
+    [navigation, openFarmDetail]
   );
 
   if (!isVet) {
