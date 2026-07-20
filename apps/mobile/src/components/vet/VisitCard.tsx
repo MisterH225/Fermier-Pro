@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   conflictBadge: {
     ...mobileTypography.meta,
     fontSize: 11,
-    color: "#FEF3C7",
+    color: vetColors.kpiAmberSoft,
     fontWeight: "600",
     marginTop: 2
   },

@@ -28,23 +28,18 @@ export function VisitSlotPicker({
   onSelectSlot,
   accessToken,
   activeProfileId,
-  accent = "vet"
+  accent: _accent = "vet"
 }: VisitSlotPickerProps) {
   const { t } = useTranslation();
   const [period, setPeriod] = useState<VisitPeriod>("morning");
   const dateIso = toDateIso(selectedDay);
-  const colors =
-    accent === "producer"
-      ? {
-          primary: "#1B3B2E",
-          primaryLight: "#E8F5E9",
-          border: "rgba(27, 59, 46, 0.12)"
-        }
-      : {
-          primary: vetColors.primary,
-          primaryLight: vetColors.primaryLight,
-          border: vetColors.border
-        };
+  // Palette unique vetColors (prop accent conservée pour compat appelants).
+  const colors = {
+    primary: vetColors.primary,
+    primaryLight: vetColors.primaryLight,
+    border: vetColors.border
+  };
+  void _accent;
 
   const availQ = useQuery({
     queryKey: ["vetAvailability", vetProfileId, dateIso, activeProfileId],

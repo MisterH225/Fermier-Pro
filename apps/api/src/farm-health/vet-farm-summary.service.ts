@@ -5,6 +5,7 @@ import {
   VetAppointmentStatus,
   VetConsultationStatus
 } from "@prisma/client";
+import { CheptelService } from "../cheptel/cheptel.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
@@ -21,7 +22,8 @@ export class VetFarmSummaryService {
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
     private readonly farmHealth: FarmHealthService,
-    private readonly farmVaccine: FarmVaccineService
+    private readonly farmVaccine: FarmVaccineService,
+    private readonly cheptel: CheptelService
   ) {}
 
   async getSummary(user: User, farmId: string) {
@@ -39,7 +41,8 @@ export class VetFarmSummaryService {
       activeBatchesCount,
       lastAppointment,
       lastConsultation,
-      lastHealthVetVisit
+      lastHealthVetVisit,
+      gmqSummary
     ] = await Promise.all([
       this.farmHealth.getOverview(user, farmId),
       this.farmVaccine.getCoverage(user, farmId),
@@ -90,7 +93,8 @@ export class VetFarmSummaryService {
           occurredAt: true,
           vetVisit: { select: { reason: true, vetName: true } }
         }
-      })
+      }),
+      this.cheptel.getGmqSummary(user, farmId)
     ]);
 
     const coverageRates = vaccineCoverage.items.map(
@@ -103,11 +107,13 @@ export class VetFarmSummaryService {
           )
         : null;
 
-    /**
-     * TODO: brancher le calcul GMQ moyen via CheptelService.getGmqSummary
-     * quand on voudra éviter le 2e appel mobile sur l'onglet Cheptel.
-     */
-    const avgGmqGPerDay: number | null = null;
+    const gmqValues = gmqSummary.animals
+      .map((a) => a.latestGmq ?? a.avgGmq)
+      .filter((n): n is number => n != null && Number.isFinite(n));
+    const avgGmqGPerDay =
+      gmqValues.length > 0
+        ? Math.round(gmqValues.reduce((a, b) => a + b, 0) / gmqValues.length)
+        : null;
 
     const lastVisitCandidates: Array<{
       at: string;

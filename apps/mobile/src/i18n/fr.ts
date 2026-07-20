@@ -1163,6 +1163,7 @@ export const fr = {
       batchMeta: "{{head}} têtes · {{breed}}",
       avgGmq: "GMQ moyen",
       avgGmqValue: "{{g}} g/j",
+      avgGmqNone: "— (aucun animal pesé)",
       livestockReadonly: "Lecture seule — données du cheptel producteur.",
       appointments: "Rendez-vous",
       consultations: "Consultations",

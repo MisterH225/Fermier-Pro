@@ -422,10 +422,13 @@ export function fetchVetAppointmentFinanceSummary(
 export function fetchVetAppointments(
   accessToken: string,
   role: "producer" | "vet",
-  activeProfileId?: string | null
+  activeProfileId?: string | null,
+  farmId?: string | null
 ): Promise<VetAppointmentDto[]> {
+  const params = new URLSearchParams({ role });
+  if (farmId?.trim()) params.set("farmId", farmId.trim());
   return apiGetJson(
-    `/vet-appointments/me?role=${role}`,
+    `/vet-appointments/me?${params.toString()}`,
     accessToken,
     activeProfileId
   );

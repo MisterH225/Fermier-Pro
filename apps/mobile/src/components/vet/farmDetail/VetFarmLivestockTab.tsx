@@ -1,11 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { InfoRow, SectionHeader, vetPalette } from "../../common";
 import { useSession } from "../../../context/SessionContext";
 import {
-  fetchCheptelGmqSummary,
   fetchFarmBatches,
   fetchFarmCheptelOverview,
   type VetFarmSummaryDto
@@ -35,23 +33,7 @@ export function VetFarmLivestockTab({ farmId, summary }: Props) {
     enabled: Boolean(accessToken)
   });
 
-  const gmqQ = useQuery({
-    queryKey: ["vetFarmGmq", farmId, activeProfileId],
-    queryFn: () =>
-      fetchCheptelGmqSummary(accessToken!, farmId, activeProfileId),
-    enabled: Boolean(accessToken)
-  });
-
-  const avgGmq = useMemo(() => {
-    if (summary?.livestock.avgGmqGPerDay != null) {
-      return summary.livestock.avgGmqGPerDay;
-    }
-    const values = (gmqQ.data?.animals ?? [])
-      .map((a) => a.latestGmq ?? a.avgGmq)
-      .filter((n): n is number => n != null && Number.isFinite(n));
-    if (!values.length) return null;
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-  }, [summary, gmqQ.data]);
+  const avgGmq = summary?.livestock.avgGmqGPerDay ?? null;
 
   const headcount =
     summary?.livestock.activeHeadcount ??
@@ -88,7 +70,7 @@ export function VetFarmLivestockTab({ farmId, summary }: Props) {
           value={
             avgGmq != null
               ? t("vet.farmDetail.avgGmqValue", { g: avgGmq })
-              : "—"
+              : t("vet.farmDetail.avgGmqNone")
           }
           palette={vetPalette}
         />

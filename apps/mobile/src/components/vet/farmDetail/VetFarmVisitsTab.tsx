@@ -43,14 +43,13 @@ export function VetFarmVisitsTab({ farmId, farmName, locale }: Props) {
 
   const appointmentsQ = useQuery({
     queryKey: ["vetAppointments", activeProfileId, "farmDetail", farmId],
-    queryFn: () => fetchVetAppointments(accessToken!, "vet", activeProfileId),
+    queryFn: () =>
+      fetchVetAppointments(accessToken!, "vet", activeProfileId, farmId),
     enabled: Boolean(accessToken)
   });
 
   const farmAppointments = useMemo(() => {
-    // TODO: filtrer par farmId côté serveur (query param sur GET /vet-appointments)
-    // plutôt que de charger toutes les RDV véto puis filtrer ici.
-    const rows = (appointmentsQ.data ?? []).filter((a) => a.farmId === farmId);
+    const rows = appointmentsQ.data ?? [];
     return [...rows].sort((a, b) => {
       const ap = PENDING_STATUSES.has(a.status) ? 0 : 1;
       const bp = PENDING_STATUSES.has(b.status) ? 0 : 1;
@@ -63,7 +62,7 @@ export function VetFarmVisitsTab({ farmId, farmName, locale }: Props) {
       ).getTime();
       return bt - at;
     });
-  }, [appointmentsQ.data, farmId]);
+  }, [appointmentsQ.data]);
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);

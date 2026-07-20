@@ -512,11 +512,15 @@ export class VetAppointmentService {
     return this.mapRow(row);
   }
 
-  async listForUser(user: User, role: "producer" | "vet") {
+  async listForUser(
+    user: User,
+    role: "producer" | "vet",
+    farmId?: string
+  ) {
     const where =
       role === "vet"
-        ? { vetUserId: user.id }
-        : { producerUserId: user.id };
+        ? { vetUserId: user.id, ...(farmId ? { farmId } : {}) }
+        : { producerUserId: user.id, ...(farmId ? { farmId } : {}) };
 
     const rows = await this.prisma.vetAppointment.findMany({
       where,

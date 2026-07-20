@@ -1163,6 +1163,7 @@ export const en = {
       batchMeta: "{{head}} head · {{breed}}",
       avgGmq: "Avg. ADG",
       avgGmqValue: "{{g}} g/day",
+      avgGmqNone: "— (no animals weighed)",
       livestockReadonly: "Read-only — producer herd data.",
       appointments: "Appointments",
       consultations: "Consultations",

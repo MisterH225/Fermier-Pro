@@ -66,9 +66,14 @@ export class VetAppointmentController {
   @Get("vet-appointments/me")
   listMine(
     @CurrentUser() user: User,
-    @Query("role") role?: "producer" | "vet"
+    @Query("role") role?: "producer" | "vet",
+    @Query("farmId") farmId?: string
   ) {
-    return this.appointments.listForUser(user, role === "vet" ? "vet" : "producer");
+    return this.appointments.listForUser(
+      user,
+      role === "vet" ? "vet" : "producer",
+      farmId?.trim() || undefined
+    );
   }
 
   @Get("vet-appointments/:id")

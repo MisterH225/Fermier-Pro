@@ -10,6 +10,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { vetColors } from "../../theme/vetTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const ACTION_STATUSES = new Set([
@@ -157,6 +158,6 @@ const styles = StyleSheet.create({
   price: {
     ...mobileTypography.meta,
     fontWeight: "700",
-    color: "#B45309"
+    color: vetColors.warningDeep
   }
 });
