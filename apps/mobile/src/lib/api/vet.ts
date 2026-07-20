@@ -213,6 +213,42 @@ export function fetchVetProfileMe(
   return apiGetJson("/vet-profiles/me", accessToken, activeProfileId);
 }
 
+/** GET /farms/:farmId/vet-summary — agrégat dossier élevage. */
+export type VetFarmSummaryDto = {
+  farmId: string;
+  health: {
+    activeDiseaseCount: number;
+    overdueVaccineCount: number;
+    activeTreatmentCount: number;
+    globalHealthStatus: string;
+    mortalityRate30d: string;
+  };
+  vaccineCoveragePercent: number | null;
+  livestock: {
+    activeHeadcount: number;
+    activeBatchesCount: number;
+    avgGmqGPerDay: number | null;
+  };
+  lastVisit: {
+    id: string;
+    at: string;
+    label: string;
+    source: "appointment" | "consultation" | "health_record";
+  } | null;
+};
+
+export function fetchVetFarmSummary(
+  accessToken: string,
+  farmId: string,
+  activeProfileId?: string | null
+): Promise<VetFarmSummaryDto> {
+  return apiGetJson<VetFarmSummaryDto>(
+    `/farms/${encodeURIComponent(farmId)}/vet-summary`,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export type VetVisitReason =
   | "routine"
   | "urgency"

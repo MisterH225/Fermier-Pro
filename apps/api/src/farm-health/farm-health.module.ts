@@ -7,6 +7,8 @@ import { FarmHealthController } from "./farm-health.controller";
 import { FarmHealthService } from "./farm-health.service";
 import { FarmVaccineController } from "./farm-vaccine.controller";
 import { FarmVaccineService } from "./farm-vaccine.service";
+import { VetFarmSummaryController } from "./vet-farm-summary.controller";
+import { VetFarmSummaryService } from "./vet-farm-summary.service";
 import { MemberActivityLogsModule } from "../member-activity-logs/member-activity-logs.module";
 import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
 
@@ -19,7 +21,12 @@ import { SmartAlertsModule } from "../smart-alerts/smart-alerts.module";
     SmartAlertsModule,
     MemberActivityLogsModule
   ],
-  controllers: [FarmHealthController, FarmVaccineController],
-  providers: [FarmHealthService, FarmVaccineService]
+  controllers: [
+    FarmHealthController,
+    FarmVaccineController,
+    VetFarmSummaryController
+  ],
+  providers: [FarmHealthService, FarmVaccineService, VetFarmSummaryService],
+  exports: [FarmHealthService, FarmVaccineService]
 })
 export class FarmHealthModule {}
