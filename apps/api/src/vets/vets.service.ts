@@ -135,6 +135,58 @@ export class VetsService {
     return this.enrichPublicProfile(row, user.id);
   }
 
+  async patchPublicProfile(
+    user: User,
+    dto: {
+      bio?: string;
+      primarySpecialty?: string;
+      otherSpecialties?: string[];
+      locationCity?: string;
+      availability?: boolean;
+      interventionRadiusKm?: number;
+      profilePhotoUrl?: string;
+    }
+  ) {
+    await this.assertVeterinarianProfile(user.id);
+    const existing = await this.prisma.vetProfile.findUnique({
+      where: { userId: user.id }
+    });
+    if (!existing) {
+      throw new NotFoundException("Profil vétérinaire non créé");
+    }
+
+    const updated = await this.prisma.vetProfile.update({
+      where: { userId: user.id },
+      data: {
+        ...(dto.bio !== undefined ? { bio: dto.bio.trim() || null } : {}),
+        ...(dto.primarySpecialty !== undefined
+          ? { primarySpecialty: dto.primarySpecialty.trim() }
+          : {}),
+        ...(dto.otherSpecialties !== undefined
+          ? {
+              otherSpecialties:
+                dto.otherSpecialties.length > 0
+                  ? (dto.otherSpecialties as Prisma.InputJsonValue)
+                  : Prisma.JsonNull
+            }
+          : {}),
+        ...(dto.locationCity !== undefined
+          ? { locationCity: dto.locationCity.trim() }
+          : {}),
+        ...(dto.availability !== undefined
+          ? { availability: dto.availability }
+          : {}),
+        ...(dto.interventionRadiusKm !== undefined
+          ? { interventionRadiusKm: dto.interventionRadiusKm }
+          : {}),
+        ...(dto.profilePhotoUrl !== undefined
+          ? { profilePhotoUrl: dto.profilePhotoUrl.trim() || null }
+          : {})
+      }
+    });
+    return this.enrichPublicProfile(updated, user.id);
+  }
+
   async upsertProfile(user: User, dto: UpsertVetProfileDto) {
     await this.assertVeterinarianProfile(user.id);
 
@@ -295,6 +347,7 @@ export class VetsService {
       id: row.id,
       userId: row.userId,
       fullName: row.fullName,
+      orderNumber: row.orderNumber,
       primarySpecialty: row.primarySpecialty,
       otherSpecialties: Array.isArray(row.otherSpecialties)
         ? row.otherSpecialties

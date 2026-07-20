@@ -9,15 +9,14 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   View
 } from "react-native";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
 import { BuyerActiveProposalsSection } from "../../components/buyer/BuyerActiveProposalsSection";
 import { BuyerPendingMarketplaceBanner } from "../../components/buyer/BuyerPendingMarketplaceBanner";
-import { BuyerProfileModal } from "../../components/buyer/BuyerProfileModal";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
+import { KpiTile, buyerPalette } from "../../components/common";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
@@ -33,7 +32,7 @@ import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
 import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -43,7 +42,6 @@ export function BuyerDashboardScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
-  const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const dashQ = useQuery({
@@ -80,23 +78,26 @@ export function BuyerDashboardScreen() {
           welcomeLabel={t("buyer.dashboard.welcomeLine")}
           displayName={displayName}
           avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
-          onPressAvatar={() => setProfileOpen(true)}
+          onPressAvatar={() => navigation.navigate("BuyerAccount")}
         />
         <View style={styles.heroActions}>
-          <NotificationsHeaderButton iconColor={buyerColors.primary} style={styles.heroIconBtn} />
+          <NotificationsHeaderButton
+            iconColor={buyerColors.primary}
+            style={styles.heroIconBtn}
+          />
           <SupportHeaderButton
             iconColor={buyerColors.primary}
             style={styles.heroIconBtn}
           />
           <Pressable
-            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            onPress={() => navigation.navigate("BuyerAccount")}
             style={({ pressed }) => [
               styles.heroIconBtn,
               pressed && styles.heroIconBtnPressed
             ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
-            accessibilityLabel={t("settings.title")}
+            accessibilityLabel={t("buyer.account.title")}
             testID="buyer-settings-button"
           >
             <Ionicons
@@ -139,45 +140,29 @@ export function BuyerDashboardScreen() {
 
         <ScreenSection title={t("buyer.dashboard.sectionStats")} plain>
           <View style={styles.kpiGrid}>
-            <Pressable
-              style={[styles.kpiCard, { backgroundColor: buyerColors.primaryLight }]}
-              onPress={() => openBuyerOffersHub(navigation)}
-            >
-              <Text style={styles.kpiValue}>{kpis?.pendingProposals ?? 0}</Text>
-              <Text style={styles.kpiLabel}>{t("buyer.kpi.pending")}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
+            <KpiTile
+              label={t("buyer.kpi.purchases")}
+              value={kpis?.purchasesCount ?? 0}
+              bg={buyerColors.kpiGreen}
+              accent={buyerColors.success}
+              palette={buyerPalette}
               onPress={() =>
                 navigation.navigate("BuyerHistory", {
                   initialSegment: "active"
                 })
               }
-            >
-              <Text style={[styles.kpiValue, { color: buyerColors.success }]}>
-                {kpis?.purchasesCount ?? 0}
-              </Text>
-              <Text style={styles.kpiLabel}>{t("buyer.kpi.purchases")}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.kpiCard, { backgroundColor: "#FCE4EC" }]}
-              onPress={() => navigation.navigate("BuyerFavorites")}
-            >
-              <Text style={styles.kpiValue}>{kpis?.favoritesCount ?? 0}</Text>
-              <Text style={styles.kpiLabel}>{t("buyer.kpi.favorites")}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}
-              onPress={() => navigation.navigate("BuyerAlerts")}
-            >
-              <Text style={styles.kpiValue}>{kpis?.activeAlerts ?? 0}</Text>
-              <Text style={styles.kpiLabel}>{t("buyer.kpi.alerts")}</Text>
-            </Pressable>
+            />
+            <KpiTile
+              label={t("buyer.kpi.pending")}
+              value={kpis?.pendingProposals ?? 0}
+              bg={buyerColors.kpiPurple}
+              accent={buyerColors.primary}
+              palette={buyerPalette}
+              onPress={() => openBuyerOffersHub(navigation)}
+            />
           </View>
         </ScreenSection>
       </ScrollView>
-
-      <BuyerProfileModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </BuyerMobileShell>
   );
 }
@@ -209,12 +194,5 @@ const styles = StyleSheet.create({
   heroIconBtnPressed: {
     opacity: 0.85
   },
-  kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
-  kpiCard: {
-    width: "47%",
-    borderRadius: buyerRadius.card,
-    padding: mobileSpacing.md
-  },
-  kpiValue: { fontSize: 22, fontWeight: "700", color: buyerColors.primary },
-  kpiLabel: { ...mobileTypography.meta, color: buyerColors.textSecondary, marginTop: 4 }
+  kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm }
 });

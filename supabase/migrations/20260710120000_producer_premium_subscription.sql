@@ -58,13 +58,8 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Backfill soft uniquement : ne pas supprimer les memberships ni expirer les invitations.
 UPDATE "ProducerProfile"
-SET "subscriptionTier" = 'free',
-    "subscriptionStatus" = NULL,
-    "subscriptionChosenAt" = COALESCE("subscriptionChosenAt", NOW());
-
-DELETE FROM "FarmMembership" WHERE "role" <> 'owner';
-
-UPDATE "FarmInvitation"
-SET "status" = 'expired'
-WHERE "status" IN ('pending', 'accepted');
+SET "subscriptionTier" = COALESCE("subscriptionTier", 'free'),
+    "subscriptionChosenAt" = COALESCE("subscriptionChosenAt", NOW())
+WHERE "subscriptionTier" IS NULL;

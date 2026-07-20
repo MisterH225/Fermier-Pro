@@ -10,15 +10,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View
 } from "react-native";
+import { KpiTile, vetPalette } from "../../components/common";
 import { CardContentSkeleton, KpiGridSkeleton, ListSkeleton } from "../../components/common/SkeletonBlocks";
 import { EventList } from "../../components/lists/EventList";
 import type { EventItem } from "../../components/lists/types";
 import { VetMobileShell } from "../../components/layout";
 import { DashboardTaskWidget } from "../../components/tasks";
-import { VetAccountModal } from "../../components/vet/VetAccountModal";
 import { VetWelcomeHeader } from "../../components/vet/VetWelcomeHeader";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
@@ -29,7 +28,7 @@ import { PendingInvitationsBanner } from "../../components/collaboration/Pending
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { useSession } from "../../context/SessionContext";
-import { fetchFarms, fetchVetDashboard, fetchVetAppointmentFinanceSummary } from "../../lib/api";
+import { fetchVetDashboard, fetchVetAppointmentFinanceSummary } from "../../lib/api";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -79,10 +78,9 @@ export function VetDashboardScreen() {
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, clientFeatures } =
     useSession();
-  const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState("");
   const [taskFilter, setTaskFilter] = useState<(typeof TASK_FILTERS)[number]>("today");
+  const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
 
   const vetStatus = authMe?.vetProfessional?.verificationStatus;
   const isPending = vetStatus === "pending";
@@ -101,23 +99,24 @@ export function VetDashboardScreen() {
     enabled: Boolean(accessToken && !isPending)
   });
 
-  const farmsQ = useQuery({
-    queryKey: ["farms", activeProfileId, "vetDash"],
-    queryFn: () => fetchFarms(accessToken!, activeProfileId),
-    enabled: Boolean(accessToken && !isPending)
-  });
+  const assignedFarms = dashQ.data?.assignedFarms ?? [];
 
-  const primaryFarm = farmsQ.data?.[0];
+  const selectedFarm = useMemo(() => {
+    if (!assignedFarms.length) return null;
+    return (
+      assignedFarms.find((f) => f.id === selectedFarmId) ?? assignedFarms[0]
+    );
+  }, [assignedFarms, selectedFarmId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshAuthMe();
-      await Promise.all([dashQ.refetch(), farmsQ.refetch()]);
+      await dashQ.refetch();
     } finally {
       setRefreshing(false);
     }
-  }, [refreshAuthMe, dashQ, farmsQ]);
+  }, [refreshAuthMe, dashQ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -145,7 +144,7 @@ export function VetDashboardScreen() {
           displayName={displayName}
           avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
           verified={isVerified}
-          onPressAvatar={() => setProfileOpen(true)}
+          onPressAvatar={() => navigation.navigate("VetAccount")}
         />
         <View style={styles.heroActions}>
           <SupportHeaderButton
@@ -154,12 +153,12 @@ export function VetDashboardScreen() {
           />
           <NotificationsHeaderButton
             iconColor={vetColors.primary}
-            farmId={primaryFarm?.id}
-            farmName={primaryFarm?.name}
+            farmId={selectedFarm?.id}
+            farmName={selectedFarm?.name}
             style={[styles.heroIconBtn, vetShadow.soft]}
           />
           <Pressable
-            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            onPress={() => navigation.navigate("VetAccount")}
             style={({ pressed }) => [
               styles.heroIconBtn,
               vetShadow.soft,
@@ -167,7 +166,7 @@ export function VetDashboardScreen() {
             ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
-            accessibilityLabel={t("settings.title")}
+            accessibilityLabel={t("vet.account.title")}
             testID="vet-settings-button"
           >
             <Ionicons
@@ -201,18 +200,6 @@ export function VetDashboardScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.searchWrap}>
-              <Ionicons name="search" size={20} color={vetColors.textSecondary} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t("vet.dashboard.searchPlaceholder")}
-                placeholderTextColor={vetColors.textSecondary}
-                value={search}
-                onChangeText={setSearch}
-              />
-              <Ionicons name="options-outline" size={20} color={vetColors.textSecondary} />
-            </View>
-
             <View style={styles.sectionHead}>
               <Text style={styles.sectionTitle}>{t("vet.dashboard.upcomingTitle")}</Text>
               <Pressable onPress={() => navigation.navigate("VetAgenda")}>
@@ -277,27 +264,31 @@ export function VetDashboardScreen() {
                 emoji="🏡"
                 bg={vetColors.kpiBlue}
                 accent={vetColors.primary}
+                palette={vetPalette}
               />
               <KpiTile
                 label={t("vet.dashboard.kpiVisits")}
                 value={kpis?.visitsThisMonth ?? 0}
                 emoji="🩺"
                 bg={vetColors.kpiGreen}
-                accent="#2E7D32"
+                accent={vetColors.success}
+                palette={vetPalette}
               />
               <KpiTile
                 label={t("vet.dashboard.kpiAlerts")}
                 value={kpis?.healthAlerts ?? 0}
                 emoji="⚠️"
                 bg={vetColors.kpiAmber}
-                accent="#D97706"
+                accent={vetColors.warning}
+                palette={vetPalette}
               />
               <KpiTile
                 label={t("vet.dashboard.kpiTasks")}
                 value={kpis?.pendingTasks ?? 0}
                 emoji="📋"
                 bg={vetColors.kpiRose}
-                accent="#DB2777"
+                accent={vetColors.danger}
+                palette={vetPalette}
               />
             </View>
             )}
@@ -314,14 +305,46 @@ export function VetDashboardScreen() {
               </View>
             ) : null}
 
-            {primaryFarm && clientFeatures.tasks && accessToken ? (
+            {selectedFarm && clientFeatures.tasks && accessToken ? (
               <>
                 <View style={styles.sectionHead}>
                   <Text style={styles.sectionTitle}>{t("vet.dashboard.tasksTitle")}</Text>
-                  <Pressable onPress={() => navigation.navigate("VetTasks")}>
+                  <Pressable
+                    onPress={() =>
+                      navigation.navigate("VetFarmDetail", {
+                        farmId: selectedFarm.id,
+                        farmName: selectedFarm.name,
+                        initialTab: "health"
+                      })
+                    }
+                  >
                     <Text style={styles.sectionCta}>{t("vet.dashboard.seeAll")}</Text>
                   </Pressable>
                 </View>
+                {assignedFarms.length > 1 ? (
+                  <View style={styles.pills}>
+                    {assignedFarms.map((f) => (
+                      <Pressable
+                        key={f.id}
+                        style={[
+                          styles.pill,
+                          selectedFarm.id === f.id && styles.pillActive
+                        ]}
+                        onPress={() => setSelectedFarmId(f.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.pillTx,
+                            selectedFarm.id === f.id && styles.pillTxActive
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {f.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
                 <View style={styles.pills}>
                   {TASK_FILTERS.map((f) => (
                     <Pressable
@@ -341,8 +364,8 @@ export function VetDashboardScreen() {
                   ))}
                 </View>
                 <DashboardTaskWidget
-                  farmId={primaryFarm.id}
-                  farmName={primaryFarm.name}
+                  farmId={selectedFarm.id}
+                  farmName={selectedFarm.name}
                   accessToken={accessToken}
                   activeProfileId={activeProfileId}
                   embedded
@@ -385,30 +408,7 @@ export function VetDashboardScreen() {
           </>
         )}
       </ScrollView>
-      <VetAccountModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </VetMobileShell>
-  );
-}
-
-function KpiTile({
-  label,
-  value,
-  emoji,
-  bg,
-  accent
-}: {
-  label: string;
-  value: number;
-  emoji: string;
-  bg: string;
-  accent: string;
-}) {
-  return (
-    <View style={[styles.kpiTile, { backgroundColor: bg }, vetShadow.card]}>
-      <Text style={styles.kpiEmoji}>{emoji}</Text>
-      <Text style={[styles.kpiVal, { color: accent }]}>{value}</Text>
-      <Text style={styles.kpiLbl}>{label}</Text>
-    </View>
   );
 }
 

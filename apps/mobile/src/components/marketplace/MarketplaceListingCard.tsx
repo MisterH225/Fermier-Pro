@@ -165,6 +165,13 @@ export function MarketplaceListingCard({
             </Text>
           </View>
         ) : null}
+        {!isMerchant && item.healthVerified ? (
+          <View style={styles.badgeHealth}>
+            <Text style={styles.badgeHealthTx}>
+              {t("marketScreen.badgeHealthVerified")}
+            </Text>
+          </View>
+        ) : null}
         {showFavorite ? (
           <Pressable
             style={styles.favBtn}
@@ -370,6 +377,22 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm
   },
   badgeExpiredTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.onAccent,
+    fontWeight: "700",
+    fontSize: 11
+  },
+  badgeHealth: {
+    position: "absolute",
+    bottom: mobileSpacing.sm,
+    left: mobileSpacing.sm,
+    backgroundColor: mobileColors.success,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.sm,
+    maxWidth: "70%"
+  },
+  badgeHealthTx: {
     ...mobileTypography.meta,
     color: mobileColors.onAccent,
     fontWeight: "700",

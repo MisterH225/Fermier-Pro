@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Res,
@@ -14,6 +15,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { setDeprecatedSuccessor } from "../common/http/deprecation.util";
 import { CreateVetRatingDto } from "./dto/create-vet-rating.dto";
+import { PatchVetPublicProfileDto } from "./dto/patch-vet-public-profile.dto";
 import { ScheduleVetVisitDto } from "./dto/schedule-vet-visit.dto";
 import { ProducerScheduleVetVisitDto } from "./dto/producer-schedule-vet-visit.dto";
 import { UpsertVetProfileDto } from "./dto/upsert-vet-profile.dto";
@@ -27,6 +29,14 @@ export class VetsController {
   @Get("vet-profiles/me")
   me(@CurrentUser() user: User) {
     return this.vets.getMyProfile(user);
+  }
+
+  @Patch("vet-profiles/me")
+  patchMe(
+    @CurrentUser() user: User,
+    @Body() dto: PatchVetPublicProfileDto
+  ) {
+    return this.vets.patchPublicProfile(user, dto);
   }
 
   @Get("vet-profiles/me/dashboard")

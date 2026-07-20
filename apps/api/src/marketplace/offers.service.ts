@@ -283,10 +283,9 @@ export class OffersService {
     });
     return Promise.all(
       rows.map(async (row) => {
-        const buyerCreditScore =
-          row.offerType === OfferType.credit
-            ? await this.creditScore.getForUser(row.buyerUserId)
-            : null;
+        const buyerCreditScore = await this.creditScore.getForUser(
+          row.buyerUserId
+        );
         return {
           ...row,
           buyerCreditScore,

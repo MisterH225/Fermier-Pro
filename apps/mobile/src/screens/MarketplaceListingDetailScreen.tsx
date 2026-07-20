@@ -544,6 +544,16 @@ export function MarketplaceListingDetailScreen({
           />
         </View>
       ) : null}
+      {L.healthVerified ? (
+        <View style={styles.healthVerifiedBanner}>
+          <Text style={styles.healthVerifiedTx}>
+            {t("marketScreen.badgeHealthVerified")}
+          </Text>
+          <Text style={styles.healthVerifiedHint}>
+            {t("marketScreen.healthVerifiedHint")}
+          </Text>
+        </View>
+      ) : null}
       <HealthSummarySection healthData={L.healthData} />
       <FarmInfoCard
         farmInfo={L.farmInfo}
@@ -937,6 +947,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: marketplaceColors.muted,
     marginBottom: 8
+  },
+  healthVerifiedBanner: {
+    marginHorizontal: mobileSpacing.lg,
+    marginBottom: mobileSpacing.md,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.lg,
+    backgroundColor: mobileColors.success + "18",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: mobileColors.success + "55",
+    gap: 4
+  },
+  healthVerifiedTx: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.success
+  },
+  healthVerifiedHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary
   },
   closedBanner: {
     fontSize: 14,

@@ -8,7 +8,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ExtendedMenuGrid } from "./navigation/ExtendedMenuGrid";
 import { BuyerTabBar } from "./navigation/buyer/BuyerTabBar";
 import { buyerMainTabFromRoute } from "./navigation/buyer/buyerMainTabs";
-import { BUYER_NAV_FLOAT_BOTTOM, BUYER_NAV_BAR_HEIGHT } from "./navigation/buyer/buyerNavMetrics";
+import {
+  BUYER_NAV_FLOAT_BOTTOM,
+  BUYER_NAV_BAR_HEIGHT
+} from "./navigation/buyer/buyerNavMetrics";
 import type { ExtendedNavMenuId } from "./navigation/types";
 import type { BuyerMainTab } from "./navigation/buyer/types";
 import { useSession } from "../context/SessionContext";
@@ -46,11 +49,8 @@ export function BuyerPersistentTabBar() {
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
   const isBuyer = profileType === "buyer";
   const buyerTabs = useMemo(
-    (): BuyerMainTab[] =>
-      clientFeatures.wallet
-        ? (["home", "market", "finance", "messages", "history"] as const)
-        : (["home", "market", "messages", "history"] as const),
-    [clientFeatures.wallet]
+    (): BuyerMainTab[] => ["home", "market", "messages", "orders"],
+    []
   );
 
   const focused = useNavigationState((state) =>
@@ -71,13 +71,10 @@ export function BuyerPersistentTabBar() {
         case "market":
           navigation.navigate("BuyerMarket");
           return;
-        case "finance":
-          navigation.navigate("BuyerFinance");
-          return;
         case "messages":
           navigation.navigate("BuyerMessages");
           return;
-        case "history":
+        case "orders":
           navigation.navigate("BuyerHistory");
           return;
         default:
@@ -88,42 +85,57 @@ export function BuyerPersistentTabBar() {
   );
 
   const extendedItems = useMemo(
-    (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => [
-      {
-        id: "communityFeed",
-        label: t("navigation.main.feed"),
-        a11y: t("navigation.main.feed")
-      },
-      { id: "favorites", label: t("buyer.extended.favorites"), a11y: t("buyer.extended.favorites") },
-      { id: "priceAlerts", label: t("buyer.extended.priceAlerts"), a11y: t("buyer.extended.priceAlerts") },
-      { id: "reviews", label: t("buyer.extended.reviews"), a11y: t("buyer.extended.reviews") },
-      {
-        id: "settings",
-        label: t("navigation.extended.settings"),
-        a11y: t("navigation.extended.settings")
+    (): { id: ExtendedNavMenuId; label: string; a11y: string }[] => {
+      const items: { id: ExtendedNavMenuId; label: string; a11y: string }[] = [
+        {
+          id: "communityFeed",
+          label: t("navigation.main.feed"),
+          a11y: t("navigation.main.feed")
+        },
+        {
+          id: "reviews",
+          label: t("buyer.extended.reviews"),
+          a11y: t("buyer.extended.reviews")
+        },
+        {
+          id: "settings",
+          label: t("navigation.extended.settings"),
+          a11y: t("navigation.extended.settings")
+        }
+      ];
+      if (clientFeatures.wallet) {
+        items.splice(1, 0, {
+          id: "wallet" as ExtendedNavMenuId,
+          label: t("buyer.nav.finance"),
+          a11y: t("buyer.nav.finance")
+        });
       }
-    ],
-    [t]
+      return items;
+    },
+    [t, clientFeatures.wallet]
   );
 
   const onExtendedSelect = useCallback(
-    (id: ExtendedNavMenuId) => {
+    (id: ExtendedNavMenuId | string) => {
       setExtendedOpen(false);
       switch (id) {
         case "communityFeed":
           navigation.navigate("CommunityFeed");
           return;
-        case "favorites":
-          navigation.navigate("BuyerFavorites");
-          return;
-        case "priceAlerts":
-          navigation.navigate("BuyerAlerts");
+        case "wallet":
+          navigation.navigate("UserWallet");
           return;
         case "reviews":
           navigation.navigate("BuyerHistory", { initialTab: "reviews" });
           return;
         case "settings":
-          navigation.navigate("ProducerFarmSettings");
+          navigation.navigate("BuyerAccount");
+          return;
+        case "favorites":
+          navigation.navigate("BuyerMarket", { segment: "favorites" });
+          return;
+        case "priceAlerts":
+          navigation.navigate("BuyerMarket", { segment: "alerts" });
           return;
         default:
           return;
@@ -139,7 +151,10 @@ export function BuyerPersistentTabBar() {
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       <View
-        style={[styles.barAnchor, { bottom: insets.bottom + BUYER_NAV_FLOAT_BOTTOM }]}
+        style={[
+          styles.barAnchor,
+          { bottom: insets.bottom + BUYER_NAV_FLOAT_BOTTOM }
+        ]}
         pointerEvents="box-none"
       >
         <BuyerTabBar

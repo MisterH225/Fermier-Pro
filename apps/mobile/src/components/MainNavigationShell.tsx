@@ -34,6 +34,7 @@ import {
   BarnDetailScreen,
   BatchDetailScreen,
   BuyerDashboardScreen,
+  BuyerAccountScreen,
   MerchantDashboardScreen,
   MerchantShopsScreen,
   MerchantShopDetailScreen,
@@ -106,6 +107,7 @@ import {
   BuyerAlertsScreen,
   BuyerFavoritesScreen,
   VeterinarianDashboardScreen,
+  VetAccountScreen,
   VetAgendaScreen,
   VetFarmDetailScreen,
   VetFarmsScreen,
@@ -240,6 +242,11 @@ function MainStack() {
         name="BuyerDashboard"
         component={BuyerDashboardScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BuyerAccount"
+        component={BuyerAccountScreen}
+        options={{ ...buyerStackScreenOptions, title: st("buyerAccount") }}
       />
       <Stack.Screen
         name="MerchantDashboard"
@@ -381,6 +388,11 @@ function MainStack() {
         name="VeterinarianDashboard"
         component={VeterinarianDashboardScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="VetAccount"
+        component={VetAccountScreen}
+        options={{ ...vetStackScreenOptions, title: st("vetAccount") }}
       />
       <Stack.Screen
         name="VetAgenda"

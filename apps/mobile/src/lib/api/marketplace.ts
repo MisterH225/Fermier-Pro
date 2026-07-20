@@ -35,6 +35,8 @@ export type MarketplaceListingListItem = {
   activeOfferCount?: number;
   /** Vendeur accepte les offres à crédit (charcutier). */
   creditEnabled?: boolean;
+  /** Visite vétérinaire < 30 jours sur l'élevage. */
+  healthVerified?: boolean;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;

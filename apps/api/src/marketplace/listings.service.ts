@@ -530,11 +530,12 @@ export class ListingsService {
     const formattedPigs = (await this.formatListingsForApi(pigRows)).map(
       (row) => withListingKind(row)
     );
+    const pigsWithHealth = await this.attachHealthVerified(formattedPigs);
     const formattedMerchant = merchantRows.map((row) =>
       merchantProductToFeedItem(row)
     );
 
-    return sortFeedByPublishedAt([...formattedPigs, ...formattedMerchant]);
+    return sortFeedByPublishedAt([...pigsWithHealth, ...formattedMerchant]);
   }
 
   async listFilterCategories() {
@@ -600,6 +601,37 @@ export class ListingsService {
         }
       }
     });
+  }
+
+  /** Badge « Santé vérifiée » : visite vétérinaire < 30 jours. */
+  private async attachHealthVerified<T extends { farmId?: string | null }>(
+    rows: T[]
+  ): Promise<Array<T & { healthVerified: boolean }>> {
+    const farmIds = [
+      ...new Set(
+        rows
+          .map((r) => r.farmId)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      )
+    ];
+    if (farmIds.length === 0) {
+      return rows.map((r) => ({ ...r, healthVerified: false }));
+    }
+    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recent = await this.prisma.farmHealthRecord.findMany({
+      where: {
+        farmId: { in: farmIds },
+        kind: FarmHealthRecordKind.vet_visit,
+        occurredAt: { gte: since30 }
+      },
+      select: { farmId: true },
+      distinct: ["farmId"]
+    });
+    const verified = new Set(recent.map((r) => r.farmId));
+    return rows.map((r) => ({
+      ...r,
+      healthVerified: Boolean(r.farmId && verified.has(r.farmId))
+    }));
   }
 
   private async farmHealthSnapshot(farmId: string) {
@@ -761,7 +793,8 @@ export class ListingsService {
         }
       });
       const [formatted] = await this.formatListingsForApi([listing]);
-      const { seller: _ignoredSeller, ...listingRest } = formatted;
+      const [withHealth] = await this.attachHealthVerified([formatted]);
+      const { seller: _ignoredSeller, ...listingRest } = withHealth;
       const seller = this.sanitizeSellerForViewer(
         listing.seller,
         user.id,
@@ -775,7 +808,8 @@ export class ListingsService {
       orderBy: { createdAt: "desc" }
     });
     const [formatted] = await this.formatListingsForApi([listing]);
-    const { seller: _ignoredSeller2, ...listingRest } = formatted;
+    const [withHealth] = await this.attachHealthVerified([formatted]);
+    const { seller: _ignoredSeller2, ...listingRest } = withHealth;
     const seller = this.sanitizeSellerForViewer(
       listing.seller,
       user.id,

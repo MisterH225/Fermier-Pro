@@ -13,19 +13,48 @@ type Props = {
   visibleTabs?: BuyerMainTab[];
 };
 
-const TAB_ORDER: BuyerMainTab[] = ["home", "market", "finance", "messages", "history"];
+const TAB_ORDER: BuyerMainTab[] = ["home", "market", "messages", "orders"];
 
-const TAB_META: Record<BuyerMainTab, { icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap; labelKey: string }> = {
-  home: { icon: "home", iconOutline: "home-outline", labelKey: "buyer.nav.home" },
-  market: { icon: "cart", iconOutline: "cart-outline", labelKey: "buyer.nav.market" },
-  finance: { icon: "wallet", iconOutline: "wallet-outline", labelKey: "buyer.nav.finance" },
-  messages: { icon: "chatbubbles", iconOutline: "chatbubbles-outline", labelKey: "buyer.nav.messages" },
-  history: { icon: "receipt", iconOutline: "receipt-outline", labelKey: "buyer.nav.history" }
+const TAB_META: Record<
+  BuyerMainTab,
+  {
+    icon: keyof typeof Ionicons.glyphMap;
+    iconOutline: keyof typeof Ionicons.glyphMap;
+    labelKey: string;
+  }
+> = {
+  home: {
+    icon: "home",
+    iconOutline: "home-outline",
+    labelKey: "buyer.nav.home"
+  },
+  market: {
+    icon: "cart",
+    iconOutline: "cart-outline",
+    labelKey: "buyer.nav.market"
+  },
+  messages: {
+    icon: "chatbubbles",
+    iconOutline: "chatbubbles-outline",
+    labelKey: "buyer.nav.messages"
+  },
+  orders: {
+    icon: "receipt",
+    iconOutline: "receipt-outline",
+    labelKey: "buyer.nav.orders"
+  }
 };
 
 const H = BUYER_NAV_BAR_HEIGHT;
 
-function NavItem({ icon, iconOutline, label, active, onPress, a11y }: {
+function NavItem({
+  icon,
+  iconOutline,
+  label,
+  active,
+  onPress,
+  a11y
+}: {
   icon: keyof typeof Ionicons.glyphMap;
   iconOutline: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -34,16 +63,29 @@ function NavItem({ icon, iconOutline, label, active, onPress, a11y }: {
   a11y: string;
 }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={a11y} onPress={onPress} style={({ pressed }) => [styles.hit, pressed && { opacity: 0.9 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+      onPress={onPress}
+      style={({ pressed }) => [styles.hit, pressed && { opacity: 0.9 }]}
+    >
       {active ? (
         <View style={styles.activePill}>
           <Ionicons name={icon} size={17} color={buyerColors.onPrimary} />
-          <Text style={styles.labelActive} numberOfLines={1}>{label}</Text>
+          <Text style={styles.labelActive} numberOfLines={1}>
+            {label}
+          </Text>
         </View>
       ) : (
         <>
-          <Ionicons name={iconOutline} size={22} color={buyerColors.textMuted} />
-          <Text style={styles.label} numberOfLines={1}>{label}</Text>
+          <Ionicons
+            name={iconOutline}
+            size={22}
+            color={buyerColors.textMuted}
+          />
+          <Text style={styles.label} numberOfLines={1}>
+            {label}
+          </Text>
         </>
       )}
     </Pressable>
@@ -79,22 +121,97 @@ export function BuyerTabBar({
         accessibilityRole="button"
         accessibilityLabel={t("navigation.extended.openA11y")}
         onPress={onOpenExtended}
-        style={({ pressed }) => [styles.plusOuter, buyerShadow.floating, { width: H, height: H, borderRadius: H / 2, opacity: pressed ? 0.92 : 1 }]}
+        style={({ pressed }) => [
+          styles.plusOuter,
+          buyerShadow.floating,
+          {
+            width: H,
+            height: H,
+            borderRadius: H / 2,
+            opacity: pressed ? 0.92 : 1
+          }
+        ]}
       >
-        <Ionicons name="add" size={Math.round(H * 0.36)} color={buyerColors.primary} />
-        <Text style={styles.plusLabel} numberOfLines={1}>{t("navigation.extended.menuShort")}</Text>
+        <Ionicons
+          name="add"
+          size={Math.round(H * 0.36)}
+          color={buyerColors.primary}
+        />
+        <Text style={styles.plusLabel} numberOfLines={1}>
+          {t("navigation.extended.menuShort")}
+        </Text>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { width: "100%", flexDirection: "row", alignItems: "center", gap: mobileSpacing.sm, pointerEvents: "box-none" },
-  pill: { flex: 1, minWidth: 0, borderRadius: buyerRadius.pill, backgroundColor: buyerColors.cardBg, borderWidth: StyleSheet.hairlineWidth, borderColor: buyerColors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", paddingHorizontal: mobileSpacing.xs },
-  hit: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", paddingVertical: 4, gap: 2 },
-  activePill: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, backgroundColor: buyerColors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: buyerRadius.pill, maxWidth: "100%" },
-  label: { ...mobileTypography.meta, fontSize: 9, lineHeight: 11, fontWeight: "600", color: buyerColors.textMuted },
-  labelActive: { ...mobileTypography.meta, fontSize: 11, lineHeight: 13, fontWeight: "700", color: buyerColors.onPrimary },
-  plusOuter: { alignItems: "center", justifyContent: "center", gap: 1, paddingVertical: 4, backgroundColor: buyerColors.cardBg, borderWidth: StyleSheet.hairlineWidth, borderColor: buyerColors.border },
-  plusLabel: { ...mobileTypography.meta, fontSize: 9, lineHeight: 11, fontWeight: "600", color: buyerColors.textSecondary }
+  row: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: mobileSpacing.sm,
+    pointerEvents: "box-none"
+  },
+  pill: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: buyerRadius.pill,
+    backgroundColor: buyerColors.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: buyerColors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    paddingHorizontal: mobileSpacing.xs
+  },
+  hit: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    gap: 2
+  },
+  activePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: buyerColors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: buyerRadius.pill,
+    maxWidth: "100%"
+  },
+  label: {
+    ...mobileTypography.meta,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "600",
+    color: buyerColors.textMuted
+  },
+  labelActive: {
+    ...mobileTypography.meta,
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: "700",
+    color: buyerColors.onPrimary
+  },
+  plusOuter: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+    paddingVertical: 4,
+    backgroundColor: buyerColors.cardBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: buyerColors.border
+  },
+  plusLabel: {
+    ...mobileTypography.meta,
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: "600",
+    color: buyerColors.textSecondary
+  }
 });

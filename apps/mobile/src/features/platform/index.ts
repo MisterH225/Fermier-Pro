@@ -11,6 +11,7 @@ export { SmartAlertsListScreen } from "../../screens/SmartAlertsListScreen";
 export { ProducerDashboardScreen } from "../../screens/ProducerDashboardScreen";
 export { SettingsScreen as ProducerFarmSettingsScreen } from "../../screens/settings/SettingsScreen";
 export { BuyerDashboardScreen } from "../../screens/buyer/BuyerDashboardScreen";
+export { BuyerAccountScreen } from "../../screens/buyer/BuyerAccountScreen";
 export { VetDashboardScreen as VeterinarianDashboardScreen } from "../../screens/vet/VetDashboardScreen";
 export { TechnicianDashboardScreen } from "../../screens/TechnicianDashboardScreen";
 export { ProducerMessagesScreen } from "../../screens/ProducerMessagesScreen";

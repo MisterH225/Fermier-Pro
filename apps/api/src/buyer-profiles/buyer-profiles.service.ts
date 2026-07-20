@@ -173,10 +173,17 @@ export class BuyerProfilesService {
       profile: profile
         ? {
             buyerType: profile.buyerType,
+            businessName: profile.businessName,
             onboardingComplete: profile.onboardingComplete,
             preferredCategories: profile.preferredCategories,
             priceRangeMin: profile.priceRangeMin?.toString() ?? null,
-            priceRangeMax: profile.priceRangeMax?.toString() ?? null
+            priceRangeMax: profile.priceRangeMax?.toString() ?? null,
+            locationLabel: profile.locationLabel,
+            homeLatitude: profile.homeLatitude?.toNumber() ?? null,
+            homeLongitude: profile.homeLongitude?.toNumber() ?? null,
+            searchRadiusKm: profile.searchRadiusKm,
+            typicalVolume: profile.typicalVolume,
+            profilePhotoUrl: profile.profilePhotoUrl
           }
         : null,
       kpis: {
