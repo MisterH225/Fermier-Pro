@@ -281,27 +281,28 @@ export class OffersService {
         }
       }
     });
-    return Promise.all(
-      rows.map(async (row) => {
-        const creditView = await this.creditScore.getForUser(row.buyerUserId);
-        const buyerMeteo = this.creditScore.toBuyerMeteo(creditView);
-        return {
-          ...row,
-          buyerMeteo,
-          // Compat : badge sans late/default (détail sensible réservé à l'acheteur).
-          buyerCreditScore: {
-            score: creditView.score,
-            emoji: creditView.emoji,
-            label: creditView.label,
-            color: creditView.color,
-            blocked: creditView.blocked,
-            creditTransactionsCount: creditView.creditTransactionsCount,
-            creditOnTimeCount: creditView.creditOnTimeCount
-          },
-          ...this.offerDeadlineFields(row)
-        };
-      })
-    );
+    const buyerIds = [...new Set(rows.map((row) => row.buyerUserId))];
+    const creditByUser = await this.creditScore.getForUsers(buyerIds);
+
+    return rows.map((row) => {
+      const creditView = creditByUser.get(row.buyerUserId)!;
+      const buyerMeteo = this.creditScore.toBuyerMeteo(creditView);
+      return {
+        ...row,
+        buyerMeteo,
+        // Compat : badge sans late/default (détail sensible réservé à l'acheteur).
+        buyerCreditScore: {
+          score: creditView.score,
+          emoji: creditView.emoji,
+          label: creditView.label,
+          color: creditView.color,
+          blocked: creditView.blocked,
+          creditTransactionsCount: creditView.creditTransactionsCount,
+          creditOnTimeCount: creditView.creditOnTimeCount
+        },
+        ...this.offerDeadlineFields(row)
+      };
+    });
   }
 
   async counts(user: User, farmId?: string) {
