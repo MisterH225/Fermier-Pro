@@ -31,6 +31,7 @@ export const NAV_KEYS = [
   "producerSubscriptions",
   "producerScores",
   "stats",
+  "adoption",
   "wallet",
   "ai",
   "settings"
@@ -72,6 +73,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/producteurs-scores", icon: Award, key: "producerScores", primary: true },
   { href: "/statistiques", icon: BarChart3, key: "stats", primary: true },
+  { href: "/metriques-adoption", icon: BarChart3, key: "adoption" },
   { href: "/portefeuille", icon: Wallet, key: "wallet" },
   { href: "/veterinaires/rendez-vous", icon: Calendar, key: "vetAppointments" },
   { href: "/moderation-feed", icon: MessageSquareWarning, key: "feedModeration" },

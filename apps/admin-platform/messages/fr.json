@@ -17,6 +17,7 @@
     "producerSubscriptions": "Abonnements producteurs",
     "producerScores": "Scores producteurs",
     "stats": "Statistiques",
+    "adoption": "Adoption",
     "ai": "Assistant IA",
     "wallet": "Portefeuille",
     "settings": "Paramètres",
@@ -521,6 +522,30 @@
         "placeholder": "Historique d'activité détaillé — prochaine itération."
       }
     }
+  },
+  "adoption": {
+    "title": "Métriques d'adoption",
+    "pageLead": "Usage réel de la refonte — agrégats 7 jours et 30 jours (sans données personnelles).",
+    "generatedAt": "Généré le {date}",
+    "window7": "7 jours",
+    "window30": "30 jours",
+    "loadError": "Impossible de charger les métriques d'adoption.",
+    "profileBuckets": "Jauge de complétion profil",
+    "roleBuyer": "Acheteur",
+    "roleVet": "Vétérinaire",
+    "bucket": "Bucket",
+    "count": "Événements",
+    "listingHealth": "Badge Santé sur annonces",
+    "samples": "Échantillons quotidiens",
+    "latestRatio": "Dernier ratio",
+    "avgRatio": "Ratio moyen",
+    "latestDetail": "Dernier agrégat",
+    "offerDecisions": "Décisions sur propositions",
+    "decision": "Décision",
+    "meteoLevel": "Niveau météo acheteur",
+    "vetBooking": "Origine prise de RDV véto",
+    "source": "Source",
+    "empty": "Aucun événement sur la période."
   },
   "stats": {
     "title": "Statistiques agrégées",

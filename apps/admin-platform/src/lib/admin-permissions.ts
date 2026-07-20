@@ -84,6 +84,9 @@ export function pathnameToNavKey(pathname: string): NavKey | null {
   if (pathname.startsWith("/statistiques")) {
     return "stats";
   }
+  if (pathname.startsWith("/metriques-adoption")) {
+    return "adoption";
+  }
   if (pathname.startsWith("/portefeuille")) {
     return "wallet";
   }

@@ -1701,6 +1701,41 @@ export function fetchAdminStats(
   return apiFetch<StatsDto>(`/admin/stats?period=${period}`, token);
 }
 
+export type AdoptionWindowMetricsDto = {
+  days: number;
+  profileCompletionBuckets: {
+    buyer: Record<string, number>;
+    vet: Record<string, number>;
+  };
+  listingHealthBadge: {
+    samples: number;
+    latest: {
+      dayKey: string;
+      total: number;
+      badged: number;
+      ratio: number;
+    } | null;
+    avgRatio: number | null;
+  };
+  offerDecisions: {
+    byDecision: Record<string, number>;
+    byMeteoLevel: Record<string, number>;
+  };
+  vetBookingSources: Record<string, number>;
+};
+
+export type AdoptionMetricsDto = {
+  generatedAt: string;
+  windows: {
+    "7d": AdoptionWindowMetricsDto;
+    "30d": AdoptionWindowMetricsDto;
+  };
+};
+
+export function fetchAdoptionMetrics(token: string) {
+  return apiFetch<AdoptionMetricsDto>("/admin/metrics/adoption", token);
+}
+
 function appendViewAsInstitutionId(
   params: URLSearchParams,
   viewAsInstitutionId?: string | null
