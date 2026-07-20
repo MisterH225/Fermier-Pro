@@ -335,6 +335,10 @@ export function MarketplaceBrowseListings({
               onToggleFavorite={() => toggleFav(item)}
               showShare
               navigation={navigation}
+              viewerIsOwner={
+                Boolean(authMe?.user.id) &&
+                item.seller?.id === authMe?.user.id
+              }
               onPress={() =>
                 isMerchant
                   ? navigation.navigate("MerchantProductDetail", {

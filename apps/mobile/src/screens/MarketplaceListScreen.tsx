@@ -23,7 +23,10 @@ import { ListingModal } from "../components/marketplace/ListingModal";
 import { MarketplaceBrowseListings } from "../components/marketplace/MarketplaceBrowseListings";
 import { HealthVerifyCtaBanner } from "../components/marketplace/HealthVerifyCtaBanner";
 import {
+  HEALTH_BADGE_EXPIRY_WARNING_DAYS,
   healthVerifiedDaysAgo,
+  healthVerifiedDaysRemaining,
+  isHealthBadgeRecentlyExpired,
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
 } from "../components/marketplace/MarketplaceListingCard";
@@ -431,6 +434,9 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         onToggleFavorite={() => toggleFav(item)}
         showShare
         navigation={navigation}
+        viewerIsOwner={
+          Boolean(authMe?.user.id) && item.seller?.id === authMe?.user.id
+        }
         onPress={() =>
           isMerchant
             ? navigation.navigate("MerchantProductDetail", { productId: item.id })
@@ -455,22 +461,43 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     return { views, consults, n: myRows.length };
   }, [myRows]);
 
-  /** Annonce publiée sans certificat santé valide → CTA acquisition véto. */
+  /** CTA producteur : badge expiré récemment, sinon jamais vérifié. */
   const healthVerifyTarget = useMemo(() => {
-    const row = myRows.find(
-      (r) =>
-        r.status === "published" &&
-        r.farm?.id &&
-        healthVerifiedDaysAgo(r.healthVerifiedAt) == null
+    const published = myRows.filter(
+      (r) => r.status === "published" && r.farm?.id
     );
-    if (!row?.farm) return null;
-    return { farmId: row.farm.id, farmName: row.farm.name };
+    const expiredRow = published.find(
+      (r) =>
+        healthVerifiedDaysAgo(r.healthVerifiedAt) == null &&
+        isHealthBadgeRecentlyExpired(r.healthVerifiedLastCompletedAt)
+    );
+    if (expiredRow?.farm) {
+      return {
+        farmId: expiredRow.farm.id,
+        farmName: expiredRow.farm.name,
+        variant: "expired" as const
+      };
+    }
+    const missing = published.find(
+      (r) => healthVerifiedDaysAgo(r.healthVerifiedAt) == null
+    );
+    if (!missing?.farm) return null;
+    return {
+      farmId: missing.farm.id,
+      farmName: missing.farm.name,
+      variant: "default" as const
+    };
   }, [myRows]);
 
   const myEventItems = useMemo((): EventItem[] => {
     return myRows.map((item) => {
       const statusLab = listingStatusLabel(item.status);
       const farm = item.farm?.name;
+      const daysLeft = healthVerifiedDaysRemaining(item.healthVerifiedAt);
+      const expiryLab =
+        daysLeft != null && daysLeft <= HEALTH_BADGE_EXPIRY_WARNING_DAYS
+          ? t("marketScreen.badgeHealthExpiresIn", { days: daysLeft })
+          : null;
       const priceLine =
         item.totalPrice != null
           ? `${typeof item.totalPrice === "string" ? item.totalPrice : String(item.totalPrice)} ${item.currency}`
@@ -478,7 +505,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       return {
         id: item.id,
         title: item.title,
-        subtitle: [statusLab, farm].filter(Boolean).join(" · "),
+        subtitle: [statusLab, farm, expiryLab].filter(Boolean).join(" · "),
         value: priceLine,
         valueType: "neutral",
         date: new Date(item.updatedAt).toLocaleDateString("fr-FR"),
@@ -487,7 +514,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
         meta: item
       };
     });
-  }, [myRows]);
+  }, [myRows, t]);
 
   const listingsErr =
     listingsQuery.error instanceof Error
@@ -682,6 +709,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
           <HealthVerifyCtaBanner
             userId={authMe?.user.id}
             visible={Boolean(healthVerifyTarget)}
+            variant={healthVerifyTarget?.variant ?? "default"}
             onPressCta={() => {
               if (!healthVerifyTarget) return;
               navigation.navigate("VetSearch", {
