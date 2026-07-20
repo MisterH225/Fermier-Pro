@@ -6,6 +6,7 @@ import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { MarketModule } from "../market/market.module";
 import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import {
   EscrowService,
   MarketplaceTransactionController,
@@ -18,6 +19,8 @@ import { ReceiptController, ReceiptCronService, ReceiptPdfService, ReceiptServic
 import { FarmRatingsController } from "./farm-ratings.controller";
 import { FarmRatingsService } from "./farm-ratings.service";
 import { FarmMarketplaceLifecycleService } from "./farm-marketplace-lifecycle.service";
+import { HealthBadgeExpiryCronService } from "./health-badge-expiry.cron";
+import { HealthBadgeExpiryService } from "./health-badge-expiry.service";
 import { ListingsController } from "./listings.controller";
 import { ListingsService } from "./listings.service";
 import { MarketplaceCronService } from "./marketplace-cron.service";
@@ -47,6 +50,7 @@ import { OrdersController, OrdersProjectionService } from "./orders";
     ConfigClientModule,
     FeatureFlagsModule,
     PushNotificationsModule,
+    UserNotificationsModule,
     ProducerScoreModule,
     ProducerSubscriptionModule
   ],
@@ -70,6 +74,8 @@ import { OrdersController, OrdersProjectionService } from "./orders";
     OffersService,
     FarmRatingsService,
     MarketplaceCronService,
+    HealthBadgeExpiryService,
+    HealthBadgeExpiryCronService,
     EscrowService,
     MarketplaceTransactionService,
     MarketplaceTransactionCronService,

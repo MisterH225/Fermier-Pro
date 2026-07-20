@@ -432,6 +432,7 @@ model Farm {
   pigPriceSnapshots   PigPriceSnapshot[]
   vetConsultations    VetConsultation[]
   vetAppointments     VetAppointment[]
+  healthBadgeExpiryReminders HealthBadgeExpiryReminder[]
   livestockBatches  LivestockBatch[]
   barns             Barn[]
   livestockExits    LivestockExit[] @relation("ExitOriginFarm")
@@ -2662,6 +2663,19 @@ model UserNotification {
 
   @@index([userId, createdAt])
   @@index([userId, isRead])
+}
+
+/// Déduplication des relances J-5 badge « Santé vérifiée » (1 notif / ferme / certificat).
+model HealthBadgeExpiryReminder {
+  id        String   @id @default(cuid())
+  farmId    String
+  farm      Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  /// ISO de `completedAt` de la visite couvrant cette fenêtre d'expiration.
+  windowKey String
+  createdAt DateTime @default(now())
+
+  @@unique([farmId, windowKey])
+  @@index([createdAt])
 }
 
 /// Comptes autorisés sur la console SuperAdmin (web).

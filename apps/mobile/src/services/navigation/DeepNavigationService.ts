@@ -445,6 +445,23 @@ export function navigateFromGenericPushData(
     );
   }
 
+  if (type === "health_badge_expiry_producer") {
+    const farmId = str(data.farmId);
+    if (!farmId) {
+      return false;
+    }
+    nav.navigate("VetSearch", {
+      farmId,
+      farmName: str(data.farmName) ?? "—"
+    });
+    return true;
+  }
+
+  if (type === "health_badge_expiry_vet") {
+    nav.navigate("VetFarms");
+    return true;
+  }
+
   if (type.startsWith("vet_appointment")) {
     const appointmentId = str(data.appointmentId);
     if (!appointmentId) {

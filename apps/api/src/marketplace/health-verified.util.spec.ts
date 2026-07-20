@@ -1,7 +1,14 @@
 import {
   aggregateHealthVerifiedByFarm,
+  aggregateLatestVerifiedVisitByFarm,
+  daysUntilHealthBadgeExpiry,
+  HEALTH_BADGE_EXPIRY_REMINDER_DAYS,
   HEALTH_VERIFIED_WINDOW_MS,
-  isWithinHealthVerifiedWindow
+  healthBadgeExpiryWindowKey,
+  isInHealthBadgeExpiryReminderWindow,
+  isRecentlyExpiredHealthBadge,
+  isWithinHealthVerifiedWindow,
+  MS_PER_DAY
 } from "./health-verified.util";
 
 describe("health-verified.util", () => {
@@ -85,5 +92,54 @@ describe("health-verified.util", () => {
       vetName: "Dr. New"
     });
     expect(map.has("f2")).toBe(false);
+  });
+
+  describe("fenêtre J-5 expiration badge", () => {
+    it("détecte une complétion à exactement J-5", () => {
+      const completedAt = new Date(
+        now.getTime() -
+          (30 - HEALTH_BADGE_EXPIRY_REMINDER_DAYS) * MS_PER_DAY
+      );
+      expect(daysUntilHealthBadgeExpiry(completedAt, now)).toBe(5);
+      expect(isInHealthBadgeExpiryReminderWindow(completedAt, now)).toBe(true);
+    });
+
+    it("exclut J-6 et J-4", () => {
+      const j6 = new Date(now.getTime() - (30 - 6) * MS_PER_DAY);
+      const j4 = new Date(now.getTime() - (30 - 4) * MS_PER_DAY);
+      expect(isInHealthBadgeExpiryReminderWindow(j6, now)).toBe(false);
+      expect(isInHealthBadgeExpiryReminderWindow(j4, now)).toBe(false);
+    });
+
+    it("produit une clé d'idempotence stable par complétion", () => {
+      const at = new Date("2026-06-25T08:00:00.000Z");
+      expect(healthBadgeExpiryWindowKey(at)).toBe(at.toISOString());
+      expect(healthBadgeExpiryWindowKey(at)).toBe(
+        healthBadgeExpiryWindowKey(new Date(at.getTime()))
+      );
+    });
+
+    it("agrège la dernière visite verified hors fenêtre 30 j", () => {
+      const old = new Date(now.getTime() - 40 * MS_PER_DAY);
+      const map = aggregateLatestVerifiedVisitByFarm([
+        {
+          farmId: "f1",
+          completedAt: old,
+          vetProfileId: "v1",
+          vetName: "Dr. A",
+          vetVerified: true,
+          vetUserId: "u1"
+        }
+      ]);
+      expect(map.get("f1")?.vetUserId).toBe("u1");
+      expect(map.get("f1")?.completedAt).toEqual(old);
+    });
+
+    it("détecte un badge expiré depuis moins de 15 j", () => {
+      const completedAt = new Date(now.getTime() - 35 * MS_PER_DAY);
+      expect(isRecentlyExpiredHealthBadge(completedAt, now)).toBe(true);
+      const tooOld = new Date(now.getTime() - 50 * MS_PER_DAY);
+      expect(isRecentlyExpiredHealthBadge(tooOld, now)).toBe(false);
+    });
   });
 });
