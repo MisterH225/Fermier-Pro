@@ -13,7 +13,6 @@ import { buyerColors } from "../../theme/buyerTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-type Route = RouteProp<RootStackParamList, "BuyerMarket">;
 type Segment = "listings" | "favorites" | "alerts";
 
 const SEG_PALETTE = {
@@ -26,7 +25,7 @@ const SEG_PALETTE = {
 } as const;
 
 function resolveSegment(
-  params: RootStackParamList["BuyerMarket"]
+  params: RootStackParamList["BuyerMarket"] | undefined
 ): Segment {
   if (
     params?.segment === "favorites" ||
@@ -39,19 +38,26 @@ function resolveSegment(
   return "listings";
 }
 
+/**
+ * Aussi monté sur les deep links `BuyerFavorites` / `BuyerAlerts`
+ * (initialParams.segment) — params typés comme BuyerMarket.
+ */
 export function BuyerMarketScreen() {
   const { t } = useTranslation();
-  const route = useRoute<Route>();
+  const route = useRoute<
+    RouteProp<RootStackParamList, "BuyerMarket" | "BuyerFavorites" | "BuyerAlerts">
+  >();
   const bottomInset = useBottomInset();
   const bottomChromePad = useBottomChromePad();
+  const marketParams = route.params as RootStackParamList["BuyerMarket"];
 
   const [segment, setSegment] = useState<Segment>(() =>
-    resolveSegment(route.params)
+    resolveSegment(marketParams)
   );
 
   useEffect(() => {
-    setSegment(resolveSegment(route.params));
-  }, [route.params]);
+    setSegment(resolveSegment(marketParams));
+  }, [marketParams]);
 
   const segments = useMemo(
     () => [
@@ -77,7 +83,7 @@ export function BuyerMarketScreen() {
             enabled
             buyerTheme
             contentPaddingBottom={bottomInset}
-            initialSearch={route.params?.searchQuery ?? ""}
+            initialSearch={marketParams?.searchQuery ?? ""}
             searchPlaceholder={t("buyer.market.searchPlaceholder")}
             emptyTitle={t("buyer.market.emptyListings")}
             emptyHint={t("buyer.market.emptyListingsHint")}

@@ -60,6 +60,35 @@ export class CreditScoreService {
     return this.toView(row);
   }
 
+  /**
+   * Batch de getForUser : 1 findMany (+ createMany si profils manquants).
+   * Même vue que getForUser pour chaque userId.
+   */
+  async getForUsers(userIds: string[]): Promise<Map<string, CreditScoreView>> {
+    const unique = [...new Set(userIds.filter(Boolean))];
+    const out = new Map<string, CreditScoreView>();
+    if (unique.length === 0) return out;
+
+    let rows = await this.prisma.buyerProfile.findMany({
+      where: { userId: { in: unique } }
+    });
+    const found = new Set(rows.map((r) => r.userId));
+    const missing = unique.filter((id) => !found.has(id));
+    if (missing.length > 0) {
+      await this.prisma.buyerProfile.createMany({
+        data: missing.map((userId) => ({ userId })),
+        skipDuplicates: true
+      });
+      rows = await this.prisma.buyerProfile.findMany({
+        where: { userId: { in: unique } }
+      });
+    }
+    for (const row of rows) {
+      out.set(row.userId, this.toView(row));
+    }
+    return out;
+  }
+
   async getBuyerMeteoForUser(userId: string): Promise<BuyerMeteoView> {
     const view = await this.getForUser(userId);
     return this.toBuyerMeteo(view);

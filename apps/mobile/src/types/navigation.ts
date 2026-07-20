@@ -63,8 +63,10 @@ export type RootStackParamList = {
   WalletOperation: {
     operation: "topup" | "withdraw" | "transfer";
   };
-  BuyerAlerts: undefined;
-  BuyerFavorites: undefined;
+  /** Deep link → BuyerMarket (segment alerts). */
+  BuyerAlerts: { segment?: "alerts" } | undefined;
+  /** Deep link → BuyerMarket (segment favorites). */
+  BuyerFavorites: { segment?: "favorites" } | undefined;
   VeterinarianDashboard: undefined;
   /** Compte vétérinaire (profil public éditable). */
   VetAccount: undefined;
