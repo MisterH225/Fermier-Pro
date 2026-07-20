@@ -402,6 +402,7 @@ export const fr = {
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
     badgeHealthVerified: "Santé vérifiée",
+    badgeHealthVerifiedDays: "✓ Santé vérifiée · {{days}} j",
     healthVerifiedHint: "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
     meteoBuyer: {
       label: "Météo Acheteur :"

@@ -35,7 +35,12 @@ export type MarketplaceListingListItem = {
   activeOfferCount?: number;
   /** Vendeur accepte les offres à crédit (charcutier). */
   creditEnabled?: boolean;
-  /** Visite vétérinaire < 30 jours sur l'élevage. */
+  /**
+   * Date ISO de la dernière consultation véto complétée (< 30 j), sinon null.
+   * Le badge carte s'affiche uniquement si cette date est présente et récente.
+   */
+  healthVerifiedAt?: string | null;
+  /** @deprecated préférer healthVerifiedAt — conservé pour le détail. */
   healthVerified?: boolean;
   farm: { id: string; name: string } | null;
   animal: {

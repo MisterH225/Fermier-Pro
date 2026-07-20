@@ -402,6 +402,7 @@ export const en = {
     badgeNew: "New",
     badgeSold: "Sold",
     badgeHealthVerified: "Health verified",
+    badgeHealthVerifiedDays: "✓ Health verified · {{days}} d",
     healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
     meteoBuyer: {
       label: "Buyer weather:"
