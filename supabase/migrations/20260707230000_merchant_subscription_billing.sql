@@ -1,8 +1,17 @@
 -- Abonnement Premium commerçant : cycle mensuel, factures et grâce 7 jours
 
-CREATE TYPE "MerchantSubscriptionStatus" AS ENUM ('active', 'past_due');
-CREATE TYPE "MerchantSubscriptionInvoiceStatus" AS ENUM ('pending', 'paid', 'failed', 'expired');
-CREATE TYPE "MerchantSubscriptionReminderStage" AS ENUM ('none', 'j_minus_3', 'j0', 'j_plus_3', 'j_plus_7');
+DO $$ BEGIN
+  CREATE TYPE "MerchantSubscriptionStatus" AS ENUM ('active', 'past_due');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE "MerchantSubscriptionInvoiceStatus" AS ENUM ('pending', 'paid', 'failed', 'expired');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE "MerchantSubscriptionReminderStage" AS ENUM ('none', 'j_minus_3', 'j0', 'j_plus_3', 'j_plus_7');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE "MerchantProfile"
   ADD COLUMN IF NOT EXISTS "subscriptionStatus" "MerchantSubscriptionStatus",
