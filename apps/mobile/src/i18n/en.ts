@@ -405,7 +405,18 @@ export const en = {
     badgeHealthVerifiedDays: "✓ Health verified · {{days}} d",
     healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
     meteoBuyer: {
-      label: "Buyer weather:"
+      label: "Buyer weather:",
+      newBuyer: "New buyer",
+      suspended: "Buyer suspended",
+      suspendedHint: "This buyer cannot complete a sale right now.",
+      acceptDisabled:
+        "Cannot accept — buyer suspended by the platform.",
+      sheetTitle: "Buyer weather",
+      sheetIntro:
+        "Reliability indicator based on credit payment history. Clearer skies mean a more reliable buyer.",
+      levelIndex: "Level {{n}}/{{total}}",
+      current: "Current",
+      stats: "{{total}} transactions, {{onTime}} on time"
     },
     badgeExpired: "Expired",
     badgeActiveOffers: "{{count}} active offer(s)",

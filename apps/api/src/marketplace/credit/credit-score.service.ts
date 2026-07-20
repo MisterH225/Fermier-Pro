@@ -14,6 +14,19 @@ export type CreditScoreView = {
   creditDefaultCount: number;
 };
 
+/**
+ * Vue producteur — Météo Acheteur.
+ * Jamais creditLateCount / creditDefaultCount (seulement le niveau agrégé).
+ */
+export type BuyerMeteoView = {
+  creditScore: BuyerCreditScore;
+  /** Identifiant MétéoProfil (7 niveaux). */
+  meteoLevel: string;
+  creditTransactionsCount: number;
+  creditOnTimeCount: number;
+  creditBlocked: boolean;
+};
+
 const SCORE_META: Record<
   BuyerCreditScore,
   { emoji: string; label: string; color: string }
@@ -23,6 +36,15 @@ const SCORE_META: Record<
   nouveau: { emoji: "🆕", label: "Nouveau", color: "#B4B2A9" },
   attention: { emoji: "⚠️", label: "Attention", color: "#BA7517" },
   risque: { emoji: "🔴", label: "Risqué", color: "#E24B4A" }
+};
+
+/** Aligné sur apps/mobile/src/constants/meteoProfil.ts (creditScoreToNumeric + getMeteoLevel). */
+const METEO_BY_SCORE: Record<BuyerCreditScore, string> = {
+  excellent: "soleil_plomb",
+  bon: "grande_chaleur",
+  nouveau: "brise",
+  attention: "eclaircie",
+  risque: "debutant"
 };
 
 @Injectable()
@@ -36,6 +58,22 @@ export class CreditScoreService {
   async getForUser(userId: string): Promise<CreditScoreView> {
     const row = await this.ensureProfile(userId);
     return this.toView(row);
+  }
+
+  async getBuyerMeteoForUser(userId: string): Promise<BuyerMeteoView> {
+    const view = await this.getForUser(userId);
+    return this.toBuyerMeteo(view);
+  }
+
+  /** Payload sûr pour les producteurs (propositions reçues). */
+  toBuyerMeteo(view: CreditScoreView): BuyerMeteoView {
+    return {
+      creditScore: view.score,
+      meteoLevel: METEO_BY_SCORE[view.score],
+      creditTransactionsCount: view.creditTransactionsCount,
+      creditOnTimeCount: view.creditOnTimeCount,
+      creditBlocked: view.blocked
+    };
   }
 
   async isCreditBlocked(userId: string): Promise<boolean> {

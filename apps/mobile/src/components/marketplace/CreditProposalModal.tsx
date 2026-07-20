@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import type { MarketplaceListingDetail } from "../../lib/api";
+import type { BuyerMeteoDto, MarketplaceListingDetail } from "../../lib/api";
 import { formatMarketMoney } from "./MarketplaceListingCard";
+import { BuyerMeteoBadge } from "./BuyerMeteoBadge";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import {
@@ -24,6 +25,7 @@ type Props = {
   listing: MarketplaceListingDetail | null;
   submitting?: boolean;
   buyerScoreWarning?: boolean;
+  buyerMeteo?: BuyerMeteoDto | null;
   mode?: "create" | "counter";
   initialValues?: InitialValues;
   onClose: () => void;
@@ -42,6 +44,7 @@ export function CreditProposalModal({
   listing,
   submitting,
   buyerScoreWarning,
+  buyerMeteo,
   mode = "create",
   initialValues,
   onClose,
@@ -120,6 +123,7 @@ export function CreditProposalModal({
       }
     >
       <Text style={styles.subtitle}>{t("marketScreen.creditModal.subtitle")}</Text>
+      {buyerMeteo ? <BuyerMeteoBadge meteo={buyerMeteo} /> : null}
       {buyerScoreWarning ? (
         <View style={styles.warn}>
           <Text style={styles.warnTx}>{t("marketScreen.creditModal.scoreWarning")}</Text>

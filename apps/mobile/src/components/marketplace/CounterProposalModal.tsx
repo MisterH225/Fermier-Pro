@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import type {
+  BuyerMeteoDto,
   MarketplaceListingDetail,
   MarketplaceOfferBrief
 } from "../../lib/api";
 import { isFlatPriceListing } from "./listingPricing";
 import { formatMarketMoney, parseMarketNum } from "./MarketplaceListingCard";
+import { BuyerMeteoBadge } from "./BuyerMeteoBadge";
 import {
   mobileColors,
   mobileRadius,
@@ -20,6 +22,7 @@ type Props = {
   visible: boolean;
   listing: MarketplaceListingDetail | null;
   offer: MarketplaceOfferBrief | null;
+  buyerMeteo?: BuyerMeteoDto | null;
   onClose: () => void;
   onSubmit: (payload: {
     counterPricePerKg?: number;
@@ -33,6 +36,7 @@ export function CounterProposalModal({
   visible,
   listing,
   offer,
+  buyerMeteo,
   onClose,
   onSubmit,
   submitting
@@ -88,6 +92,7 @@ export function CounterProposalModal({
           {t("marketScreen.counterModal.buyer")} {offer.buyer.fullName}
         </Text>
       ) : null}
+      {buyerMeteo ? <BuyerMeteoBadge meteo={buyerMeteo} /> : null}
       {flatAsk && askTotal != null ? (
         <Text style={styles.meta}>
           {t("marketScreen.counterModal.askedFlat")}{" "}
