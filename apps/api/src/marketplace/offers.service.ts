@@ -283,12 +283,21 @@ export class OffersService {
     });
     return Promise.all(
       rows.map(async (row) => {
-        const buyerCreditScore = await this.creditScore.getForUser(
-          row.buyerUserId
-        );
+        const creditView = await this.creditScore.getForUser(row.buyerUserId);
+        const buyerMeteo = this.creditScore.toBuyerMeteo(creditView);
         return {
           ...row,
-          buyerCreditScore,
+          buyerMeteo,
+          // Compat : badge sans late/default (détail sensible réservé à l'acheteur).
+          buyerCreditScore: {
+            score: creditView.score,
+            emoji: creditView.emoji,
+            label: creditView.label,
+            color: creditView.color,
+            blocked: creditView.blocked,
+            creditTransactionsCount: creditView.creditTransactionsCount,
+            creditOnTimeCount: creditView.creditOnTimeCount
+          },
           ...this.offerDeadlineFields(row)
         };
       })

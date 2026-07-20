@@ -36,9 +36,12 @@ import {
 } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import {
+  healthVerifiedDaysAgo,
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
 } from "./MarketplaceListingCard";
+
+const HEALTH_FILTER_ID = "health_verified";
 
 type Props = {
   /** Désactive les fetches (ex. segment inactif). */
@@ -103,18 +106,21 @@ export function MarketplaceBrowseListings({
     enabled: Boolean(enabled && accessToken && clientFeatures.marketplace)
   });
 
+  const apiCategory =
+    category !== "all" && category !== HEALTH_FILTER_ID ? category : undefined;
+
   const listingsQuery = useQuery({
     queryKey: [
       "marketplaceListings",
       activeProfileId,
-      category,
+      apiCategory ?? "all",
       searchParam,
       "browse"
     ],
     queryFn: () =>
       fetchMarketplaceListings(accessToken!, activeProfileId, {
         mine: false,
-        ...(category !== "all" ? { category } : {}),
+        ...(apiCategory ? { category: apiCategory } : {}),
         ...(searchParam ? { q: searchParam } : {})
       }),
     enabled: Boolean(enabled && accessToken && clientFeatures.marketplace)
@@ -132,9 +138,14 @@ export function MarketplaceBrowseListings({
   const categoryPills: FilterPill[] = useMemo(() => {
     const groups = listingCategoriesQ.data;
     const allPill = { id: "all", label: t("marketScreen.categories.all") };
-    if (!groups) return [allPill];
+    const healthPill = {
+      id: HEALTH_FILTER_ID,
+      label: t("marketScreen.filterHealthVerified")
+    };
+    if (!groups) return [allPill, healthPill];
     return [
       allPill,
+      healthPill,
       ...groups.pig.map((p) => ({ id: p.id, label: p.label })),
       ...groups.merchant.map((p) => ({ id: p.id, label: p.label }))
     ];
@@ -181,7 +192,15 @@ export function MarketplaceBrowseListings({
     favMut.mutate({ id: item.id, kind, remove: isFav });
   };
 
-  const listingsList = listingsQuery.data ?? [];
+  const listingsList = useMemo(() => {
+    const rows = listingsQuery.data ?? [];
+    if (category !== HEALTH_FILTER_ID) return rows;
+    return rows.filter(
+      (item) =>
+        item.kind !== "merchant" &&
+        healthVerifiedDaysAgo(item.healthVerifiedAt) != null
+    );
+  }, [listingsQuery.data, category]);
   const listingsErr =
     listingsQuery.error instanceof Error
       ? getUserFacingError(listingsQuery.error, t)

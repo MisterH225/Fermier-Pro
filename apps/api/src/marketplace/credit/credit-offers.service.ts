@@ -850,11 +850,30 @@ export class CreditOffersService {
     if (!offer) {
       throw new NotFoundException();
     }
-    const buyerScore =
-      offer.buyerUserId === viewerUserId ||
-      offer.listing.sellerUserId === viewerUserId
+    const isBuyer = offer.buyerUserId === viewerUserId;
+    const isSeller = offer.listing.sellerUserId === viewerUserId;
+    const creditView =
+      isBuyer || isSeller
         ? await this.creditScore.getForUser(offer.buyerUserId)
         : null;
+    // Producteur : buyerMeteo sans late/default. Acheteur : vue complète pour soi.
+    const buyerMeteo =
+      isSeller && creditView
+        ? this.creditScore.toBuyerMeteo(creditView)
+        : null;
+    const buyerCreditScore = creditView
+      ? isSeller
+        ? {
+            score: creditView.score,
+            emoji: creditView.emoji,
+            label: creditView.label,
+            color: creditView.color,
+            blocked: creditView.blocked,
+            creditTransactionsCount: creditView.creditTransactionsCount,
+            creditOnTimeCount: creditView.creditOnTimeCount
+          }
+        : creditView
+      : null;
     // Échéance solde crédit (P-43) : miroir exact du cron dailyCreditReminders
     // (arbitrage à J+2). Uniquement quand un solde reste dû.
     const balanceDeadlinePending =
@@ -887,7 +906,8 @@ export class CreditOffersService {
       balanceConfirmedAt: offer.balanceConfirmedAt?.toISOString() ?? null,
       message: offer.message,
       buyerName: offer.buyer.fullName,
-      buyerCreditScore: buyerScore,
+      buyerMeteo,
+      buyerCreditScore,
       transactionId: offer.transaction?.id ?? null
     };
   }

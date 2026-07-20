@@ -178,17 +178,33 @@ export function VetProfileModal({
         <Text style={styles.err}>{(q.error as Error).message}</Text>
       ) : profile ? (
         <View style={styles.body}>
-          {profile.isVerified ? (
-            <Text style={styles.verified}>{t("health.vetSearch.verified")}</Text>
-          ) : (
-            <Text style={styles.pending}>{t("health.vetSearch.notVerified")}</Text>
-          )}
-          <Text style={styles.meta}>
-            {profile.primarySpecialty}
-            {profile.otherSpecialties?.length
-              ? ` · ${profile.otherSpecialties.join(", ")}`
-              : ""}
-          </Text>
+          <View style={styles.badgeRow}>
+            {profile.isVerified ? (
+              <Text style={styles.verified}>{t("health.vetSearch.verified")}</Text>
+            ) : (
+              <Text style={styles.pending}>{t("health.vetSearch.notVerified")}</Text>
+            )}
+            <Text
+              style={[
+                styles.availability,
+                profile.availability
+                  ? styles.availabilityOn
+                  : styles.availabilityOff
+              ]}
+            >
+              {profile.availability
+                ? t("health.vetSearch.available")
+                : t("health.vetSearch.unavailable")}
+            </Text>
+          </View>
+          <Text style={styles.meta}>{profile.primarySpecialty}</Text>
+          {profile.otherSpecialties?.length ? (
+            <Text style={styles.meta}>
+              {t("health.vetSearch.otherSpecialties", {
+                list: profile.otherSpecialties.join(", ")
+              })}
+            </Text>
+          ) : null}
           <Text style={styles.meta}>
             {profile.schoolName} ({profile.schoolCountry}) · {profile.graduationYear}
           </Text>
@@ -196,26 +212,23 @@ export function VetProfileModal({
           {profile.interventionRadiusKm != null ? (
             <Text style={styles.meta}>
               {t("health.vetSearch.radiusKm", {
-                km: profile.interventionRadiusKm,
-                defaultValue: `Rayon ${profile.interventionRadiusKm} km`
+                km: profile.interventionRadiusKm
               })}
             </Text>
           ) : null}
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
-          {profile.ratingAvg != null ? (
-            <Text style={styles.meta}>
-              ⭐ {profile.ratingAvg.toFixed(1)} / 5 · ({profile.ratingCount}{" "}
-              {t("health.vetSearch.reviews")})
-            </Text>
-          ) : null}
-          {profile.stats.completedAppointments != null &&
-          profile.stats.completedAppointments > 0 ? (
-            <Text style={styles.meta}>
-              {t("health.vetSearch.completedAppointments", {
-                count: profile.stats.completedAppointments
-              })}
-            </Text>
-          ) : null}
+          <Text style={styles.meta}>
+            {profile.ratingAvg != null
+              ? `⭐ ${profile.ratingAvg.toFixed(1)} / 5 · ${profile.ratingCount} ${t("health.vetSearch.reviews")}`
+              : t("collab.directory.noRatings")}
+          </Text>
+          <Text style={styles.visits}>
+            {t("health.vetSearch.completedAppointments", {
+              count:
+                profile.stats.completedAppointments ??
+                profile.stats.visitsCompleted
+            })}
+          </Text>
           {profile.servicePriceRange ? (
             <Text style={styles.meta}>
               {t("health.vetSearch.priceRange", {
@@ -232,10 +245,6 @@ export function VetProfileModal({
           <Text style={styles.meta}>
             {t("health.vetSearch.statsFarms", {
               count: profile.stats.farmsFollowed
-            })}{" "}
-            ·{" "}
-            {t("health.vetSearch.statsVisits", {
-              count: profile.stats.visitsCompleted
             })}
           </Text>
           {profile.recentReviews.length > 0 ? (
@@ -266,9 +275,23 @@ export function VetProfileModal({
 
 const styles = StyleSheet.create({
   body: { gap: mobileSpacing.sm },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: mobileSpacing.sm
+  },
   verified: { color: "#059669", fontWeight: "700" },
   pending: { color: mobileColors.textSecondary },
+  availability: { fontWeight: "700", fontSize: 13 },
+  availabilityOn: { color: "#059669" },
+  availabilityOff: { color: mobileColors.textSecondary },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
+  visits: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.textPrimary
+  },
   bio: { ...mobileTypography.body, color: mobileColors.textPrimary },
   err: { color: mobileColors.error },
   reviews: { marginTop: mobileSpacing.sm, gap: mobileSpacing.sm },

@@ -481,7 +481,7 @@ export function PropositionsRecuesTab({
                       advancePaidDeclaredAt={row.advancePaidDeclaredAt}
                       advanceConfirmedAt={row.advanceConfirmedAt}
                       balancePaidDeclaredAt={row.balancePaidDeclaredAt}
-                      buyerCreditScore={row.buyerCreditScore}
+                      buyerMeteo={row.buyerMeteo ?? null}
                       listingCategory={row.listing.category}
                       listingWeightKg={row.listing.totalWeightKg}
                       actionsDisabled={busy}
@@ -527,6 +527,7 @@ export function PropositionsRecuesTab({
         visible={Boolean(counterOffer)}
         listing={listingDetailQ.data ?? null}
         offer={counterOffer ? toOfferBrief(counterOffer) : null}
+        buyerMeteo={counterOffer?.buyerMeteo ?? null}
         onClose={() => {
           setCounterOffer(null);
           setActiveListingId(null);
@@ -546,6 +547,7 @@ export function PropositionsRecuesTab({
         visible={Boolean(creditCounterOffer)}
         listing={listingDetailQ.data ?? null}
         mode="counter"
+        buyerMeteo={creditCounterOffer?.buyerMeteo ?? null}
         initialValues={
           creditCounterOffer
             ? {

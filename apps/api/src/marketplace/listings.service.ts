@@ -15,8 +15,14 @@ import {
   MarketplaceTransactionStatus,
   OfferStatus,
   Prisma,
-  VetAppointmentStatus
+  VetAppointmentStatus,
+  VetVerificationStatus
 } from "@prisma/client";
+import {
+  aggregateHealthVerifiedByFarm,
+  HEALTH_VERIFIED_WINDOW_MS,
+  type HealthVerifiedAppointmentCandidate
+} from "./health-verified.util";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { ensureFarmFinanceBootstrap } from "../finance/finance-bootstrap";
@@ -480,7 +486,8 @@ export class ListingsService {
           }
         }
       });
-      return this.formatListingsForApi(rows);
+      const formatted = await this.formatListingsForApi(rows);
+      return this.attachHealthVerified(formatted);
     }
     const now = new Date();
     const publicStatus =
@@ -605,14 +612,24 @@ export class ListingsService {
   }
 
   /**
-   * Badge « Santé vérifiée » : date de la dernière consultation véto complétée
-   * (VetAppointment) ou, à défaut, dernier enregistrement `vet_visit` —
-   * uniquement si < 30 jours. Sinon `healthVerifiedAt: null`.
+   * Badge « Santé vérifiée » — calcul à la lecture (voir health-verified.util.ts).
+   * Uniquement RDV terminaux (COMPLETED/RATED) par véto `verified`, fenêtre 30 j.
+   * Pas de fallback déclaratif `FarmHealthRecord`.
    */
   private async attachHealthVerified<T extends { farmId?: string | null }>(
     rows: T[]
   ): Promise<
-    Array<T & { healthVerified: boolean; healthVerifiedAt: string | null }>
+    Array<
+      T & {
+        healthVerified: boolean;
+        healthVerifiedAt: string | null;
+        healthVerifiedBy: {
+          vetProfileId: string;
+          vetName: string;
+          completedAt: string;
+        } | null;
+      }
+    >
   > {
     const farmIds = [
       ...new Set(
@@ -625,13 +642,12 @@ export class ListingsService {
       return rows.map((r) => ({
         ...r,
         healthVerified: false,
-        healthVerifiedAt: null
+        healthVerifiedAt: null,
+        healthVerifiedBy: null
       }));
     }
 
-    const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const latestByFarm = new Map<string, Date>();
-
+    const since30 = new Date(Date.now() - HEALTH_VERIFIED_WINDOW_MS);
     const completedAppointments = await this.prisma.vetAppointment.findMany({
       where: {
         farmId: { in: farmIds },
@@ -641,40 +657,47 @@ export class ListingsService {
             VetAppointmentStatus.APPOINTMENT_RATED
           ]
         },
-        completedAt: { gte: since30 }
+        completedAt: { gte: since30 },
+        vetProfile: {
+          verificationStatus: VetVerificationStatus.verified
+        }
       },
-      select: { farmId: true, completedAt: true },
+      select: {
+        farmId: true,
+        completedAt: true,
+        vetProfileId: true,
+        vetProfile: { select: { fullName: true, verificationStatus: true } }
+      },
       orderBy: { completedAt: "desc" }
     });
-    for (const appt of completedAppointments) {
-      if (!appt.completedAt || latestByFarm.has(appt.farmId)) continue;
-      latestByFarm.set(appt.farmId, appt.completedAt);
-    }
 
-    const missingFarmIds = farmIds.filter((id) => !latestByFarm.has(id));
-    if (missingFarmIds.length > 0) {
-      // Fallback : dossier santé (visite enregistrée) si pas de RDV complété.
-      const recentRecords = await this.prisma.farmHealthRecord.findMany({
-        where: {
-          farmId: { in: missingFarmIds },
-          kind: FarmHealthRecordKind.vet_visit,
-          occurredAt: { gte: since30 }
-        },
-        select: { farmId: true, occurredAt: true },
-        orderBy: { occurredAt: "desc" }
-      });
-      for (const rec of recentRecords) {
-        if (latestByFarm.has(rec.farmId)) continue;
-        latestByFarm.set(rec.farmId, rec.occurredAt);
-      }
-    }
+    const candidates: HealthVerifiedAppointmentCandidate[] =
+      completedAppointments
+        .filter((a) => a.completedAt != null)
+        .map((a) => ({
+          farmId: a.farmId,
+          completedAt: a.completedAt as Date,
+          vetProfileId: a.vetProfileId,
+          vetName: a.vetProfile.fullName,
+          vetVerified:
+            a.vetProfile.verificationStatus === VetVerificationStatus.verified
+        }));
+
+    const latestByFarm = aggregateHealthVerifiedByFarm(candidates);
 
     return rows.map((r) => {
-      const at = r.farmId ? latestByFarm.get(r.farmId) ?? null : null;
+      const info = r.farmId ? latestByFarm.get(r.farmId) ?? null : null;
       return {
         ...r,
-        healthVerifiedAt: at ? at.toISOString() : null,
-        healthVerified: at != null
+        healthVerifiedAt: info ? info.completedAt.toISOString() : null,
+        healthVerified: info != null,
+        healthVerifiedBy: info
+          ? {
+              vetProfileId: info.vetProfileId,
+              vetName: info.vetName,
+              completedAt: info.completedAt.toISOString()
+            }
+          : null
       };
     });
   }

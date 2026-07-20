@@ -15,9 +15,9 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
-import type { BuyerCreditScoreDto } from "../../lib/api";
+import type { BuyerMeteoDto } from "../../lib/api";
 import { formatMarketMoney, parseMarketNum } from "./MarketplaceListingCard";
-import { CreditScoreBadge } from "./CreditScoreBadge";
+import { BuyerMeteoBadge } from "./BuyerMeteoBadge";
 import { BalanceTrackingCard } from "./BalanceTrackingCard";
 import { MemberAvatar } from "../collaboration/MemberAvatar";
 import { ListingShareButton } from "./ListingShareButton";
@@ -44,7 +44,7 @@ type ProposalCardBase = {
   advancePaidDeclaredAt?: string | null;
   advanceConfirmedAt?: string | null;
   balancePaidDeclaredAt?: string | null;
-  buyerCreditScore?: BuyerCreditScoreDto | null;
+  buyerMeteo?: BuyerMeteoDto | null;
   transactionStatus?: string | null;
   listingCategory?: string | null;
   listingWeightKg?: string | number | null;
@@ -135,7 +135,7 @@ export function ProposalCard(props: ProposalCardProps) {
     advancePaidDeclaredAt,
     advanceConfirmedAt,
     balancePaidDeclaredAt,
-    buyerCreditScore,
+    buyerMeteo,
     transactionStatus,
     listingCategory,
     listingWeightKg,
@@ -148,6 +148,11 @@ export function ProposalCard(props: ProposalCardProps) {
   } = props;
 
   const isCredit = offerType === "credit";
+  const buyerSuspended =
+    variant === "received" && buyerMeteo?.creditBlocked === true;
+  const acceptDisabled =
+    variant === "received" &&
+    Boolean(actionsDisabled || buyerSuspended || !props.onAccept);
   const advanceNum = parseMarketNum(advanceAmount);
   const balanceNum = parseMarketNum(balanceAmount);
 
@@ -255,10 +260,7 @@ export function ProposalCard(props: ProposalCardProps) {
       ) : null}
 
       {variant === "received" ? (
-        <CreditScoreBadge
-          score={buyerCreditScore}
-          prefix={t("marketScreen.meteoBuyer.label")}
-        />
+        <BuyerMeteoBadge meteo={buyerMeteo} />
       ) : null}
 
       {isCredit &&
@@ -293,12 +295,21 @@ export function ProposalCard(props: ProposalCardProps) {
       !isCredit ? (
         <View style={styles.actions}>
           <Pressable
-            style={[styles.btn, styles.btnPrimary]}
+            style={[
+              styles.btn,
+              styles.btnPrimary,
+              acceptDisabled && styles.btnDisabled
+            ]}
             onPress={props.onAccept}
-            disabled={!props.onAccept}
+            disabled={acceptDisabled}
           >
             <Text style={styles.btnPrimaryTx}>{t("marketScreen.offerAccept")}</Text>
           </Pressable>
+          {buyerSuspended ? (
+            <Text style={styles.suspendedExplain}>
+              {t("marketScreen.meteoBuyer.acceptDisabled")}
+            </Text>
+          ) : null}
           <Pressable
             style={[styles.btn, styles.btnOutline]}
             onPress={props.onCounter}
@@ -333,14 +344,23 @@ export function ProposalCard(props: ProposalCardProps) {
       !actionsDisabled ? (
         <View style={styles.actions}>
           <Pressable
-            style={[styles.btn, styles.btnPrimary]}
+            style={[
+              styles.btn,
+              styles.btnPrimary,
+              acceptDisabled && styles.btnDisabled
+            ]}
             onPress={props.onAccept}
-            disabled={!props.onAccept}
+            disabled={acceptDisabled}
           >
             <Text style={styles.btnPrimaryTx}>
               {t("marketScreen.credit.accept")}
             </Text>
           </Pressable>
+          {buyerSuspended ? (
+            <Text style={styles.suspendedExplain}>
+              {t("marketScreen.meteoBuyer.acceptDisabled")}
+            </Text>
+          ) : null}
           <Pressable
             style={[styles.btn, styles.btnOutline]}
             onPress={props.onCounter}
@@ -665,7 +685,13 @@ const styles = StyleSheet.create({
     minHeight: 44
   },
   btnPrimary: { backgroundColor: mobileColors.accent },
+  btnDisabled: { opacity: 0.45 },
   btnPrimaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
+  suspendedExplain: {
+    ...mobileTypography.meta,
+    color: mobileColors.error,
+    marginTop: -4
+  },
   btnOutline: {
     borderWidth: 1,
     borderColor: mobileColors.accent,

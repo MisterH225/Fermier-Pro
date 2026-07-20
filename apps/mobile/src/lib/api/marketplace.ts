@@ -42,6 +42,12 @@ export type MarketplaceListingListItem = {
   healthVerifiedAt?: string | null;
   /** @deprecated préférer healthVerifiedAt — conservé pour le détail. */
   healthVerified?: boolean;
+  /** Véto ayant réalisé la dernière visite vérifiée (détail / CTA). */
+  healthVerifiedBy?: {
+    vetProfileId: string;
+    vetName: string;
+    completedAt: string;
+  } | null;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;
@@ -286,8 +292,18 @@ export type BuyerCreditScoreDto = {
   blocked: boolean;
   creditTransactionsCount: number;
   creditOnTimeCount: number;
-  creditLateCount: number;
-  creditDefaultCount: number;
+  /** Présents uniquement sur /buyers/me/credit-score — jamais sur buyerMeteo producteur. */
+  creditLateCount?: number;
+  creditDefaultCount?: number;
+};
+
+/** Météo Acheteur exposée aux producteurs (propositions reçues). */
+export type BuyerMeteoDto = {
+  creditScore: string;
+  meteoLevel: string;
+  creditTransactionsCount: number;
+  creditOnTimeCount: number;
+  creditBlocked: boolean;
 };
 
 export type ReliabilityScoreBadgeDto = Pick<
@@ -331,6 +347,7 @@ export type MarketplaceCreditOfferDto = {
   deadlineAt?: string | null;
   timeoutOutcomeKey?: string | null;
   message: string | null;
+  buyerMeteo?: BuyerMeteoDto | null;
   buyerCreditScore: BuyerCreditScoreDto | null;
   transactionId?: string | null;
 };
@@ -552,6 +569,7 @@ export type MarketplaceOfferCreditFields = {
   balancePaidDeclaredAt?: string | null;
   balanceConfirmedAt?: string | null;
   deliveredAt?: string | null;
+  buyerMeteo?: BuyerMeteoDto | null;
   buyerCreditScore?: BuyerCreditScoreDto | null;
 };
 
