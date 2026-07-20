@@ -2665,6 +2665,23 @@ export const en = {
     completionTitle: "Profile submitted for review ⏳",
     completionBody: "Your profile is being reviewed. You will be notified once approved. Limited app access until then.",
     completionCta: "Open the app",
+    vitrineStepLabel: "Your showcase (pending validation)",
+    vitrineTitle: "Your showcase",
+    vitrineLead:
+      "Your showcase will be visible to producers once your account is validated.",
+    bioPlaceholder:
+      "E.g.: Swine vet for 8 years, farm visits and prevention…",
+    otherSpecialties: "Secondary specialties",
+    radiusKm: "{{km}} km",
+    skipVitrine: "Skip",
+    saveVitrine: "Save showcase",
+    finalTitle: "Profile ready ⏳",
+    finalBody:
+      "Complete your showcase to be found faster. Here’s how Fermier Pro works for you.",
+    howtoTitle: "How it works",
+    howtoSearch: "• Producers find you via vet search.",
+    howtoAppointments: "• You receive and manage appointment requests.",
+    howtoIncome: "• Completed visits generate your platform income.",
     rejected: "Profile rejected: {{reason}}. Please fix and submit again.",
     rejectedGeneric: "document not accepted",
     specialty: {

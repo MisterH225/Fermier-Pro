@@ -1,5 +1,3 @@
-import type { VetPublicProfileDto } from "./api";
-
 export type VetProfileFieldKey =
   | "bio"
   | "otherSpecialties"
@@ -7,12 +5,21 @@ export type VetProfileFieldKey =
   | "profilePhotoUrl"
   | "availability";
 
+/** Champs nécessaires à la jauge (Compte + onboarding). */
+export type VetProfileCompletionInput = {
+  bio?: string | null;
+  otherSpecialties?: string[] | null;
+  interventionRadiusKm?: number | null;
+  profilePhotoUrl?: string | null;
+  availability?: boolean | null;
+};
+
 type FieldCheck = {
   key: VetProfileFieldKey;
   filled: boolean;
 };
 
-function fieldChecks(profile: VetPublicProfileDto): FieldCheck[] {
+function fieldChecks(profile: VetProfileCompletionInput): FieldCheck[] {
   return [
     { key: "bio", filled: Boolean(profile.bio?.trim()) },
     {
@@ -36,7 +43,7 @@ function fieldChecks(profile: VetPublicProfileDto): FieldCheck[] {
 
 /** % de complétion du profil public vétérinaire. */
 export function vetProfileCompletionPercent(
-  profile: VetPublicProfileDto | null | undefined
+  profile: VetProfileCompletionInput | null | undefined
 ): number {
   if (!profile) return 0;
   const checks = fieldChecks(profile);
@@ -46,7 +53,7 @@ export function vetProfileCompletionPercent(
 
 /** Premier champ public vide, pour la suggestion sous la jauge. */
 export function vetProfileNextEmptyField(
-  profile: VetPublicProfileDto | null | undefined
+  profile: VetProfileCompletionInput | null | undefined
 ): VetProfileFieldKey | null {
   if (!profile) return "bio";
   return fieldChecks(profile).find((c) => !c.filled)?.key ?? null;

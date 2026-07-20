@@ -2665,6 +2665,23 @@ export const fr = {
     completionTitle: "Profil soumis pour vérification ⏳",
     completionBody: "Votre profil est en cours de vérification. Vous recevrez une notification une fois validé. En attendant, accès limité à l'application.",
     completionCta: "Accéder à l'application",
+    vitrineStepLabel: "Votre vitrine (en attente de validation)",
+    vitrineTitle: "Votre vitrine",
+    vitrineLead:
+      "Votre vitrine sera visible des producteurs dès validation de votre compte.",
+    bioPlaceholder:
+      "Ex. : Vétérinaire porcin depuis 8 ans, interventions élevage et prévention…",
+    otherSpecialties: "Spécialités secondaires",
+    radiusKm: "{{km}} km",
+    skipVitrine: "Passer",
+    saveVitrine: "Enregistrer la vitrine",
+    finalTitle: "Profil prêt ⏳",
+    finalBody:
+      "Complétez votre vitrine pour être trouvé plus vite. Voici comment Fermier Pro fonctionne pour vous.",
+    howtoTitle: "Comment ça marche",
+    howtoSearch: "• Les producteurs vous trouvent via la recherche vétérinaire.",
+    howtoAppointments: "• Vous recevez et gérez les demandes de rendez-vous.",
+    howtoIncome: "• Vos prestations validées génèrent vos revenus sur la plateforme.",
     rejected: "Profil refusé : {{reason}}. Merci de corriger et soumettre à nouveau.",
     rejectedGeneric: "document non conforme",
     specialty: {
