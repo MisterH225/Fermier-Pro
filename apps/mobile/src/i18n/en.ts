@@ -404,6 +404,15 @@ export const en = {
     badgeHealthVerified: "Health verified",
     badgeHealthVerifiedDays: "✓ Health verified · {{days}} d",
     healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
+    healthVerifiedBy: "Verified by {{name}} on {{date}}",
+    healthVerifiedViewVet: "View veterinarian profile",
+    filterHealthVerified: "Health verified",
+    healthVerifyCta: {
+      title: "Get your farm verified",
+      body: "A verified vet visits your farm → Health badge on your listings.",
+      action: "Book an appointment",
+      dismiss: "Dismiss"
+    },
     meteoBuyer: {
       label: "Buyer weather:",
       newBuyer: "New buyer",

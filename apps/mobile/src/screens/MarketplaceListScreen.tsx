@@ -21,7 +21,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { MarketplaceModuleGate } from "../components/MarketplaceModuleGate";
 import { ListingModal } from "../components/marketplace/ListingModal";
 import { MarketplaceBrowseListings } from "../components/marketplace/MarketplaceBrowseListings";
+import { HealthVerifyCtaBanner } from "../components/marketplace/HealthVerifyCtaBanner";
 import {
+  healthVerifiedDaysAgo,
   MarketplaceListingCard,
   MarketplaceListingCardSkeleton
 } from "../components/marketplace/MarketplaceListingCard";
@@ -453,6 +455,18 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     return { views, consults, n: myRows.length };
   }, [myRows]);
 
+  /** Annonce publiée sans certificat santé valide → CTA acquisition véto. */
+  const healthVerifyTarget = useMemo(() => {
+    const row = myRows.find(
+      (r) =>
+        r.status === "published" &&
+        r.farm?.id &&
+        healthVerifiedDaysAgo(r.healthVerifiedAt) == null
+    );
+    if (!row?.farm) return null;
+    return { farmId: row.farm.id, farmName: row.farm.name };
+  }, [myRows]);
+
   const myEventItems = useMemo((): EventItem[] => {
     return myRows.map((item) => {
       const statusLab = listingStatusLabel(item.status);
@@ -665,6 +679,17 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
               <Text style={styles.kpiLab}>{t("marketScreen.kpiConsults")}</Text>
             </View>
           </View>
+          <HealthVerifyCtaBanner
+            userId={authMe?.user.id}
+            visible={Boolean(healthVerifyTarget)}
+            onPressCta={() => {
+              if (!healthVerifyTarget) return;
+              navigation.navigate("VetSearch", {
+                farmId: healthVerifyTarget.farmId,
+                farmName: healthVerifyTarget.farmName
+              });
+            }}
+          />
           <EventList
             layout="embedded"
             data={myEventItems}

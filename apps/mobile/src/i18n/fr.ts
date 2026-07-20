@@ -404,6 +404,15 @@ export const fr = {
     badgeHealthVerified: "Santé vérifiée",
     badgeHealthVerifiedDays: "✓ Santé vérifiée · {{days}} j",
     healthVerifiedHint: "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
+    healthVerifiedBy: "Vérifié par {{name}} le {{date}}",
+    healthVerifiedViewVet: "Voir la fiche du vétérinaire",
+    filterHealthVerified: "Santé vérifiée",
+    healthVerifyCta: {
+      title: "Faites vérifier votre élevage",
+      body: "Un vétérinaire vérifié visite votre ferme → badge Santé sur vos annonces.",
+      action: "Prendre rendez-vous",
+      dismiss: "Fermer"
+    },
     meteoBuyer: {
       label: "Météo Acheteur :",
       newBuyer: "Nouvel acheteur",

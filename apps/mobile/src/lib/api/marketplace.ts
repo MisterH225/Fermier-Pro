@@ -42,6 +42,12 @@ export type MarketplaceListingListItem = {
   healthVerifiedAt?: string | null;
   /** @deprecated préférer healthVerifiedAt — conservé pour le détail. */
   healthVerified?: boolean;
+  /** Véto ayant réalisé la dernière visite vérifiée (détail / CTA). */
+  healthVerifiedBy?: {
+    vetProfileId: string;
+    vetName: string;
+    completedAt: string;
+  } | null;
   farm: { id: string; name: string } | null;
   animal: {
     id: string;

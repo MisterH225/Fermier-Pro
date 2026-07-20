@@ -25,13 +25,16 @@ import {
 } from "../components/marketplace/listingPricing";
 import { CreditProposalModal } from "../components/marketplace/CreditProposalModal";
 import { CreditScoreBadge } from "../components/marketplace/CreditScoreBadge";
+import { HealthVerifyCtaBanner } from "../components/marketplace/HealthVerifyCtaBanner";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
   formatMarketMoney,
+  healthVerifiedDaysAgo,
   parseMarketNum
 } from "../components/marketplace/MarketplaceListingCard";
 import { ListingImage } from "../components/marketplace/ListingImage";
 import { ListingShareButton } from "../components/marketplace/ListingShareButton";
+import { VetProfileModal } from "../components/sante/VetProfileModal";
 import { listingPhotoUrlsArray } from "../lib/resolveListingImage";
 import { useModal } from "../components/modals/useModal";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
@@ -100,7 +103,7 @@ export function MarketplaceListingDetailScreen({
   route,
   navigation
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { listingId } = route.params;
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
@@ -115,6 +118,7 @@ export function MarketplaceListingDetailScreen({
   const [proposalOpen, setProposalOpen] = useState(false);
   const [creditOpen, setCreditOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [vetProfileOpen, setVetProfileOpen] = useState(false);
   const [publishDurationDays, setPublishDurationDays] =
     useState<ListingDurationDays>(14);
 
@@ -544,15 +548,45 @@ export function MarketplaceListingDetailScreen({
           />
         </View>
       ) : null}
-      {L.healthVerified || L.healthVerifiedAt ? (
+      {healthVerifiedDaysAgo(L.healthVerifiedAt) != null ? (
         <View style={styles.healthVerifiedBanner}>
           <Text style={styles.healthVerifiedTx}>
             {t("marketScreen.badgeHealthVerified")}
           </Text>
-          <Text style={styles.healthVerifiedHint}>
-            {t("marketScreen.healthVerifiedHint")}
-          </Text>
+          {L.healthVerifiedBy ? (
+            <Pressable onPress={() => setVetProfileOpen(true)}>
+              <Text style={styles.healthVerifiedBy}>
+                {t("marketScreen.healthVerifiedBy", {
+                  name: L.healthVerifiedBy.vetName,
+                  date: new Date(
+                    L.healthVerifiedBy.completedAt
+                  ).toLocaleDateString(i18n.language === "en" ? "en-GB" : "fr-FR", {
+                    day: "2-digit",
+                    month: "2-digit"
+                  })
+                })}
+              </Text>
+              <Text style={styles.healthVerifiedLink}>
+                {t("marketScreen.healthVerifiedViewVet")}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.healthVerifiedHint}>
+              {t("marketScreen.healthVerifiedHint")}
+            </Text>
+          )}
         </View>
+      ) : isSeller && L.status === "published" && L.farm?.id ? (
+        <HealthVerifyCtaBanner
+          userId={authMe?.user.id}
+          visible
+          onPressCta={() =>
+            navigation.navigate("VetSearch", {
+              farmId: L.farm!.id,
+              farmName: L.farm!.name
+            })
+          }
+        />
       ) : null}
       <HealthSummarySection healthData={L.healthData} />
       <FarmInfoCard
@@ -835,6 +869,31 @@ export function MarketplaceListingDetailScreen({
         }}
       />
     ) : null}
+    {L.healthVerifiedBy && accessToken ? (
+      <VetProfileModal
+        visible={vetProfileOpen}
+        vetId={L.healthVerifiedBy.vetProfileId}
+        farmId={L.farm?.id ?? ""}
+        farmName={L.farm?.name ?? ""}
+        accessToken={accessToken}
+        activeProfileId={activeProfileId}
+        onClose={() => setVetProfileOpen(false)}
+        onPlanVisit={() => {
+          setVetProfileOpen(false);
+          if (L.farm?.id) {
+            navigation.navigate("ProducerScheduleVetVisit", {
+              farmId: L.farm.id,
+              farmName: L.farm.name,
+              vetProfileId: L.healthVerifiedBy!.vetProfileId
+            });
+          }
+        }}
+        onOpenChat={(roomId, headline, peerUserId) => {
+          setVetProfileOpen(false);
+          navigation.navigate("ChatRoom", { roomId, headline, peerUserId });
+        }}
+      />
+    ) : null}
     </>
   );
 }
@@ -966,6 +1025,17 @@ const styles = StyleSheet.create({
   healthVerifiedHint: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary
+  },
+  healthVerifiedBy: {
+    ...mobileTypography.meta,
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
+  },
+  healthVerifiedLink: {
+    ...mobileTypography.meta,
+    color: mobileColors.accent,
+    fontWeight: "700",
+    marginTop: 2
   },
   closedBanner: {
     fontSize: 14,
