@@ -31,7 +31,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "VetSearch">;
 type FilterId = "all" | "porcin" | "available" | "rated" | "near";
 
 export function VetSearchScreen({ route, navigation }: Props) {
-  const { farmId, farmName } = route.params;
+  const { farmId, farmName, bookingSource = "vet_search" } = route.params;
   const { t } = useTranslation();
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe } = useSession();
@@ -134,7 +134,8 @@ export function VetSearchScreen({ route, navigation }: Props) {
             navigation.navigate("ProducerScheduleVetVisit", {
               farmId,
               farmName,
-              vetProfileId: id
+              vetProfileId: id,
+              bookingSource
             });
           }
         }}

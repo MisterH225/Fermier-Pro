@@ -17,6 +17,7 @@
     "producerSubscriptions": "Producer subscriptions",
     "producerScores": "Producer scores",
     "stats": "Statistics",
+    "adoption": "Adoption",
     "ai": "AI assistant",
     "wallet": "Wallet",
     "modules": "Modules",
@@ -519,6 +520,30 @@
         "placeholder": "Detailed activity history — next iteration."
       }
     }
+  },
+  "adoption": {
+    "title": "Adoption metrics",
+    "pageLead": "Real usage of the redesign — 7-day and 30-day aggregates (no personal data).",
+    "generatedAt": "Generated at {date}",
+    "window7": "7 days",
+    "window30": "30 days",
+    "loadError": "Unable to load adoption metrics.",
+    "profileBuckets": "Profile completion gauge",
+    "roleBuyer": "Buyer",
+    "roleVet": "Veterinarian",
+    "bucket": "Bucket",
+    "count": "Events",
+    "listingHealth": "Health badge on listings",
+    "samples": "Daily samples",
+    "latestRatio": "Latest ratio",
+    "avgRatio": "Average ratio",
+    "latestDetail": "Latest aggregate",
+    "offerDecisions": "Offer decisions",
+    "decision": "Decision",
+    "meteoLevel": "Buyer weather level",
+    "vetBooking": "Vet booking source",
+    "source": "Source",
+    "empty": "No events in this period."
   },
   "stats": {
     "title": "Aggregated statistics",

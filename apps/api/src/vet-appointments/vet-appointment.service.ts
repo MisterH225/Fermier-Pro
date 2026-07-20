@@ -17,6 +17,12 @@ import {
   VetAppointmentStatus,
   VetVerificationStatus
 } from "@prisma/client";
+import {
+  APP_EVENT,
+  isVetBookingSource,
+  type VetBookingSource
+} from "../app-events/app-events.constants";
+import { AppEventsService } from "../app-events/app-events.service";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -71,7 +77,8 @@ export class VetAppointmentService {
     private readonly platformSettings: PlatformSettingsService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway,
-    private readonly userWallet: UserWalletService
+    private readonly userWallet: UserWalletService,
+    private readonly appEvents: AppEventsService
   ) {}
 
   private async commissionRate(): Promise<number> {
@@ -165,6 +172,7 @@ export class VetAppointmentService {
       reason: string;
       notes?: string;
       estimatedDurationHours?: number;
+      bookingSource?: VetBookingSource;
     }
   ) {
     await this.farmAccess.requireFarmAccess(producer.id, farmId);
@@ -260,6 +268,15 @@ export class VetAppointmentService {
       resourceId: row.id,
       metadata: { requestedAt: requestedAt.toISOString(), reason: input.reason }
     });
+
+    const source: VetBookingSource = isVetBookingSource(input.bookingSource)
+      ? input.bookingSource
+      : "vet_search";
+    this.appEvents.trackFireAndForget(
+      APP_EVENT.vetBookingSource,
+      { source },
+      { userId: producer.id }
+    );
 
     return this.mapRow(row);
   }

@@ -611,7 +611,8 @@ export function MarketplaceListingDetailScreen({
           onPressCta={() =>
             navigation.navigate("VetSearch", {
               farmId: L.farm!.id,
-              farmName: L.farm!.name
+              farmName: L.farm!.name,
+              bookingSource: "banner_cta"
             })
           }
         />

@@ -45,7 +45,12 @@ const REASONS: VetVisitReason[] = [
 
 export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
   const bottomInset = useBottomInset();
-  const { farmId, farmName, vetProfileId } = route.params;
+  const {
+    farmId,
+    farmName,
+    vetProfileId,
+    bookingSource = "vet_search"
+  } = route.params;
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const qc = useQueryClient();
@@ -116,7 +121,8 @@ export function ProducerScheduleVetVisitScreen({ route, navigation }: Props) {
           vetProfileId,
           scheduledAt: combineDayAndSlot(selectedDay, selectedSlot),
           reason,
-          notes: notes.trim() || undefined
+          notes: notes.trim() || undefined,
+          bookingSource
         }
       );
     },

@@ -119,7 +119,13 @@ export function SanteScreen({ route, navigation }: Props) {
   useScreenTitle(navigation, t("health.screenTitle"), {
     headerRight: () => (
       <TouchableOpacity
-        onPress={() => navigation.navigate("VetSearch", { farmId, farmName })}
+        onPress={() =>
+          navigation.navigate("VetSearch", {
+            farmId,
+            farmName,
+            bookingSource: "farm_dossier"
+          })
+        }
         style={styles.headerBtn}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >

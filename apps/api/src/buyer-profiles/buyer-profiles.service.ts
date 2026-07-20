@@ -12,6 +12,12 @@ import {
   Prisma,
   ProfileType
 } from "@prisma/client";
+import { APP_EVENT } from "../app-events/app-events.constants";
+import { AppEventsService } from "../app-events/app-events.service";
+import {
+  buyerProfileCompletionPercent,
+  profileCompletionBucket
+} from "../app-events/profile-completion-bucket.util";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
 import type { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
@@ -39,7 +45,8 @@ function haversineKm(
 export class BuyerProfilesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly userWallet: UserWalletService
+    private readonly userWallet: UserWalletService,
+    private readonly appEvents: AppEventsService
   ) {}
 
   async ensureRow(userId: string) {
@@ -52,7 +59,7 @@ export class BuyerProfilesService {
 
   async upsertMe(user: User, dto: UpsertBuyerProfileDto) {
     await this.ensureProfileType(user.id, ProfileType.buyer);
-    return this.prisma.buyerProfile.upsert({
+    const row = await this.prisma.buyerProfile.upsert({
       where: { userId: user.id },
       create: {
         userId: user.id,
@@ -118,6 +125,17 @@ export class BuyerProfilesService {
           : {})
       }
     });
+    const percent = buyerProfileCompletionPercent(row);
+    this.appEvents.trackFireAndForget(
+      APP_EVENT.profileCompletionBucket,
+      {
+        role: "buyer",
+        bucket: profileCompletionBucket(percent),
+        percent
+      },
+      { userId: user.id }
+    );
+    return row;
   }
 
   async dashboard(user: User) {

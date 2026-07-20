@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { OfferStatus } from "@prisma/client";
+import { ListingHealthBadgeAggregateService } from "../app-events/listing-health-badge.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
 import { ListingsService } from "./listings.service";
@@ -13,7 +14,8 @@ export class MarketplaceCronService {
   constructor(
     private readonly listings: ListingsService,
     private readonly prisma: PrismaService,
-    private readonly push: PushNotificationsService
+    private readonly push: PushNotificationsService,
+    private readonly listingHealthBadge: ListingHealthBadgeAggregateService
   ) {}
 
   /** Expire annonces et propositions sans reponse — chaque jour 4h UTC. */
@@ -29,6 +31,18 @@ export class MarketplaceCronService {
       }
     } catch (e) {
       this.logger.error("marketplace cron failed", e);
+    }
+    try {
+      const health = await this.listingHealthBadge.recordDailyRatio();
+      if (health.created) {
+        this.logger.log(
+          `listing_health_badge: ${health.badged}/${health.total} badged`
+        );
+      }
+    } catch (e) {
+      this.logger.warn(
+        `listing_health_badge aggregate failed: ${(e as Error).message}`
+      );
     }
   }
 

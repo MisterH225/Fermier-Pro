@@ -259,6 +259,7 @@ model User {
   adminMessagesSent     AdminMessage[]       @relation("AdminMessageSender")
   adminMessagesReceived AdminMessage[]       @relation("AdminMessageRecipient")
   userNotifications     UserNotification[]
+  appEvents             AppEvent[]
   feedStatus            FeedUserStatus       @default(active)
   feedSuspensionUntil   DateTime?
   feedViolationCount    Int                  @default(0)
@@ -2676,6 +2677,20 @@ model HealthBadgeExpiryReminder {
 
   @@unique([farmId, windowKey])
   @@index([createdAt])
+}
+
+/// Events produit (adoption / analytics) — pas de PII dans `props`.
+model AppEvent {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  props     Json     @default("{}")
+  /// Idempotence optionnelle (ex. agrégat quotidien `listing_health_badge:YYYY-MM-DD`).
+  dedupeKey String?  @unique
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
 }
 
 /// Comptes autorisés sur la console SuperAdmin (web).

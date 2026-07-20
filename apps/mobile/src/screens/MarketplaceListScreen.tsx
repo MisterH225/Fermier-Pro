@@ -714,7 +714,8 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
               if (!healthVerifyTarget) return;
               navigation.navigate("VetSearch", {
                 farmId: healthVerifyTarget.farmId,
-                farmName: healthVerifyTarget.farmName
+                farmName: healthVerifyTarget.farmName,
+                bookingSource: "banner_cta"
               });
             }}
           />

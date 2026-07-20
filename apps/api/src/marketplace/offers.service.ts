@@ -12,6 +12,8 @@ import {
   OfferType,
   Prisma
 } from "@prisma/client";
+import { APP_EVENT } from "../app-events/app-events.constants";
+import { AppEventsService } from "../app-events/app-events.service";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
@@ -37,8 +39,31 @@ export class OffersService {
     private readonly push: PushNotificationsService,
     private readonly chat: ChatService,
     private readonly transactions: MarketplaceTransactionService,
-    private readonly creditScore: CreditScoreService
+    private readonly creditScore: CreditScoreService,
+    private readonly appEvents: AppEventsService
   ) {}
+
+  private trackOfferDecision(
+    producerUserId: string,
+    decision: "accepted" | "rejected",
+    buyerUserId: string
+  ): void {
+    void (async () => {
+      try {
+        const meteo = await this.creditScore.getBuyerMeteoForUser(buyerUserId);
+        this.appEvents.trackFireAndForget(
+          APP_EVENT.offerDecision,
+          {
+            decision,
+            meteoLevel: meteo.meteoLevel
+          },
+          { userId: producerUserId }
+        );
+      } catch {
+        /* tracking never breaks accept/reject */
+      }
+    })();
+  }
 
   private assertStandardOffer(offer: { offerType: OfferType }) {
     if (offer.offerType === OfferType.credit) {
@@ -394,6 +419,8 @@ export class OffersService {
       }
     );
 
+    this.trackOfferDecision(user.id, "accepted", offer.buyerUserId);
+
     return {
       listing: await this.prisma.marketplaceListing.findUnique({
         where: { id: listingId },
@@ -440,6 +467,7 @@ export class OffersService {
       `Votre offre sur « ${listing.title} » a été refusée.`,
       { type: "marketplace_offer_rejected", listingId, offerId }
     );
+    this.trackOfferDecision(user.id, "rejected", offer.buyerUserId);
     return updated;
   }
 
