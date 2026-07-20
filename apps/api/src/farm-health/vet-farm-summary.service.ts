@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { FarmHealthRecordKind, VetAppointmentStatus } from "@prisma/client";
+import {
+  FarmHealthRecordKind,
+  VetAppointmentStatus,
+  VetConsultationStatus
+} from "@prisma/client";
 import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
@@ -64,12 +68,17 @@ export class VetFarmSummaryService {
         }
       }),
       this.prisma.vetConsultation.findFirst({
-        where: { farmId },
-        orderBy: { openedAt: "desc" },
+        where: {
+          farmId,
+          // Aligné sur lastAppointment : uniquement terminées (pas open/in_progress).
+          status: VetConsultationStatus.resolved
+        },
+        orderBy: [{ closedAt: "desc" }, { openedAt: "desc" }],
         select: {
           id: true,
           subject: true,
           openedAt: true,
+          closedAt: true,
           status: true
         }
       }),
@@ -117,7 +126,9 @@ export class VetFarmSummaryService {
     if (lastConsultation) {
       lastVisitCandidates.push({
         id: lastConsultation.id,
-        at: lastConsultation.openedAt.toISOString(),
+        at: (
+          lastConsultation.closedAt ?? lastConsultation.openedAt
+        ).toISOString(),
         label: lastConsultation.subject,
         source: "consultation"
       });

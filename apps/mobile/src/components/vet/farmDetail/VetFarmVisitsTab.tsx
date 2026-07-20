@@ -48,6 +48,8 @@ export function VetFarmVisitsTab({ farmId, farmName, locale }: Props) {
   });
 
   const farmAppointments = useMemo(() => {
+    // TODO: filtrer par farmId côté serveur (query param sur GET /vet-appointments)
+    // plutôt que de charger toutes les RDV véto puis filtrer ici.
     const rows = (appointmentsQ.data ?? []).filter((a) => a.farmId === farmId);
     return [...rows].sort((a, b) => {
       const ap = PENDING_STATUSES.has(a.status) ? 0 : 1;
