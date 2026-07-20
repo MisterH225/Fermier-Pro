@@ -321,11 +321,18 @@ export function fetchVetAvailability(
   );
 }
 
+export type VetBookingSource =
+  | "banner_cta"
+  | "vet_search"
+  | "farm_dossier"
+  | "renewal_notification";
+
 export type ProducerScheduleVetVisitPayload = {
   vetProfileId: string;
   scheduledAt: string;
   reason: VetVisitReason;
   notes?: string;
+  bookingSource?: VetBookingSource;
 };
 
 export function requestVetAppointment(

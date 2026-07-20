@@ -42,6 +42,12 @@ const VetStatus = {
   verified: "verified" as const,
   rejected: "rejected" as const
 };
+import { APP_EVENT } from "../app-events/app-events.constants";
+import { AppEventsService } from "../app-events/app-events.service";
+import {
+  profileCompletionBucket,
+  vetProfileCompletionPercent
+} from "../app-events/profile-completion-bucket.util";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -89,7 +95,8 @@ export class VetsService {
     private readonly audit: AuditService,
     private readonly push: PushNotificationsService,
     private readonly vetAppointments: VetAppointmentService,
-    private readonly vetCalendar: VetCalendarService
+    private readonly vetCalendar: VetCalendarService,
+    private readonly appEvents: AppEventsService
   ) {}
 
   async assertVeterinarianProfile(userId: string) {
@@ -184,6 +191,16 @@ export class VetsService {
           : {})
       }
     });
+    const percent = vetProfileCompletionPercent(updated);
+    this.appEvents.trackFireAndForget(
+      APP_EVENT.profileCompletionBucket,
+      {
+        role: "vet",
+        bucket: profileCompletionBucket(percent),
+        percent
+      },
+      { userId: user.id }
+    );
     return this.enrichPublicProfile(updated, user.id);
   }
 

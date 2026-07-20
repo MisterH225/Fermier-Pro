@@ -129,11 +129,25 @@ export type RootStackParamList = {
     openVisitId?: string;
     openVaccineName?: string;
   };
-  VetSearch: { farmId: string; farmName: string };
+  VetSearch: {
+    farmId: string;
+    farmName: string;
+    /** Origine analytics prise de RDV. */
+    bookingSource?:
+      | "banner_cta"
+      | "vet_search"
+      | "farm_dossier"
+      | "renewal_notification";
+  };
   ProducerScheduleVetVisit: {
     farmId: string;
     farmName: string;
     vetProfileId: string;
+    bookingSource?:
+      | "banner_cta"
+      | "vet_search"
+      | "farm_dossier"
+      | "renewal_notification";
   };
   VetAppointmentDetail: { appointmentId: string };
   CreateFarm: undefined;

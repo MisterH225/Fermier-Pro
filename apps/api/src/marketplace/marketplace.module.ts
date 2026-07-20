@@ -5,6 +5,7 @@ import { ConfigClientModule } from "../config-client/config-client.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { MarketModule } from "../market/market.module";
 import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
+import { AppEventsModule } from "../app-events/app-events.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
 import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import {
@@ -51,6 +52,7 @@ import { OrdersController, OrdersProjectionService } from "./orders";
     FeatureFlagsModule,
     PushNotificationsModule,
     UserNotificationsModule,
+    AppEventsModule,
     ProducerScoreModule,
     ProducerSubscriptionModule
   ],

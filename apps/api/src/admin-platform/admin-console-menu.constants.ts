@@ -13,6 +13,7 @@ export const ADMIN_CONSOLE_MENU_KEYS = [
   "producerSubscriptions",
   "producerScores",
   "stats",
+  "adoption",
   "wallet",
   "ai",
   "settings"
@@ -35,7 +36,8 @@ export const ADMIN_CONSOLE_ACCESS_RANK: Record<AdminConsoleMenuAccess, number> =
 export const SUPERADMIN_ONLY_PATH_PREFIXES = [
   "/admin/superadmins",
   "/admin/institution-users",
-  "/admin/feature-flags"
+  "/admin/feature-flags",
+  "/admin/metrics"
 ] as const;
 
 type RouteMenuRule = {
@@ -70,6 +72,7 @@ export const ADMIN_ROUTE_MENU_RULES: RouteMenuRule[] = [
   { prefix: "/admin/producer-subscription-invoices", menu: "producerSubscriptions" },
   { prefix: "/admin/producer-scores", menu: "producerScores" },
   { prefix: "/admin/stats", menu: "stats" },
+  { prefix: "/admin/metrics", menu: "stats" },
   { prefix: "/admin/wallet", menu: "wallet" },
   { prefix: "/admin/ai", menu: "ai" },
   { prefix: "/admin/settings", menu: "settings" },

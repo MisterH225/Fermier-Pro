@@ -34,7 +34,8 @@ export class VetAppointmentController {
       requestedAt: dto.scheduledAt,
       reason: dto.reason,
       notes: dto.notes,
-      estimatedDurationHours: dto.estimatedDurationHours
+      estimatedDurationHours: dto.estimatedDurationHours,
+      bookingSource: dto.bookingSource
     });
   }
 

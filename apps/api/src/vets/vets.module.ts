@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AppEventsModule } from "../app-events/app-events.module";
 import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
 import { PrismaModule } from "../prisma/prisma.module";
@@ -16,7 +17,8 @@ import { VetsService } from "./vets.service";
     PrismaModule,
     ConfigModule,
     PushNotificationsModule,
-    VetAppointmentsModule
+    VetAppointmentsModule,
+    AppEventsModule
   ],
   controllers: [VetsController, AdminVetsController],
   providers: [VetsService],

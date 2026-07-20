@@ -42,6 +42,7 @@ import { OnboardingModule } from "./onboarding/onboarding.module";
 import { CheptelModule } from "./cheptel/cheptel.module";
 import { CguModule } from "./cgu/cgu.module";
 import { AiModule } from "./ai/ai.module";
+import { AppEventsModule } from "./app-events/app-events.module";
 import { GestationModule } from "./gestation/gestation.module";
 import { VetsModule } from "./vets/vets.module";
 import { VetAppointmentsModule } from "./vet-appointments/vet-appointments.module";
@@ -130,6 +131,7 @@ import { InsightsModule } from "./insights/insights.module";
     OnboardingModule,
     CheptelModule,
     AiModule,
+    AppEventsModule,
     GestationModule,
     VetsModule,
     VetAppointmentsModule,
