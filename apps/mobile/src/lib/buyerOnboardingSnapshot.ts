@@ -1,6 +1,4 @@
-import type { BuyerDashboardDto } from "./api";
-
-type BuyerProfile = NonNullable<BuyerDashboardDto["profile"]>;
+import type { BuyerProfileCompletionInput } from "./buyerProfileCompletion";
 
 /** Construit un profil synthétique pour la jauge (même module que la page Compte). */
 export function buyerProfileFromOnboarding(input: {
@@ -13,11 +11,10 @@ export function buyerProfileFromOnboarding(input: {
   searchRadiusKm: number | null;
   priceRangeMin: number | null;
   priceRangeMax: number | null;
-}): BuyerProfile {
+}): BuyerProfileCompletionInput {
   return {
     buyerType: input.buyerType,
     businessName: null,
-    onboardingComplete: true,
     preferredCategories: input.preferredCategories,
     priceRangeMin:
       input.priceRangeMin != null ? String(input.priceRangeMin) : null,

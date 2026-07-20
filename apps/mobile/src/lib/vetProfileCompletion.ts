@@ -1,3 +1,7 @@
+/**
+ * Source unique de calcul de jauge vétérinaire.
+ * Utilisé par VetAccountScreen ET VetOnboardingScreen — ne pas dupliquer.
+ */
 export type VetProfileFieldKey =
   | "bio"
   | "otherSpecialties"

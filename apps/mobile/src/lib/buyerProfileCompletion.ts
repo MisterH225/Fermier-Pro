@@ -1,5 +1,7 @@
-import type { BuyerDashboardDto } from "./api";
-
+/**
+ * Source unique de calcul de jauge acheteur.
+ * Utilisé par BuyerAccountScreen ET BuyerOnboardingScreen — ne pas dupliquer.
+ */
 export type BuyerProfileFieldKey =
   | "buyerType"
   | "businessName"
@@ -10,14 +12,27 @@ export type BuyerProfileFieldKey =
   | "typicalVolume"
   | "profilePhotoUrl";
 
-type BuyerProfile = BuyerDashboardDto["profile"];
+/** Champs nécessaires à la jauge (Compte + onboarding). */
+export type BuyerProfileCompletionInput = {
+  buyerType?: string | null;
+  businessName?: string | null;
+  locationLabel?: string | null;
+  homeLatitude?: number | null;
+  homeLongitude?: number | null;
+  searchRadiusKm?: number | null;
+  preferredCategories?: string[] | null;
+  priceRangeMin?: string | number | null;
+  priceRangeMax?: string | number | null;
+  typicalVolume?: string | null;
+  profilePhotoUrl?: string | null;
+};
 
 type FieldCheck = {
   key: BuyerProfileFieldKey;
   filled: boolean;
 };
 
-function fieldChecks(profile: NonNullable<BuyerProfile>): FieldCheck[] {
+function fieldChecks(profile: BuyerProfileCompletionInput): FieldCheck[] {
   const needsBusiness =
     profile.buyerType === "professional" ||
     profile.buyerType === "slaughterhouse" ||
@@ -61,7 +76,7 @@ function fieldChecks(profile: NonNullable<BuyerProfile>): FieldCheck[] {
 
 /** Calcule le % de complétion du profil acheteur (champs métier + préférences). */
 export function buyerProfileCompletionPercent(
-  profile: BuyerProfile | null | undefined
+  profile: BuyerProfileCompletionInput | null | undefined
 ): number {
   if (!profile) return 0;
   const checks = fieldChecks(profile);
@@ -71,7 +86,7 @@ export function buyerProfileCompletionPercent(
 
 /** Premier champ vide, pour la ligne de suggestion sous la jauge. */
 export function buyerProfileNextEmptyField(
-  profile: BuyerProfile | null | undefined
+  profile: BuyerProfileCompletionInput | null | undefined
 ): BuyerProfileFieldKey | null {
   if (!profile) return "buyerType";
   const empty = fieldChecks(profile).find((c) => !c.filled);
