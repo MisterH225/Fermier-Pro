@@ -8,6 +8,7 @@ import * as Linking from "expo-linking";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
+import { consumeBuyerMarketLaunch } from "../lib/buyerOnboardingLaunch";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProducerPersistentTabBar } from "./ProducerPersistentTabBar";
 import { VetPersistentTabBar } from "./VetPersistentTabBar";
@@ -735,6 +736,12 @@ function MainNavigationShellInner() {
         ref={rootNavigationRef}
         theme={navTheme}
         linking={linking}
+        onReady={() => {
+          const launch = consumeBuyerMarketLaunch();
+          if (launch) {
+            rootNavigationRef.navigate("BuyerMarket", launch);
+          }
+        }}
       >
         <MainNavigationWithChrome />
       </NavigationContainer>

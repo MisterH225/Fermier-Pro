@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
 import type { RolePalette } from "./rolePalette";
 
@@ -10,6 +11,8 @@ type Props = {
   hint?: string | null;
   ctaLabel?: string;
   onPressCta?: () => void;
+  /** Anime le remplissage (écran récap onboarding). */
+  animated?: boolean;
 };
 
 export function ProfileCompletionGauge({
@@ -18,9 +21,28 @@ export function ProfileCompletionGauge({
   label,
   hint,
   ctaLabel,
-  onPressCta
+  onPressCta,
+  animated = false
 }: Props) {
   const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+  const widthAnim = useRef(new Animated.Value(animated ? 0 : clamped)).current;
+
+  useEffect(() => {
+    if (!animated) {
+      widthAnim.setValue(clamped);
+      return;
+    }
+    Animated.timing(widthAnim, {
+      toValue: clamped,
+      duration: 700,
+      useNativeDriver: false
+    }).start();
+  }, [animated, clamped, widthAnim]);
+
+  const fillWidth = widthAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ["0%", "100%"]
+  });
 
   return (
     <View
@@ -40,11 +62,11 @@ export function ProfileCompletionGauge({
         <Text style={[styles.pct, { color: palette.primary }]}>{clamped}%</Text>
       </View>
       <View style={[styles.track, { backgroundColor: palette.primaryLight }]}>
-        <View
+        <Animated.View
           style={[
             styles.fill,
             {
-              width: `${clamped}%`,
+              width: fillWidth,
               backgroundColor: palette.primary
             }
           ]}

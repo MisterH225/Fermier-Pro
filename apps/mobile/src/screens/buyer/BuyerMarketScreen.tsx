@@ -84,6 +84,9 @@ export function BuyerMarketScreen() {
             buyerTheme
             contentPaddingBottom={bottomInset}
             initialSearch={marketParams?.searchQuery ?? ""}
+            initialCategory={marketParams?.preferredCategory}
+            priceRangeMin={marketParams?.priceRangeMin}
+            priceRangeMax={marketParams?.priceRangeMax}
             searchPlaceholder={t("buyer.market.searchPlaceholder")}
             emptyTitle={t("buyer.market.emptyListings")}
             emptyHint={t("buyer.market.emptyListingsHint")}

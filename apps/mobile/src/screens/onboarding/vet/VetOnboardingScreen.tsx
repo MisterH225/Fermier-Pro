@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -7,27 +7,38 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ProfileCompletionGauge } from "../../../components/common/ProfileCompletionGauge";
+import { vetPalette } from "../../../components/common/rolePalette";
 import { SkipConfirmModal } from "../../../components/onboarding/SkipConfirmModal";
 import { useSession } from "../../../context/SessionContext";
-import { patchAuthProfile, upsertVetProfile } from "../../../lib/api";
+import {
+  patchAuthProfile,
+  patchVetPublicProfile,
+  upsertVetProfile
+} from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
 import { formatAuthError } from "../../../lib/authErrors";
-import { pickNonVetFallbackProfileId } from "../../../lib/vetOnboardingState";
 import { getSupabase } from "../../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../../lib/uploadAvatarToSupabase";
 import { uploadVetDiplomaToSupabase } from "../../../lib/uploadVetDiplomaToSupabase";
+import { pickNonVetFallbackProfileId } from "../../../lib/vetOnboardingState";
+import { vetProfileFromOnboarding } from "../../../lib/vetOnboardingSnapshot";
+import {
+  vetProfileCompletionPercent,
+  vetProfileNextEmptyField
+} from "../../../lib/vetProfileCompletion";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { vetColors, vetRadius } from "../../../theme/vetTheme";
 
 const SPECIALTIES = [
   { key: "porcin", labelKey: "vetOnboarding.specialty.porcin" },
@@ -37,15 +48,22 @@ const SPECIALTIES = [
   { key: "autre", labelKey: "vetOnboarding.specialty.other" }
 ] as const;
 
+const RADIUS_PRESETS = [10, 25, 50, 100] as const;
+
 type Props = {
   onFinished: () => void;
   onCancel: () => void;
 };
 
+/**
+ * Étapes 0–1 : vérification (ordre, diplôme) — inchangées.
+ * Après soumission (pending) : vitrine (bio, spécialités, rayon) puis récap jauge.
+ */
 export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, setActiveProfileId } =
     useSession();
+  /** 0–1 vérification · 2 vitrine · 3 final */
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -57,7 +75,6 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   );
   const [orderNumber, setOrderNumber] = useState("");
   const [primarySpecialty, setPrimarySpecialty] = useState("porcin");
-  const [otherSpecialties, setOtherSpecialties] = useState<string[]>([]);
   const [locationCity, setLocationCity] = useState("");
   const [locationCountry, setLocationCountry] = useState("");
   const [phone, setPhone] = useState(authMe?.user.phone ?? "");
@@ -71,9 +88,10 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   const [diplomaMime, setDiplomaMime] = useState("image/jpeg");
 
   const [bio, setBio] = useState("");
-  const [availability, setAvailability] = useState(true);
-  const [radiusKm, setRadiusKm] = useState("");
+  const [otherSpecialties, setOtherSpecialties] = useState<string[]>([]);
+  const [radiusKm, setRadiusKm] = useState<number | null>(25);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   const pickDiploma = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -118,6 +136,31 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
     graduationYear.trim().length === 4 &&
     Boolean(diplomaUri);
 
+  const snapshot = useMemo(
+    () =>
+      vetProfileFromOnboarding({
+        bio,
+        otherSpecialties,
+        interventionRadiusKm: radiusKm,
+        profilePhotoUrl: profilePhotoUrl ?? (avatarUri ? "pending" : null),
+        availability: true
+      }),
+    [bio, otherSpecialties, radiusKm, profilePhotoUrl, avatarUri]
+  );
+
+  const completion = vetProfileCompletionPercent(snapshot);
+  const nextField = vetProfileNextEmptyField(snapshot);
+  const nextHint = nextField
+    ? t(`vet.account.nextField.${nextField}`)
+    : null;
+
+  const toggleSecondary = (key: string) => {
+    if (key === primarySpecialty) return;
+    setOtherSpecialties((prev) =>
+      prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]
+    );
+  };
+
   const openCancelModal = () => {
     if (busy || cancelBusy) {
       return;
@@ -147,7 +190,8 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
     }
   };
 
-  const onSubmit = async () => {
+  /** Soumission vérification uniquement (sans vitrine). */
+  const onSubmitVerification = async () => {
     if (!accessToken || !diplomaUri) {
       return;
     }
@@ -164,16 +208,6 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
         diplomaUri,
         diplomaMime
       );
-      let profilePhotoUrl: string | undefined;
-      if (avatarUri && authMe.user.supabaseUserId) {
-        profilePhotoUrl = await uploadUserAvatarToSupabase(
-          supabase,
-          authMe.user.supabaseUserId,
-          avatarUri,
-          "image/jpeg",
-          "veterinarian"
-        );
-      }
       const year = Number.parseInt(graduationYear, 10);
       await upsertVetProfile(
         accessToken,
@@ -181,7 +215,7 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
           fullName: fullName.trim(),
           orderNumber: orderNumber.trim(),
           primarySpecialty,
-          otherSpecialties,
+          otherSpecialties: [],
           locationCity: locationCity.trim(),
           locationCountry: locationCountry.trim(),
           professionalPhone: phone.trim(),
@@ -189,22 +223,51 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
           schoolCountry: schoolCountry.trim(),
           graduationYear: year,
           diplomaPhotoUrl: diplomaUrl,
-          profilePhotoUrl,
-          bio: bio.trim() || undefined,
-          availability,
-          interventionRadiusKm: radiusKm.trim()
-            ? Number.parseInt(radiusKm, 10)
-            : undefined
+          availability: true
         },
         activeProfileId
       );
-      if (profilePhotoUrl) {
+      await refreshAuthMe();
+      setStep(2);
+    } catch (e: unknown) {
+      Alert.alert(t("health.errorTitle"), formatApiError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveVitrine = async () => {
+    if (!accessToken) return;
+    setBusy(true);
+    try {
+      const supabase = getSupabase();
+      let photoUrl = profilePhotoUrl ?? undefined;
+      if (avatarUri && authMe?.user.supabaseUserId && supabase) {
+        photoUrl = await uploadUserAvatarToSupabase(
+          supabase,
+          authMe.user.supabaseUserId,
+          avatarUri,
+          "image/jpeg",
+          "veterinarian"
+        );
+        setProfilePhotoUrl(photoUrl);
         await patchAuthProfile(
           accessToken,
-          { avatarUrl: profilePhotoUrl },
+          { avatarUrl: photoUrl },
           activeProfileId
         );
       }
+      await patchVetPublicProfile(
+        accessToken,
+        {
+          bio: bio.trim() || undefined,
+          otherSpecialties,
+          interventionRadiusKm: radiusKm ?? undefined,
+          availability: true,
+          profilePhotoUrl: photoUrl
+        },
+        activeProfileId
+      );
       await refreshAuthMe();
       setStep(3);
     } catch (e: unknown) {
@@ -217,18 +280,33 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   if (step === 3) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.completion}>
-          <Text style={styles.completionEmoji}>⏳</Text>
+        <ScrollView contentContainerStyle={styles.completion}>
           <Text style={styles.completionTitle}>
-            {t("vetOnboarding.completionTitle")}
+            {t("vetOnboarding.finalTitle")}
           </Text>
           <Text style={styles.completionBody}>
+            {t("vetOnboarding.finalBody")}
+          </Text>
+          <ProfileCompletionGauge
+            percent={completion}
+            palette={vetPalette}
+            label={t("vet.account.completionLabel")}
+            hint={nextHint}
+            animated
+          />
+          <Text style={styles.howtoTitle}>
+            {t("vetOnboarding.howtoTitle")}
+          </Text>
+          <Text style={styles.howtoItem}>{t("vetOnboarding.howtoSearch")}</Text>
+          <Text style={styles.howtoItem}>{t("vetOnboarding.howtoAppointments")}</Text>
+          <Text style={styles.howtoItem}>{t("vetOnboarding.howtoIncome")}</Text>
+          <Text style={styles.pendingNote}>
             {t("vetOnboarding.completionBody")}
           </Text>
           <Pressable style={styles.cta} onPress={onFinished}>
             <Text style={styles.ctaTx}>{t("vetOnboarding.completionCta")}</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -253,9 +331,16 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
             })}
           </Text>
         ) : null}
-        <Text style={styles.stepLabel}>
-          {t("vetOnboarding.step", { current: step + 1, total: 3 })}
-        </Text>
+
+        {step <= 1 ? (
+          <Text style={styles.stepLabel}>
+            {t("vetOnboarding.step", { current: step + 1, total: 2 })}
+          </Text>
+        ) : (
+          <Text style={styles.stepLabel}>
+            {t("vetOnboarding.vitrineStepLabel")}
+          </Text>
+        )}
 
         {step === 0 ? (
           <>
@@ -325,7 +410,46 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
 
         {step === 2 ? (
           <>
-            <Text style={styles.section}>{t("vetOnboarding.step3Title")}</Text>
+            <Text style={styles.section}>{t("vetOnboarding.vitrineTitle")}</Text>
+            <Text style={styles.vitrineLead}>
+              {t("vetOnboarding.vitrineLead")}
+            </Text>
+            <Field
+              label={t("vetOnboarding.bio")}
+              value={bio}
+              onChange={setBio}
+              multiline
+              placeholder={t("vetOnboarding.bioPlaceholder")}
+            />
+            <Text style={styles.lab}>{t("vetOnboarding.otherSpecialties")}</Text>
+            <View style={styles.pills}>
+              {SPECIALTIES.filter((s) => s.key !== primarySpecialty).map((s) => (
+                <Pressable
+                  key={s.key}
+                  style={[
+                    styles.pill,
+                    otherSpecialties.includes(s.key) && styles.pillOn
+                  ]}
+                  onPress={() => toggleSecondary(s.key)}
+                >
+                  <Text style={styles.pillTx}>{t(s.labelKey)}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.lab}>{t("vetOnboarding.radius")}</Text>
+            <View style={styles.pills}>
+              {RADIUS_PRESETS.map((km) => (
+                <Pressable
+                  key={km}
+                  style={[styles.pill, radiusKm === km && styles.pillOn]}
+                  onPress={() => setRadiusKm(km)}
+                >
+                  <Text style={styles.pillTx}>
+                    {t("vetOnboarding.radiusKm", { km })}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             <Pressable style={styles.diplomaBtn} onPress={() => void pickAvatar()}>
               <Text style={styles.diplomaBtnTx}>
                 {avatarUri
@@ -333,46 +457,42 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
                   : t("vetOnboarding.photoPick")}
               </Text>
             </Pressable>
-            <Field label={t("vetOnboarding.bio")} value={bio} onChange={setBio} multiline />
-            <View style={styles.switchRow}>
-              <Text style={styles.lab}>{t("vetOnboarding.availability")}</Text>
-              <Switch value={availability} onValueChange={setAvailability} />
-            </View>
-            <Field
-              label={t("vetOnboarding.radius")}
-              value={radiusKm}
-              onChange={setRadiusKm}
-              keyboardType="number-pad"
-            />
           </>
         ) : null}
 
         <View style={styles.nav}>
-          {step > 0 ? (
+          {step > 0 && step < 2 ? (
             <Pressable onPress={() => setStep((s) => s - 1)}>
               <Text style={styles.back}>{t("vetOnboarding.back")}</Text>
             </Pressable>
-          ) : (
+          ) : step === 0 ? (
             <Pressable onPress={openCancelModal} disabled={busy || cancelBusy}>
               <Text style={styles.back}>{t("vetOnboarding.cancelLink")}</Text>
             </Pressable>
-          )}
-          {step < 2 ? (
+          ) : (
             <Pressable
-              style={[
-                styles.cta,
-                (step === 0 ? !step1Valid : !step2Valid) && styles.ctaDisabled
-              ]}
-              disabled={step === 0 ? !step1Valid : !step2Valid}
-              onPress={() => setStep((s) => s + 1)}
+              onPress={() => setStep(3)}
+              disabled={busy}
+            >
+              <Text style={styles.back}>{t("vetOnboarding.skipVitrine")}</Text>
+            </Pressable>
+          )}
+
+          {step === 0 ? (
+            <Pressable
+              style={[styles.cta, !step1Valid && styles.ctaDisabled]}
+              disabled={!step1Valid}
+              onPress={() => setStep(1)}
             >
               <Text style={styles.ctaTx}>{t("vetOnboarding.next")}</Text>
             </Pressable>
-          ) : (
+          ) : null}
+
+          {step === 1 ? (
             <Pressable
-              style={[styles.cta, busy && styles.ctaDisabled]}
-              disabled={busy}
-              onPress={() => void onSubmit()}
+              style={[styles.cta, (!step2Valid || busy) && styles.ctaDisabled]}
+              disabled={!step2Valid || busy}
+              onPress={() => void onSubmitVerification()}
             >
               {busy ? (
                 <ActivityIndicator color={mobileColors.onAccent} />
@@ -380,7 +500,21 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
                 <Text style={styles.ctaTx}>{t("vetOnboarding.submit")}</Text>
               )}
             </Pressable>
-          )}
+          ) : null}
+
+          {step === 2 ? (
+            <Pressable
+              style={[styles.cta, busy && styles.ctaDisabled]}
+              disabled={busy}
+              onPress={() => void saveVitrine()}
+            >
+              {busy ? (
+                <ActivityIndicator color={mobileColors.onAccent} />
+              ) : (
+                <Text style={styles.ctaTx}>{t("vetOnboarding.saveVitrine")}</Text>
+              )}
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
       <SkipConfirmModal
@@ -402,13 +536,15 @@ function Field({
   value,
   onChange,
   multiline,
-  keyboardType
+  keyboardType,
+  placeholder
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
   keyboardType?: "default" | "phone-pad" | "number-pad";
+  placeholder?: string;
 }) {
   return (
     <>
@@ -419,13 +555,15 @@ function Field({
         onChangeText={onChange}
         multiline={multiline}
         keyboardType={keyboardType}
+        placeholder={placeholder}
+        placeholderTextColor={vetColors.textMuted}
       />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: mobileColors.background },
+  safe: { flex: 1, backgroundColor: vetColors.canvas },
   cancelTop: {
     alignSelf: "flex-start",
     paddingHorizontal: mobileSpacing.lg,
@@ -434,77 +572,79 @@ const styles = StyleSheet.create({
   },
   cancelTopText: {
     ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
+    color: vetColors.textSecondary,
     fontWeight: "600"
   },
   scroll: { padding: mobileSpacing.lg, paddingBottom: 48 },
   head: {
     ...mobileTypography.sectionTitle,
-    color: mobileColors.textPrimary,
+    color: vetColors.textPrimary,
     marginBottom: mobileSpacing.sm
   },
   stepLabel: {
     ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
+    color: vetColors.textSecondary,
     marginBottom: mobileSpacing.lg
   },
   rejected: {
-    color: mobileColors.error,
+    color: vetColors.danger,
     marginBottom: mobileSpacing.md,
     ...mobileTypography.body
   },
   section: {
     ...mobileTypography.cardTitle,
-    color: mobileColors.textPrimary,
+    color: vetColors.textPrimary,
     marginBottom: mobileSpacing.md
+  },
+  vitrineLead: {
+    ...mobileTypography.body,
+    color: vetColors.textSecondary,
+    marginBottom: mobileSpacing.md,
+    lineHeight: 22
   },
   lab: {
     ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
+    color: vetColors.textSecondary,
     marginTop: mobileSpacing.sm,
     marginBottom: 4
   },
   input: {
     borderWidth: 1,
-    borderColor: mobileColors.border,
+    borderColor: vetColors.border,
     borderRadius: mobileRadius.sm,
     padding: mobileSpacing.sm,
-    color: mobileColors.textPrimary
+    color: vetColors.textPrimary,
+    backgroundColor: vetColors.cardBg
   },
   inputMulti: { minHeight: 88, textAlignVertical: "top" },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.xs },
   pill: {
     paddingHorizontal: mobileSpacing.sm,
     paddingVertical: 6,
-    borderRadius: mobileRadius.pill,
+    borderRadius: vetRadius.pill,
     borderWidth: 1,
-    borderColor: mobileColors.border
+    borderColor: vetColors.border,
+    backgroundColor: vetColors.cardBg
   },
   pillOn: {
-    borderColor: mobileColors.accent,
-    backgroundColor: `${mobileColors.accent}14`
+    borderColor: vetColors.primary,
+    backgroundColor: vetColors.primaryLight
   },
-  pillTx: { fontSize: 13, color: mobileColors.textPrimary },
+  pillTx: { fontSize: 13, color: vetColors.textPrimary },
   diplomaBtn: {
     marginTop: mobileSpacing.md,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: mobileColors.accent,
+    borderColor: vetColors.primary,
     borderStyle: "dashed",
     alignItems: "center"
   },
-  diplomaBtnTx: { color: mobileColors.accent, fontWeight: "700" },
+  diplomaBtnTx: { color: vetColors.primary, fontWeight: "700" },
   hint: {
     ...mobileTypography.meta,
-    color: mobileColors.textSecondary,
+    color: vetColors.textSecondary,
     marginTop: mobileSpacing.xs
-  },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: mobileSpacing.md
   },
   nav: {
     flexDirection: "row",
@@ -512,32 +652,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: mobileSpacing.xl
   },
-  back: { color: mobileColors.textSecondary, fontWeight: "600" },
+  back: { color: vetColors.textSecondary, fontWeight: "600" },
   cta: {
-    backgroundColor: mobileColors.accent,
+    backgroundColor: vetColors.primary,
     paddingHorizontal: mobileSpacing.lg,
     paddingVertical: mobileSpacing.md,
-    borderRadius: mobileRadius.pill
+    borderRadius: vetRadius.pill
   },
   ctaDisabled: { opacity: 0.45 },
-  ctaTx: { color: mobileColors.onAccent, fontWeight: "700" },
+  ctaTx: { color: vetColors.onPrimary, fontWeight: "700" },
   completion: {
-    flex: 1,
-    justifyContent: "center",
     padding: mobileSpacing.xl,
-    alignItems: "center"
+    gap: mobileSpacing.md,
+    paddingBottom: 48
   },
-  completionEmoji: { fontSize: 48, marginBottom: mobileSpacing.md },
   completionTitle: {
     ...mobileTypography.sectionTitle,
     textAlign: "center",
-    color: mobileColors.textPrimary
+    color: vetColors.textPrimary
   },
   completionBody: {
     ...mobileTypography.body,
     textAlign: "center",
-    color: mobileColors.textSecondary,
-    marginTop: mobileSpacing.md,
-    marginBottom: mobileSpacing.xl
+    color: vetColors.textSecondary
+  },
+  howtoTitle: {
+    ...mobileTypography.cardTitle,
+    color: vetColors.textPrimary,
+    marginTop: mobileSpacing.md
+  },
+  howtoItem: {
+    ...mobileTypography.body,
+    color: vetColors.textSecondary,
+    lineHeight: 22
+  },
+  pendingNote: {
+    ...mobileTypography.meta,
+    color: vetColors.textMuted,
+    textAlign: "center",
+    marginTop: mobileSpacing.sm
   }
 });

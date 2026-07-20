@@ -48,6 +48,11 @@ type Props = {
   enabled?: boolean;
   contentPaddingBottom?: number;
   initialSearch?: string;
+  /** Catégorie pig pré-sélectionnée (onboarding). */
+  initialCategory?: string;
+  /** Filtre client prix / kg (F CFA) — API listings sans query prix. */
+  priceRangeMin?: number;
+  priceRangeMax?: number;
   /** Thème violet acheteur vs accent producteur. */
   buyerTheme?: boolean;
   searchPlaceholder?: string;
@@ -64,6 +69,9 @@ export function MarketplaceBrowseListings({
   enabled = true,
   contentPaddingBottom = 0,
   initialSearch = "",
+  initialCategory,
+  priceRangeMin,
+  priceRangeMax,
   buyerTheme = false,
   searchPlaceholder,
   emptyTitle,
@@ -77,7 +85,7 @@ export function MarketplaceBrowseListings({
   const qc = useQueryClient();
 
   const [search, setSearch] = useState(initialSearch);
-  const [category, setCategory] = useState("all");
+  const [category, setCategory] = useState(initialCategory?.trim() || "all");
 
   const accent = buyerTheme ? buyerColors.primary : mobileColors.accent;
   const isBuyerProfile =
@@ -193,14 +201,27 @@ export function MarketplaceBrowseListings({
   };
 
   const listingsList = useMemo(() => {
-    const rows = listingsQuery.data ?? [];
-    if (category !== HEALTH_FILTER_ID) return rows;
-    return rows.filter(
-      (item) =>
-        item.kind !== "merchant" &&
-        healthVerifiedDaysAgo(item.healthVerifiedAt) != null
-    );
-  }, [listingsQuery.data, category]);
+    let rows = listingsQuery.data ?? [];
+    if (category === HEALTH_FILTER_ID) {
+      rows = rows.filter(
+        (item) =>
+          item.kind !== "merchant" &&
+          healthVerifiedDaysAgo(item.healthVerifiedAt) != null
+      );
+    }
+    if (priceRangeMin != null || priceRangeMax != null) {
+      rows = rows.filter((item) => {
+        const raw = item.pricePerKg;
+        if (raw == null || raw === "") return true;
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!Number.isFinite(n)) return true;
+        if (priceRangeMin != null && n < priceRangeMin) return false;
+        if (priceRangeMax != null && n > priceRangeMax) return false;
+        return true;
+      });
+    }
+    return rows;
+  }, [listingsQuery.data, category, priceRangeMin, priceRangeMax]);
   const listingsErr =
     listingsQuery.error instanceof Error
       ? getUserFacingError(listingsQuery.error, t)

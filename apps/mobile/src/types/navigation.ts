@@ -41,6 +41,11 @@ export type RootStackParamList = {
         segment?: "listings" | "favorites" | "alerts";
         favoritesOnly?: boolean;
         searchQuery?: string;
+        /** Préférences onboarding → filtres browse. */
+        priceRangeMin?: number;
+        priceRangeMax?: number;
+        searchRadiusKm?: number;
+        preferredCategory?: string;
         tab?: "listings" | "prices" | "offers" | "partners";
         offersSubTab?: "sent" | "received";
       }
