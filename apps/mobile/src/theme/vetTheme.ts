@@ -21,6 +21,7 @@ export const vetColors = {
   warning: "#F59E0B",
   danger: "#EF4444",
   border: "rgba(43, 127, 255, 0.08)",
+  modalScrim: "rgba(26, 29, 35, 0.4)",
   /** Créneaux agenda */
   slotAvailable: "#E8F1FF",
   slotOccupied: "#6B7280",

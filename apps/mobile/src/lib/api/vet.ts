@@ -37,8 +37,13 @@ export type VetPublicProfileDto = {
   interventionRadiusKm: number | null;
   verificationStatus: VetVerificationStatus;
   isVerified: boolean;
+  /** ISO date si vérifié, sinon null. */
+  verifiedAt?: string | null;
+  locationCity?: string;
+  locationCountry?: string;
   ratingAvg: number | null;
   ratingCount: number;
+  cancelledAppointmentsAsVet?: number;
   stats: {
     farmsFollowed: number;
     visitsCompleted: number;

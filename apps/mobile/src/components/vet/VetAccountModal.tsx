@@ -1,3 +1,7 @@
+/**
+ * @deprecated Remplacé par l'écran plein `VetAccountScreen` (route `VetAccount`).
+ * Conservé uniquement pour compatibilité éventuelle — ne plus brancher de navigation ici.
+ */
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
