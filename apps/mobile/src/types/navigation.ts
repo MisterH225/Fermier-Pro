@@ -76,10 +76,6 @@ export type RootStackParamList = {
     initialTab?: "health" | "livestock" | "visits" | "prescriptions";
   };
   VetMessages: undefined;
-  /** @deprecated contenu dans dossier élevage — deep link conservé. */
-  VetTasks: undefined;
-  /** @deprecated contenu dans dossier élevage — deep link conservé. */
-  VetReports: undefined;
   TechnicianDashboard: undefined;
   TechTasks: undefined;
   TechFarm: undefined;

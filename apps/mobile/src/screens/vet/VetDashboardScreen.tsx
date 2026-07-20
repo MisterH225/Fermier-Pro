@@ -373,6 +373,13 @@ export function VetDashboardScreen() {
                   activeProfileId={activeProfileId}
                   embedded
                   period={taskFilter}
+                  onViewAll={() =>
+                    navigation.navigate("VetFarmDetail", {
+                      farmId: selectedFarm.id,
+                      farmName: selectedFarm.name,
+                      initialTab: "health"
+                    })
+                  }
                 />
               </>
             ) : null}
