@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  GoneException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -9,10 +8,14 @@ import { Prisma, ProfileType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateProfileDto } from "./dto/create-profile.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { ProfileDeactivationService } from "./profile-deactivation.service";
 
 @Injectable()
 export class ProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deactivation: ProfileDeactivationService
+  ) {}
 
   async create(user: User, dto: CreateProfileDto): Promise<Profile> {
     try {
@@ -116,25 +119,11 @@ export class ProfilesService {
   }
 
   /**
-   * Ancien DELETE destructif — neutralisé.
-   * Ne fait plus jamais de hard delete (données orphelines VetProfile, historique).
-   * Utiliser POST /profiles/:id/deactivate (désactivation).
-   * @deprecated Prefer ProfilesService.deactivate
+   * Ancien DELETE — délègue à la désactivation (jamais de hard delete).
+   * @deprecated Prefer POST /profiles/:id/deactivate
    */
-  async remove(user: User, profileId: string): Promise<never> {
-    const profile = await this.prisma.profile.findFirst({
-      where: { id: profileId, userId: user.id },
-      select: { id: true }
-    });
-    if (!profile) {
-      throw new NotFoundException("Profil introuvable");
-    }
-    throw new GoneException({
-      code: "PROFILE_DELETE_GONE",
-      message:
-        "La suppression de profil n'est plus disponible. Utilisez la désactivation (POST /profiles/:id/deactivate).",
-      deactivatePath: `/profiles/${profileId}/deactivate`
-    });
+  remove(user: User, profileId: string, reason?: string | null) {
+    return this.deactivation.deactivate(user, profileId, { reason });
   }
 
   /**

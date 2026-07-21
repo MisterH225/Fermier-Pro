@@ -368,6 +368,9 @@ model Profile {
   profileStatus ProfileModerationStatus @default(active)
   profileSuspendedReason String?
   profileSuspendedAt     DateTime?
+  /// Désactivation volontaire (≠ sanction moderation).
+  deactivatedAt          DateTime?
+  deactivatedReason      String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2594,6 +2597,8 @@ enum ProfileModerationStatus {
   active
   suspended
   banned
+  /// Désactivation volontaire par l'utilisateur (réversible, hors sanction).
+  deactivated
 }
 
 enum AdminAuditTargetType {
