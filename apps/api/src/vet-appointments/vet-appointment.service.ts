@@ -35,7 +35,10 @@ import {
 } from "../marketplace/escrow/mobile-money.gateway";
 import { UserWalletService } from "../wallet/user-wallet.service";
 import { VetCalendarService } from "./vet-calendar.service";
-import { assertTransition } from "./vet-appointment-state-machine";
+import {
+  assertTransition,
+  CANCELLABLE_BEFORE_IN_PROGRESS
+} from "./vet-appointment-state-machine";
 
 /** Délai de paiement après acceptation producteur (ou acceptation véto sur demande). */
 const PAYMENT_DEADLINE_HOURS = 48;
@@ -47,11 +50,6 @@ const RATING_TAGS = [
   "Bon diagnostic",
   "Prix raisonnable"
 ] as const;
-
-const ACTIVE_CALENDAR_STATUSES: VetAppointmentStatus[] = [
-  VetAppointmentStatus.APPOINTMENT_CONFIRMED,
-  VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
-];
 
 const VET_APPOINTMENT_INCLUDE = {
   farm: { select: { id: true, name: true, address: true } },
@@ -87,14 +85,6 @@ export class VetAppointmentService {
 
   private async commissionRate(): Promise<number> {
     return this.platformSettings.getVetCommissionRate();
-  }
-
-  private cancellationPartialRate(): number {
-    const raw =
-      this.config.get<string>("VET_APPOINTMENT_CANCELLATION_PARTIAL_RATE") ??
-      "0.5";
-    const n = Number.parseFloat(raw);
-    return Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0.5;
   }
 
   private formatWhen(d: Date): string {
@@ -1269,33 +1259,43 @@ export class VetAppointmentService {
     return this.getById(producer, appointmentId);
   }
 
+  /** Fonds réellement bloqués après paiement confirmé (pas une simple proposition tarifée). */
+  private hasConfirmedPayment(row: {
+    paymentConfirmedAt: Date | null;
+    blockedAmount: Prisma.Decimal | null;
+  }): boolean {
+    return (
+      row.paymentConfirmedAt != null &&
+      Number(row.blockedAmount ?? 0) > 0
+    );
+  }
+
   async cancelByProducer(producer: User, appointmentId: string, reason?: string) {
-    const row = await this.requireProducerAppointment(producer.id, appointmentId, [
-      VetAppointmentStatus.APPOINTMENT_REQUESTED,
-      VetAppointmentStatus.AWAITING_PAYMENT,
-      VetAppointmentStatus.APPOINTMENT_CONFIRMED,
-      VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
-    ]);
+    const row = await this.requireProducerAppointment(
+      producer.id,
+      appointmentId,
+      [...CANCELLABLE_BEFORE_IN_PROGRESS]
+    );
 
-    const wasPaid = ACTIVE_CALENDAR_STATUSES.includes(row.status);
+    assertTransition(row.status, "CANCEL_BY_PRODUCER");
+
+    const wasPaid = this.hasConfirmedPayment(row);
+    if (wasPaid && !reason?.trim()) {
+      throw new BadRequestException(
+        "Un motif d'annulation est obligatoire après paiement"
+      );
+    }
+
     let refundAmount = 0;
-
-    if (wasPaid && row.blockedAmount) {
-      const apptTime = (row.confirmedAt ?? row.requestedAt).getTime();
-      const hoursUntil = (apptTime - Date.now()) / (60 * 60 * 1000);
-      const full = Number(row.blockedAmount);
-      refundAmount =
-        hoursUntil >= 24
-          ? full
-          : Math.round(full * this.cancellationPartialRate() * 100) / 100;
-
+    if (wasPaid) {
+      refundAmount = Number(row.blockedAmount);
       if (refundAmount > 0) {
         await this.refundProducerToWallet(
           appointmentId,
           producer.id,
           refundAmount,
           row.currency,
-          "Annulation producteur",
+          "Annulation producteur — remboursement intégral",
           "cancel-producer"
         );
       }
@@ -1318,8 +1318,10 @@ export class VetAppointmentService {
     await this.push.sendToUser(
       row.vetUserId,
       "RDV annulé",
-      `${producer.fullName?.trim() || "Le producteur"} a annulé sa demande.${
-        refundAmount > 0 ? ` Remboursement: ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.` : ""
+      `${producer.fullName?.trim() || "Le producteur"} a annulé.${
+        refundAmount > 0
+          ? ` Remboursement intégral: ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
+          : ""
       }`,
       { type: "vet_appointment_cancelled_producer", appointmentId }
     );
@@ -1328,25 +1330,40 @@ export class VetAppointmentService {
   }
 
   async cancelByVet(vet: User, appointmentId: string, reason?: string) {
-    const row = await this.requireVetAppointment(vet.id, appointmentId, [
-      VetAppointmentStatus.APPOINTMENT_CONFIRMED,
-      VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
-    ]);
+    const row = await this.requireVetAppointment(
+      vet.id,
+      appointmentId,
+      [...CANCELLABLE_BEFORE_IN_PROGRESS]
+    );
 
-    const refundAmount = Number(row.blockedAmount ?? row.servicePrice ?? 0);
-    if (refundAmount > 0) {
-      await this.refundProducerToWallet(
-        appointmentId,
-        row.producerUserId,
-        refundAmount,
-        row.currency,
-        "Annulation vétérinaire — remboursement intégral",
-        "cancel-vet"
+    assertTransition(row.status, "CANCEL_BY_VET");
+
+    const wasPaid = this.hasConfirmedPayment(row);
+    if (wasPaid && !reason?.trim()) {
+      throw new BadRequestException(
+        "Un motif d'annulation est obligatoire après paiement"
       );
     }
 
+    let refundAmount = 0;
+    if (wasPaid) {
+      refundAmount = Number(row.blockedAmount ?? row.servicePrice ?? 0);
+      if (refundAmount > 0) {
+        await this.refundProducerToWallet(
+          appointmentId,
+          row.producerUserId,
+          refundAmount,
+          row.currency,
+          "Annulation vétérinaire — remboursement intégral",
+          "cancel-vet"
+        );
+      }
+    }
+
     await this.prisma.$transaction(async (tx) => {
-      await this.calendar.unblockSlot(tx, appointmentId);
+      if (row.calendarBlocked) {
+        await this.calendar.unblockSlot(tx, appointmentId);
+      }
       await tx.vetAppointment.update({
         where: { id: appointmentId },
         data: {
@@ -1361,17 +1378,23 @@ export class VetAppointmentService {
           cancelledAppointmentsAsVet: { increment: 1 }
         }
       });
-      await tx.user.update({
-        where: { id: vet.id },
-        data: { reputationScore: { decrement: 2 } }
-      });
+      if (wasPaid) {
+        await tx.user.update({
+          where: { id: vet.id },
+          data: { reputationScore: { decrement: 2 } }
+        });
+      }
     });
 
     const vetName = row.vetProfile?.fullName ?? "Le vétérinaire";
+    const refundMsg =
+      refundAmount > 0
+        ? ` Remboursement intégral de ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
+        : "";
     await this.push.sendToUser(
       row.producerUserId,
       "RDV annulé",
-      `Dr ${vetName} a annulé votre RDV. Remboursement intégral de ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA sous 24h.`,
+      `Dr ${vetName} a annulé votre RDV.${refundMsg}`,
       { type: "vet_appointment_cancelled_vet", appointmentId }
     );
 
