@@ -120,7 +120,12 @@ export function VetFarmDetailScreen() {
         ) : null}
 
         {tab === "livestock" ? (
-          <VetFarmLivestockTab farmId={farmId} summary={summaryQ.data} />
+          <VetFarmLivestockTab
+            farmId={farmId}
+            farmName={farmName}
+            summary={summaryQ.data}
+            summaryLoading={summaryQ.isLoading}
+          />
         ) : null}
 
         {tab === "visits" ? (
