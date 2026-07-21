@@ -17,6 +17,9 @@ export const en = {
   },
   common: {
     error: "Error",
+    accessDeniedTitle: "Access denied",
+    successTitle: "Success",
+    infoTitle: "Information",
     cancel: "Cancel",
     save: "Save",
     delete: "Delete",
@@ -3587,7 +3590,8 @@ export const en = {
       stock: "Critical stock"
     },
     tasks: {
-      noFarm: "No farm assigned yet."
+      noFarm: "No farm assigned yet.",
+      viewFarmTasks: "View farm tasks"
     },
     farm: {
       tabs: {

@@ -291,13 +291,13 @@ export function SanteScreen({ route, navigation }: Props) {
       setFormOpen(false);
       invalidateHealth();
       if (isOfflineQueuedResult(data)) {
-        Alert.alert("", offlineQueuedMessage(t));
+        Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
       }
     },
     onQueued: () => {
       setFormOpen(false);
       invalidateHealth();
-      Alert.alert("", offlineQueuedMessage(t));
+      Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
     },
     onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });
@@ -325,7 +325,7 @@ export function SanteScreen({ route, navigation }: Props) {
       setLinkOpen(false);
       setLinkRecordId(null);
       void eventsQuery.refetch();
-      Alert.alert("", t("health.linkOk"));
+      Alert.alert(t("common.successTitle"), t("health.linkOk"));
     },
     onError: (e: Error) => Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))
   });

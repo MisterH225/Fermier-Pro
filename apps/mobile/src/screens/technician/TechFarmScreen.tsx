@@ -56,7 +56,7 @@ export function TechFarmScreen() {
       return;
     }
     if (!canView) {
-      Alert.alert("", t("tech.permissionDenied"));
+      Alert.alert(t("common.accessDeniedTitle"), t("tech.permissionDenied"));
       return;
     }
     const params = { farmId: farm.farmId, farmName: farm.farmName };

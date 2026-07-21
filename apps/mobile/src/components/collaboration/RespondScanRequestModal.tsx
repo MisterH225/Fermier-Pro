@@ -82,7 +82,7 @@ export function RespondScanRequestModal({
       });
       onClose();
     },
-    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const rejectMut = useMutation({
@@ -101,7 +101,7 @@ export function RespondScanRequestModal({
       });
       onClose();
     },
-    onError: (e: Error) => Alert.alert("", getUserFacingError(e, t))
+    onError: (e: Error) => Alert.alert(t("common.error"), getUserFacingError(e, t))
   });
 
   const requesterLabel = invitation?.scannedBy?.fullName?.trim()

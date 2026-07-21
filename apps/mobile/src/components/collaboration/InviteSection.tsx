@@ -33,7 +33,7 @@ export function InviteSection({ farmId, farmName, canManageInvites }: Props) {
       });
     },
     onError: (e: Error) => {
-      Alert.alert("", e.message);
+      Alert.alert(t("common.error"), e.message);
     }
   });
 

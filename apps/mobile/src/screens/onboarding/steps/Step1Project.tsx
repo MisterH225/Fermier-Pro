@@ -17,7 +17,7 @@ export function Step1Project({ ob }: Props) {
   const useGps = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("", t("producer.gpsDenied"));
+      Alert.alert(t("common.accessDeniedTitle"), t("producer.gpsDenied"));
       return;
     }
     const pos = await Location.getCurrentPositionAsync({

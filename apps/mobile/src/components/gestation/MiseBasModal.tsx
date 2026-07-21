@@ -202,7 +202,7 @@ export function MiseBasModal({
       onSaved();
       onClose();
       if (isOfflineQueuedResult(data)) {
-        Alert.alert("", offlineQueuedMessage(t));
+        Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
         return;
       }
       const n =
@@ -232,7 +232,7 @@ export function MiseBasModal({
     onQueued: () => {
       onSaved();
       onClose();
-      Alert.alert("", offlineQueuedMessage(t));
+      Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
     },
     onError: (e: Error) =>
       Alert.alert(t("gestationScreen.error"), getUserFacingError(e, t))

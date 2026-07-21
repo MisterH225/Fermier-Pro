@@ -174,7 +174,7 @@ export function ProducerProfileModal({
   const fillGps = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("", t("producer.gpsDenied"));
+      Alert.alert(t("common.accessDeniedTitle"), t("producer.gpsDenied"));
       return;
     }
     const pos = await Location.getCurrentPositionAsync({
@@ -188,7 +188,7 @@ export function ProducerProfileModal({
     setLocLabel((prev) =>
       prev.trim() ? prev : `${lat.toFixed(5)}, ${lng.toFixed(5)}`
     );
-    Alert.alert("", t("producer.gpsSuccess"));
+    Alert.alert(t("common.successTitle"), t("producer.gpsSuccess"));
   };
 
   const onSave = async () => {
@@ -207,7 +207,7 @@ export function ProducerProfileModal({
       if (pendingAvatarUri) {
         const supabase = getSupabase();
         if (!supabase || !authMe?.user.supabaseUserId) {
-          Alert.alert("", t("producer.photoUploadError"));
+          Alert.alert(t("common.error"), t("producer.photoUploadError"));
           setSaving(false);
           return;
         }

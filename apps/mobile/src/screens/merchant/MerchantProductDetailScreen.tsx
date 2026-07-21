@@ -222,7 +222,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
         if (init.paymentUrl) {
           await openPaymentCheckout(init.paymentUrl);
         } else {
-          Alert.alert("", t("merchant.purchase.paymentLinkMissing"));
+          Alert.alert(t("common.error"), t("merchant.purchase.paymentLinkMissing"));
         }
         return;
       }
@@ -243,7 +243,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
 
   const openPaymentLink = async () => {
     if (!pendingPayment?.paymentUrl) {
-      Alert.alert("", t("merchant.purchase.paymentLinkMissing"));
+      Alert.alert(t("common.error"), t("merchant.purchase.paymentLinkMissing"));
       return;
     }
     await openPaymentCheckout(pendingPayment.paymentUrl);

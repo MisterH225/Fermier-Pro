@@ -17,6 +17,9 @@ export const fr = {
   },
   common: {
     error: "Erreur",
+    accessDeniedTitle: "Accès refusé",
+    successTitle: "Succès",
+    infoTitle: "Information",
     cancel: "Annuler",
     save: "Enregistrer",
     delete: "Supprimer",
@@ -3593,7 +3596,8 @@ export const fr = {
       stock: "Stock critique"
     },
     tasks: {
-      noFarm: "Aucune ferme assignée pour le moment."
+      noFarm: "Aucune ferme assignée pour le moment.",
+      viewFarmTasks: "Voir les tâches de la ferme"
     },
     farm: {
       tabs: {

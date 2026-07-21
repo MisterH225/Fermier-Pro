@@ -67,7 +67,7 @@ export function NotificationSettingsRow() {
           }
           if (status !== "granted") {
             setLocalOverride(null);
-            Alert.alert("", t("account.notificationsPermissionDenied"));
+            Alert.alert(t("common.accessDeniedTitle"), t("account.notificationsPermissionDenied"));
             return;
           }
           const tokenResult = await obtainExpoPushToken();
@@ -80,11 +80,11 @@ export function NotificationSettingsRow() {
               );
               await refreshAuthMe();
               setLocalOverride(null);
-              Alert.alert("", t("account.notificationsTokenMissingProject"));
+              Alert.alert(t("common.error"), t("account.notificationsTokenMissingProject"));
               return;
             }
             setLocalOverride(null);
-            Alert.alert("", t("account.notificationsTokenError"));
+            Alert.alert(t("common.error"), t("account.notificationsTokenError"));
             return;
           }
           await patchAuthProfile(

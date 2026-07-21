@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +45,7 @@ export function DeleteBuildingModal({
   onDeleted,
   onTransferFirst
 }: Props) {
+  const { t } = useTranslation();
   const { open } = useModal();
 
   const barnPens = barn ? pens.filter((p) => p.barnId === barn.id) : [];
@@ -66,7 +68,7 @@ export function DeleteBuildingModal({
         autoDismissMs: 2000
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
   });
 
   if (!barn) {

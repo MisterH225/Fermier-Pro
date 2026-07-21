@@ -307,11 +307,11 @@ export function TechDashboardScreen() {
                   ]}
                   onPress={() => {
                     if (!activeFarm) {
-                      Alert.alert("", t("tech.tasks.noFarm"));
+                      Alert.alert(t("common.infoTitle"), t("tech.tasks.noFarm"));
                       return;
                     }
                     if (!allowed) {
-                      Alert.alert("", t("tech.permissionDenied"));
+                      Alert.alert(t("common.accessDeniedTitle"), t("tech.permissionDenied"));
                       return;
                     }
                     if (a.key === "vaccine") {

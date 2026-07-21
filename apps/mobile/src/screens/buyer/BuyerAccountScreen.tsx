@@ -304,7 +304,7 @@ export function BuyerAccountScreen() {
     try {
       const supabase = getSupabase();
       if (!supabase || !authMe?.user.supabaseUserId) {
-        Alert.alert("", t("buyer.profile.photoUploadError"));
+        Alert.alert(t("common.error"), t("buyer.profile.photoUploadError"));
         return;
       }
       const mime = pendingAvatarUri.toLowerCase().includes("png")
