@@ -1033,11 +1033,84 @@ export class VetAppointmentService {
     return this.mapRow(updated);
   }
 
-  async confirmServiceCompletion(producer: User, appointmentId: string) {
-    const row = await this.requireProducerAppointment(producer.id, appointmentId, [
+  /**
+   * Clôture de prestation.
+   * - Visite gratuite (isFree) : producteur OU vétérinaire → COMPLETED, zéro fonds.
+   * - Visite payante : producteur uniquement → libération fonds + commission (inchangé).
+   */
+  async confirmServiceCompletion(user: User, appointmentId: string) {
+    const row = await this.prisma.vetAppointment.findUnique({
+      where: { id: appointmentId },
+      include: VET_APPOINTMENT_INCLUDE
+    });
+    if (!row) {
+      throw new NotFoundException("Rendez-vous introuvable");
+    }
+
+    const isProducer = row.producerUserId === user.id;
+    const isVet = row.vetUserId === user.id;
+    if (!isProducer && !isVet) {
+      throw new ForbiddenException("Accès refusé");
+    }
+
+    const allowedStatuses: VetAppointmentStatus[] = [
       VetAppointmentStatus.APPOINTMENT_CONFIRMED,
       VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
-    ]);
+    ];
+    if (!allowedStatuses.includes(row.status)) {
+      throw new BadRequestException(
+        `Action impossible pour le statut ${row.status}`
+      );
+    }
+
+    if (row.isFree) {
+      if (!isProducer && !isVet) {
+        throw new ForbiddenException("Accès refusé");
+      }
+      assertTransition(row.status, "SERVICE_COMPLETED_FREE");
+
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const appt = await tx.vetAppointment.update({
+          where: { id: appointmentId },
+          data: {
+            status: VetAppointmentStatus.APPOINTMENT_COMPLETED,
+            completedAt: new Date(),
+            commissionAmount: new Prisma.Decimal(0),
+            vetReceivedAmount: new Prisma.Decimal(0)
+          },
+          include: VET_APPOINTMENT_INCLUDE
+        });
+        await tx.vetProfile.update({
+          where: { id: row.vetProfileId },
+          data: { completedAppointments: { increment: 1 } }
+        });
+        return appt;
+      });
+
+      const notifyUserId = isProducer ? updated.vetUserId : updated.producerUserId;
+      const actorLabel = isProducer
+        ? updated.producer?.fullName?.trim() || "le producteur"
+        : `Dr ${updated.vetProfile?.fullName ?? "le vétérinaire"}`;
+      await this.push.sendToUser(
+        notifyUserId,
+        "Visite terminée",
+        `Visite gratuite clôturée par ${actorLabel}. Aucun règlement.`,
+        { type: "vet_appointment_completed", appointmentId }
+      );
+
+      return {
+        ...this.mapRow(updated),
+        requiresRating: isProducer
+      };
+    }
+
+    if (!isProducer) {
+      throw new ForbiddenException(
+        "Seul le producteur peut confirmer la fin d'une visite payante"
+      );
+    }
+
+    assertTransition(row.status, "SERVICE_COMPLETED");
 
     const servicePrice = Number(row.servicePrice);
     if (!Number.isFinite(servicePrice) || servicePrice <= 0) {
