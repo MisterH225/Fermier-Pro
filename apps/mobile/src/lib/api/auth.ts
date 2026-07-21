@@ -80,8 +80,9 @@ export type AuthMeResponse = {
     displayName: string | null;
     isDefault: boolean;
     avatarUrl: string | null;
-    profileStatus?: "active" | "suspended" | "banned";
+    profileStatus?: "active" | "suspended" | "banned" | "deactivated";
     profileSuspendedReason?: string | null;
+    deactivatedAt?: string | null;
   }>;
   activeProfile: {
     id: string;
@@ -89,8 +90,9 @@ export type AuthMeResponse = {
     displayName: string | null;
     isDefault: boolean;
     avatarUrl: string | null;
-    profileStatus?: "active" | "suspended" | "banned";
+    profileStatus?: "active" | "suspended" | "banned" | "deactivated";
     profileSuspendedReason?: string | null;
+    deactivatedAt?: string | null;
   } | null;
   technicianProfile?: {
     profileId: string;

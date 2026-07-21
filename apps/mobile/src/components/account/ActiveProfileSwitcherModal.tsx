@@ -49,8 +49,12 @@ export function ActiveProfileSwitcherModal({
   const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const profiles = authMe?.profiles ?? [];
-  const ownedTypes = new Set(profiles.map((p) => p.type));
+  const allProfiles = authMe?.profiles ?? [];
+  /** Sélecteur : uniquement les profils actifs (les désactivés sont gérés ailleurs). */
+  const profiles = allProfiles.filter(
+    (p) => (p.profileStatus ?? "active") === "active"
+  );
+  const ownedTypes = new Set(allProfiles.map((p) => p.type));
   const availableTypes = PROFILE_TYPES.filter((type) => !ownedTypes.has(type));
 
   const onSelect = async (id: string) => {

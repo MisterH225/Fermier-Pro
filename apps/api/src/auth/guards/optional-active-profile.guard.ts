@@ -58,13 +58,23 @@ export class OptionalActiveProfileGuard implements CanActivate {
     if (!isAuthMeRoute && profile.profileStatus === ProfileModerationStatus.banned) {
       throw new ForbiddenException({
         code: "PROFILE_BANNED",
-        message: profile.profileSuspendedReason ?? "Profil désactivé"
+        message: profile.profileSuspendedReason ?? "Profil banni"
       });
     }
     if (!isAuthMeRoute && profile.profileStatus === ProfileModerationStatus.suspended) {
       throw new ForbiddenException({
         code: "PROFILE_SUSPENDED",
         message: profile.profileSuspendedReason ?? "Profil suspendu"
+      });
+    }
+    if (
+      !isAuthMeRoute &&
+      profile.profileStatus === ProfileModerationStatus.deactivated
+    ) {
+      throw new ForbiddenException({
+        code: "PROFILE_DEACTIVATED",
+        message:
+          "Ce profil est désactivé. Réactivez-le ou choisissez un autre profil."
       });
     }
     req.activeProfile = profile;

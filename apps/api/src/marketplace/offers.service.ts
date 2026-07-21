@@ -10,7 +10,9 @@ import {
   MarketplaceTransactionStatus,
   OfferStatus,
   OfferType,
-  Prisma
+  Prisma,
+  ProfileModerationStatus,
+  ProfileType
 } from "@prisma/client";
 import { APP_EVENT } from "../app-events/app-events.constants";
 import { AppEventsService } from "../app-events/app-events.service";
@@ -86,6 +88,33 @@ export class OffersService {
   }
 
   async create(user: User, listingId: string, dto: CreateOfferDto) {
+    const buyerProfile = await this.prisma.profile.findFirst({
+      where: {
+        userId: user.id,
+        type: ProfileType.buyer,
+        profileStatus: ProfileModerationStatus.active
+      },
+      select: { id: true }
+    });
+    if (!buyerProfile) {
+      throw new ForbiddenException({
+        code: "BUYER_PROFILE_INACTIVE",
+        message:
+          "Profil acheteur inactif ou désactivé — impossible de faire une offre."
+      });
+    }
+    const buyerRow = await this.prisma.buyerProfile.findUnique({
+      where: { userId: user.id },
+      select: { isActive: true }
+    });
+    if (buyerRow && !buyerRow.isActive) {
+      throw new ForbiddenException({
+        code: "BUYER_PROFILE_INACTIVE",
+        message:
+          "Profil acheteur inactif ou désactivé — impossible de faire une offre."
+      });
+    }
+
     const listing = await this.prisma.marketplaceListing.findUnique({
       where: { id: listingId }
     });

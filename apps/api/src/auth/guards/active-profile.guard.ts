@@ -55,13 +55,20 @@ export class ActiveProfileGuard implements CanActivate {
     if (profile.profileStatus === ProfileModerationStatus.banned) {
       throw new ForbiddenException({
         code: "PROFILE_BANNED",
-        message: profile.profileSuspendedReason ?? "Profil désactivé"
+        message: profile.profileSuspendedReason ?? "Profil banni"
       });
     }
     if (profile.profileStatus === ProfileModerationStatus.suspended) {
       throw new ForbiddenException({
         code: "PROFILE_SUSPENDED",
         message: profile.profileSuspendedReason ?? "Profil suspendu"
+      });
+    }
+    if (profile.profileStatus === ProfileModerationStatus.deactivated) {
+      throw new ForbiddenException({
+        code: "PROFILE_DEACTIVATED",
+        message:
+          "Ce profil est désactivé. Réactivez-le ou choisissez un autre profil."
       });
     }
 

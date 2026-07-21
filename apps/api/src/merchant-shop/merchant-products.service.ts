@@ -561,7 +561,20 @@ export class MerchantProductsService {
       where: {
         status: MerchantProductStatus.published,
         stock: { gt: 0 },
-        shop: { archivedAt: null },
+        shop: {
+          archivedAt: null,
+          merchantProfile: {
+            isActive: true,
+            user: {
+              profiles: {
+                some: {
+                  type: "merchant",
+                  profileStatus: "active"
+                }
+              }
+            }
+          }
+        },
         ...(opts?.categoryId ? { categoryId: opts.categoryId } : {}),
         ...(search
           ? {
@@ -609,7 +622,20 @@ export class MerchantProductsService {
         id: productId,
         status: MerchantProductStatus.published,
         stock: { gt: 0 },
-        shop: { archivedAt: null }
+        shop: {
+          archivedAt: null,
+          merchantProfile: {
+            isActive: true,
+            user: {
+              profiles: {
+                some: {
+                  type: "merchant",
+                  profileStatus: "active"
+                }
+              }
+            }
+          }
+        }
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },

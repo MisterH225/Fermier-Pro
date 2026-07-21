@@ -278,6 +278,9 @@ export class AuthService {
       where: { userId: user.id },
       orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }]
     });
+    const selectableProfiles = profiles.filter(
+      (p) => p.profileStatus === ProfileModerationStatus.active
+    );
 
     let activeFarm: { id: string; name: string } | null = null;
     if (user.activeFarmId) {
@@ -310,10 +313,25 @@ export class AuthService {
     const primaryFarm = activeFarm;
 
     const activeProfileId = activeProfile?.id;
-    const ap =
+    let ap =
       activeProfileId != null
         ? profiles.find((p) => p.id === activeProfileId) ?? activeProfile
         : activeProfile;
+    // Profil désactivé / sanctionné : bascule automatique sur un profil actif.
+    if (
+      ap &&
+      ap.profileStatus !== ProfileModerationStatus.active
+    ) {
+      ap =
+        selectableProfiles.find((p) => p.isDefault) ??
+        selectableProfiles[0] ??
+        null;
+    } else if (!ap && selectableProfiles.length > 0) {
+      ap =
+        selectableProfiles.find((p) => p.isDefault) ??
+        selectableProfiles[0] ??
+        null;
+    }
     const resolvedAvatar = ap?.avatarUrl ?? user.avatarUrl;
 
     const pushDeviceCount = await this.prisma.pushDevice.count({
@@ -449,7 +467,8 @@ export class AuthService {
         isDefault: p.isDefault,
         avatarUrl: p.avatarUrl ?? user.avatarUrl,
         profileStatus: p.profileStatus,
-        profileSuspendedReason: p.profileSuspendedReason
+        profileSuspendedReason: p.profileSuspendedReason,
+        deactivatedAt: p.deactivatedAt?.toISOString() ?? null
       })),
       activeProfile: ap
         ? {
@@ -459,7 +478,8 @@ export class AuthService {
             isDefault: ap.isDefault,
             avatarUrl: ap.avatarUrl ?? user.avatarUrl,
             profileStatus: ap.profileStatus,
-            profileSuspendedReason: ap.profileSuspendedReason
+            profileSuspendedReason: ap.profileSuspendedReason,
+            deactivatedAt: ap.deactivatedAt?.toISOString() ?? null
           }
         : null
     };
