@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import type { FeedUserStatus } from "../../lib/api/community-feed";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   feedStatus: FeedUserStatus;
@@ -37,22 +39,22 @@ export function SuspensionBanner({ feedStatus, suspensionUntil, onAppeal }: Prop
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: mobileStatusSurfaces.errorBg,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: "#FECACA"
+    borderColor: uiNamedColors.cFECACA
   },
   title: {
     ...mobileTypography.cardTitle,
-    color: "#B91C1C",
+    color: producerColors.dangerStrong,
     marginBottom: 4
   },
   body: {
     ...mobileTypography.body,
-    color: "#7F1D1D",
-    fontSize: 13
+    color: uiNamedColors.c7F1D1D,
+    fontSize: mobileFontSize.sm
   },
   appealBtn: {
     marginTop: mobileSpacing.sm,
@@ -60,7 +62,7 @@ const styles = StyleSheet.create({
   },
   appealTx: {
     ...mobileTypography.meta,
-    color: "#B91C1C",
+    color: producerColors.dangerStrong,
     fontWeight: "600",
     textDecorationLine: "underline"
   }

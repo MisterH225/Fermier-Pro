@@ -21,7 +21,7 @@ import { useSession } from "../../context/SessionContext";
 import type { ChatRoomListItem } from "../../lib/api";
 import { filterChatRooms } from "../../lib/filterChatRooms";
 import { chatRoomTitle } from "../../lib/messaging/chatRoomDisplay";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import { buyerColors } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { getUserFacingError } from "../../lib/userFacingError";
@@ -44,7 +44,7 @@ export function BuyerMessagesScreen() {
           onPress={() => navigation.navigate("ChatSearchUser")}
           style={{ paddingHorizontal: 8 }}
         >
-          <Text style={{ color: buyerColors.primary, fontWeight: "600", fontSize: 15 }}>
+          <Text style={{ color: buyerColors.primary, fontWeight: "600", fontSize: mobileFontSize.md }}>
             {t("buyer.messages.new")}
           </Text>
         </TouchableOpacity>

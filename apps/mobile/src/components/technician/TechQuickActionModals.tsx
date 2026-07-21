@@ -28,8 +28,9 @@ import {
 } from "../../lib/api";
 import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
 import type { TechQuickActionKey } from "../../lib/technicianPermissions";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { techColors } from "../../theme/technicianTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type ActiveFarm = {
   farmId: string;
@@ -298,7 +299,7 @@ export function TechQuickActionModals({
 
 const styles = StyleSheet.create({
   loader: { marginVertical: mobileSpacing.lg },
-  err: { color: techColors.danger ?? "#C2185B", padding: mobileSpacing.md },
+  err: { color: techColors.danger ?? uiNamedColors.cC2185B, padding: mobileSpacing.md },
   empty: { ...mobileTypography.body, color: techColors.textSecondary, padding: mobileSpacing.md },
   vaccineList: { maxHeight: 360 },
   vaccineRowLast: { borderBottomWidth: 0 },
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
   vaccineName: {
     ...mobileTypography.cardTitle,
     color: techColors.textPrimary,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   vaccineMeta: {
     ...mobileTypography.meta,
@@ -324,6 +325,6 @@ const styles = StyleSheet.create({
   vaccineCta: {
     color: techColors.primary,
     fontWeight: "700",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   }
 });

@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 
 export type ChartLegendItem = {
   key: string;
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.xs
   },
   item: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
+  dot: { width: 10, height: 10, borderRadius: mobileRadius.sm },
   label: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

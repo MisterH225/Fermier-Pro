@@ -11,12 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { parseInviteTokenFromUrl } from "../../lib/pendingInviteToken";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -161,7 +156,7 @@ const styles = StyleSheet.create({
   permissionBtnTxt: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   cameraWrap: {
     flex: 1,

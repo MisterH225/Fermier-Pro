@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   messageBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center"

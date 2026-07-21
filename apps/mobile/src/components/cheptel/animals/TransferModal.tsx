@@ -27,13 +27,9 @@ import {
   useOfflineMutation
 } from "../../../hooks/useOfflineMutation";
 import { optimisticPenMove } from "../../../lib/offline/optimistic";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { animalDisplayTag } from "./animalUtils";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 type Props = {
   visible: boolean;
@@ -349,13 +345,13 @@ const styles = StyleSheet.create({
   penMeta: { ...mobileTypography.meta, marginTop: 2 },
   warnTag: {
     marginTop: 4,
-    fontSize: 11,
-    color: "#C2410C",
+    fontSize: mobileFontSize.xs,
+    color: uiNamedColors.cC2410C,
     fontWeight: "600"
   },
   warnText: {
     ...mobileTypography.meta,
-    color: "#C2410C",
+    color: uiNamedColors.cC2410C,
     fontWeight: "600"
   },
   input: {
@@ -375,5 +371,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

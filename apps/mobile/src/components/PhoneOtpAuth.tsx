@@ -22,6 +22,8 @@ import {
 } from "../lib/phoneDialCountries";
 import { getSupabase } from "../lib/supabase";
 import { authColors, authRadii } from "../theme/authTheme";
+import { mobileRadius, mobileFontSize } from "../theme/mobileTheme";
+import { uiNamedColors } from "../theme/uiNamedColors";
 
 const RESEND_COOLDOWN_SEC = 60;
 
@@ -385,7 +387,7 @@ const styles = StyleSheet.create({
   stepSeg: {
     flex: 1,
     height: 4,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     marginHorizontal: 4
   },
   stepSegIdle: {
@@ -398,14 +400,14 @@ const styles = StyleSheet.create({
     backgroundColor: authColors.brandGreen
   },
   screenTitle: {
-    fontSize: 32,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "700",
     color: authColors.forest,
     marginBottom: 10,
     letterSpacing: -0.5
   },
   screenHint: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: authColors.body,
     lineHeight: 22,
     marginBottom: 20
@@ -430,10 +432,10 @@ const styles = StyleSheet.create({
     minHeight: 56
   },
   countryFlag: {
-    fontSize: 22
+    fontSize: mobileFontSize.xl
   },
   countryDial: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: authColors.forest
   },
@@ -451,13 +453,13 @@ const styles = StyleSheet.create({
   },
   nationalInput: {
     flex: 1,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     color: authColors.forest,
     paddingVertical: 14
   },
   phoneHint: {
     marginTop: 10,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: authColors.placeholder,
     lineHeight: 18
   },
@@ -476,17 +478,17 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     color: authColors.forest,
     paddingVertical: 14
   },
   inputOtp: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     letterSpacing: 6,
     textAlign: "center"
   },
   phoneRecall: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: authColors.body,
     marginBottom: 12,
     textAlign: "center",
@@ -503,7 +505,7 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: {
     color: authColors.white,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600"
   },
   btnDisabled: {
@@ -522,7 +524,7 @@ const styles = StyleSheet.create({
   },
   orText: {
     marginHorizontal: 14,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: authColors.forestMuted
   },
@@ -538,7 +540,7 @@ const styles = StyleSheet.create({
   },
   btnOutlineText: {
     color: authColors.forest,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600"
   },
   linkWrap: {
@@ -547,24 +549,24 @@ const styles = StyleSheet.create({
   },
   linkStrong: {
     color: authColors.forest,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   err: {
     marginTop: 16,
     color: authColors.error,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20
   },
   inf: {
     marginTop: 16,
     color: authColors.success,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20
   },
   footerNote: {
     marginTop: 28,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: authColors.forestMuted,
     textAlign: "center",
     lineHeight: 19
@@ -578,7 +580,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: authColors.background,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     overflow: "hidden",
     maxHeight: "78%",
     paddingHorizontal: 16,
@@ -591,7 +593,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: authColors.forest
   },
@@ -601,7 +603,7 @@ const styles = StyleSheet.create({
     borderRadius: authRadii.input,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: authColors.forest,
     marginBottom: 8
   },
@@ -612,7 +614,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: authColors.placeholder,
     padding: 24,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   countryRow: {
     flexDirection: "row",
@@ -624,22 +626,22 @@ const styles = StyleSheet.create({
     gap: 12
   },
   countryRowOn: {
-    backgroundColor: "#F0FDF4"
+    backgroundColor: uiNamedColors.cF0FDF4
   },
   countryRowFlag: {
-    fontSize: 26
+    fontSize: mobileFontSize.xxl
   },
   countryRowText: {
     flex: 1,
     minWidth: 0
   },
   countryRowName: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: authColors.forest
   },
   countryRowDial: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: authColors.body,
     marginTop: 2
   }

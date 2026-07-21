@@ -5,15 +5,11 @@ import type {
   FarmPredictionsPayload,
   PredictionHorizonKey
 } from "../../lib/api/predictions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { HorizonTabs } from "./HorizonTabs";
 import { formatCurrency } from "./predictionFormatters";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   payload: FarmPredictionsPayload;
@@ -79,7 +75,7 @@ const styles = StyleSheet.create({
   },
   title: { ...mobileTypography.cardTitle },
   amount: {
-    fontSize: 28,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "700",
     color: mobileColors.accent
   },
@@ -91,13 +87,13 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill,
     overflow: "hidden"
   },
-  barFillRev: { height: "100%", backgroundColor: "#1D9E75" },
+  barFillRev: { height: "100%", backgroundColor: uiNamedColors.c1D9E75 },
   barExp: {
     height: 8,
     backgroundColor: mobileColors.border,
     borderRadius: mobileRadius.pill,
     overflow: "hidden"
   },
-  barFillExp: { height: "100%", backgroundColor: "#D64545" },
+  barFillExp: { height: "100%", backgroundColor: mobileColors.error },
   legend: { ...mobileTypography.meta, color: mobileColors.textSecondary }
 });

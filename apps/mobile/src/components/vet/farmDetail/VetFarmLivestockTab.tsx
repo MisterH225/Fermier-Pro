@@ -22,7 +22,7 @@ import {
   vetStatus,
   vetType
 } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 
 type Props = {
@@ -280,21 +280,21 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: vetRadius.pill
   },
-  statusTx: { fontSize: 11, fontWeight: "700" },
+  statusTx: { fontSize: mobileFontSize.xs, fontWeight: "700" },
   batchMeta: { ...vetType.label },
   track: {
     height: 8,
-    borderRadius: 99,
+    borderRadius: mobileRadius.pill,
     backgroundColor: vetColors.primaryLight,
     overflow: "hidden"
   },
-  fill: { height: "100%", borderRadius: 99 },
+  fill: { height: "100%", borderRadius: mobileRadius.pill },
   batchFoot: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
   },
-  gmqTx: { fontWeight: "700", fontSize: 12 },
+  gmqTx: { fontWeight: "700", fontSize: mobileFontSize.sm },
   casesTx: { ...vetType.label, color: vetColors.danger },
   readonlyHint: { ...vetType.label, textAlign: "center", marginTop: 4 }
 });

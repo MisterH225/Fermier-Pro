@@ -16,7 +16,7 @@ import { ModalSection } from "../modals/ModalSection";
 import type { AnimalListItem, GestationDetailDto } from "../../lib/api";
 import { createGestation } from "../../lib/api";
 import { useActiveFarm } from "../../context/ActiveProjectContext";
-import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import {
   isOfflineQueuedResult,
   offlineQueuedMessage,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     backgroundColor: mobileColors.background
   },
@@ -300,30 +300,30 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.surfaceMuted
   },
   pillOn: { backgroundColor: mobileColors.accent },
-  pillText: { fontSize: 13, color: mobileColors.textPrimary },
+  pillText: { fontSize: mobileFontSize.sm, color: mobileColors.textPrimary },
   pillTextOn: { color: mobileColors.onAccent },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  hint: { fontSize: 12, color: mobileColors.textSecondary },
+  hint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   readonlySow: {
     padding: mobileSpacing.md,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted,
     borderWidth: 1,
     borderColor: mobileColors.border
   },
   readonlySowText: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
   btn: {
     backgroundColor: mobileColors.accent,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },

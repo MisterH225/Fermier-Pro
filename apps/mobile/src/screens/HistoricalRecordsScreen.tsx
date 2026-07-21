@@ -41,6 +41,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../theme/mobileTheme";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "HistoricalRecords">;
 
@@ -417,7 +418,7 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
               disabled={quickTotalMut.isPending}
             >
               {quickTotalMut.isPending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.background} />
               ) : (
                 <Text style={styles.primaryBtnText}>{t("financeScreen.save")}</Text>
               )}
@@ -435,7 +436,7 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
             disabled={importPreviewMut.isPending}
           >
             {importPreviewMut.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.background} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {t("historicalRecords.pickFile")}
@@ -485,7 +486,7 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
                   }
                 >
                   {importConfirmMut.isPending ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={mobileColors.background} />
                   ) : (
                     <Text style={styles.primaryBtnText}>
                       {t("historicalRecords.confirmImport")}
@@ -538,8 +539,8 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     ...mobileShadows.card
   },
-  summaryPositive: { backgroundColor: "#ECFDF5" },
-  summaryNegative: { backgroundColor: "#FEF2F2" },
+  summaryPositive: { backgroundColor: producerColors.successMintBg },
+  summaryNegative: { backgroundColor: producerColors.errorSoftBg },
   summaryLabel: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   summaryValue: { ...mobileTypography.cardTitle, marginTop: 4 },
   hint: {

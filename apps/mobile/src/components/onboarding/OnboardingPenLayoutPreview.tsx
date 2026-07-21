@@ -9,22 +9,19 @@ import {
   type PenAssignment,
   type PenAssignmentKind
 } from "../../lib/onboardingPenLayout";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const KIND_STYLE: Record<
   PenAssignmentKind,
   { bg: string; border: string; dot: string }
 > = {
-  females: { bg: "#FDF2F8", border: "#F9A8D4", dot: "#DB2777" },
-  male: { bg: "#FFF7ED", border: "#FDBA74", dot: "#EA580C" },
-  starter: { bg: "#EFF6FF", border: "#93C5FD", dot: "#2563EB" },
-  fattening: { bg: "#F0FDF4", border: "#86EFAC", dot: "#16A34A" },
-  mixed: { bg: "#FFFBEB", border: "#FCD34D", dot: "#D97706" }
+  females: { bg: uiNamedColors.cFDF2F8, border: uiNamedColors.cF9A8D4, dot: uiNamedColors.cDB2777 },
+  male: { bg: uiNamedColors.cFFF7ED, border: uiNamedColors.cFDBA74, dot: uiNamedColors.cEA580C },
+  starter: { bg: uiNamedColors.cEFF6FF, border: uiNamedColors.c93C5FD, dot: uiNamedColors.c2563EB },
+  fattening: { bg: uiNamedColors.cF0FDF4, border: uiNamedColors.c86EFAC, dot: uiNamedColors.c16A34A },
+  mixed: { bg: uiNamedColors.cFFFBEB, border: uiNamedColors.cFCD34D, dot: marketplaceColors.pending }
 };
 
 type Props = {
@@ -241,7 +238,7 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   previewSub: {
@@ -280,12 +277,12 @@ const styles = StyleSheet.create({
     width: 148
   },
   columnTitle: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   columnSub: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     marginBottom: mobileSpacing.xs
   },
@@ -306,28 +303,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   penName: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "800",
     color: mobileColors.textPrimary
   },
   penDot: {
     width: 8,
     height: 8,
-    borderRadius: 4
+    borderRadius: mobileRadius.sm
   },
   penCap: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     marginTop: 2
   },
   penAssign: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: mobileColors.textPrimary,
     marginTop: 4
   },
   penEmpty: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     marginTop: 4,
     fontStyle: "italic"
@@ -346,10 +343,10 @@ const styles = StyleSheet.create({
   legendDot: {
     width: 8,
     height: 8,
-    borderRadius: 4
+    borderRadius: mobileRadius.sm
   },
   legendTx: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary
   }
 });

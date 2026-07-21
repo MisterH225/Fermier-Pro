@@ -51,7 +51,7 @@ import {
 } from "../../lib/technicianPermissions";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { techColors, techRadius, techShadow } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -473,13 +473,13 @@ const styles = StyleSheet.create({
     top: 4,
     right: 4,
     backgroundColor: techColors.danger,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     minWidth: 18,
     height: 18,
     alignItems: "center",
     justifyContent: "center"
   },
-  badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  badgeText: { color: mobileColors.background, fontSize: mobileFontSize.xs, fontWeight: "700" },
   farmPills: { marginTop: mobileSpacing.xs },
   farmPill: {
     paddingHorizontal: mobileSpacing.md,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   },
   farmPillActive: { backgroundColor: techColors.primary, borderColor: techColors.primary },
   farmPillText: { ...mobileTypography.meta, fontWeight: "600", color: techColors.textSecondary },
-  farmPillTextActive: { color: "#fff" },
+  farmPillTextActive: { color: mobileColors.background },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   quickCard: {
     width: "31%",
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: techColors.border
   },
-  kpiValue: { fontSize: 22, fontWeight: "700", color: techColors.primary },
+  kpiValue: { fontSize: mobileFontSize.xl, fontWeight: "700", color: techColors.primary },
   kpiLabel: { ...mobileTypography.meta, color: techColors.textSecondary, marginTop: 4 },
   activityToggleMore: {
     alignSelf: "center",

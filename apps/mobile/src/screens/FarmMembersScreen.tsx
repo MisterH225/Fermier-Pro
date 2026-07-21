@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScreenTitle } from "../hooks/useScreenTitle";
@@ -22,6 +22,7 @@ import {
 import { hasFarmScope } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmMembers">;
 
@@ -85,7 +86,7 @@ export function FarmMembersScreen({ route, navigation }: Props) {
   if (membersQ.isPending) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5d7a1f" />
+        <ActivityIndicator size="large" color={producerColors.olive} />
       </View>
     );
   }
@@ -196,34 +197,34 @@ const styles = StyleSheet.create({
   hint: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
   inviteBanner: {
     marginHorizontal: 16,
     marginTop: 8,
     padding: 12,
-    backgroundColor: "#eef6d8",
-    borderRadius: 12,
+    backgroundColor: producerColors.memberChipBg,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#c5d99a"
+    borderColor: producerColors.memberChipBorder
   },
   inviteTitle: { fontWeight: "700", marginBottom: 6, color: mobileColors.textPrimary },
-  inviteLine: { fontSize: 13, color: "#4a5238", marginBottom: 4 },
+  inviteLine: { fontSize: mobileFontSize.sm, color: producerColors.oliveInk, marginBottom: 4 },
   listContent: { padding: 16, paddingBottom: 32 },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e8e6d8"
+    borderColor: producerColors.memberCardBorder
   },
-  name: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
-  meta: { fontSize: 14, color: mobileColors.textSecondary, marginTop: 4 },
+  name: { fontSize: mobileFontSize.lg, fontWeight: "700", color: mobileColors.textPrimary },
+  meta: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, marginTop: 4 },
   dangerBtn: { marginTop: 10, alignSelf: "flex-start" },
-  dangerTxt: { color: "#b42318", fontWeight: "600", fontSize: 14 },
-  error: { color: "#b42318", padding: 16 },
+  dangerTxt: { color: producerColors.dangerAlt, fontWeight: "600", fontSize: mobileFontSize.md },
+  error: { color: producerColors.dangerAlt, padding: 16 },
   headerBtn: { marginRight: 8 },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: mobileFontSize.md }
 });

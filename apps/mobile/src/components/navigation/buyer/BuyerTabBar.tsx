@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { buyerColors, buyerShadow, buyerRadius } from "../../../theme/buyerTheme";
 import { BUYER_NAV_BAR_HEIGHT } from "./buyerNavMetrics";
 import type { BuyerMainTab } from "./types";
@@ -187,14 +187,14 @@ const styles = StyleSheet.create({
   },
   label: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: buyerColors.textMuted
   },
   labelActive: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     lineHeight: 13,
     fontWeight: "700",
     color: buyerColors.onPrimary
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   plusLabel: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: buyerColors.textSecondary

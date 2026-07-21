@@ -1,11 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { FeedCommentDto } from "../../lib/api/community-feed";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { FeedCommentBubble } from "./FeedCommentBubble";
 
 type Props = {
@@ -65,7 +61,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.cardTitle,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   sortLabel: {
     ...mobileTypography.meta,

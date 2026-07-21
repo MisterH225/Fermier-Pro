@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import type { VetAssignedFarm } from "../../hooks/useVetFarms";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   farms: VetAssignedFarm[];
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     backgroundColor: vetColors.cardBg,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: 10,
     borderWidth: StyleSheet.hairlineWidth,
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
   },
   texts: { flex: 1, minWidth: 0 },
   title: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: vetColors.textPrimary
   },
   change: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: vetColors.primary
   },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   sheetTitle: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.textPrimary
   },

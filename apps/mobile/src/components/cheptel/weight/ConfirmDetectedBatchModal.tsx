@@ -17,12 +17,7 @@ import {
   type DetectedBatchAnimalDto,
   type DetectedBatchDto
 } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -366,7 +361,7 @@ const styles = StyleSheet.create({
   linkTx: {
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   splitHint: {
     marginTop: mobileSpacing.sm,
@@ -377,7 +372,7 @@ const styles = StyleSheet.create({
   splitHintTx: {
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   list: {
     marginTop: mobileSpacing.sm,
@@ -401,7 +396,7 @@ const styles = StyleSheet.create({
   check: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     borderWidth: 1.5,
     borderColor: mobileColors.border,
     alignItems: "center",
@@ -413,7 +408,7 @@ const styles = StyleSheet.create({
   },
   checkMark: {
     color: mobileColors.onAccent,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700"
   },
   animalInfo: { flex: 1 },

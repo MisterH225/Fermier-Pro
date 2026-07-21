@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.lg,
     marginHorizontal: mobileSpacing.lg,
     marginBottom: mobileSpacing.sm,
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center"

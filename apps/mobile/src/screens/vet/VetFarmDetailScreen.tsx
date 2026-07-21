@@ -22,7 +22,7 @@ import { useBottomInset } from "../../hooks/useBottomInset";
 import { useVetFarms } from "../../hooks/useVetFarms";
 import { fetchVetFarmSummary } from "../../lib/api";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const TABS = [
@@ -182,6 +182,6 @@ const styles = StyleSheet.create({
   tabOn: {
     backgroundColor: vetColors.primary
   },
-  tabTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: 12 },
+  tabTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: mobileFontSize.sm },
   tabTxOn: { color: vetColors.onPrimary, fontWeight: "700" }
 });

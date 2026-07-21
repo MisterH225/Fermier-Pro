@@ -1,10 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import {
   getInactiveAccentColor,
   getTabLabelColor,
@@ -131,7 +126,7 @@ const styles = StyleSheet.create({
   },
   inactiveTabLabel: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "500"
   },
   inactiveAccent: {
@@ -140,7 +135,7 @@ const styles = StyleSheet.create({
     left: mobileSpacing.xs,
     right: mobileSpacing.xs,
     height: 2,
-    borderRadius: 1,
+    borderRadius: mobileRadius.sm,
     opacity: 0.45
   },
   activeTabPressable: {
@@ -165,7 +160,7 @@ const styles = StyleSheet.create({
   },
   activeTabLabel: {
     ...mobileTypography.title,
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     lineHeight: 26,
     fontWeight: "700"
   },
@@ -175,7 +170,7 @@ const styles = StyleSheet.create({
     left: mobileSpacing.lg,
     right: mobileSpacing.lg,
     height: 2,
-    borderRadius: 1
+    borderRadius: mobileRadius.sm
   },
   tabCurve: {
     width: TAB_CURVE,
@@ -202,7 +197,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: tabColors.INACTIVE_TEXT,
     textTransform: "uppercase",

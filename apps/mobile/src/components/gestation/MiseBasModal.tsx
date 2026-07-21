@@ -22,7 +22,7 @@ import { toIsoDateTimeString } from "../../lib/appDate";
 import { ModalSection } from "../modals/ModalSection";
 import { recordGestationLitter } from "../../lib/api";
 import { useCheptelPens } from "../../lib/cheptelPensQuery";
-import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import {
   isOfflineQueuedResult,
   offlineQueuedMessage,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     backgroundColor: mobileColors.background
   },
@@ -467,23 +467,23 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.surfaceMuted
   },
   pillOn: { backgroundColor: mobileColors.accent },
-  pillText: { fontSize: 12 },
+  pillText: { fontSize: mobileFontSize.sm },
   toggle: { paddingVertical: 8 },
   hint: { color: mobileColors.textSecondary, marginBottom: mobileSpacing.sm },
   autoHint: {
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.sm,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   penList: { maxHeight: 220 },
   penCard: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     marginBottom: 8,
     backgroundColor: mobileColors.background
@@ -493,14 +493,14 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.surfaceMuted
   },
   penName: { fontWeight: "600" },
-  penMeta: { fontSize: 12, color: mobileColors.textSecondary, marginTop: 2 },
+  penMeta: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 2 },
   warnText: { color: mobileColors.warning, marginTop: 8 },
   blockText: { color: mobileColors.error, marginTop: 8 },
   footerRow: { flexDirection: "row", gap: 8, alignItems: "stretch" },
   btn: {
     backgroundColor: mobileColors.accent,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     flex: 1
   },
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   btnText: { color: mobileColors.onAccent, fontWeight: "600" },
   btnSecondary: {
     padding: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     borderWidth: 1,
     borderColor: mobileColors.border,

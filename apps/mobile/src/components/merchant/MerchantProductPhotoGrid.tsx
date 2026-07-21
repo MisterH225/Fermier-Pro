@@ -15,12 +15,7 @@ import {
 import { getSupabase } from "../../lib/supabase";
 import { uploadMerchantProductPhotoToSupabase } from "../../lib/uploadMerchantProductPhotoToSupabase";
 import { merchantColors } from "../../theme/merchantTheme";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const THUMB = 80;
 const MAX_PHOTOS = 5;
@@ -157,7 +152,7 @@ export function MerchantProductPhotoGrid({
               onPress={() => removeAt(index)}
               hitSlop={6}
             >
-              <Ionicons name="close" size={14} color="#fff" />
+              <Ionicons name="close" size={14} color={mobileColors.background} />
             </Pressable>
           </View>
         ))}
@@ -166,7 +161,7 @@ export function MerchantProductPhotoGrid({
             <Image source={{ uri: slot.uri }} style={styles.thumb} resizeMode="cover" />
             {slot.uploading ? (
               <View style={styles.uploadOverlay}>
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={mobileColors.background} size="small" />
               </View>
             ) : null}
           </View>
@@ -192,7 +187,7 @@ const styles = StyleSheet.create({
   block: { gap: mobileSpacing.sm },
   title: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   hint: {
@@ -225,12 +220,12 @@ const styles = StyleSheet.create({
     left: 4,
     bottom: 4,
     backgroundColor: merchantColors.primary,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     paddingHorizontal: 5,
     paddingVertical: 2
   },
   primaryBadgeTx: {
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: merchantColors.onPrimary
   },
@@ -240,7 +235,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.error,
     alignItems: "center",
     justifyContent: "center"

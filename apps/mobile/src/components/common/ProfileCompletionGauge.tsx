@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RolePalette } from "./rolePalette";
 
 type Props = {
@@ -108,13 +108,13 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   label: { ...mobileTypography.body, fontWeight: "600", flex: 1 },
-  pct: { fontWeight: "800", fontSize: 16 },
+  pct: { fontWeight: "800", fontSize: mobileFontSize.lg },
   track: {
     height: 8,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     overflow: "hidden"
   },
-  fill: { height: "100%", borderRadius: 999 },
+  fill: { height: "100%", borderRadius: mobileRadius.pill },
   hint: { ...mobileTypography.meta, marginTop: mobileSpacing.xs },
   cta: {
     alignSelf: "flex-start",
@@ -122,5 +122,5 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     marginTop: mobileSpacing.xs
   },
-  ctaTx: { fontWeight: "700", fontSize: 14 }
+  ctaTx: { fontWeight: "700", fontSize: mobileFontSize.md }
 });

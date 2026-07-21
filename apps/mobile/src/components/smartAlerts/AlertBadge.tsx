@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileRadius, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type AlertBadgeProps = {
   count: number;
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   },
   tx: {
     ...mobileTypography.meta,
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "800",
     color: mobileColors.onAccent
   }

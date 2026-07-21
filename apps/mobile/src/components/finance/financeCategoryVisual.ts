@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type IonIcon = keyof typeof Ionicons.glyphMap;
 
@@ -10,29 +11,29 @@ export type CategoryVisual = {
 };
 
 const PASTEL_CYCLE: Omit<CategoryVisual, "icon">[] = [
-  { bg: "#FEE2E2", accent: "#EF4444" },
-  { bg: "#DBEAFE", accent: "#3B82F6" },
-  { bg: "#D1FAE5", accent: "#10B981" },
-  { bg: "#EDE9FE", accent: "#8B5CF6" },
-  { bg: "#FEF3C7", accent: "#EAB308" },
-  { bg: "#FFEDD5", accent: "#F97316" },
-  { bg: "#E0F2FE", accent: "#0EA5E9" },
-  { bg: "#FCE7F3", accent: "#EC4899" }
+  { bg: uiNamedColors.cFEE2E2, accent: uiNamedColors.cEF4444 },
+  { bg: uiNamedColors.cDBEAFE, accent: uiNamedColors.c3B82F6 },
+  { bg: uiNamedColors.cD1FAE5, accent: uiNamedColors.c10B981 },
+  { bg: uiNamedColors.cEDE9FE, accent: uiNamedColors.c8B5CF6 },
+  { bg: uiNamedColors.cFEF3C7, accent: uiNamedColors.cEAB308 },
+  { bg: uiNamedColors.cFFEDD5, accent: uiNamedColors.cF97316 },
+  { bg: uiNamedColors.cE0F2FE, accent: uiNamedColors.c0EA5E9 },
+  { bg: uiNamedColors.cFCE7F3, accent: uiNamedColors.cEC4899 }
 ];
 
 const KEY_VISUALS: Record<string, CategoryVisual> = {
-  feed: { bg: "#D1FAE5", accent: "#059669", icon: "leaf-outline" },
-  health: { bg: "#FEE2E2", accent: "#DC2626", icon: "medical-outline" },
-  equipment: { bg: "#DBEAFE", accent: "#2563EB", icon: "construct-outline" },
-  labor: { bg: "#EDE9FE", accent: "#7C3AED", icon: "people-outline" },
-  infrastructure: { bg: "#E0E7FF", accent: "#4F46E5", icon: "business-outline" },
-  transport: { bg: "#FEF3C7", accent: "#CA8A04", icon: "car-outline" },
-  other_purchases: { bg: "#FFEDD5", accent: "#EA580C", icon: "cube-outline" },
-  animal_sales: { bg: "#FCE7F3", accent: "#DB2777", icon: "paw-outline" },
-  product_sales: { bg: "#FEE2E2", accent: "#B91C1C", icon: "restaurant-outline" },
-  subsidies: { bg: "#DBEAFE", accent: "#1D4ED8", icon: "hand-left-outline" },
-  other_income: { bg: "#D1FAE5", accent: "#047857", icon: "wallet-outline" },
-  uncategorized: { bg: "#F3F4F6", accent: "#6B7280", icon: "document-text-outline" }
+  feed: { bg: uiNamedColors.cD1FAE5, accent: uiNamedColors.c059669, icon: "leaf-outline" },
+  health: { bg: uiNamedColors.cFEE2E2, accent: uiNamedColors.cDC2626, icon: "medical-outline" },
+  equipment: { bg: uiNamedColors.cDBEAFE, accent: uiNamedColors.c2563EB, icon: "construct-outline" },
+  labor: { bg: uiNamedColors.cEDE9FE, accent: uiNamedColors.c7C3AED, icon: "people-outline" },
+  infrastructure: { bg: uiNamedColors.cE0E7FF, accent: uiNamedColors.c4F46E5, icon: "business-outline" },
+  transport: { bg: uiNamedColors.cFEF3C7, accent: uiNamedColors.cCA8A04, icon: "car-outline" },
+  other_purchases: { bg: uiNamedColors.cFFEDD5, accent: uiNamedColors.cEA580C, icon: "cube-outline" },
+  animal_sales: { bg: uiNamedColors.cFCE7F3, accent: uiNamedColors.cDB2777, icon: "paw-outline" },
+  product_sales: { bg: uiNamedColors.cFEE2E2, accent: uiNamedColors.cB91C1C, icon: "restaurant-outline" },
+  subsidies: { bg: uiNamedColors.cDBEAFE, accent: uiNamedColors.c1D4ED8, icon: "hand-left-outline" },
+  other_income: { bg: uiNamedColors.cD1FAE5, accent: uiNamedColors.c047857, icon: "wallet-outline" },
+  uncategorized: { bg: uiNamedColors.cF3F4F6, accent: uiNamedColors.c6B7280, icon: "document-text-outline" }
 };
 
 const EMOJI_RE =

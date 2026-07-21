@@ -1,4 +1,5 @@
 import type { AnimalListItem } from "../../../lib/api";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 export type AnimalStatusKey =
   | "active"
@@ -60,12 +61,12 @@ export function sexIconName(
 
 export function sexIconColor(sex: string): string {
   if (sex === "male") {
-    return "#2563EB";
+    return uiNamedColors.c2563EB;
   }
   if (sex === "female") {
-    return "#DB2777";
+    return uiNamedColors.cDB2777;
   }
-  return "#6B7280";
+  return uiNamedColors.c6B7280;
 }
 
 export function sexDisplayLabel(

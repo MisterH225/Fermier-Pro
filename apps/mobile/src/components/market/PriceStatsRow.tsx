@@ -1,7 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { PigPriceIndexStatsDto } from "../../lib/api";
+import { producerColors } from "../../theme/producerTheme";
+import { buyerColors } from "../../theme/buyerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   stats: PigPriceIndexStatsDto | undefined;
@@ -39,10 +42,10 @@ export function PriceStatsRow({ stats, category }: Props) {
 
   const deltaColor =
     row.variation24h != null && row.variation24h > 0
-      ? "#2F9E44"
+      ? producerColors.primary
       : row.variation24h != null && row.variation24h < 0
-        ? "#E03131"
-        : "#868E96";
+        ? uiNamedColors.cE03131
+        : uiNamedColors.c868E96;
 
   return (
     <View style={styles.grid}>
@@ -55,15 +58,15 @@ export function PriceStatsRow({ stats, category }: Props) {
       </View>
       <View style={styles.cell}>
         <Text style={styles.label}>{t("pigPriceIndex.statHigh")}</Text>
-        <Text style={[styles.value, { color: "#00C9A7" }]}>{fmt(row.high30d)}</Text>
+        <Text style={[styles.value, { color: uiNamedColors.c00C9A7 }]}>{fmt(row.high30d)}</Text>
       </View>
       <View style={styles.cell}>
         <Text style={styles.label}>{t("pigPriceIndex.statLow")}</Text>
-        <Text style={[styles.value, { color: "#FF4757" }]}>{fmt(row.low30d)}</Text>
+        <Text style={[styles.value, { color: uiNamedColors.cFF4757 }]}>{fmt(row.low30d)}</Text>
       </View>
       <View style={styles.cell}>
         <Text style={styles.label}>{t("pigPriceIndex.statVolume")}</Text>
-        <Text style={[styles.value, { color: "#7C3AED" }]}>{row.volume}</Text>
+        <Text style={[styles.value, { color: buyerColors.primary }]}>{row.volume}</Text>
       </View>
     </View>
   );
@@ -77,13 +80,13 @@ const styles = StyleSheet.create({
   },
   cell: {
     width: "47%",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 10,
+    backgroundColor: uiNamedColors.cF8F9FA,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     borderWidth: 1,
-    borderColor: "#E9ECEF"
+    borderColor: uiNamedColors.cE9ECEF
   },
-  label: { ...mobileTypography.meta, color: "#868E96", fontSize: 11 },
-  value: { ...mobileTypography.cardTitle, fontSize: 16, marginTop: 4 },
+  label: { ...mobileTypography.meta, color: uiNamedColors.c868E96, fontSize: mobileFontSize.xs },
+  value: { ...mobileTypography.cardTitle, fontSize: mobileFontSize.lg, marginTop: 4 },
   delta: { ...mobileTypography.meta, marginTop: 2, fontWeight: "600" }
 });

@@ -1,12 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { FarmPredictionsPayload } from "../../lib/api/predictions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { formatCurrency } from "./predictionFormatters";
 
 type Props = {
@@ -83,7 +78,7 @@ const styles = StyleSheet.create({
     minWidth: 130,
     gap: 4
   },
-  icon: { fontSize: 22 },
+  icon: { fontSize: mobileFontSize.xl },
   value: { ...mobileTypography.body, fontWeight: "700" },
   label: { ...mobileTypography.meta, color: mobileColors.textSecondary }
 });

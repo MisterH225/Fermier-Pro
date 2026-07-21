@@ -12,7 +12,7 @@ import { useModal } from "../../modals/useModal";
 import type { FarmBudgetLineDto, FarmBudgetViewDto } from "../../../lib/api";
 import { fetchFarmBudget } from "../../../lib/api";
 import { invalidateFarmFinanceQueries } from "../../../lib/invalidateFarmFinanceQueries";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../../theme/mobileTheme";
 import { BudgetHeader } from "./BudgetHeader";
 import { BudgetLineCard } from "./BudgetLineCard";
 import { BudgetLineModal } from "./BudgetLineModal";
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   retry: { ...mobileTypography.body, color: mobileColors.accent, marginTop: 8 },
   banner: {
     backgroundColor: mobileColors.accentSoft,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     gap: mobileSpacing.sm
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.xs,
-    borderRadius: 8
+    borderRadius: mobileRadius.sm
   },
   bannerBtnTx: { color: mobileColors.onAccent, fontWeight: "600" },
   section: {
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderStyle: "dashed"
   },
   addTx: {

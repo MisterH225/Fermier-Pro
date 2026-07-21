@@ -16,12 +16,7 @@ import type { FilterPill } from "../../lists/types";
 import { ScreenSection } from "../../layout/ScreenSection";
 import type { AnimalListItem, FarmHealthRecordRowDto } from "../../../lib/api";
 import { activeCaseToEventItem } from "./diseaseUtils";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 export type DiseaseCaseFilterId =
   | "all"
@@ -215,7 +210,7 @@ const styles = StyleSheet.create({
   swipeDisabled: { opacity: 0.6 },
   swipeLabel: {
     color: mobileColors.onAccent,
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     textAlign: "center"
   }

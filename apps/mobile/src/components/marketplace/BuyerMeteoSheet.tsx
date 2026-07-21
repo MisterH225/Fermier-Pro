@@ -2,12 +2,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { METEO_LEVELS } from "../../constants/meteoProfil";
 import type { BuyerMeteoDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
 
 type Props = {
@@ -97,7 +92,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.accent
   },
-  levelIcon: { fontSize: 20 },
+  levelIcon: { fontSize: mobileFontSize.xl },
   levelTexts: { flex: 1, gap: 1 },
   levelTitle: {
     ...mobileTypography.body,

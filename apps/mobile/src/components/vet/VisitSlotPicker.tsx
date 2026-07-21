@@ -9,7 +9,7 @@ import {
 } from "../../lib/visitSlots";
 import { fetchVetAvailability } from "../../lib/api";
 import { vetColors, vetRadius } from "../../theme/vetTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 
 type VisitSlotPickerProps = {
   vetProfileId: string;
@@ -132,8 +132,8 @@ export function VisitSlotPicker({
 
 const styles = StyleSheet.create({
   wrap: { gap: mobileSpacing.sm },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: vetColors.textPrimary },
-  warn: { fontSize: 14, marginVertical: 8 },
+  sectionTitle: { fontSize: mobileFontSize.lg, fontWeight: "700", color: vetColors.textPrimary },
+  warn: { fontSize: mobileFontSize.md, marginVertical: 8 },
   periodRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   periodPill: {
     flex: 1,
@@ -144,8 +144,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center"
   },
-  periodTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: 13 },
-  periodTxOn: { color: "#fff" },
+  periodTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: mobileFontSize.sm },
+  periodTxOn: { color: mobileColors.background },
   slots: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   slot: {
     width: "30%",
@@ -160,5 +160,5 @@ const styles = StyleSheet.create({
     borderColor: vetColors.slotOccupied
   },
   slotTx: { fontWeight: "600", color: vetColors.textPrimary },
-  slotTxInv: { color: "#fff" }
+  slotTxInv: { color: mobileColors.background }
 });

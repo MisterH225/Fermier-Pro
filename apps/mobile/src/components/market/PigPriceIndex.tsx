@@ -11,10 +11,12 @@ import {
   fetchPigPriceIndexTicker,
   type PigPriceIndexPeriod
 } from "../../lib/api";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { CategorySelector, type PigPriceCategoryKey } from "./CategorySelector";
 import { PriceStatsRow } from "./PriceStatsRow";
 import { PriceTickerBar } from "./PriceTickerBar";
+import { buyerColors } from "../../theme/buyerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 function chartToLines(
   series: Awaited<ReturnType<typeof fetchPigPriceIndexChart>>["series"]
@@ -155,12 +157,12 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   badge: {
-    backgroundColor: "#F3F0FF",
+    backgroundColor: uiNamedColors.cF3F0FF,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: mobileRadius.pill
   },
-  badgeText: { fontSize: 10, color: "#7C3AED", fontWeight: "600" },
+  badgeText: { fontSize: mobileFontSize.xs, color: buyerColors.primary, fontWeight: "600" },
   periodRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -171,10 +173,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: mobileRadius.pill,
-    backgroundColor: "#F1F3F5"
+    backgroundColor: uiNamedColors.cF1F3F5
   },
   periodChipOn: { backgroundColor: mobileColors.accent },
-  periodTx: { ...mobileTypography.meta, fontWeight: "600", color: "#495057" },
+  periodTx: { ...mobileTypography.meta, fontWeight: "600", color: uiNamedColors.c495057 },
   periodTxOn: { color: mobileColors.onAccent },
   empty: {
     ...mobileTypography.body,

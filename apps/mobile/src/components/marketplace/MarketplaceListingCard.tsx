@@ -21,14 +21,7 @@ import { ListingImage } from "./ListingImage";
 import { ListingShareButton } from "./ListingShareButton";
 import type { RootStackParamList } from "../../types/navigation";
 import { marketplaceColors } from "../../theme/marketplaceTheme";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileStatusSurfaces,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileStatusSurfaces, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const HEALTH_VERIFIED_MS = 30 * 24 * 60 * 60 * 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -397,7 +390,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.onAccent,
     fontWeight: "600",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   badgeNew: {
     position: "absolute",
@@ -412,7 +405,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   badgeOffers: {
     position: "absolute",
@@ -428,7 +421,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   badgeSold: {
     position: "absolute",
@@ -443,7 +436,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   badgeExpired: {
     position: "absolute",
@@ -458,7 +451,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   badgeHealth: {
     position: "absolute",
@@ -481,7 +474,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     color: mobileStatusSurfaces.successText,
     fontWeight: "700",
-    fontSize: 10
+    fontSize: mobileFontSize.xs
   },
   badgeHealthWarningTx: {
     color: mobileStatusSurfaces.warningText
@@ -492,7 +485,7 @@ const styles = StyleSheet.create({
     right: mobileSpacing.sm,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
@@ -503,7 +496,7 @@ const styles = StyleSheet.create({
     right: mobileSpacing.sm,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
@@ -524,17 +517,17 @@ const styles = StyleSheet.create({
   farmLine: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   ratingLine: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   lineMuted: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   totalLine: {
     ...mobileTypography.body,
@@ -550,7 +543,7 @@ const styles = StyleSheet.create({
   statsTx: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   skeleton: { opacity: 0.7 },
   skeletonPhoto: {
@@ -562,7 +555,7 @@ const styles = StyleSheet.create({
   },
   skeletonLine: {
     height: 12,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.surfaceMuted
   }
 });

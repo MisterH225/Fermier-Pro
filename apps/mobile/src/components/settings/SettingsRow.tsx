@@ -7,7 +7,8 @@ import {
   TextInput,
   View
 } from "react-native";
-import { mobileColors, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 export type SettingsRowProps =
   | {
@@ -70,7 +71,7 @@ export function SettingsRow(props: SettingsRowProps) {
       props.tone === "danger"
         ? mobileColors.error
         : props.tone === "warning"
-          ? "#e67e22"
+          ? uiNamedColors.cE67E22
           : mobileColors.accent;
     return (
       <Pressable
@@ -115,8 +116,8 @@ export function SettingsRow(props: SettingsRowProps) {
           value={props.value}
           onValueChange={props.onValueChange}
           disabled={props.disabled}
-          trackColor={{ false: mobileColors.border, true: "#c7ddff" }}
-          thumbColor={props.value ? mobileColors.accent : "#f4f4f4"}
+          trackColor={{ false: mobileColors.border, true: uiNamedColors.cC7DDFF }}
+          thumbColor={props.value ? mobileColors.accent : uiNamedColors.cF4F4F4}
         />
       </View>
     );
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
     borderBottomColor: mobileColors.border
   },
   rowPressed: {
-    backgroundColor: "#f2f2f7"
+    backgroundColor: mobileColors.canvas
   },
   labelCol: {
     flex: 1
@@ -268,8 +269,8 @@ const styles = StyleSheet.create({
   stepBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f2f2f7",
+    borderRadius: mobileRadius.lg,
+    backgroundColor: mobileColors.canvas,
     alignItems: "center",
     justifyContent: "center"
   },

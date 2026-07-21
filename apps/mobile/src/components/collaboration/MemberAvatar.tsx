@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { mobileColors, mobileRadius } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   name: string;
@@ -15,8 +17,8 @@ function initials(name: string): string {
 }
 
 const COLORS = [
-  "#7E3FF2", "#1C7ED6", "#2F9E44", "#E8590C",
-  "#F59F00", "#D64545", "#0CA678"
+  uiNamedColors.c7E3FF2, uiNamedColors.c1C7ED6, producerColors.primary, uiNamedColors.cE8590C,
+  uiNamedColors.cF59F00, mobileColors.error, uiNamedColors.c0CA678
 ];
 
 function colorForName(name: string): string {

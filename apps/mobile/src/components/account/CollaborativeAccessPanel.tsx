@@ -17,12 +17,7 @@ import {
   buildInvitationShareUrl,
   fetchFarmDefaultInvitation
 } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { InviteModal as CollaborativeAccessShareModal } from "../collaboration/InviteModal";
 
 type Props = {
@@ -233,7 +228,7 @@ const styles = StyleSheet.create({
   },
   infoBody: {
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     lineHeight: 18,
     color: mobileColors.textSecondary
   },
@@ -256,7 +251,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: mobileColors.textSecondary,
     textAlign: "center"
@@ -278,7 +273,7 @@ const styles = StyleSheet.create({
   linkText: {
     flex: 1,
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textPrimary
   },
   copyBtn: {
@@ -306,7 +301,7 @@ const styles = StyleSheet.create({
   },
   ctaSecondaryTxt: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
@@ -315,13 +310,13 @@ const styles = StyleSheet.create({
   },
   ctaPrimaryTxt: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: mobileColors.onAccent
   },
   subHint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: mobileColors.textSecondary,
     textAlign: "center"
@@ -340,7 +335,7 @@ const styles = StyleSheet.create({
   emptyTxt: {
     flex: 1,
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   errorTxt: {

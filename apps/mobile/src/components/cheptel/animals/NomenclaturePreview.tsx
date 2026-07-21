@@ -10,6 +10,7 @@ import {
   mobileRadius,
   mobileTypography
 } from "../../../theme/mobileTheme";
+import { producerColors } from "../../../theme/producerTheme";
 
 type Props = {
   farmId: string;
@@ -80,6 +81,6 @@ const styles = StyleSheet.create({
   },
   error: {
     ...mobileTypography.meta,
-    color: "#B91C1C"
+    color: producerColors.dangerStrong
   }
 });

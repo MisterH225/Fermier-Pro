@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { merchantColors, merchantShadow, merchantRadius } from "../../../theme/merchantTheme";
 import { MERCHANT_NAV_BAR_HEIGHT } from "./merchantNavMetrics";
 import type { MerchantMainTab } from "./types";
@@ -135,14 +135,14 @@ const styles = StyleSheet.create({
   },
   label: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: merchantColors.textMuted
   },
   labelActive: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "700",
     color: merchantColors.onPrimary

@@ -10,11 +10,7 @@ import { useSession } from "../../context/SessionContext";
 import { fetchFarm, fetchFarmMembers } from "../../lib/api";
 import { hasFarmScope } from "../../lib/menuVisibility";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import { ActivityHistory } from "./ActivityHistory";
 import { DirectoryTab } from "./DirectoryTab";
 import { InviteSection } from "./InviteSection";
@@ -215,7 +211,7 @@ const styles = StyleSheet.create({
   premiumBanner: {
     marginBottom: mobileSpacing.md,
     padding: mobileSpacing.md,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.accentSoft,
     borderWidth: 1,
     borderColor: mobileColors.accent,
@@ -235,12 +231,12 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingVertical: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.md,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     backgroundColor: mobileColors.accent
   },
   premiumBannerCtaTxt: {
     ...mobileTypography.meta,
-    color: "#fff",
+    color: mobileColors.background,
     fontWeight: "700"
   }
 });

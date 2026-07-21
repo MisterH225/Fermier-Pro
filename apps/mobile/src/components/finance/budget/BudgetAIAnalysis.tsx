@@ -14,12 +14,7 @@ import {
   type BudgetAiRecommendation
 } from "../../../lib/api";
 import { invalidateBudgetQueries } from "../../../lib/finance/invalidateFinanceQueries";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { formatBudgetMoney } from "./budgetUtils";
 
 type Props = {
@@ -169,7 +164,7 @@ const styles = StyleSheet.create({
   analysisTx: { ...mobileTypography.body, color: mobileColors.textPrimary },
   aiBadge: {
     marginTop: 8,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.accent
   },

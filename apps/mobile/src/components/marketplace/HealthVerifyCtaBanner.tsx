@@ -2,13 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileStatusSurfaces,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileStatusSurfaces, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type HealthVerifyCtaVariant = "default" | "expired";
 
@@ -127,7 +121,7 @@ const styles = StyleSheet.create({
     color: mobileStatusSurfaces.warningText
   },
   dismiss: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     lineHeight: 22,
     color: mobileColors.textSecondary,
     paddingHorizontal: 4

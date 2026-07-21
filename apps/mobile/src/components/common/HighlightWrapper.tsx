@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
-import { mobileColors } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius } from "../../theme/mobileTheme";
 
 const HIGHLIGHT_MS = 2000;
 
@@ -72,7 +72,7 @@ export function HighlightWrapper({ active, children, style }: Props) {
 
 const styles = StyleSheet.create({
   wrap: {
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 2
   }
 });

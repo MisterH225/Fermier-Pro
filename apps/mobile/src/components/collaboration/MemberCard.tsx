@@ -2,12 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmMemberDto } from "../../lib/api";
 import { ROLE_BADGE_COLOR, ROLE_DISPLAY_FR } from "../../lib/memberPermissions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { MemberAvatar } from "./MemberAvatar";
 
 type Props = {
@@ -84,7 +79,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill
   },
   badgeTxt: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     letterSpacing: 0.3
   }

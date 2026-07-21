@@ -14,12 +14,7 @@ import {
   type VaccineSubjectRowDto,
   type VaccineSubjectStatus
 } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type InnerTab = VaccineSubjectStatus;
 
@@ -162,7 +157,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: `${mobileColors.accent}14`
   },
-  pillTx: { fontSize: 12, color: mobileColors.textSecondary },
+  pillTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   pillTxOn: { color: mobileColors.accent, fontWeight: "700" },
   row: {
     flexDirection: "row",
@@ -189,7 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm,
     backgroundColor: `${mobileColors.accent}18`
   },
-  vacBtnTx: { fontSize: 12, fontWeight: "700", color: mobileColors.accent },
+  vacBtnTx: { fontSize: mobileFontSize.sm, fontWeight: "700", color: mobileColors.accent },
   empty: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

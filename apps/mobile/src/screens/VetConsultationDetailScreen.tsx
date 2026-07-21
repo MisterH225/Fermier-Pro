@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
@@ -21,6 +21,7 @@ import { fetchVetConsultation, patchVetConsultation } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 import { useBottomInset } from "../hooks/useBottomInset";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -155,7 +156,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
           value={editSubject}
           onChangeText={setEditSubject}
           placeholder="Objet du dossier"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
         />
         <Text style={styles.editLabel}>Résumé</Text>
         <TextInput
@@ -163,7 +164,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
           value={editSummary}
           onChangeText={setEditSummary}
           placeholder="Symptômes, contexte…"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
           multiline
         />
         <TouchableOpacity
@@ -323,115 +324,115 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: mobileColors.canvas
   },
-  error: { color: "#a34c24", textAlign: "center" },
-  farmHint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 12 },
+  error: { color: producerColors.accent, textAlign: "center" },
+  farmHint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginBottom: 12 },
   block: {
     marginBottom: 14,
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
   label: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textSecondary,
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5
   },
-  value: { fontSize: 15, color: mobileColors.textPrimary, lineHeight: 22 },
+  value: { fontSize: mobileFontSize.md, color: mobileColors.textPrimary, lineHeight: 22 },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginTop: 8,
     marginBottom: 10
   },
-  muted: { fontSize: 14, color: mobileColors.textSecondary },
+  muted: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary },
   attachRow: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
-  attachLabel: { fontSize: 15, fontWeight: "600", color: mobileColors.accent },
-  attachUrl: { fontSize: 12, color: mobileColors.textSecondary, marginTop: 4 },
+  attachLabel: { fontSize: mobileFontSize.md, fontWeight: "600", color: mobileColors.accent },
+  attachUrl: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 4 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 },
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: mobileFontSize.md },
   actionBox: {
     marginBottom: 14,
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
   actionTitle: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginBottom: 12
   },
   actionBtn: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     paddingVertical: 12,
     alignItems: "center",
     marginBottom: 10
   },
   actionBtnDanger: {
     backgroundColor: mobileColors.background,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#c47a6a"
+    borderColor: producerColors.coralBorder
   },
-  actionBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 15 },
-  actionBtnDangerText: { color: "#a34c24", fontWeight: "700", fontSize: 15 },
+  actionBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.md },
+  actionBtnDangerText: { color: producerColors.accent, fontWeight: "700", fontSize: mobileFontSize.md },
   actionBtnDisabled: { opacity: 0.55 },
   editCard: {
     marginBottom: 14,
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
   editTitle: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginBottom: 12
   },
   editLabel: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textSecondary,
     marginBottom: 6
   },
   editInput: {
     backgroundColor: mobileColors.canvas,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary,
     marginBottom: 12
   },
   editMultiline: { minHeight: 100, textAlignVertical: "top" },
   saveBtn: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     paddingVertical: 12,
     alignItems: "center",
     marginTop: 4
   },
-  saveBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 15 }
+  saveBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.md }
 });

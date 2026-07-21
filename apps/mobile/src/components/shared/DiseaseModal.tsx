@@ -36,12 +36,9 @@ import {
 import { HealthSubjectPicker } from "../sante/HealthSubjectPicker";
 import { animalDisplayTag } from "../cheptel/animals/animalUtils";
 import { toIsoDate } from "../sante/healthUtils";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileKpiPalette, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 export const DISEASE_SYMPTOM_TAGS = [
   "Fièvre",
@@ -498,9 +495,9 @@ export function DiseaseModal({
         <View style={styles.severityRow}>
           {(
             [
-              { key: "mild", label: t("health.diseaseModal.severityMild"), color: "#22C55E" },
-              { key: "moderate", label: t("health.diseaseModal.severityModerate"), color: "#F97316" },
-              { key: "severe", label: t("health.diseaseModal.severitySevere"), color: "#DC2626" }
+              { key: "mild", label: t("health.diseaseModal.severityMild"), color: producerColors.chartGreen },
+              { key: "moderate", label: t("health.diseaseModal.severityModerate"), color: mobileKpiPalette.gestation.accent },
+              { key: "severe", label: t("health.diseaseModal.severitySevere"), color: uiNamedColors.cDC2626 }
             ] as const
           ).map((s) => (
             <Pressable
@@ -633,7 +630,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.accent
   },
-  addBtnText: { color: mobileColors.onAccent, fontSize: 22, fontWeight: "700" },
+  addBtnText: { color: mobileColors.onAccent, fontSize: mobileFontSize.xl, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -705,5 +702,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

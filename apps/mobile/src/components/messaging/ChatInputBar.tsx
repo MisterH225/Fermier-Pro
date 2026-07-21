@@ -20,11 +20,7 @@ import {
   type PhoneWarningVariant
 } from "../chat/PhoneWarningBanner";
 import { containsPhone } from "../../services/chat/PhoneNumberDetector";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type PendingImage = {
   uri: string;
@@ -276,13 +272,13 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   sendBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center"
@@ -311,7 +307,7 @@ const styles = StyleSheet.create({
   },
   previewOverlayText: {
     color: mobileColors.onAccent,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600"
   },
   previewClose: {

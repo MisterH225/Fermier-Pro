@@ -5,17 +5,14 @@ import { useTranslation } from "react-i18next";
 import type { FeedPostDto } from "../../lib/api/community-feed";
 import { ProfileBadge } from "../feed/ProfileBadge";
 import { ModerationWarningBanner } from "../feed/ModerationWarningBanner";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { FeedAvatar } from "./FeedAvatar";
 import { FeedCommentInputBar } from "./FeedCommentInputBar";
 import { FeedCommentThread } from "./FeedCommentThread";
 import { FeedLikesRow } from "./FeedLikesRow";
 import { formatFeedTime, resolveAuthorDisplayName } from "./feedDisplayUtils";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const POST_TYPE_LABELS: Record<string, string> = {
   question: "Question",
@@ -170,7 +167,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   vetHighlight: {
-    borderColor: "#4A90D9",
+    borderColor: uiNamedColors.c4A90D9,
     borderWidth: 1
   },
   header: {
@@ -190,7 +187,7 @@ const styles = StyleSheet.create({
   },
   authorName: {
     ...mobileTypography.cardTitle,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   metaRow: {
     flexDirection: "row",
@@ -217,7 +214,7 @@ const styles = StyleSheet.create({
   },
   conditionalHint: {
     ...mobileTypography.meta,
-    color: "#92400E",
+    color: merchantColors.amberText,
     marginTop: mobileSpacing.xs
   },
   likeRow: {

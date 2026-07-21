@@ -1,10 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   label: string;
@@ -81,7 +77,7 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.88 },
-  label: { fontSize: 15, fontWeight: "800", textAlign: "center" },
+  label: { fontSize: mobileFontSize.md, fontWeight: "800", textAlign: "center" },
   primaryLabel: { color: mobileColors.onAccent },
   secondaryLabel: { color: mobileColors.accent }
 });

@@ -28,8 +28,9 @@ import { fetchMerchantDashboard, fetchMerchantMe } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
 
 export function MerchantDashboardScreen() {
   const { t } = useTranslation();
@@ -170,7 +171,7 @@ export function MerchantDashboardScreen() {
               <Text style={styles.kpiLabel}>{t("merchant.kpi.revenue")}</Text>
             </Pressable>
             <Pressable
-              style={[styles.kpiCard, { backgroundColor: "#FFF3E0" }]}
+              style={[styles.kpiCard, { backgroundColor: mobileStatusSurfaces.warningBg }]}
               onPress={() => navigation.navigate("MerchantOrders", { filter: "payment_pending" })}
             >
               <Text style={[styles.kpiValue, { color: merchantColors.warning }]}>
@@ -179,7 +180,7 @@ export function MerchantDashboardScreen() {
               <Text style={styles.kpiLabel}>{t("merchant.kpi.pendingOrders")}</Text>
             </Pressable>
             <Pressable
-              style={[styles.kpiCard, { backgroundColor: "#E8F5E9" }]}
+              style={[styles.kpiCard, { backgroundColor: mobileStatusSurfaces.positiveBg }]}
               onPress={() => navigation.navigate("MerchantProducts")}
             >
               <Text style={[styles.kpiValue, { color: merchantColors.success }]}>
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
   heroIconBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: merchantColors.cardBg,
     alignItems: "center",
     justifyContent: "center",
@@ -266,17 +267,17 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     alignItems: "center"
   },
-  kpiValue: { fontSize: 22, fontWeight: "800" },
+  kpiValue: { fontSize: mobileFontSize.xl, fontWeight: "800" },
   kpiLabel: { ...mobileTypography.meta, textAlign: "center", marginTop: 4 },
   alertCard: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: producerColors.kpiAmberSoft,
     borderRadius: merchantRadius.card,
     padding: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: "#F59E0B",
+    borderColor: producerColors.warning,
     gap: 6
   },
-  alertLine: { color: "#92400E", fontWeight: "600" },
+  alertLine: { color: merchantColors.amberText, fontWeight: "600" },
   moderationCard: {
     backgroundColor: merchantColors.cardBg,
     borderRadius: merchantRadius.card,
@@ -287,5 +288,5 @@ const styles = StyleSheet.create({
   },
   moderationRow: { gap: 2 },
   moderationProduct: { fontWeight: "700" },
-  moderationReason: { color: merchantColors.textSecondary, fontSize: 13 }
+  moderationReason: { color: merchantColors.textSecondary, fontSize: mobileFontSize.sm }
 });

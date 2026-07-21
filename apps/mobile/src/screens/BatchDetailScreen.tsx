@@ -39,15 +39,12 @@ import {
   type PostBatchHealthEventPayload
 } from "../lib/api";
 import { isOfflineQueuedResult } from "../lib/offline/types";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 import { useBottomInset } from "../hooks/useBottomInset";
+import { marketplaceColors } from "../theme/marketplaceTheme";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BatchDetail">;
 
@@ -621,24 +618,24 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   feedTitle: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginBottom: 8
   },
   feedBody: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     color: mobileColors.textSecondary
   },
   notes: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     fontStyle: "italic",
     marginBottom: 16
   },
   section: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: mobileColors.accent,
     marginBottom: 10,
@@ -651,17 +648,17 @@ const styles = StyleSheet.create({
     marginTop: 28
   },
   healthScopeHint: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.warning,
     lineHeight: 20,
     marginBottom: 8
   },
   mono: {
     fontFamily: "monospace",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   subSection: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     marginBottom: 8,
@@ -687,7 +684,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accentSoft
   },
   severityChipText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   severityChipTextOn: {
@@ -705,7 +702,7 @@ const styles = StyleSheet.create({
   btnOutlineText: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   healthCard: {
     backgroundColor: mobileColors.background,
@@ -723,27 +720,27 @@ const styles = StyleSheet.create({
   },
   healthTitle: {
     flex: 1,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
   sevBadge: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     overflow: "hidden"
   },
   sevWatch: {
-    color: "#8b4513",
-    backgroundColor: "#fff3e0"
+    color: marketplaceColors.note,
+    backgroundColor: mobileStatusSurfaces.warningBg
   },
   sevUrgent: {
     color: mobileColors.error,
-    backgroundColor: "#ffebee"
+    backgroundColor: producerColors.kpiRose
   },
   input: {
     backgroundColor: mobileColors.background,
@@ -752,7 +749,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     marginBottom: 10
   },
@@ -771,7 +768,7 @@ const styles = StyleSheet.create({
   btnText: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   emptyHist: {
     color: mobileColors.textSecondary,
@@ -786,17 +783,17 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   rowMain: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
   rowSub: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginTop: 4
   },
   rowNote: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginTop: 6
   },
@@ -811,7 +808,7 @@ const styles = StyleSheet.create({
   btnDangerText: {
     color: mobileColors.error,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   deleteHint: {
     ...mobileTypography.meta,

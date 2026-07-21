@@ -8,7 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "../../context/SessionContext";
 import { createMerchantShop } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type CreatedShop = { id: string; name: string };
@@ -51,7 +51,7 @@ export function MerchantShopScreen() {
           placeholder={t("merchant.onboarding.shopName")}
         />
         <Pressable style={styles.btn} onPress={() => void submit()} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnTx}>{t("merchant.onboarding.createShop")}</Text>}
+          {busy ? <ActivityIndicator color={mobileColors.background} /> : <Text style={styles.btnTx}>{t("merchant.onboarding.createShop")}</Text>}
         </Pressable>
         {error ? <Text style={styles.err}>{error}</Text> : null}
       </View>
@@ -62,13 +62,13 @@ export function MerchantShopScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
   body: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  title: { fontSize: 20, fontWeight: "700" },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   btn: {
     backgroundColor: mobileColors.accent,
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  btnTx: { color: "#fff", fontWeight: "700" },
+  btnTx: { color: mobileColors.background, fontWeight: "700" },
   err: { color: mobileColors.error }
 });

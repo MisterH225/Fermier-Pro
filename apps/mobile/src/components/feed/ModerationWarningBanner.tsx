@@ -1,5 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   message: string;
@@ -9,15 +12,15 @@ type Props = {
 export function ModerationWarningBanner({ message, severity = "low" }: Props) {
   const bg =
     severity === "high"
-      ? "#FEE2E2"
+      ? mobileStatusSurfaces.errorBg
       : severity === "medium"
-        ? "#FEF3C7"
-        : "#EFF6FF";
+        ? producerColors.kpiAmberSoft
+        : uiNamedColors.cEFF6FF;
   const color =
     severity === "high"
-      ? "#B91C1C"
+      ? producerColors.dangerStrong
       : severity === "medium"
-        ? "#92400E"
+        ? merchantColors.amberText
         : mobileColors.textSecondary;
 
   return (
@@ -35,7 +38,7 @@ const styles = StyleSheet.create({
   },
   text: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 16
   }
 });

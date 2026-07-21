@@ -12,12 +12,7 @@ import {
 import { BaseModal } from "../modals/BaseModal";
 import type { FarmTaskDto } from "../../lib/api";
 import { deleteFarmTask, patchFarmTaskStatus } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { taskCategoryMeta } from "./taskConstants";
 import { priorityBadge, taskDueMeta } from "./taskUtils";
 
@@ -227,7 +222,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm,
     marginBottom: mobileSpacing.md
   },
-  emoji: { fontSize: 32 },
+  emoji: { fontSize: mobileFontSize.xxl },
   catName: { ...mobileTypography.cardTitle, color: mobileColors.textPrimary },
   row: {
     flexDirection: "row",
@@ -261,5 +256,5 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

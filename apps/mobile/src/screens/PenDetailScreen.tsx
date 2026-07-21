@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutEffect } from "react";
 import {
@@ -17,6 +17,7 @@ import { fetchPenDetail } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 import { useBottomInset } from "../hooks/useBottomInset";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PenDetail">;
 
@@ -204,19 +205,19 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: mobileColors.canvas
   },
-  error: { color: "#a34c24", textAlign: "center" },
-  farmHint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 4 },
-  barnLine: { fontSize: 14, color: mobileColors.accent, marginBottom: 14 },
+  error: { color: producerColors.accent, textAlign: "center" },
+  farmHint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginBottom: 4 },
+  barnLine: { fontSize: mobileFontSize.md, color: mobileColors.accent, marginBottom: 14 },
   block: {
     marginBottom: 12,
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
   label: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textSecondary,
     marginBottom: 6,
@@ -224,24 +225,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   },
   labelSpaced: { marginTop: 10 },
-  value: { fontSize: 15, color: mobileColors.textPrimary, lineHeight: 22 },
-  meta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 8 },
+  value: { fontSize: mobileFontSize.md, color: mobileColors.textPrimary, lineHeight: 22 },
+  meta: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 8 },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginTop: 8,
     marginBottom: 10
   },
   sectionSpacer: { marginTop: 16 },
-  muted: { fontSize: 14, color: mobileColors.textSecondary, marginBottom: 8 },
-  logTitle: { fontSize: 15, fontWeight: "700", color: mobileColors.textPrimary },
-  logBody: { fontSize: 14, color: "#4a5238", marginTop: 8, lineHeight: 20 },
+  muted: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, marginBottom: 8 },
+  logTitle: { fontSize: mobileFontSize.md, fontWeight: "700", color: mobileColors.textPrimary },
+  logBody: { fontSize: mobileFontSize.md, color: producerColors.oliveInk, marginTop: 8, lineHeight: 20 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 },
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: mobileFontSize.md },
   moveBtn: { marginTop: 12, alignSelf: "flex-start" },
   moveBtnText: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: mobileColors.accent
   }

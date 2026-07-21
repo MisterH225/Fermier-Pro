@@ -29,11 +29,7 @@ import {
 } from "../../lib/api";
 import { getUserFacingError } from "../../lib/userFacingError";
 import { buyerColors } from "../../theme/buyerTheme";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import {
   healthVerifiedDaysAgo,
@@ -368,7 +364,7 @@ const styles = StyleSheet.create({
   listHeader: { gap: mobileSpacing.sm, marginBottom: mobileSpacing.sm },
   searchRow: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border,
     paddingHorizontal: mobileSpacing.md

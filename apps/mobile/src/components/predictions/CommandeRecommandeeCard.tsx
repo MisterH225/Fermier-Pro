@@ -1,12 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmPredictionsPayload } from "../../lib/api/predictions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { formatPredictionDate } from "./predictionFormatters";
 
 type Props = {
@@ -82,5 +77,5 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.md
   },
-  ctaText: { color: "#fff", fontWeight: "600", fontSize: 13 }
+  ctaText: { color: mobileColors.background, fontWeight: "600", fontSize: mobileFontSize.sm }
 });

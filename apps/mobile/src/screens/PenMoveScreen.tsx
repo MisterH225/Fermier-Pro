@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getUserFacingError } from "../lib/userFacingError";
@@ -22,6 +22,7 @@ import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../lib/api";
 import { invalidateCheptelCaches, CHEPTEL_PEN_MOVE_ROOTS } from "../lib/cheptelQueries";
 import { resolvePenOccupancy } from "../lib/penOccupancy";
 import type { RootStackParamList } from "../types/navigation";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PenMove">;
 
@@ -147,7 +148,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
           value={note}
           onChangeText={setNote}
           placeholder="Motif, observations…"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
           multiline
         />
 
@@ -155,7 +156,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
           <>
             <Text style={styles.sectionTitle}>Choisir un bâtiment</Text>
             {barnsQuery.isPending ? (
-              <ActivityIndicator color="#5d7a1f" />
+              <ActivityIndicator color={producerColors.olive} />
             ) : (
               barns.map((b) => (
                 <TouchableOpacity
@@ -181,7 +182,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
             </TouchableOpacity>
             <Text style={styles.sectionTitle}>Choisir une loge d’arrivée</Text>
             {barnDetailQuery.isPending ? (
-              <ActivityIndicator color="#5d7a1f" />
+              <ActivityIndicator color={producerColors.olive} />
             ) : pens.length === 0 ? (
               <Text style={styles.muted}>
                 Aucune autre loge dans ce bâtiment. Choisis un autre bâtiment.
@@ -218,49 +219,49 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: mobileColors.canvas
   },
-  error: { color: "#a34c24", textAlign: "center" },
-  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 6 },
+  error: { color: producerColors.accent, textAlign: "center" },
+  hint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginBottom: 6 },
   fromLine: {
-    fontSize: 14,
-    color: "#5d7a1f",
+    fontSize: mobileFontSize.md,
+    color: producerColors.olive,
     marginBottom: 16,
     fontWeight: "600"
   },
   label: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: "#4a5238",
+    color: producerColors.oliveInk,
     marginBottom: 8
   },
   input: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     marginBottom: 16
   },
   noteInput: { minHeight: 72, textAlignVertical: "top" },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginBottom: 10
   },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
-  cardMeta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 6 },
+  cardTitle: { fontSize: mobileFontSize.lg, fontWeight: "700", color: mobileColors.textPrimary },
+  cardMeta: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 6 },
   backBarn: { marginBottom: 12 },
-  backBarnText: { fontSize: 15, fontWeight: "700", color: "#5d7a1f" },
-  muted: { fontSize: 14, color: mobileColors.textSecondary }
+  backBarnText: { fontSize: mobileFontSize.md, fontWeight: "700", color: producerColors.olive },
+  muted: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary }
 });

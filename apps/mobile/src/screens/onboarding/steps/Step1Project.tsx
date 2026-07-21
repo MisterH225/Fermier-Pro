@@ -2,12 +2,7 @@ import * as Location from "expo-location";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { useOnboarding } from "../../../hooks/useOnboarding";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Ob = ReturnType<typeof useOnboarding>;
 
@@ -88,7 +83,7 @@ export function Step1Project({ ob }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { gap: mobileSpacing.sm },
-  title: { ...mobileTypography.title, fontSize: 22 },
+  title: { ...mobileTypography.title, fontSize: mobileFontSize.xl },
   sub: { ...mobileTypography.meta, color: mobileColors.textSecondary, marginBottom: 8 },
   label: {
     ...mobileTypography.meta,

@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileStatusSurfaces,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileStatusSurfaces, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export function DetailCard({
   children,
@@ -73,7 +66,7 @@ const detailStyles = StyleSheet.create({
   },
   sectionLabel: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -108,7 +101,7 @@ const detailStyles = StyleSheet.create({
   statusBadgeTx: {
     ...mobileTypography.meta,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   badgePublished: { backgroundColor: mobileColors.accentSoft },
   badgeSold: { backgroundColor: mobileColors.surfaceMuted },

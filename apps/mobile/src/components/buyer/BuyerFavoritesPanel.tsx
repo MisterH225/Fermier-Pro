@@ -24,7 +24,7 @@ import {
 } from "../../lib/api";
 import { getUserFacingError } from "../../lib/userFacingError";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 function photoUrl(item: BuyerFavoriteListingDto): string | null {
@@ -332,10 +332,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  producerAvatar: { borderRadius: 32 },
+  producerAvatar: { borderRadius: mobileRadius.xl },
   producerInitial: {
     fontWeight: "700",
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     color: buyerColors.primary
   },
   cardBody: { flex: 1, gap: 2 },

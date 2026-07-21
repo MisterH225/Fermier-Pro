@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { PigPriceIndexTickerDto } from "../../lib/api";
+import { producerColors } from "../../theme/producerTheme";
+import { vetColors } from "../../theme/vetTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   data: PigPriceIndexTickerDto | undefined;
@@ -13,11 +16,11 @@ function variationLabel(
   flatLabel: string
 ): { text: string; color: string } {
   if (v == null || !Number.isFinite(v)) {
-    return { text: flatLabel, color: "#868E96" };
+    return { text: flatLabel, color: uiNamedColors.c868E96 };
   }
   const sign = v > 0 ? "+" : "";
   const emoji = v > 0 ? "📈" : v < 0 ? "📉" : "➡️";
-  const color = v > 0 ? "#2F9E44" : v < 0 ? "#E03131" : "#868E96";
+  const color = v > 0 ? producerColors.primary : v < 0 ? uiNamedColors.cE03131 : uiNamedColors.c868E96;
   return { text: `${sign}${v.toFixed(1)}% ${emoji}`, color };
 }
 
@@ -77,11 +80,11 @@ export function PriceTickerBar({ data }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     overflow: "hidden",
-    backgroundColor: "#1A1D23",
-    borderRadius: 10,
+    backgroundColor: vetColors.textPrimary,
+    borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.sm
   },
   row: { flexDirection: "row", gap: mobileSpacing.lg, paddingHorizontal: mobileSpacing.md },
   chip: { paddingRight: mobileSpacing.lg },
-  chipText: { ...mobileTypography.meta, color: "#E9ECEF", fontSize: 13 }
+  chipText: { ...mobileTypography.meta, color: uiNamedColors.cE9ECEF, fontSize: mobileFontSize.sm }
 });

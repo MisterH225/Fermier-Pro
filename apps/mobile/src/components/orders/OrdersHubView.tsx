@@ -28,14 +28,11 @@ import {
 } from "../../lib/ordersHub";
 import { openBuyerOffersHub } from "../../lib/buyerMarketplacePending";
 import { openProducerOffersHub } from "../../lib/producerMarketplacePending";
-import {
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileRadius, mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { OrderCard } from "./OrderCard";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const SEGMENTS: OrdersHubUiSegment[] = [
   "action_required",
@@ -363,15 +360,15 @@ const styles = StyleSheet.create({
   badge: {
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: mobileRadius.sm,
     paddingHorizontal: 5,
-    backgroundColor: "#DC2626",
+    backgroundColor: uiNamedColors.cDC2626,
     alignItems: "center",
     justifyContent: "center"
   },
   badgeText: {
-    color: "#fff",
-    fontSize: 10,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.xs,
     fontWeight: "800"
   },
   loader: { marginTop: mobileSpacing.xl },
@@ -406,7 +403,7 @@ const styles = StyleSheet.create({
   },
   reviewTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   reviewMeta: {
     ...mobileTypography.meta

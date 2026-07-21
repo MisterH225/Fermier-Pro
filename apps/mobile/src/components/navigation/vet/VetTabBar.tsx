@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { vetColors, vetRadius, vetShadow } from "../../../theme/vetTheme";
 import { VET_NAV_BAR_HEIGHT } from "./vetNavMetrics";
 import type { VetMainTab } from "./types";
@@ -162,14 +162,14 @@ const styles = StyleSheet.create({
   },
   label: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: vetColors.textMuted
   },
   labelActive: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     lineHeight: 13,
     fontWeight: "700",
     color: vetColors.onPrimary
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   plusLabel: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: vetColors.textSecondary

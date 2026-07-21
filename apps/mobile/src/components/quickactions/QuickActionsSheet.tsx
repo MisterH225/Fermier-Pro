@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import {
   PRODUCER_QUICK_ACTION_IDS,
   type ProducerQuickActionId
@@ -127,7 +122,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: mobileColors.accentSoft
@@ -135,7 +130,7 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.cardTitle,
     flex: 1,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   }
 });

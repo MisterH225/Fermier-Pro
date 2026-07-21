@@ -10,7 +10,7 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DeleteAccountComplete">;
@@ -67,12 +67,12 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.xl
   },
   icon: {
-    fontSize: 48,
+    fontSize: mobileFontSize.xxl,
     marginBottom: mobileSpacing.lg
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary,
     textAlign: "center",
     marginBottom: mobileSpacing.md
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     opacity: 0.7
   },
   btnTx: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.onAccent
   }

@@ -18,12 +18,7 @@ import { useSession } from "../context/SessionContext";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { searchVets } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VetSearch">;
@@ -175,7 +170,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: `${mobileColors.accent}14`
   },
-  pillTx: { fontSize: 12, color: mobileColors.textSecondary },
+  pillTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   pillTxOn: { color: mobileColors.accent, fontWeight: "700" },
   list: {},
   empty: {

@@ -23,12 +23,7 @@ import {
   postOnboardingSkip
 } from "../../lib/api";
 import { useModal } from "../../components/modals/useModal";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { Step1Project } from "./steps/Step1Project";
 import { Step2Breeders } from "./steps/Step2Breeders";
 import { Step3Production } from "./steps/Step3Production";
@@ -235,6 +230,6 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryFull: { flex: 1 },
-  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   disabled: { opacity: 0.5 }
 });

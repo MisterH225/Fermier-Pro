@@ -62,13 +62,7 @@ import {
 import {
   listingStatusLabel
 } from "../lib/marketplaceLabels";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import { buyerColors, buyerStackScreenOptions } from "../theme/buyerTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
@@ -881,7 +875,7 @@ const styles = StyleSheet.create({
   headerAction: {
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   headerActionRow: {
     flexDirection: "row",
@@ -899,7 +893,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   tabCentered: {
     flex: 1,
@@ -946,14 +940,14 @@ const styles = StyleSheet.create({
   filterAdv: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border
   },
-  filterAdvTx: { fontSize: 20 },
+  filterAdvTx: { fontSize: mobileFontSize.xl },
   colWrap: {
     justifyContent: "space-between",
     marginBottom: mobileSpacing.md,
@@ -981,7 +975,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     overflow: "hidden",
     ...mobileShadows.card
   },
@@ -1000,7 +994,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  photoPhTx: { fontSize: 36, opacity: 0.35 },
+  photoPhTx: { fontSize: mobileFontSize.xxl, opacity: 0.35 },
   badgeCat: {
     position: "absolute",
     left: 8,
@@ -1008,11 +1002,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.55)",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8
+    borderRadius: mobileRadius.sm
   },
   badgeCatTx: {
     color: mobileColors.onAccent,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700"
   },
   badgeNew: {
@@ -1022,21 +1016,21 @@ const styles = StyleSheet.create({
     backgroundColor: PILL_ACTIVE,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6
+    borderRadius: mobileRadius.sm
   },
-  badgeNewTx: { color: mobileColors.onAccent, fontSize: 10, fontWeight: "800" },
+  badgeNewTx: { color: mobileColors.onAccent, fontSize: mobileFontSize.xs, fontWeight: "800" },
   favBtn: {
     position: "absolute",
     right: 8,
     top: 8,
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "rgba(255,215,128,0.95)",
     alignItems: "center",
     justifyContent: "center"
   },
-  favTx: { fontSize: 16 },
+  favTx: { fontSize: mobileFontSize.lg },
   cardBody: {
     padding: mobileSpacing.sm
   },
@@ -1076,7 +1070,7 @@ const styles = StyleSheet.create({
   },
   kpiVal: {
     ...mobileTypography.cardTitle,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   kpiLab: {
@@ -1130,6 +1124,6 @@ const styles = StyleSheet.create({
   withdrawTxt: {
     color: mobileColors.warning,
     fontWeight: "700",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   }
 });

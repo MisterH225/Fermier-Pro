@@ -16,12 +16,7 @@ import {
   fetchDetectedBatches,
   fetchFarmAnimals
 } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { AddWeightModal } from "./AddWeightModal";
 import { ConfirmDetectedBatchModal } from "./ConfirmDetectedBatchModal";
 import { GMQCard } from "./GMQCard";
@@ -300,7 +295,7 @@ const styles = StyleSheet.create({
   editBtnTx: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   confirmBtn: {
     backgroundColor: mobileColors.accent,
@@ -311,7 +306,7 @@ const styles = StyleSheet.create({
   confirmBtnTx: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   batchMeta: {
     ...mobileTypography.meta,

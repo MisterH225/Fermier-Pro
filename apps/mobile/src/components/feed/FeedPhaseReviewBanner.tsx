@@ -13,12 +13,7 @@ import {
   type FeedProductionPhaseDto,
   type FeedTypeDto
 } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const PHASE_OPTIONS: FeedProductionPhaseDto[] = [
   "sous_mere",
@@ -166,5 +161,5 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.surface
   },
   pillSuggested: { borderColor: mobileColors.accent },
-  pillTx: { ...mobileTypography.meta, fontSize: 11 }
+  pillTx: { ...mobileTypography.meta, fontSize: mobileFontSize.xs }
 });

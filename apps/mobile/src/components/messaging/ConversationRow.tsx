@@ -8,13 +8,7 @@ import {
   chatRoomListingPill,
   chatRoomTitle
 } from "../../lib/messaging/chatRoomDisplay";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type ConversationRowProps = {
   room: ChatRoomListItem;
@@ -114,14 +108,14 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarTx: {
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.accent
   },
   avatarBadge: {
@@ -130,14 +124,14 @@ const styles = StyleSheet.create({
     bottom: -2,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border
   },
-  avatarBadgeTx: { fontSize: 10 },
+  avatarBadgeTx: { fontSize: mobileFontSize.xs },
   body: { flex: 1, minWidth: 0, gap: 2 },
   topRow: {
     flexDirection: "row",
@@ -155,7 +149,7 @@ const styles = StyleSheet.create({
   time: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   contextPill: {
     alignSelf: "flex-start",
@@ -168,25 +162,25 @@ const styles = StyleSheet.create({
   contextPillTx: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   preview: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   unreadBadge: {
     minWidth: 22,
     height: 22,
     paddingHorizontal: 6,
-    borderRadius: 11,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center"
   },
   unreadBadgeTx: {
     color: mobileColors.onAccent,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "800"
   }
 });

@@ -22,27 +22,22 @@ import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { fetchMyProducerScore, postRecomputeProducerScore } from "../../lib/api";
 import { getUserFacingError } from "../../lib/userFacingError";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerScoreDashboard">;
 
 const CHART_BAR_MAX_HEIGHT = 112;
 
 function barColor(value: number): string {
-  if (value >= 75) return "#6BCB77";
-  if (value >= 50) return "#FFB84D";
-  return "#FF8C5A";
+  if (value >= 75) return producerColors.scoreGood;
+  if (value >= 50) return producerColors.scoreMid;
+  return producerColors.scoreLow;
 }
 
 function iconBgColor(scoreColor: string | undefined): string {
-  if (!scoreColor) return "#FFF4D6";
+  if (!scoreColor) return producerColors.scoreIconBg;
   return `${scoreColor}22`;
 }
 
@@ -255,8 +250,8 @@ export function ProducerScoreDashboardScreen(_props: Props) {
       <View style={styles.insightRow}>
         <InsightCard
           icon="leaf"
-          iconColor="#2F9E44"
-          iconBg="#EAF7EE"
+          iconColor={producerColors.primary}
+          iconBg={producerColors.primaryLight}
           title={t("producerScore.dashboard.achievementBestTitle")}
         >
           <Text style={styles.insightBody}>
@@ -271,8 +266,8 @@ export function ProducerScoreDashboardScreen(_props: Props) {
 
         <InsightCard
           icon="trophy"
-          iconColor="#E3A008"
-          iconBg="#FFF4D6"
+          iconColor={mobileColors.warning}
+          iconBg={producerColors.scoreIconBg}
           title={tierAchievement.title}
         >
           <Text style={styles.insightBody}>{tierAchievement.body}</Text>
@@ -340,7 +335,7 @@ const styles = StyleSheet.create({
   error: { ...mobileTypography.body, color: mobileColors.error, textAlign: "center" },
   heroCard: {
     backgroundColor: mobileColors.background,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.lg,
     gap: mobileSpacing.sm
   },
@@ -352,11 +347,11 @@ const styles = StyleSheet.create({
   heroIconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center"
   },
-  heroEmoji: { fontSize: 22 },
+  heroEmoji: { fontSize: mobileFontSize.xl },
   heroPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -382,13 +377,13 @@ const styles = StyleSheet.create({
     gap: 4
   },
   heroMetricValue: {
-    fontSize: 40,
+    fontSize: mobileFontSize.xxl,
     lineHeight: 44,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   heroMetricUnit: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     lineHeight: 32,
     fontWeight: "500",
     color: mobileColors.textSecondary,
@@ -410,7 +405,7 @@ const styles = StyleSheet.create({
   insightCard: {
     flex: 1,
     backgroundColor: mobileColors.background,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.md,
     gap: mobileSpacing.sm,
     minHeight: 132
@@ -418,7 +413,7 @@ const styles = StyleSheet.create({
   insightIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -434,7 +429,7 @@ const styles = StyleSheet.create({
   },
   chartCard: {
     backgroundColor: mobileColors.background,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.lg,
     gap: mobileSpacing.md
   },
@@ -465,12 +460,12 @@ const styles = StyleSheet.create({
   chartBar: {
     width: "72%",
     maxWidth: 36,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     minHeight: 6
   },
   chartLabel: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },

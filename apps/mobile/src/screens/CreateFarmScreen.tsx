@@ -19,12 +19,7 @@ import {
 import { useActiveProject } from "../context/ActiveProjectContext";
 import { useSession } from "../context/SessionContext";
 import { createFarm, type CreateFarmPayload, type FarmDto } from "../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
 
@@ -371,7 +366,7 @@ const styles = StyleSheet.create({
   gpsBtnTx: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   gpsHint: {
     ...mobileTypography.meta,
@@ -396,7 +391,7 @@ const styles = StyleSheet.create({
   },
   submitText: {
     color: mobileColors.onAccent,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   }
 });

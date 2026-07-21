@@ -1,11 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   onComplete: () => void;
@@ -31,18 +29,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: mobileSpacing.sm,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: producerColors.kpiAmberSoft,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: "#FCD34D"
+    borderColor: uiNamedColors.cFCD34D
   },
-  icon: { fontSize: 20 },
+  icon: { fontSize: mobileFontSize.xl },
   textCol: { flex: 1 },
   text: {
     ...mobileTypography.body,
-    color: "#92400E",
+    color: merchantColors.amberText,
     fontWeight: "600",
     marginBottom: 4
   },

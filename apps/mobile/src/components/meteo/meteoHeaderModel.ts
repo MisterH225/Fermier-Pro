@@ -1,3 +1,4 @@
+import { uiNamedColors } from "../../theme/uiNamedColors";
 import {
   getMeteoLevel,
   type MeteoLevel
@@ -25,7 +26,7 @@ export type MeteoHeaderPresentation = {
   accessibilityLabel: string;
 };
 
-const NEW_TINT = "#9E9E9E";
+const NEW_TINT = uiNamedColors.c9E9E9E;
 const NEW_ICON = "🌤️";
 
 /**

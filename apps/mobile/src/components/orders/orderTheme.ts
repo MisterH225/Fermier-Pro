@@ -1,4 +1,5 @@
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 import {
   mobileColors,
   mobileRadius,
@@ -43,19 +44,19 @@ export type OrderPalette = {
 /** Palette neutre par défaut pour le hub transversal « Mes commandes ». */
 export const ordersPalette: OrderPalette = {
   primary: mobileColors.accent,
-  primarySoft: "#68B978",
+  primarySoft: uiNamedColors.c68B978,
   primaryLight: mobileColors.accentSoft,
-  primaryDark: "#1F7A32",
+  primaryDark: uiNamedColors.c1F7A32,
   cardBg: mobileColors.background,
   textPrimary: mobileColors.textPrimary,
   textSecondary: mobileColors.textSecondary,
-  textMuted: "#9CA3AF",
+  textMuted: uiNamedColors.c9CA3AF,
   warning: mobileColors.warning,
   danger: mobileColors.error,
   border: mobileColors.border,
-  railIdle: "#E5E7EB",
+  railIdle: uiNamedColors.cE5E7EB,
   nodeIdle: mobileColors.surfaceMuted,
-  activityHandle: "#E5E7EB",
+  activityHandle: uiNamedColors.cE5E7EB,
   onPrimary: mobileColors.onAccent,
   radius: {
     card: mobileRadius.lg,
@@ -83,7 +84,7 @@ export const ordersPalette: OrderPalette = {
       background: mobileStatusSurfaces.errorBg,
       foreground: mobileColors.error
     },
-    neutral: { background: "#F3F4F6", foreground: "#374151" }
+    neutral: { background: uiNamedColors.cF3F4F6, foreground: uiNamedColors.c374151 }
   }
 };
 
@@ -100,10 +101,10 @@ export const merchantOrderPalette: OrderPalette = {
   warning: merchantColors.warning,
   danger: merchantColors.danger,
   border: merchantColors.border,
-  railIdle: "#E8E0DA",
-  nodeIdle: "#F0EAE4",
-  activityHandle: "#E0D6CE",
-  onPrimary: "#FFFFFF",
+  railIdle: uiNamedColors.cE8E0DA,
+  nodeIdle: uiNamedColors.cF0EAE4,
+  activityHandle: uiNamedColors.cE0D6CE,
+  onPrimary: uiNamedColors.cFFFFFF,
   radius: merchantRadius,
   shadow: merchantShadow,
   badges: {
@@ -111,10 +112,10 @@ export const merchantOrderPalette: OrderPalette = {
       background: merchantColors.primaryLight,
       foreground: merchantColors.primaryDark
     },
-    active: { background: "#E0F2FE", foreground: "#0369A1" },
-    success: { background: "#DCFCE7", foreground: "#166534" },
-    danger: { background: "#FCE7F3", foreground: merchantColors.danger },
-    neutral: { background: "#F3F4F6", foreground: "#374151" }
+    active: { background: uiNamedColors.cE0F2FE, foreground: uiNamedColors.c0369A1 },
+    success: { background: uiNamedColors.cDCFCE7, foreground: uiNamedColors.c166534 },
+    danger: { background: uiNamedColors.cFCE7F3, foreground: merchantColors.danger },
+    neutral: { background: uiNamedColors.cF3F4F6, foreground: uiNamedColors.c374151 }
   }
 };
 
@@ -123,6 +124,6 @@ export const merchantWarningOrderPalette: OrderPalette = {
   ...merchantOrderPalette,
   badges: {
     ...merchantOrderPalette.badges,
-    danger: { background: "#FEF3C7", foreground: "#92400E" }
+    danger: { background: uiNamedColors.cFEF3C7, foreground: uiNamedColors.c92400E }
   }
 };

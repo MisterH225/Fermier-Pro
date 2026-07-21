@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type ProducerWelcomeHeaderProps = {
   welcomeLabel: string;
@@ -75,12 +75,12 @@ const styles = StyleSheet.create({
   },
   welcome: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   name: {
     ...mobileTypography.cardTitle,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   }
 });

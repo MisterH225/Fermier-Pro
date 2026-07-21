@@ -2,11 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { OnboardingSummary } from "../../../components/onboarding/OnboardingSummary";
 import type { useOnboarding } from "../../../hooks/useOnboarding";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = { ob: ReturnType<typeof useOnboarding> };
 
@@ -31,10 +27,10 @@ export function StepCompletion({ ob }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { gap: mobileSpacing.md },
-  emoji: { fontSize: 48, textAlign: "center" },
+  emoji: { fontSize: mobileFontSize.xxl, textAlign: "center" },
   title: {
     ...mobileTypography.title,
-    fontSize: 24,
+    fontSize: mobileFontSize.xl,
     textAlign: "center",
     color: mobileColors.success
   },

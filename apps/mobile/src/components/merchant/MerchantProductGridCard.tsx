@@ -12,7 +12,7 @@ import {
 import type { MerchantProductDto } from "../../lib/api";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   product: MerchantProductDto;
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     maxWidth: "70%"
   },
   statusTx: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: merchantColors.primary
   },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     minHeight: 36
   },
   price: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "800",
     color: merchantColors.primaryDark
   },
@@ -231,10 +231,10 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill,
     marginTop: 2
   },
-  stockBadgeLow: { backgroundColor: "#FFF3E0" },
-  stockBadgeOut: { backgroundColor: "#FCE4EC" },
+  stockBadgeLow: { backgroundColor: mobileStatusSurfaces.warningBg },
+  stockBadgeOut: { backgroundColor: merchantColors.roseSoftBg },
   stockTx: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: merchantColors.primary
   },
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     gap: 3
   },
   statTx: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
@@ -279,13 +279,13 @@ const styles = StyleSheet.create({
   actionTx: {
     color: merchantColors.primary,
     fontWeight: "700",
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   actionTxDanger: {
     color: merchantColors.danger
   },
   hint: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     color: merchantColors.warning,
     marginTop: 2
   }

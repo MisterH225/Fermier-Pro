@@ -9,18 +9,15 @@ import {
   View
 } from "react-native";
 import type { CheptelPenRowDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../../theme/mobileTheme";
 import {
   getPenVisualForPen,
   penVisualI18nKey,
   resolvePenVisualKey
 } from "./penUsageVisual";
+import { producerColors } from "../../../theme/producerTheme";
+import { marketplaceColors } from "../../../theme/marketplaceTheme";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 type Props = {
   pen: CheptelPenRowDto;
@@ -55,7 +52,7 @@ export function PenCard({
     rate >= 100
       ? mobileColors.error
       : rate >= 80
-        ? "#F59E0B"
+        ? producerColors.warning
         : mobileColors.success;
 
   const visual = getPenVisualForPen(pen);
@@ -64,12 +61,12 @@ export function PenCard({
   const ageData = pen.ageData;
   const sanitaryIcon =
     pen.vaccineOverdueCount > 0
-      ? { bg: "#FEE2E2", icon: "medical-outline" as const, color: mobileColors.error }
+      ? { bg: mobileStatusSurfaces.errorBg, icon: "medical-outline" as const, color: mobileColors.error }
       : pen.sanitaryTag === "overcrowded"
-        ? { bg: "#FEE2E2", icon: "warning-outline" as const, color: mobileColors.error }
+        ? { bg: mobileStatusSurfaces.errorBg, icon: "warning-outline" as const, color: mobileColors.error }
         : pen.sanitaryTag === "alert"
-          ? { bg: "#FFEDD5", icon: "alert-circle-outline" as const, color: "#D97706" }
-          : { bg: "#F3F4F6", icon: "checkmark-circle-outline" as const, color: mobileColors.textSecondary };
+          ? { bg: uiNamedColors.cFFEDD5, icon: "alert-circle-outline" as const, color: marketplaceColors.pending }
+          : { bg: uiNamedColors.cF3F4F6, icon: "checkmark-circle-outline" as const, color: mobileColors.textSecondary };
 
   const onDeletePress = () => {
     if (pen.occupancy > 0) {
@@ -216,8 +213,8 @@ export function PenCard({
           <Switch
             value={pen.isActive}
             onValueChange={(v) => onToggleActive(pen, v)}
-            trackColor={{ false: "#D1D5DB", true: mobileColors.accentSoft }}
-            thumbColor={pen.isActive ? mobileColors.accent : "#f4f4f5"}
+            trackColor={{ false: uiNamedColors.cD1D5DB, true: mobileColors.accentSoft }}
+            thumbColor={pen.isActive ? mobileColors.accent : uiNamedColors.cF4F4F5}
           />
         </View>
       ) : null}
@@ -227,7 +224,7 @@ export function PenCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: 14,
     marginBottom: mobileSpacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
@@ -242,16 +239,16 @@ const styles = StyleSheet.create({
   cardInactive: { opacity: 0.55 },
   badgeWarn: {
     alignSelf: "flex-start",
-    backgroundColor: "#FEE2E2",
+    backgroundColor: mobileStatusSurfaces.errorBg,
     borderRadius: mobileRadius.pill,
     paddingHorizontal: 8,
     paddingVertical: 3,
     marginBottom: 6
   },
-  badgeSoon: { backgroundColor: "#FEF3C7" },
-  badgeSick: { backgroundColor: "#FFF3E0" },
-  badgeCrowd: { backgroundColor: "#FEE2E2" },
-  badgeWarnTx: { fontSize: 10, fontWeight: "700", color: "#B91C1C" },
+  badgeSoon: { backgroundColor: producerColors.kpiAmberSoft },
+  badgeSick: { backgroundColor: mobileStatusSurfaces.warningBg },
+  badgeCrowd: { backgroundColor: mobileStatusSurfaces.errorBg },
+  badgeWarnTx: { fontSize: mobileFontSize.xs, fontWeight: "700", color: producerColors.dangerStrong },
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -260,13 +257,13 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center"
   },
   name: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   categoryChip: {
@@ -277,7 +274,7 @@ const styles = StyleSheet.create({
     marginTop: 4
   },
   category: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700"
   },
   divider: {
@@ -287,19 +284,19 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   meta: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginBottom: 2
   },
   metaMuted: { opacity: 0.65 },
   barTrack: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "rgba(0,0,0,0.08)",
     marginTop: 8,
     overflow: "hidden"
   },
-  barFill: { height: "100%", borderRadius: 3 },
+  barFill: { height: "100%", borderRadius: mobileRadius.sm },
   footer: {
     flexDirection: "row",
     alignItems: "center",

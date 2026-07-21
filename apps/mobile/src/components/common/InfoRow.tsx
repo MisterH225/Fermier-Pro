@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileTypography } from "../../theme/mobileTheme";
+import { mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RolePalette } from "./rolePalette";
 
 type Props = {
@@ -20,5 +20,5 @@ export function InfoRow({ label, value, palette }: Props) {
 const styles = StyleSheet.create({
   block: { gap: 2 },
   label: { ...mobileTypography.meta },
-  value: { fontWeight: "500", fontSize: 15 }
+  value: { fontWeight: "500", fontSize: mobileFontSize.md }
 });

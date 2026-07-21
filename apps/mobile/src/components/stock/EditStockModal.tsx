@@ -29,6 +29,7 @@ import {
 import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
 import { invalidateFarmFinanceQueries } from "../../lib/invalidateFarmFinanceQueries";
 import { getUserFacingError } from "../../lib/userFacingError";
+import { producerColors } from "../../theme/producerTheme";
 
 type Props = {
   visible: boolean;
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md
   },
-  warnTx: { ...mobileTypography.meta, color: "#B45309" },
+  warnTx: { ...mobileTypography.meta, color: producerColors.warningDeep },
   pillRow: {
     flexDirection: "row",
     flexWrap: "wrap",

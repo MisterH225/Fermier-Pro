@@ -11,11 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAdminMessagesInbox } from "../../hooks/useAdminMessagesInbox";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { AdminMessageCard } from "./AdminMessageCard";
 
 type Props = {
@@ -93,7 +89,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary,
     flex: 1
   },

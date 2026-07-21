@@ -24,7 +24,7 @@ import {
 } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { techColors, techRadius } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { PrimaryButton } from "../ui/PrimaryButton";
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: techColors.primary,
     fontWeight: "600",
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   heroName: {
     marginTop: mobileSpacing.lg,
-    fontSize: 26,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "700",
     color: techColors.textPrimary,
     textAlign: "center",
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   value: {
     color: techColors.textPrimary,
     fontWeight: "500",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   statsRow: {
     flexDirection: "row",
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs
   },
   stat: { alignItems: "center", flex: 1 },
-  statVal: { fontSize: 20, fontWeight: "800", color: techColors.primary },
+  statVal: { fontSize: mobileFontSize.xl, fontWeight: "800", color: techColors.primary },
   statLbl: {
     ...mobileTypography.meta,
     color: techColors.textSecondary,

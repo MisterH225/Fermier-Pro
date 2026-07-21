@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { SurfaceCard } from "../components/common/SurfaceCard";
+import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
 import {
   directConversationTitle,
@@ -19,6 +21,7 @@ import {
 } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatPickPeer">;
 
@@ -83,10 +86,17 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() => openDirect.mutate(item.userId)}
-                disabled={openDirect.isPending}
+              <SurfaceCard
+                palette={producerPalette}
+                style={{
+                  borderColor: producerColors.oliveBorder,
+                  opacity: openDirect.isPending ? 0.6 : 1
+                }}
+                onPress={
+                  openDirect.isPending
+                    ? undefined
+                    : () => openDirect.mutate(item.userId)
+                }
               >
                 <Text style={styles.cardTitle}>
                   {item.user.fullName?.trim() || item.user.email || "Membre"}
@@ -94,7 +104,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
                 {item.user.email ? (
                   <Text style={styles.cardSub}>{item.user.email}</Text>
                 ) : null}
-              </TouchableOpacity>
+              </SurfaceCard>
             )}
           />
         )}
@@ -116,8 +126,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
-    fontSize: 14,
-    color: "#4b513d",
+    fontSize: mobileFontSize.md,
+    color: mobileColors.textTertiary,
     lineHeight: 20
   },
   list: { padding: 16, paddingBottom: 32 },
@@ -127,30 +137,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24
   },
-  card: {
-    backgroundColor: mobileColors.background,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e0e4d4"
-  },
   cardTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
-  error: { color: "#b00020", textAlign: "center" },
-  empty: { fontSize: 15, color: mobileColors.textSecondary, textAlign: "center" },
+  error: { color: producerColors.dangerDeep, textAlign: "center" },
+  empty: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, textAlign: "center" },
   mutationErr: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-    color: "#b00020",
-    fontSize: 13
+    color: producerColors.dangerDeep,
+    fontSize: mobileFontSize.sm
   }
 });

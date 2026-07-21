@@ -25,12 +25,7 @@ import {
   ALL_PERMISSION_KEYS,
   type PermissionKey
 } from "../../lib/memberPermissions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { useModal } from "../modals/useModal";
 import { getUserFacingError } from "../../lib/userFacingError";
 import { BaseModal } from "./BaseModal";
@@ -567,7 +562,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: mobileColors.textSecondary,
     marginTop: 6,
@@ -631,7 +626,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22
+    borderRadius: mobileRadius.xl
   },
   avatarFallback: {
     backgroundColor: mobileColors.accentSoft,
@@ -675,7 +670,7 @@ const styles = StyleSheet.create({
   },
   profileChipTxt: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.accent,
     fontWeight: "600"
   },
@@ -687,13 +682,13 @@ const styles = StyleSheet.create({
   },
   statusBadgeTxt: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textPrimary,
     fontWeight: "600"
   },
   resultFooterHint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.sm
   },
@@ -751,7 +746,7 @@ const styles = StyleSheet.create({
   },
   recipientLabel: {
     ...mobileTypography.body,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },
@@ -777,7 +772,7 @@ const styles = StyleSheet.create({
   permTick: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     borderWidth: 1.5,
     borderColor: mobileColors.border,
     backgroundColor: mobileColors.background,

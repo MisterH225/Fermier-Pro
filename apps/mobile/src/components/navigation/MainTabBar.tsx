@@ -2,12 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Pressable, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { NavItem } from "./NavItem";
 import { PRODUCER_NAV_BAR_HEIGHT } from "./producerNavMetrics";
 import type { ProducerMainTab } from "./types";
@@ -42,7 +37,7 @@ const TAB_META: Record<
 const H = PRODUCER_NAV_BAR_HEIGHT;
 
 const glassShadow = {
-  shadowColor: "#000",
+  shadowColor: mobileColors.shadow,
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.08,
   shadowRadius: 8,
@@ -179,7 +174,7 @@ const styles = StyleSheet.create({
   },
   plusLabel: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600"
   }

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { OrderStatusTone } from "./OrderStatusBadge";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
 
@@ -100,7 +100,7 @@ export function OrderActivityFeed({
                 </Text>
                 <View style={styles.rail}>
                   <View style={[styles.dot, { backgroundColor: color }]}>
-                    <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={12} color={mobileColors.background} />
                   </View>
                   {!last ? (
                     <View
@@ -139,11 +139,11 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: mobileRadius.sm,
     marginBottom: mobileSpacing.md
   },
   title: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
     marginBottom: mobileSpacing.md
   },
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   when: {
     width: 88,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     lineHeight: 15,
     fontWeight: "600",
     paddingTop: 2
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   message: {
     flex: 1,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     lineHeight: 18,
     fontWeight: "500",
     paddingTop: 2,

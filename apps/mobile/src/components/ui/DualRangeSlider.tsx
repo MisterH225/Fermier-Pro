@@ -6,7 +6,7 @@ import {
   Text,
   View
 } from "react-native";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 
 type Props = {
   min: number;
@@ -166,18 +166,18 @@ const styles = StyleSheet.create({
   },
   track: {
     height: 6,
-    borderRadius: 999
+    borderRadius: mobileRadius.pill
   },
   fill: {
     position: "absolute",
     height: 6,
-    borderRadius: 999
+    borderRadius: mobileRadius.pill
   },
   thumb: {
     position: "absolute",
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     top: 2,
     elevation: 2,
     shadowColor: mobileColors.shadow,

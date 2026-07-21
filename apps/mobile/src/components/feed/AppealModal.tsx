@@ -12,7 +12,7 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -79,7 +79,7 @@ export function AppealModal({ visible, onClose, onSubmit }: Props) {
             </Pressable>
             <Pressable onPress={() => void handleSubmit()} style={styles.submitBtn} disabled={sending}>
               {sending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.background} />
               ) : (
                 <Text style={styles.submitTx}>Envoyer</Text>
               )}
@@ -104,19 +104,19 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: mobileColors.surface,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     overflow: "hidden",
     padding: mobileSpacing.lg,
     gap: mobileSpacing.sm
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 18
+    fontSize: mobileFontSize.lg
   },
   hint: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   input: {
     minHeight: 120,
@@ -146,5 +146,5 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: "center"
   },
-  submitTx: { ...mobileTypography.body, color: "#fff", fontWeight: "600" }
+  submitTx: { ...mobileTypography.body, color: mobileColors.background, fontWeight: "600" }
 });

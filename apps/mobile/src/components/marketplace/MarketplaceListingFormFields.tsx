@@ -20,12 +20,7 @@ import {
   type MarketplaceListingFormValues
 } from "../../lib/marketplaceListingForm";
 import { computeSellerFeeBreakdown } from "../../lib/platformFees";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { PlatformFeePreview } from "../common/PlatformFeePreview";
 import { ModalSection } from "../modals/ModalSection";
 import { formatMarketMoney } from "./MarketplaceListingCard";
@@ -707,7 +702,7 @@ const styles = StyleSheet.create({
   },
   chipTx: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   chipTxOn: {
@@ -744,7 +739,7 @@ const styles = StyleSheet.create({
   totalReadonly: {
     ...mobileTypography.body,
     fontWeight: "700",
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary,
     paddingVertical: mobileSpacing.sm
   },
@@ -765,7 +760,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.xs
   },
   checkMark: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22
   },
   basisTitle: {

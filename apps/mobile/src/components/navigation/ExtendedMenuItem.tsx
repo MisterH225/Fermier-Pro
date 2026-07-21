@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 export const EXTENDED_MENU_TILE_WIDTH = 58;
 export const EXTENDED_MENU_TILE_HEIGHT = 56;
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   tile: {
     width: EXTENDED_MENU_TILE_WIDTH,
     minHeight: EXTENDED_MENU_TILE_HEIGHT,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
@@ -78,20 +79,20 @@ const styles = StyleSheet.create({
     right: -10,
     minWidth: 16,
     height: 16,
-    borderRadius: 8,
-    backgroundColor: "#E53935",
+    borderRadius: mobileRadius.sm,
+    backgroundColor: uiNamedColors.cE53935,
     paddingHorizontal: 3,
     alignItems: "center",
     justifyContent: "center"
   },
   badgeTx: {
     color: mobileColors.onAccent,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     fontWeight: "800"
   },
   label: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: "rgba(255,255,255,0.92)",

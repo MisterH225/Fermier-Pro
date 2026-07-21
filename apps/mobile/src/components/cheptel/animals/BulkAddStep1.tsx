@@ -17,12 +17,7 @@ import {
   type CheptelPenRowDto
 } from "../../../lib/api";
 import { useCheptelPens } from "../../../lib/cheptelPensQuery";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import {
   defaultSexForCategory,
   tagPrefixForCategory,
@@ -30,6 +25,8 @@ import {
 } from "./animalUtils";
 import { NomenclaturePreview } from "./NomenclaturePreview";
 import type { BulkAddFormState } from "./BulkAddAnimalsModal";
+import { producerColors } from "../../../theme/producerTheme";
+import { merchantColors } from "../../../theme/merchantTheme";
 
 const CATEGORY_OPTIONS: CreateAnimalCategoryKey[] = [
   "fattening",
@@ -462,7 +459,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: mobileColors.background
   },
-  stepBtnTx: { fontSize: 22, fontWeight: "700", color: mobileColors.accent },
+  stepBtnTx: { fontSize: mobileFontSize.xl, fontWeight: "700", color: mobileColors.accent },
   countInput: {
     flex: 1,
     borderWidth: 1,
@@ -471,17 +468,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     textAlign: "center",
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   warnBox: {
     marginTop: 10,
     padding: 12,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#FEF3C7"
+    backgroundColor: producerColors.kpiAmberSoft
   },
   warnTx: {
     ...mobileTypography.meta,
-    color: "#92400E"
+    color: merchantColors.amberText
   }
 });

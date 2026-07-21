@@ -63,36 +63,54 @@ export const mobileSpacing = {
   xxl: 24
 } as const;
 
+/**
+ * Échelle de rayon figée (5 valeurs).
+ * Voir `theme/SCALE.md` pour la table d’arrondi depuis l’ancien usage.
+ */
 export const mobileRadius = {
-  sm: 10,
-  md: 14,
+  sm: 8,
+  md: 12,
   lg: 16,
+  xl: 22,
   pill: 999
+} as const;
+
+/**
+ * Échelle de taille de police figée (6 valeurs).
+ * Voir `theme/SCALE.md` pour la table d’arrondi.
+ */
+export const mobileFontSize = {
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 17,
+  xl: 22,
+  xxl: 28
 } as const;
 
 export const mobileTypography = {
   title: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     lineHeight: 28,
     fontWeight: "700" as const
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22,
     fontWeight: "600" as const
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22,
     fontWeight: "700" as const
   },
   body: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     lineHeight: 21,
     fontWeight: "400" as const
   },
   meta: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 16,
     fontWeight: "500" as const
   }
@@ -114,7 +132,7 @@ export const mobileHeaderButton = {
   text: {
     color: mobileColors.accent,
     fontWeight: "600" as const,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   }
 } as const;
 
@@ -124,6 +142,6 @@ export const mobileHeaderButtonOnDark = {
   text: {
     color: mobileColors.onAccent,
     fontWeight: "600" as const,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   }
 } as const;

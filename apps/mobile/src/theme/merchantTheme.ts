@@ -18,7 +18,21 @@ export const merchantColors = {
   success: "#2E7D32",
   warning: "#FF8C00",
   danger: "#C2185B",
-  border: "rgba(196, 92, 38, 0.1)"
+  border: "rgba(196, 92, 38, 0.1)",
+  /** Tokens déjà en dur dans components/merchant (non-régression). */
+  amberText: "#92400E",
+  amberTextDeep: "#78350F",
+  roseSoftBg: "#FCE4EC",
+  blueSoftBg: "#DBEAFE",
+  blueText: "#1E40AF",
+  blueTextDeep: "#1E3A8A",
+  greenText: "#047857",
+  warnBannerBg: "#FFFBEB",
+  orderNeutralBg: "#F3F4F6",
+  orderNeutralFg: "#374151",
+  orderProgressBg: "#E0F2FE",
+  orderProgressFg: "#0369A1",
+  orderDangerBg: "#FCE7F3"
 } as const;
 
 export const merchantRadius = { card: 22, button: 16, pill: 999 } as const;

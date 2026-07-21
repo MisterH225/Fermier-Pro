@@ -28,12 +28,7 @@ import {
 } from "../../../lib/api";
 import { getSupabase } from "../../../lib/supabase";
 import { uploadAnimalPhotoToSupabase } from "../../../lib/uploadAnimalPhotoToSupabase";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { ExitVerbActions } from "../exits/ExitVerbActions";
 import type { LivestockExitKind } from "../exits/livestockExitKind";
 import {
@@ -823,7 +818,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     marginTop: mobileSpacing.md
   },
@@ -859,7 +854,7 @@ const styles = StyleSheet.create({
   photoCircle: {
     width: 88,
     height: 88,
-    borderRadius: 44,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
@@ -872,7 +867,7 @@ const styles = StyleSheet.create({
     bottom: 4,
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center"
@@ -912,7 +907,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.surfaceMuted
   },
   sexUnknownDash: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textSecondary
   },
@@ -932,7 +927,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   linkBtn: {
     alignSelf: "flex-start",
     marginTop: 6,

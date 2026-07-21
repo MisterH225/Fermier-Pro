@@ -11,7 +11,7 @@ import {
   vetShadow,
   vetType
 } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   reading: VetReadingDto | null | undefined;
@@ -129,6 +129,6 @@ const styles = StyleSheet.create({
   btnTx: {
     color: vetColors.onPrimary,
     fontWeight: "700",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   }
 });

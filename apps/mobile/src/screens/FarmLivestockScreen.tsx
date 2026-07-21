@@ -24,7 +24,7 @@ import { TabContent, TabSelector } from "../components/tabs";
 import { useSession } from "../context/SessionContext";
 import { fetchFarm, fetchFarmBatches, fetchFarmCheptelOverview } from "../lib/api";
 import { invalidateCheptelCaches } from "../lib/cheptelQueries";
-import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import { useTechFarmPermissions } from "../hooks/useTechFarmPermissions";
 import { TechReadOnlyBanner } from "../components/technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../types/navigation";
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   hint: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     textAlign: "center",
     lineHeight: 18

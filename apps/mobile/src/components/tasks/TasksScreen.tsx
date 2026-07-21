@@ -19,7 +19,7 @@ import { useFarmTasksSocket } from "../../hooks/useFarmTasksSocket";
 import type { FarmTaskDto } from "../../lib/api";
 import { fetchFarmTasks, patchFarmTaskStatus } from "../../lib/api";
 import type { RootStackParamList } from "../../types/navigation";
-import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskGridView } from "./TaskGridView";
 import { TaskListView } from "./TaskListView";
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.sm,
     color: mobileColors.textSecondary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   actionRow: {
     flexDirection: "row",

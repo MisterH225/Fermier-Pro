@@ -56,6 +56,6 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   },
   tabTextActive: {
-    color: "#fff"
+    color: mobileColors.background
   }
 });

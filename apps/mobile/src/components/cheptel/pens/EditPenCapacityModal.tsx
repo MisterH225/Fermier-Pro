@@ -15,12 +15,7 @@ import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
 import { patchPen, type CheptelPenRowDto } from "../../../lib/api";
 import { getUserFacingError } from "../../../lib/userFacingError";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -164,16 +159,16 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     backgroundColor: mobileColors.background,
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   hint: {
     marginTop: mobileSpacing.sm,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   warn: {
     marginTop: mobileSpacing.sm,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.warning,
     fontWeight: "600"
   },

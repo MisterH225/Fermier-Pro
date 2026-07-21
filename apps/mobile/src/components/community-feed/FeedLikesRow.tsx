@@ -1,11 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { FeedLikerDto } from "../../lib/api/community-feed";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { FeedLikerAvatar } from "./FeedLikerAvatar";
 
 const MAX_VISIBLE = 5;
@@ -57,7 +53,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...mobileTypography.cardTitle,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   avatars: {
     flexDirection: "row",
@@ -68,7 +64,7 @@ const styles = StyleSheet.create({
   overflow: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.surfaceMuted,
     borderWidth: 2,
     borderColor: mobileColors.background,
@@ -78,7 +74,7 @@ const styles = StyleSheet.create({
   },
   overflowTx: {
     ...mobileTypography.meta,
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: mobileColors.textSecondary
   }

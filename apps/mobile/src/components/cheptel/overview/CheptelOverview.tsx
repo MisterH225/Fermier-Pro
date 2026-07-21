@@ -5,13 +5,7 @@ import { SmartChart } from "../../charts";
 import { financeMonthsToSingleLine } from "../../charts/smartChartAdapters";
 import type { SmartChartPeriod } from "../../charts";
 import type { CheptelOverviewDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { FarmModuleAISection } from "../../ai/FarmModuleAISection";
 import { ScreenSection } from "../../layout/ScreenSection";
 import { CategoryBreakdownPanel } from "./CategoryBreakdownPanel";
@@ -144,7 +138,7 @@ const styles = StyleSheet.create({
     ...mobileShadows.card
   },
   kpiVal: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary
   },

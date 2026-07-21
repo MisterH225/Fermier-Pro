@@ -21,11 +21,7 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ProfileDeactivationSheet } from "./ProfileDeactivationSheet";
 
 const PROFILE_TYPES: ProfileTypeChoice[] = [
@@ -339,7 +335,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md
   },
   zoneLabel: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     marginBottom: mobileSpacing.xs,
@@ -349,7 +345,7 @@ const styles = StyleSheet.create({
   },
   zoneHint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginLeft: 4,
     marginBottom: mobileSpacing.sm,
@@ -369,7 +365,7 @@ const styles = StyleSheet.create({
   },
   deactivateTx: {
     ...mobileTypography.body,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.error,
     fontWeight: "500"
   },
@@ -378,7 +374,7 @@ const styles = StyleSheet.create({
   },
   lastActiveMsg: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginLeft: 4,
     marginBottom: mobileSpacing.sm,
@@ -390,7 +386,7 @@ const styles = StyleSheet.create({
   },
   deactivatedTitle: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     textTransform: "uppercase",
@@ -410,13 +406,13 @@ const styles = StyleSheet.create({
   },
   deactivatedName: {
     ...mobileTypography.body,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary,
     fontWeight: "500"
   },
   deactivatedMeta: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginTop: 2
   },
@@ -428,7 +424,7 @@ const styles = StyleSheet.create({
   },
   reactivateTx: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.accent,
     fontWeight: "600"
   }

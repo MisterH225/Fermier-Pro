@@ -38,7 +38,7 @@ import {
   type VetProfileFieldKey
 } from "../../lib/vetProfileCompletion";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const AVATAR = 54;
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
   pendingTitle: {
     fontWeight: "700",
     color: vetColors.textPrimary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   pendingBody: {
     ...mobileTypography.meta,
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     right: -2,
     width: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     backgroundColor: vetColors.success,
     alignItems: "center",
     justifyContent: "center",
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
     borderColor: vetColors.cardBg
   },
   name: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.textPrimary
   },
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: vetColors.cardBg,
     alignItems: "center",
     justifyContent: "center",
@@ -743,11 +743,11 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   repTitle: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: vetColors.textPrimary
   },
-  stars: { color: vetColors.warning, fontSize: 13, letterSpacing: 1 },
+  stars: { color: vetColors.warning, fontSize: mobileFontSize.sm, letterSpacing: 1 },
   ratingNum: {
     color: vetColors.textPrimary,
     fontWeight: "800",
@@ -773,14 +773,14 @@ const styles = StyleSheet.create({
   },
   frowValue: {
     flex: 1,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: vetColors.textPrimary,
     textAlign: "right"
   },
   frowValueEmpty: { color: vetColors.textMuted },
   frowEdit: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: vetColors.primary,
     marginLeft: 4
@@ -819,14 +819,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.textPrimary
   },
   modalCloseBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: vetColors.primaryLight

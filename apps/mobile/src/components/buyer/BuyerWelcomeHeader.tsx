@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { buyerColors } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type BuyerWelcomeHeaderProps = {
   welcomeLabel: string;
@@ -68,12 +68,12 @@ const styles = StyleSheet.create({
   textCol: { marginLeft: mobileSpacing.md, flexShrink: 1 },
   welcome: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: buyerColors.textSecondary
   },
   name: {
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: buyerColors.textPrimary,
     flexShrink: 1

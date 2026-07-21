@@ -30,12 +30,7 @@ import {
 } from "../../../hooks/useOfflineMutation";
 import { optimisticCreateAnimal } from "../../../lib/offline/optimistic";
 import { isOfflineQueuedResult } from "../../../lib/offline/types";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import {
   defaultSexForCategory,
   tagPrefixForCategory,
@@ -498,5 +493,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

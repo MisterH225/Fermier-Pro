@@ -1,16 +1,18 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { ProfileType } from "@fermier/types";
-import { mobileTypography } from "../../theme/mobileTheme";
+import { mobileTypography, mobileKpiPalette, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+import { buyerColors } from "../../theme/buyerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const BADGE_META: Record<
   ProfileType,
   { emoji: string; label: string; color: string }
 > = {
-  producer: { emoji: "🌾", label: "Éleveur", color: "#1D9E75" },
-  veterinarian: { emoji: "🩺", label: "Vétérinaire", color: "#4A90D9" },
-  technician: { emoji: "🔧", label: "Technicien", color: "#7C3AED" },
-  buyer: { emoji: "🛒", label: "Acheteur", color: "#FF8C00" },
-  merchant: { emoji: "🏪", label: "Commerçant", color: "#C2410C" }
+  producer: { emoji: "🌾", label: "Éleveur", color: uiNamedColors.c1D9E75 },
+  veterinarian: { emoji: "🩺", label: "Vétérinaire", color: uiNamedColors.c4A90D9 },
+  technician: { emoji: "🔧", label: "Technicien", color: buyerColors.primary },
+  buyer: { emoji: "🛒", label: "Acheteur", color: mobileKpiPalette.gestation.accent },
+  merchant: { emoji: "🏪", label: "Commerçant", color: uiNamedColors.cC2410C }
 };
 
 type Props = {
@@ -38,14 +40,14 @@ export function ProfileBadge({ profileType, anonymous }: Props) {
 const styles = StyleSheet.create({
   badge: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     paddingHorizontal: 8,
     paddingVertical: 2,
     alignSelf: "flex-start"
   },
   text: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600"
   }
 });

@@ -9,13 +9,7 @@ import {
 } from "react-native";
 import type { FinanceOverviewDto } from "../../lib/api";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileKpiPalette, mobileFontSize } from "../../theme/mobileTheme";
 import { KpiGridSkeleton } from "../common/SkeletonBlocks";
 import { FinanceKpiCard } from "./FinanceKpiCard";
 import {
@@ -24,6 +18,7 @@ import {
   financeMonthNetSeries,
   financeMonthRevenueSeries
 } from "./financeSparklineSeries";
+import { producerColors } from "../../theme/producerTheme";
 
 function pctDeltaString(cur: number, prev: number): string | null {
   if (!Number.isFinite(prev) || prev === 0) {
@@ -152,7 +147,7 @@ export function FinanceOverviewKpiGrid({
                   sparklineValues={
                     balanceSeries.length > 1 ? balanceSeries : undefined
                   }
-                  sparklineColor="#F97316"
+                  sparklineColor={mobileKpiPalette.gestation.accent}
                   variant="orange"
                 />
               </View>
@@ -166,7 +161,7 @@ export function FinanceOverviewKpiGrid({
                   )}
                   deltaText={revDelta}
                   sparklineValues={revSeries.length > 1 ? revSeries : undefined}
-                  sparklineColor="#3B82F6"
+                  sparklineColor={producerColors.chartBlue}
                   variant="blue"
                 />
               </View>
@@ -182,7 +177,7 @@ export function FinanceOverviewKpiGrid({
                   )}
                   deltaText={expDelta}
                   sparklineValues={expSeries.length > 1 ? expSeries : undefined}
-                  sparklineColor="#EAB308"
+                  sparklineColor={producerColors.chartYellow}
                   variant="yellow"
                 />
               </View>
@@ -192,7 +187,7 @@ export function FinanceOverviewKpiGrid({
                   value={formatMoney(overview.month.netMargin, curCode, curSym)}
                   deltaText={marginDelta}
                   sparklineValues={netSeries.length > 1 ? netSeries : undefined}
-                  sparklineColor="#22C55E"
+                  sparklineColor={producerColors.chartGreen}
                   variant="green"
                 />
               </View>
@@ -249,7 +244,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm,
     marginBottom: mobileSpacing.sm
   },
-  sectionEmoji: { fontSize: 20 },
+  sectionEmoji: { fontSize: mobileFontSize.xl },
   sectionTitle: {
     ...mobileTypography.cardTitle,
     flex: 1,

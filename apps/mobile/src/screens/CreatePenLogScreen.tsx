@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -21,6 +21,7 @@ import type { PenLogTypeDto } from "../lib/api";
 import { createPenLog } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreatePenLog">;
 
@@ -118,7 +119,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
           value={title}
           onChangeText={setTitle}
           placeholder="Ex. Nettoyage complet"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
         />
 
         <Text style={styles.label}>Détail (optionnel)</Text>
@@ -127,7 +128,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
           value={body}
           onChangeText={setBody}
           placeholder="Produit utilisé, observations…"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
           multiline
         />
 
@@ -150,17 +151,17 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 4 },
+  hint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginBottom: 4 },
   penHint: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: mobileColors.accent,
     marginBottom: 16
   },
   label: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: "#4a5238",
+    color: producerColors.oliveInk,
     marginBottom: 8
   },
   typeRow: {
@@ -171,38 +172,38 @@ const styles = StyleSheet.create({
   typeChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     backgroundColor: mobileColors.background,
     marginRight: 8,
     marginBottom: 8
   },
   typeChipOn: {
     borderColor: mobileColors.accent,
-    backgroundColor: "#eef4dc"
+    backgroundColor: producerColors.oliveWashSoft
   },
-  typeChipText: { fontSize: 13, color: "#4a5238" },
+  typeChipText: { fontSize: mobileFontSize.sm, color: producerColors.oliveInk },
   typeChipTextOn: { fontWeight: "700", color: mobileColors.textPrimary },
   input: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     marginBottom: 16
   },
   multiline: { minHeight: 100, textAlignVertical: "top" },
   cta: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

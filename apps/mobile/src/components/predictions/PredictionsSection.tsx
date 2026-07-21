@@ -4,11 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { usePredictions } from "../../hooks/usePredictions";
 import type { PredictionMenuKey } from "../../lib/api/predictions";
 import { ScreenSection } from "../layout/ScreenSection";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import { AlerteTresorerieCard } from "./AlerteTresorerieCard";
 import { AnimauxPretsCard } from "./AnimauxPretsCard";
 import { BesoinsAlimentCard } from "./BesoinsAlimentCard";
@@ -203,7 +199,7 @@ const styles = StyleSheet.create({
   errorBox: {
     padding: mobileSpacing.md,
     backgroundColor: mobileColors.surfaceMuted,
-    borderRadius: 8
+    borderRadius: mobileRadius.sm
   },
   errorText: {
     ...mobileTypography.meta,

@@ -19,12 +19,7 @@ import {
   patchPen,
   type PenCategoryKey
 } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { PEN_TYPE_OPTIONS, penTypeLabel } from "./penTypeOptions";
 
 type PenDraft = {
@@ -316,7 +311,7 @@ const styles = StyleSheet.create({
   },
   removeTx: {
     color: mobileColors.error,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   addPenBtn: {

@@ -6,11 +6,7 @@ import {
   type StyleProp,
   type ViewStyle
 } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   label: string;
@@ -63,7 +59,7 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.55 },
   label: {
     color: mobileColors.accent,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   }
 });

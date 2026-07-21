@@ -1,12 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -48,7 +43,7 @@ export function SkipConfirmModal({
 
 const styles = StyleSheet.create({
   body: { gap: mobileSpacing.md, paddingBottom: mobileSpacing.md },
-  icon: { fontSize: 32, textAlign: "center" },
+  icon: { fontSize: mobileFontSize.xxl, textAlign: "center" },
   message: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
@@ -62,7 +57,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: mobileSpacing.sm
   },
-  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   outline: {
     borderWidth: 1,
     borderColor: mobileColors.border,

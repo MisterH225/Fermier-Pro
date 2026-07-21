@@ -43,14 +43,10 @@ import {
   computeVetFeeBreakdown,
   parsePriceInput
 } from "../lib/platformFees";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VetAppointmentDetail">;
 
@@ -92,12 +88,12 @@ function conflictStatusLabel(
 
 function conflictBadgeStyle(status?: string | null) {
   if (status === "CONFLICT_EXACT") {
-    return { bg: "#FEE2E2", color: "#B91C1C" };
+    return { bg: mobileStatusSurfaces.errorBg, color: producerColors.dangerStrong };
   }
   if (status === "CONFLICT_NEARBY") {
-    return { bg: "#FEF3C7", color: "#B45309" };
+    return { bg: producerColors.kpiAmberSoft, color: producerColors.warningDeep };
   }
-  return { bg: "#DCFCE7", color: "#15803D" };
+  return { bg: mobileStatusSurfaces.successBg, color: producerColors.successDeep };
 }
 
 function formatWhen(iso: string | null | undefined, locale: string): string {
@@ -1096,7 +1092,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: mobileRadius.sm
   },
-  badgeTx: { fontSize: 13, fontWeight: "700" },
+  badgeTx: { fontSize: mobileFontSize.sm, fontWeight: "700" },
   card: {
     backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.md,
@@ -1123,13 +1119,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: mobileRadius.sm,
-    backgroundColor: "#DCFCE7"
+    backgroundColor: mobileStatusSurfaces.successBg
   },
-  freeBadgeTx: { fontSize: 13, fontWeight: "700", color: "#15803D" },
+  freeBadgeTx: { fontSize: mobileFontSize.sm, fontWeight: "700", color: producerColors.successDeep },
   section: { gap: mobileSpacing.sm },
-  sectionTitle: { ...mobileTypography.title, fontSize: 17 },
+  sectionTitle: { ...mobileTypography.title, fontSize: mobileFontSize.lg },
   hint: { ...mobileTypography.body, color: mobileColors.textSecondary, lineHeight: 22 },
-  deadline: { ...mobileTypography.meta, fontWeight: "700", color: "#B45309" },
+  deadline: { ...mobileTypography.meta, fontWeight: "700", color: producerColors.warningDeep },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -1140,8 +1136,8 @@ const styles = StyleSheet.create({
   },
   textArea: { minHeight: 80, textAlignVertical: "top" },
   stars: { flexDirection: "row", gap: 8 },
-  star: { fontSize: 32, color: mobileColors.border },
-  starOn: { color: "#F59E0B" },
+  star: { fontSize: mobileFontSize.xxl, color: mobileColors.border },
+  starOn: { color: producerColors.warning },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tag: {
     paddingHorizontal: 10,
@@ -1151,6 +1147,6 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   tagOn: { backgroundColor: mobileColors.accent, borderColor: mobileColors.accent },
-  tagTx: { fontSize: 13, color: mobileColors.textSecondary },
+  tagTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   tagTxOn: { color: mobileColors.onAccent, fontWeight: "600" }
 });

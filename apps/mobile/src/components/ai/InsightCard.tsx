@@ -10,15 +10,11 @@ import {
   View
 } from "react-native";
 import type { AIInsight, AIInsightPriority } from "../../services/ai/aiTypes";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { navigateFromInsightRoute } from "../../services/navigation/DeepNavigationService";
 import type { RootStackParamList } from "../../types/navigation";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   insights: AIInsight[];
@@ -26,13 +22,13 @@ type Props = {
   onRefresh?: () => void;
 };
 
-const INSIGHT_BLUE = "#2563EB";
-const INSIGHT_BLUE_SOFT = "#EFF6FF";
-const INSIGHT_BLUE_SHIMMER = "#DBEAFE";
+const INSIGHT_BLUE = uiNamedColors.c2563EB;
+const INSIGHT_BLUE_SOFT = uiNamedColors.cEFF6FF;
+const INSIGHT_BLUE_SHIMMER = merchantColors.blueSoftBg;
 
 const PRIORITY_ACCENT: Record<AIInsightPriority, string> = {
-  critical: "#D64545",
-  warning: "#E3A008",
+  critical: mobileColors.error,
+  warning: mobileColors.warning,
   info: INSIGHT_BLUE
 };
 
@@ -139,13 +135,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4
   },
   insightTitle: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: mobileColors.textPrimary,
     marginBottom: 4
   },
   message: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     color: mobileColors.textPrimary
   },
@@ -154,13 +150,13 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start"
   },
   ctaText: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: mobileColors.accent
   },
   shimmerRow: {
     height: 12,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     backgroundColor: INSIGHT_BLUE_SHIMMER,
     marginTop: mobileSpacing.sm,
     width: "92%"

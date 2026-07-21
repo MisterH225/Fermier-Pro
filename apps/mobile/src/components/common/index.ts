@@ -6,8 +6,16 @@ export { StatCard } from "./StatCard";
 export { SectionHeader } from "./SectionHeader";
 export { InfoRow } from "./InfoRow";
 export { ProfileCompletionGauge } from "./ProfileCompletionGauge";
+export { EmptyStateCard } from "./EmptyStateCard";
+export { SurfaceCard } from "./SurfaceCard";
+export { StatusBadge } from "./StatusBadge";
 export {
   buyerPalette,
   vetPalette,
+  producerPalette,
+  merchantPalette,
+  technicianPalette,
+  paletteForProfileType,
   type RolePalette
 } from "./rolePalette";
+export { useRolePalette } from "../../hooks/useRolePalette";

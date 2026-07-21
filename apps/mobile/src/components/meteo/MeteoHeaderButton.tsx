@@ -9,7 +9,7 @@ import {
   type ViewStyle
 } from "react-native";
 import { useMeteoScore } from "../../hooks/useMeteoScore";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import {
   profileHasMeteoScore,
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center"
   },
   icon: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22
   }
 });

@@ -18,6 +18,7 @@ import { formatAuthError } from "../lib/authErrors";
 import { profileTypeIcon } from "../lib/profileTypeIcon";
 import { useSession } from "../context/SessionContext";
 import { authColors, authRadii } from "../theme/authTheme";
+import { mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 
 const PROFILE_TYPES: ProfileTypeChoice[] = [
   "producer",
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32
   },
   head: {
-    fontSize: 26,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "700",
     color: authColors.forest,
     paddingTop: 8
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   sub: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     lineHeight: 22,
     color: authColors.body,
     marginBottom: 22
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: authColors.iconWrapBg
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: authColors.forest,
     marginBottom: 4
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
     color: authColors.forestMuted
   },
   cardSub: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     color: authColors.body
   },
@@ -233,14 +234,14 @@ const styles = StyleSheet.create({
     opacity: 0.45
   },
   ctaLabel: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: authColors.forest
   },
   err: {
     marginTop: 14,
     color: authColors.error,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     textAlign: "center"
   },
   signOutRow: {
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   signOutText: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: authColors.placeholder,
     textDecorationLine: "underline"
   }

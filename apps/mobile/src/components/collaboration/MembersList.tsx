@@ -12,12 +12,7 @@ import {
 import { useSession } from "../../context/SessionContext";
 import type { FarmMemberDto } from "../../lib/api";
 import { fetchFarmMembers } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { InviteModal } from "./InviteModal";
 import { MemberCard } from "./MemberCard";
 import { MemberModal } from "./MemberModal";
@@ -183,7 +178,7 @@ const styles = StyleSheet.create({
   emptyTxt: {
     flex: 1,
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   list: {

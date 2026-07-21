@@ -55,13 +55,7 @@ import {
 import { useDeleteFarmBatch } from "../hooks/useDeleteFarmBatch";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import type { RootStackParamList } from "../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileStatusSurfaces,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileStatusSurfaces, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "LogeDetail">;
 type AnimalFilter = "all" | "male" | "female" | "vaccine_late";
@@ -250,7 +244,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
           accessibilityRole="button"
           accessibilityLabel={t("cheptel.batches.deleteA11y")}
         >
-          <Ionicons name="trash-outline" size={20} color="#fff" />
+          <Ionicons name="trash-outline" size={20} color={mobileColors.background} />
           <Text style={styles.swipeDeleteTx}>
             {t("cheptel.batches.deleteConfirm")}
           </Text>
@@ -688,7 +682,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accentSoft
   },
   editCapBtnText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.accent
   },
@@ -708,7 +702,7 @@ const styles = StyleSheet.create({
   },
   ageValue: {
     ...mobileTypography.title,
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary,
     marginTop: 4
   },
@@ -732,7 +726,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileStatusSurfaces.successBg
   },
   autoBadgeTx: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileStatusSurfaces.successText
   },
@@ -744,7 +738,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill,
     backgroundColor: mobileColors.accentSoft
   },
-  manualBadgeTx: { fontSize: 12, fontWeight: "600", color: mobileColors.accent },
+  manualBadgeTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: mobileColors.accent },
   filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   filterPill: {
     paddingHorizontal: 12,
@@ -757,7 +751,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft
   },
-  filterPillTx: { fontSize: 12, color: mobileColors.textSecondary },
+  filterPillTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   filterPillTxOn: { color: mobileColors.accent, fontWeight: "700" },
   quickBar: {
     flexDirection: "row",
@@ -771,7 +765,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center"
   },
-  quickTx: { fontSize: 12, fontWeight: "700", color: mobileColors.accent },
+  quickTx: { fontSize: mobileFontSize.sm, fontWeight: "700", color: mobileColors.accent },
   swipeDelete: {
     backgroundColor: mobileColors.error,
     justifyContent: "center",
@@ -784,8 +778,8 @@ const styles = StyleSheet.create({
     gap: 4
   },
   swipeDeleteTx: {
-    color: "#fff",
-    fontSize: 11,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     textAlign: "center"
   }

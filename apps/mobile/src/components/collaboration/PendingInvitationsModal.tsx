@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22
+    borderRadius: mobileRadius.xl
   },
   avatarFallback: {
     backgroundColor: mobileColors.accentSoft,

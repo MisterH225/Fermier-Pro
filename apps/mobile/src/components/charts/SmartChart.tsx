@@ -9,12 +9,7 @@ import {
 } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { formatFinanceChartValue } from "../finance/financeChartFormat";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ChartLegend } from "./ChartLegend";
 import { ChartMonthSelector } from "./ChartMonthSelector";
 import { ChartTooltip } from "./ChartTooltip";
@@ -351,7 +346,7 @@ export function SmartChart({
                       cx={pt.x}
                       cy={pt.y}
                       r={5}
-                      fill="#FFFFFF"
+                      fill={mobileColors.background}
                       stroke={line.color}
                       strokeWidth={2}
                     />
@@ -450,7 +445,7 @@ const styles = StyleSheet.create({
   },
   headerCell: { minWidth: 80 },
   headerVal: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },

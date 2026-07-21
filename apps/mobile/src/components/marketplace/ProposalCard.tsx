@@ -9,12 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { offerStatusLabel } from "../../lib/marketplaceLabels";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import type { BuyerMeteoDto } from "../../lib/api";
 import { formatMarketMoney, parseMarketNum } from "./MarketplaceListingCard";
 import { BuyerMeteoBadge } from "./BuyerMeteoBadge";
@@ -23,6 +18,8 @@ import { MemberAvatar } from "../collaboration/MemberAvatar";
 import { ListingShareButton } from "./ListingShareButton";
 import type { ListingShareInput } from "../../lib/shareMarketplaceListing";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type ProposalCardBase = {
   id: string;
@@ -611,7 +608,7 @@ const styles = StyleSheet.create({
   sentIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
@@ -633,7 +630,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   badge: {
@@ -642,12 +639,12 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill
   },
   badgePending: { backgroundColor: mobileColors.surfaceMuted },
-  badgeAccepted: { backgroundColor: "#E8F5E9" },
-  badgeRejected: { backgroundColor: "#FFEBEE" },
+  badgeAccepted: { backgroundColor: mobileStatusSurfaces.positiveBg },
+  badgeRejected: { backgroundColor: producerColors.kpiRose },
   badgeCounter: { backgroundColor: mobileColors.accentSoft },
   creditBadge: {
     ...mobileTypography.meta,
-    color: "#BA7517",
+    color: marketplaceColors.warnAmber,
     fontWeight: "700",
     marginBottom: mobileSpacing.xs
   },

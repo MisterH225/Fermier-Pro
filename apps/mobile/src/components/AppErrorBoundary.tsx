@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Sentry } from "../lib/sentry";
-import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 
 type Props = {
   children: ReactNode;
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     textAlign: "center"
   },
   body: {
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     paddingHorizontal: mobileSpacing.xl,
     paddingVertical: 14,
-    borderRadius: 12
+    borderRadius: mobileRadius.md
   },
   btnTx: { color: mobileColors.onAccent, fontWeight: "700" }
 });

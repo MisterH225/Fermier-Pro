@@ -8,12 +8,7 @@ import {
   View
 } from "react-native";
 import type { FeedTypeDto, FinanceStockLineInput } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type StockLineForm = {
   key: string;
@@ -369,7 +364,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   lineTitle: { ...mobileTypography.meta, fontWeight: "700" },
-  remove: { color: mobileColors.error, fontSize: 18 },
+  remove: { color: mobileColors.error, fontSize: mobileFontSize.lg },
   chip: {
     alignSelf: "flex-start",
     paddingHorizontal: mobileSpacing.sm,
@@ -377,7 +372,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill,
     backgroundColor: mobileColors.background
   },
-  chipTx: { fontSize: 12, fontWeight: "600", color: mobileColors.accent },
+  chipTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: mobileColors.accent },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.xs },
   typeChip: {
     paddingHorizontal: mobileSpacing.sm,
@@ -390,7 +385,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft
   },
-  typeChipTx: { fontSize: 12, fontWeight: "600" },
+  typeChipTx: { fontSize: mobileFontSize.sm, fontWeight: "600" },
   unitRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -408,10 +403,10 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.accentSoft
   },
-  unitChipTx: { fontSize: 12, fontWeight: "600" },
+  unitChipTx: { fontSize: mobileFontSize.sm, fontWeight: "600" },
   unitChipTxOn: { color: mobileColors.accent },
   lab: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.xs

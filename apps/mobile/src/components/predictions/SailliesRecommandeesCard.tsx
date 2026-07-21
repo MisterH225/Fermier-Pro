@@ -83,5 +83,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  ctaText: { color: "#fff", fontWeight: "600" }
+  ctaText: { color: mobileColors.background, fontWeight: "600" }
 });

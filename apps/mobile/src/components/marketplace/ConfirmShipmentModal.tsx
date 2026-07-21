@@ -4,7 +4,7 @@ import { StyleSheet, Text, TextInput, View } from "react-native";
 import { AppDatePicker } from "../common/AppDatePicker";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 
 type ShipmentMethod = "handover" | "third_party" | "seller_delivery";
 
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     padding: mobileSpacing.md,
     minHeight: 80,
     textAlignVertical: "top"
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     borderWidth: 1,
     borderColor: mobileColors.border,
     color: mobileColors.textSecondary

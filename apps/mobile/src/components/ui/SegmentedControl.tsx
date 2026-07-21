@@ -1,10 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Item = { key: string; label: string };
 
@@ -110,7 +105,7 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   labelActive: {

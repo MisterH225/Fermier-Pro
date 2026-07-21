@@ -18,7 +18,7 @@ import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard } from "../../lib/api";
 import { openPhoneCall } from "../../lib/phone";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const FILTERS = ["all", "alerts", "visit", "recent"] as const;
@@ -139,14 +139,14 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     backgroundColor: vetColors.cardBg,
     borderWidth: 1,
     borderColor: vetColors.border
   },
   pillOn: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
-  pillTx: { fontSize: 13, color: vetColors.textSecondary, fontWeight: "600" },
-  pillTxOn: { color: "#fff" },
+  pillTx: { fontSize: mobileFontSize.sm, color: vetColors.textSecondary, fontWeight: "600" },
+  pillTxOn: { color: mobileColors.background },
   list: { paddingBottom: 24 },
   empty: {
     ...mobileTypography.body,

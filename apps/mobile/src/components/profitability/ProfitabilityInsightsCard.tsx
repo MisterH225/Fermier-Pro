@@ -13,6 +13,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   insights: ProfitabilityInsightDto[];
@@ -22,9 +24,9 @@ type Props = {
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
-  high: "#DC2626",
-  medium: "#D97706",
-  low: "#2563EB"
+  high: uiNamedColors.cDC2626,
+  medium: marketplaceColors.pending,
+  low: uiNamedColors.c2563EB
 };
 
 export function ProfitabilityInsightsCard({
@@ -97,7 +99,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   cardTop: { flexDirection: "row", alignItems: "center", gap: 8 },
-  priorityDot: { width: 10, height: 10, borderRadius: 5 },
+  priorityDot: { width: 10, height: 10, borderRadius: mobileRadius.sm },
   cardTitle: { ...mobileTypography.body, fontWeight: "800", flex: 1 },
   obs: {
     ...mobileTypography.body,

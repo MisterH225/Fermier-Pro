@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
+import { mobileFontSize } from "../../theme/mobileTheme";
 
 export type OrderStatusTone =
   | "pending"
@@ -52,5 +53,5 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     maxWidth: "42%"
   },
-  label: { fontSize: 12, fontWeight: "800" }
+  label: { fontSize: mobileFontSize.sm, fontWeight: "800" }
 });

@@ -11,7 +11,7 @@ import {
   vetStatus,
   vetType
 } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   farmId: string;
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: vetRadius.pill
   },
-  statusTx: { fontSize: 11, fontWeight: "700" },
+  statusTx: { fontSize: mobileFontSize.xs, fontWeight: "700" },
   imminentPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: vetStatus.alert.bg
   },
   imminentTx: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: vetStatus.alert.fg
   },

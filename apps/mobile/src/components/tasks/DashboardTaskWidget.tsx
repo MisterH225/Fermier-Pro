@@ -17,12 +17,7 @@ import {
   patchFarmTaskStatus
 } from "../../lib/api";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { vetColors } from "../../theme/vetTheme";
 import { TaskListView } from "./TaskListView";
 import { TaskDetailModal } from "./TaskDetailModal";
@@ -190,7 +185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2
   },
-  badgeTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 12 },
+  badgeTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.sm },
   chips: { flexDirection: "row", gap: mobileSpacing.sm, marginBottom: mobileSpacing.sm },
   chip: {
     paddingHorizontal: mobileSpacing.md,

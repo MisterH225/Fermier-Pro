@@ -61,12 +61,7 @@ import {
   linkFarmHealthRecordExpense
 } from "../../lib/api";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { HealthOverviewTab } from "./tabs/HealthOverviewTab";
 import { HealthKindListTab } from "./tabs/HealthKindListTab";
 import { DiseasesTab } from "./tabs/DiseasesTab";
@@ -74,6 +69,7 @@ import { VetVisitsTab } from "./tabs/VetVisitsTab";
 import { MortalitiesTab } from "./tabs/MortalitiesTab";
 import { VaccinesTab } from "./tabs/VaccinesTab";
 import { formatHealthDay, canDeleteVetVisit } from "../../components/sante/healthUtils";
+import { producerColors } from "../../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmHealth">;
 
@@ -476,7 +472,7 @@ export function SanteScreen({ route, navigation }: Props) {
                 );
               }}
             >
-              <Text style={{ color: "#D64545", fontWeight: "700" }}>
+              <Text style={{ color: mobileColors.error, fontWeight: "700" }}>
                 {t("health.deleteVisitCta")}
               </Text>
             </Pressable>
@@ -563,7 +559,7 @@ export function SanteScreen({ route, navigation }: Props) {
       {
         key: "mortality",
         label: t("health.chartMortality"),
-        color: "#E24B4A",
+        color: producerColors.chartDisease,
         data: overview?.charts.mortalityHeadcount ?? []
       }
     ],
@@ -575,13 +571,13 @@ export function SanteScreen({ route, navigation }: Props) {
       {
         key: "new_cases",
         label: t("health.chartDiseaseNew"),
-        color: "#BA7517",
+        color: producerColors.chartAccident,
         data: overview?.charts.diseaseNew ?? []
       },
       {
         key: "resolved",
         label: t("health.chartDiseaseResolved"),
-        color: "#1D9E75",
+        color: producerColors.chartOk,
         data: overview?.charts.diseaseResolved ?? []
       }
     ],
@@ -593,13 +589,13 @@ export function SanteScreen({ route, navigation }: Props) {
       {
         key: "planned",
         label: t("health.chartVaccinePlanned"),
-        color: "#4A90D9",
+        color: producerColors.chartOther,
         data: overview?.charts.vaccinationsPlanned ?? []
       },
       {
         key: "done",
         label: t("health.chartVaccineDone"),
-        color: "#1D9E75",
+        color: producerColors.chartOk,
         data: overview?.charts.vaccinationsDone ?? []
       }
     ],
@@ -608,10 +604,10 @@ export function SanteScreen({ route, navigation }: Props) {
 
   const mortalityDonutSlices = useMemo(() => {
     const palette: Record<string, string> = {
-      disease: "#E24B4A",
-      accident: "#BA7517",
-      unknown: "#888780",
-      other: "#4A90D9"
+      disease: producerColors.chartDisease,
+      accident: producerColors.chartAccident,
+      unknown: producerColors.chartUnknown,
+      other: producerColors.chartOther
     };
     const rows = overview?.charts.mortalityCauses ?? [];
     const total = rows.reduce((s, r) => s + r.value, 0);
@@ -620,7 +616,7 @@ export function SanteScreen({ route, navigation }: Props) {
       .map((r) => ({
         label: t(`health.mortCause.${r.cause}` as const),
         value: r.value,
-        color: palette[r.cause] ?? "#888780",
+        color: palette[r.cause] ?? producerColors.chartUnknown,
         display:
           total > 0 ? `${Math.round((r.value / total) * 100)} %` : undefined
       }));
@@ -913,12 +909,12 @@ const styles = StyleSheet.create({
   headerBtnText: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   meta: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   lab: {
     ...mobileTypography.meta,

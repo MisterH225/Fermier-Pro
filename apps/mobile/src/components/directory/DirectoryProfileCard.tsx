@@ -9,13 +9,8 @@ import {
   type ViewStyle
 } from "react-native";
 import type { DirectoryProfileMetaTile } from "../../lib/directoryCardModel";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
 
 export type { DirectoryProfileMetaTile };
 
@@ -128,7 +123,7 @@ export function DirectoryProfileCard({
           {ratingLine ? (
             <View style={styles.ratingRow}>
               {ratingLabel ? (
-                <Ionicons name="star" size={13} color="#F59E0B" />
+                <Ionicons name="star" size={13} color={producerColors.warning} />
               ) : null}
               <Text style={styles.ratingTx} numberOfLines={1}>
                 {ratingLine}
@@ -207,19 +202,19 @@ const styles = StyleSheet.create({
   photo: {
     width: PHOTO,
     height: PHOTO,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.surfaceMuted
   },
   photoPh: {
     width: PHOTO,
     height: PHOTO,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
   photoTx: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.accent
   },
@@ -233,13 +228,13 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4
+    borderRadius: mobileRadius.sm
   },
   statusDotOn: { backgroundColor: mobileColors.success },
   statusDotOff: { backgroundColor: mobileColors.textSecondary },
   statusTx: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     flexShrink: 1
   },
@@ -248,14 +243,14 @@ const styles = StyleSheet.create({
   verifiedIcon: { marginLeft: "auto" },
   name: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   title: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   ratingRow: {
     flexDirection: "row",
@@ -265,7 +260,7 @@ const styles = StyleSheet.create({
   },
   ratingTx: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textPrimary,
     fontWeight: "600",
     flexShrink: 1
@@ -278,7 +273,7 @@ const styles = StyleSheet.create({
   },
   highlightTx: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.accent,
     fontWeight: "600",
     flexShrink: 1
@@ -296,7 +291,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     flex: 1,
     color: mobileColors.textPrimary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   tilesRow: {
     flexDirection: "row",
@@ -307,7 +302,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.border,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     paddingVertical: 8,
     paddingHorizontal: 8,
     backgroundColor: mobileColors.background,
@@ -316,12 +311,12 @@ const styles = StyleSheet.create({
   },
   tileLabel: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary
   },
   tileValue: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     textAlign: "center"

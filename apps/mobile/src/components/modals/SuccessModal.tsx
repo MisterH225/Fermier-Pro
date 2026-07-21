@@ -10,13 +10,9 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { SuccessModalPayload } from "../../context/ModalContext";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type SuccessModalProps = {
   visible: boolean;
@@ -62,7 +58,7 @@ export function SuccessModal({ visible, payload, onClose }: SuccessModalProps) {
         <View style={styles.centerLayer} pointerEvents="box-none">
           <View style={styles.card} testID="success-modal">
             <View style={styles.seal}>
-              <Ionicons name="checkmark" size={36} color="#1B5E20" />
+              <Ionicons name="checkmark" size={36} color={uiNamedColors.c1B5E20} />
             </View>
             <Text style={styles.title}>
               {payload.title ?? t("modals.success.title")}
@@ -101,10 +97,10 @@ const styles = StyleSheet.create({
     width: "88%",
     maxWidth: 400,
     backgroundColor: mobileColors.background,
-    borderRadius: 28,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.xl,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 24,
@@ -113,14 +109,14 @@ const styles = StyleSheet.create({
   seal: {
     width: 88,
     height: 88,
-    borderRadius: 44,
-    backgroundColor: "#C8F5C0",
+    borderRadius: mobileRadius.xl,
+    backgroundColor: uiNamedColors.cC8F5C0,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: mobileSpacing.lg
   },
   title: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     textAlign: "center",
@@ -128,7 +124,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...mobileTypography.body,
-    color: "#666666",
+    color: uiNamedColors.c666666,
     textAlign: "center",
     marginBottom: mobileSpacing.sm
   },
@@ -141,14 +137,14 @@ const styles = StyleSheet.create({
   },
   btn: {
     width: "100%",
-    backgroundColor: "#1C1C1E",
-    borderRadius: 12,
+    backgroundColor: uiNamedColors.c1C1C1E,
+    borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
   btnTx: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   }
 });

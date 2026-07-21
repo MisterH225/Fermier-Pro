@@ -27,11 +27,7 @@ import { ChatModuleGate } from "../components/ChatModuleGate";
 import { ChatInputBar } from "../components/messaging/ChatInputBar";
 import { ListingContextBanner } from "../components/messaging/ListingContextBanner";
 import { MessageBubble } from "../components/messaging/MessageBubble";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../theme/mobileTheme";
 import { useSession } from "../context/SessionContext";
 import {
   type ChatSocketConnectionStatus,
@@ -56,6 +52,7 @@ import type { PhoneWarningVariant } from "../components/chat/PhoneWarningBanner"
 import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 const CHAT_PAGE_SIZE = 40;
 
@@ -85,39 +82,39 @@ function liveStripProps(status: ChatSocketConnectionStatus): LiveStrip {
       return {
         kind: "banner",
         label: "Connexion au salon…",
-        bg: "#fff8e6",
-        fg: "#6b5420"
+        bg: producerColors.kpiAmber,
+        fg: producerColors.oliveClosedText
       };
     case "connected":
       return {
         kind: "pill",
         label: "Temps réel actif",
-        bg: "#e8f5e4",
-        fg: "#2d5016",
-        dot: "#43a047"
+        bg: producerColors.oliveOnlineBg,
+        fg: producerColors.oliveOnlineFg,
+        dot: producerColors.oliveOnlineDot
       };
     case "reconnecting":
       return {
         kind: "banner",
         label: "Reconnexion au salon…",
-        bg: "#fff8e6",
-        fg: "#6b5420"
+        bg: producerColors.kpiAmber,
+        fg: producerColors.oliveClosedText
       };
     case "disconnected":
       return {
         kind: "banner",
         label:
           "Flux temps réel interrompu — tirez la liste pour actualiser les messages.",
-        bg: "#edece4",
-        fg: "#4b513d"
+        bg: producerColors.oliveNeutralBg,
+        fg: mobileColors.textTertiary
       };
     case "error":
       return {
         kind: "banner",
         label:
           "Impossible d’ouvrir le flux temps réel. Les envois REST fonctionnent toujours.",
-        bg: "#fdecea",
-        fg: "#b00020"
+        bg: producerColors.dangerSoftBg,
+        fg: producerColors.dangerDeep
       };
     default:
       return null;
@@ -714,7 +711,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e4d4"
+    borderBottomColor: producerColors.oliveBorder
   },
   livePillStrip: {
     flexDirection: "row",
@@ -722,21 +719,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#d4e8d0",
+    borderBottomColor: producerColors.oliveBannerBorder,
     gap: 8
   },
   liveDot: {
     width: 8,
     height: 8,
-    borderRadius: 4
+    borderRadius: mobileRadius.sm
   },
   livePillText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     lineHeight: 18
   },
   liveStripText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     lineHeight: 18
   },
   centered: {
@@ -745,7 +742,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24
   },
-  error: { color: "#b00020", textAlign: "center", fontSize: 14 },
+  error: { color: producerColors.dangerDeep, textAlign: "center", fontSize: mobileFontSize.md },
   listWrap: { flex: 1, position: "relative" },
   listFlex: { flex: 1 },
   loadOlderBanner: {
@@ -757,7 +754,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   loadOlderText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   newMessagesFab: {
@@ -773,35 +770,35 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 18,
     paddingLeft: 14,
-    borderRadius: 24,
-    shadowColor: "#000",
+    borderRadius: mobileRadius.xl,
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.22,
     shadowRadius: 5
   },
   newMessagesFabChevron: {
     color: mobileColors.onAccent,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     marginTop: 1
   },
   newMessagesFabText: {
     color: mobileColors.onAccent,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "700"
   },
   newMessagesFabBadge: {
     minWidth: 22,
     height: 22,
     paddingHorizontal: 6,
-    borderRadius: 11,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"
   },
   newMessagesFabBadgeText: {
     color: mobileColors.accent,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "800"
   },
   listContent: {
@@ -817,7 +814,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   dateSepText: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
@@ -832,7 +829,7 @@ const styles = StyleSheet.create({
   quickOfferBtnText: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   bubbleRow: {
     alignItems: "flex-start",
@@ -843,27 +840,27 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: "88%",
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1
   },
   bubbleMine: {
     backgroundColor: mobileColors.accent,
-    borderColor: "#4a6118"
+    borderColor: producerColors.oliveComposerBorder
   },
   bubbleOther: {
     backgroundColor: mobileColors.background,
-    borderColor: "#e0e4d4"
+    borderColor: producerColors.oliveBorder
   },
   senderName: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.accent,
     marginBottom: 4
   },
   msgBody: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     lineHeight: 22
   },
@@ -872,11 +869,11 @@ const styles = StyleSheet.create({
   },
   msgMeta: {
     marginTop: 6,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary
   },
   msgMetaMine: {
-    color: "#dfe8c8"
+    color: producerColors.primaryMuted
   },
   composer: {
     flexDirection: "row",
@@ -886,8 +883,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: "#e0e4d4",
-    backgroundColor: "#fdfcf5"
+    borderTopColor: producerColors.oliveBorder,
+    backgroundColor: producerColors.oliveCard
   },
   input: {
     flex: 1,
@@ -895,18 +892,18 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     borderWidth: 1,
-    borderColor: "#d4dac8",
+    borderColor: producerColors.oliveBorder,
     backgroundColor: mobileColors.background,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   sendBtn: {
     backgroundColor: mobileColors.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 14
+    borderRadius: mobileRadius.lg
   },
   sendBtnDisabled: {
     opacity: 0.45
@@ -914,12 +911,12 @@ const styles = StyleSheet.create({
   sendBtnText: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   sendError: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    color: "#b00020",
-    fontSize: 12
+    color: producerColors.dangerDeep,
+    fontSize: mobileFontSize.sm
   }
 });

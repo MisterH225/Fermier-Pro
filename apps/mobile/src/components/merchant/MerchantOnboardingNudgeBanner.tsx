@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
 
 type Props = {
   variant: "shop" | "product";
@@ -26,9 +27,9 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: producerColors.kpiAmberSoft,
     borderWidth: 1,
-    borderColor: "#F59E0B"
+    borderColor: producerColors.warning
   },
   text: {
     color: mobileColors.textPrimary,

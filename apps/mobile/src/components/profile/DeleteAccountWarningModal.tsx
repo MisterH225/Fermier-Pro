@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -68,7 +68,7 @@ export function DeleteAccountWarningModal({
 
 const styles = StyleSheet.create({
   icon: {
-    fontSize: 40,
+    fontSize: mobileFontSize.xxl,
     textAlign: "center",
     marginBottom: mobileSpacing.md
   },
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   listItem: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20
   },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryTx: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.onAccent
   },
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   outlineTx: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: mobileColors.error
   }

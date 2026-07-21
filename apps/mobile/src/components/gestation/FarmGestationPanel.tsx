@@ -40,14 +40,7 @@ import {
 import { useTechFarmPermissions } from "../../hooks/useTechFarmPermissions";
 import { TechReadOnlyBanner } from "../technician/TechReadOnlyBanner";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileKpiPalette,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileKpiPalette, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type FarmGestationPanelTabId =
   | "overview"
@@ -749,7 +742,7 @@ const styles = StyleSheet.create({
     ...mobileShadows.card
   },
   upcomingTitle: { fontWeight: "600" },
-  upcomingMeta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 4 },
+  upcomingMeta: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 4 },
   search: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -766,13 +759,13 @@ const styles = StyleSheet.create({
     ...mobileShadows.card
   },
   planTitle: { fontWeight: "600" },
-  planMeta: { fontSize: 12, color: mobileColors.textSecondary, marginTop: 4 },
-  planStatus: { marginTop: 6, fontSize: 13 },
+  planMeta: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 4 },
+  planStatus: { marginTop: 6, fontSize: mobileFontSize.sm },
   statsBlock: {
     backgroundColor: mobileColors.surfaceMuted,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.lg,
     gap: 4
   },
-  statsLine: { fontSize: 13 }
+  statsLine: { fontSize: mobileFontSize.sm }
 });

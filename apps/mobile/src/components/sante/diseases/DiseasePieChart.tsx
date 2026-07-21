@@ -7,19 +7,16 @@ import {
 } from "../../finance/FinanceDonutChart";
 import type { FarmDiseasesOverviewDto } from "../../../lib/api";
 import { ScreenSection } from "../../layout/ScreenSection";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../../theme/mobileTheme";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 const PIE_COLORS = [
-  "#FF6B6B",
-  "#4ECDC4",
-  "#45B7D1",
-  "#96CEB4",
-  "#FFEAA7",
-  "#DDA0DD"
+  uiNamedColors.cFF6B6B,
+  uiNamedColors.c4ECDC4,
+  uiNamedColors.c45B7D1,
+  uiNamedColors.c96CEB4,
+  uiNamedColors.cFFEAA7,
+  uiNamedColors.cDDA0DD
 ];
 
 type Props = {
@@ -77,7 +74,7 @@ const styles = StyleSheet.create({
   tooltip: {
     marginTop: mobileSpacing.sm,
     padding: mobileSpacing.md,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted,
     alignItems: "center"
   },

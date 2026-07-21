@@ -57,13 +57,7 @@ import {
   type DashboardHealthDto
 } from "../lib/api";
 import { welcomeFirstName } from "../lib/userDisplay";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
@@ -865,7 +859,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   cardEmoji: {
-    fontSize: 22
+    fontSize: mobileFontSize.xl
   },
   cardTitle: {
     ...mobileTypography.cardTitle,
@@ -891,7 +885,7 @@ const styles = StyleSheet.create({
   gestName: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   gestMeta: {
     ...mobileTypography.meta,
@@ -907,7 +901,7 @@ const styles = StyleSheet.create({
   },
   badgeUrgentText: {
     color: mobileColors.onAccent,
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "800"
   },
   healthBlock: { marginBottom: mobileSpacing.sm },
@@ -919,7 +913,7 @@ const styles = StyleSheet.create({
   healthValue: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   feedList: { gap: mobileSpacing.md },
   feedGaugeList: { gap: mobileSpacing.xs },

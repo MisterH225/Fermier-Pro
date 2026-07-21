@@ -16,7 +16,7 @@ import {
 import { useSession } from "../../context/SessionContext";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 12,
     minHeight: 80,
     textAlignVertical: "top"

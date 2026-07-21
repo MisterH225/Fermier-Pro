@@ -26,7 +26,7 @@ import {
   canTechWriteFarmModule,
   type TechFarmModuleKey
 } from "../../lib/technicianPermissions";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import { techColors, techRadius } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -175,10 +175,10 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: techColors.primary, borderColor: techColors.primary },
   pillDisabled: { opacity: 0.45 },
   pillText: { ...mobileTypography.meta, fontWeight: "600", color: techColors.textSecondary },
-  pillTextActive: { color: "#fff" },
+  pillTextActive: { color: mobileColors.background },
   pillTextDisabled: { color: techColors.textSecondary },
   pillBadge: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: techColors.textSecondary
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: techColors.border
   },
-  btnText: { color: "#fff", fontWeight: "700", textAlign: "center" },
+  btnText: { color: mobileColors.background, fontWeight: "700", textAlign: "center" },
   btnTextDisabled: { color: techColors.textSecondary },
-  btnHint: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "600" }
+  btnHint: { fontSize: mobileFontSize.xs, color: "rgba(255,255,255,0.9)", fontWeight: "600" }
 });

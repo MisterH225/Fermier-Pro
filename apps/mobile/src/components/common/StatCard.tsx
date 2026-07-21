@@ -1,5 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import {
+  mobileFontSize,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 import type { RolePalette } from "./rolePalette";
 
 type Props = {
@@ -36,11 +40,15 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     gap: 2
   },
-  value: { fontSize: 20, fontWeight: "800" },
+  value: { fontSize: mobileFontSize.xl, fontWeight: "800" },
   label: {
     ...mobileTypography.meta,
     textAlign: "center",
     marginTop: 2
   },
-  hint: { ...mobileTypography.meta, fontSize: 11, textAlign: "center" }
+  hint: {
+    ...mobileTypography.meta,
+    fontSize: mobileFontSize.xs,
+    textAlign: "center"
+  }
 });

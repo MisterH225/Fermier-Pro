@@ -2,12 +2,9 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { formatMarketMoney } from "./MarketplaceListingCard";
 import { DeadlineNotice, merchantWarningOrderPalette } from "../orders";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type Props = {
   balanceAmount: number;
@@ -76,11 +73,11 @@ export function BalanceTrackingCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFF8E6",
+    backgroundColor: producerColors.kpiAmber,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: "#F0D9A8",
+    borderColor: marketplaceColors.warnAmberBorder,
     gap: mobileSpacing.xs
   },
   title: {
@@ -94,8 +91,8 @@ const styles = StyleSheet.create({
   },
   amount: {
     ...mobileTypography.title,
-    fontSize: 20,
-    color: "#BA7517",
+    fontSize: mobileFontSize.xl,
+    color: marketplaceColors.warnAmber,
     fontWeight: "800"
   },
   status: {

@@ -56,13 +56,7 @@ import {
   refreshFarmFeedQueries
 } from "../lib/feedStockQuery";
 import type { RootStackParamList } from "../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmFeedStock">;
@@ -786,7 +780,7 @@ const styles = StyleSheet.create({
   error: { color: mobileColors.error, padding: mobileSpacing.lg },
   screenTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary
   },
   farmHint: {
@@ -819,7 +813,7 @@ const styles = StyleSheet.create({
   sectionSp: { marginTop: mobileSpacing.xl },
   muted: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   headerBtn: { marginRight: mobileSpacing.sm },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "700", fontSize: 15 },
+  headerBtnText: { color: mobileColors.accent, fontWeight: "700", fontSize: mobileFontSize.md },
   filters: { marginBottom: mobileSpacing.md },
   filterLab: {
     ...mobileTypography.meta,
@@ -887,7 +881,7 @@ const styles = StyleSheet.create({
   },
   swipeEditTx: {
     color: mobileColors.onAccent,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     textAlign: "center"
   }

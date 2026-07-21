@@ -42,8 +42,10 @@ import {
 } from "../../lib/platformFees";
 import { MERCHANT_PRODUCT_UNIT_PRESETS } from "../../lib/merchantProductUnits";
 import { merchantColors } from "../../theme/merchantTheme";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 /** useFocusEffect exige un NavigationContainer — hors onboarding uniquement. */
 function RefetchOnNavigationFocus({ onFocus }: { onFocus: () => void }) {
@@ -539,7 +541,7 @@ export function MerchantProductForm({
             testID="merchant-product-form-save"
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.background} />
             ) : (
               <Text style={styles.btnTx}>
                 {productId
@@ -637,51 +639,51 @@ const styles = StyleSheet.create({
   },
   body: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   field: { gap: mobileSpacing.xs },
-  fieldLabel: { fontSize: 14, fontWeight: "700", color: merchantColors.textPrimary },
-  fieldHint: { fontSize: 12, color: merchantColors.textSecondary, marginBottom: 2 },
+  fieldLabel: { fontSize: mobileFontSize.md, fontWeight: "700", color: merchantColors.textPrimary },
+  fieldHint: { fontSize: mobileFontSize.sm, color: merchantColors.textSecondary, marginBottom: 2 },
   required: { color: merchantColors.danger },
-  warn: { color: merchantColors.warning, fontSize: 13 },
-  title: { fontSize: 20, fontWeight: "700" },
+  warn: { color: merchantColors.warning, fontSize: mobileFontSize.sm },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "700" },
   moderationBanner: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: producerColors.kpiAmberSoft,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     gap: 6,
     borderWidth: 1,
-    borderColor: "#F59E0B"
+    borderColor: producerColors.warning
   },
-  moderationTitle: { fontWeight: "700", color: "#92400E", fontSize: 14 },
-  moderationReason: { color: "#78350F", fontSize: 13, lineHeight: 18 },
-  moderationHint: { color: "#92400E", fontSize: 12, lineHeight: 17 },
+  moderationTitle: { fontWeight: "700", color: merchantColors.amberText, fontSize: mobileFontSize.md },
+  moderationReason: { color: merchantColors.amberTextDeep, fontSize: mobileFontSize.sm, lineHeight: 18 },
+  moderationHint: { color: merchantColors.amberText, fontSize: mobileFontSize.sm, lineHeight: 17 },
   pendingBanner: {
-    backgroundColor: "#DBEAFE",
+    backgroundColor: merchantColors.blueSoftBg,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     gap: 4,
     borderWidth: 1,
-    borderColor: "#3B82F6"
+    borderColor: producerColors.chartBlue
   },
-  pendingTitle: { fontWeight: "700", color: "#1E3A8A", fontSize: 14 },
-  pendingHint: { color: "#1E40AF", fontSize: 12, lineHeight: 17 },
+  pendingTitle: { fontWeight: "700", color: merchantColors.blueTextDeep, fontSize: mobileFontSize.md },
+  pendingHint: { color: merchantColors.blueText, fontSize: mobileFontSize.sm, lineHeight: 17 },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   multiline: { minHeight: 80, textAlignVertical: "top" },
   catRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     borderWidth: 1,
     borderColor: mobileColors.border
   },
   chipOn: { borderColor: merchantColors.primary, backgroundColor: merchantColors.primaryLight },
   shopPicker: { gap: mobileSpacing.xs },
-  shopPickerLabel: { fontWeight: "600", color: merchantColors.textSecondary, fontSize: 13 },
+  shopPickerLabel: { fontWeight: "600", color: merchantColors.textSecondary, fontSize: mobileFontSize.sm },
   btn: {
     backgroundColor: merchantColors.primary,
     padding: mobileSpacing.md,
@@ -695,7 +697,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnResubmit: {
-    backgroundColor: "#D97706",
+    backgroundColor: marketplaceColors.pending,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     alignItems: "center"
@@ -706,7 +708,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  btnTx: { color: "#fff", fontWeight: "700" },
+  btnTx: { color: mobileColors.background, fontWeight: "700" },
   skip: { padding: mobileSpacing.md, alignItems: "center" },
   skipTx: { color: merchantColors.primary, fontWeight: "600" },
   err: { color: mobileColors.error }

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import { vetColors, vetRadius, vetType } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 export type BarTrendPoint = {
   key: string;
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     ...vetType.label,
     flex: 1,
     textAlign: "center",
-    fontSize: 10
+    fontSize: mobileFontSize.xs
   },
   labPeak: { color: vetColors.danger, fontWeight: "700" },
   peakHint: { ...vetType.label, color: vetColors.danger, textAlign: "center" },
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 36,
     height: 28,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     backgroundColor: vetColors.primaryMuted,
     opacity: 0.7
   },

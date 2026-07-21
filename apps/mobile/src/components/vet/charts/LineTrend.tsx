@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import { vetColors, vetRadius, vetType } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 export type LineTrendPoint = {
   key: string;
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     width: W,
     justifyContent: "space-between"
   },
-  lab: { ...vetType.label, flex: 1, textAlign: "center", fontSize: 10 },
+  lab: { ...vetType.label, flex: 1, textAlign: "center", fontSize: mobileFontSize.xs },
   targetHint: {
     ...vetType.label,
     color: vetColors.warningDeep,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 40,
     height: 20,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     borderWidth: 2,
     borderColor: vetColors.primaryMuted,
     borderStyle: "dashed"

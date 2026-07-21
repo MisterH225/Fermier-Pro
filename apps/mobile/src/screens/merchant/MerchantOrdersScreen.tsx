@@ -26,8 +26,9 @@ import {
   type OrderStatusBadgeTone
 } from "../../lib/merchantOrderTracking";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileStatusSurfaces, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
 
 type OrderFilter =
   | "all"
@@ -50,12 +51,12 @@ const FILTERS: OrderFilter[] = [
 ];
 
 const BADGE_STYLES: Record<OrderStatusBadgeTone, { bg: string; fg: string }> = {
-  neutral: { bg: "#F3F4F6", fg: "#374151" },
+  neutral: { bg: merchantColors.orderNeutralBg, fg: merchantColors.orderNeutralFg },
   info: { bg: merchantColors.primaryLight, fg: merchantColors.primaryDark },
-  progress: { bg: "#E0F2FE", fg: "#0369A1" },
-  success: { bg: "#DCFCE7", fg: "#166534" },
-  warning: { bg: "#FEF3C7", fg: "#92400E" },
-  danger: { bg: "#FCE7F3", fg: merchantColors.danger }
+  progress: { bg: merchantColors.orderProgressBg, fg: merchantColors.orderProgressFg },
+  success: { bg: mobileStatusSurfaces.successBg, fg: mobileStatusSurfaces.successText },
+  warning: { bg: producerColors.kpiAmberSoft, fg: merchantColors.amberText },
+  danger: { bg: merchantColors.orderDangerBg, fg: merchantColors.danger }
 };
 
 export function MerchantOrdersScreen() {
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     backgroundColor: merchantColors.canvas
   },
-  title: { fontSize: 22, fontWeight: "800", color: merchantColors.textPrimary },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "800", color: merchantColors.textPrimary },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -231,7 +232,7 @@ const styles = StyleSheet.create({
     backgroundColor: merchantColors.primaryLight,
     borderColor: merchantColors.primary
   },
-  chipTx: { fontSize: 12, fontWeight: "600", color: merchantColors.textSecondary },
+  chipTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: merchantColors.textSecondary },
   chipTxOn: { color: merchantColors.primary },
   card: {
     backgroundColor: merchantColors.cardBg,
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
   thumbWrap: {
     width: 72,
     height: 72,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     overflow: "hidden",
     backgroundColor: merchantColors.primaryLight
   },
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   cardName: {
     fontWeight: "800",
     flex: 1,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: merchantColors.textPrimary
   },
   badge: {
@@ -273,14 +274,14 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill,
     maxWidth: "46%"
   },
-  badgeTx: { fontSize: 10, fontWeight: "800" },
+  badgeTx: { fontSize: mobileFontSize.xs, fontWeight: "800" },
   tracking: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: merchantColors.primary
   },
-  meta: { color: merchantColors.textSecondary, fontSize: 13 },
-  net: { color: merchantColors.success, fontWeight: "700", fontSize: 13 },
+  meta: { color: merchantColors.textSecondary, fontSize: mobileFontSize.sm },
+  net: { color: merchantColors.success, fontWeight: "700", fontSize: mobileFontSize.sm },
   empty: {
     textAlign: "center",
     marginTop: 40,

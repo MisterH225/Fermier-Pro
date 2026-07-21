@@ -3,12 +3,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BaseModal } from "../modals/BaseModal";
 import type { FarmDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
 
 type DeleteProjectModalProps = {
   visible: boolean;
@@ -167,7 +163,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: "#fef2f2",
+    backgroundColor: producerColors.errorSoftBg,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: mobileRadius.pill,
@@ -175,7 +171,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md
   },
   warningText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.error
   },
@@ -192,7 +188,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md
   },
   deletedSection: {
-    backgroundColor: "#fef2f2",
+    backgroundColor: producerColors.errorSoftBg,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     marginBottom: mobileSpacing.md
@@ -236,7 +232,7 @@ const styles = StyleSheet.create({
   },
   projectNameValue: {
     ...mobileTypography.title,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   input: {

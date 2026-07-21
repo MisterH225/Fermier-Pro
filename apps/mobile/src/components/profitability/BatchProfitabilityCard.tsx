@@ -14,6 +14,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   batch: BatchProfitabilityDto;
@@ -192,14 +194,14 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 999
+    borderRadius: mobileRadius.pill
   },
-  badgeOpen: { backgroundColor: "#DBEAFE" },
-  badgeClosed: { backgroundColor: "#E5E7EB" },
+  badgeOpen: { backgroundColor: merchantColors.blueSoftBg },
+  badgeClosed: { backgroundColor: uiNamedColors.cE5E7EB },
   badgeText: { ...mobileTypography.meta, fontWeight: "700" },
   section: { marginTop: mobileSpacing.md },
   combinedSection: {
-    backgroundColor: "#F0FDF4",
+    backgroundColor: uiNamedColors.cF0FDF4,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     marginTop: mobileSpacing.sm

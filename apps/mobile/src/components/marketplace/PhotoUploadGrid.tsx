@@ -16,12 +16,8 @@ import type { AnimalListItem } from "../../lib/api";
 import { getSupabase } from "../../lib/supabase";
 import { uploadListingPhotoToSupabase } from "../../lib/uploadListingPhotoToSupabase";
 import { DefaultPigImage } from "../common/DefaultPigImage";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 const THUMB = 80;
 const MAX_PHOTOS = 5;
@@ -252,7 +248,7 @@ const styles = StyleSheet.create({
   block: { gap: mobileSpacing.sm },
   title: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   strip: {
@@ -281,12 +277,12 @@ const styles = StyleSheet.create({
     left: 4,
     bottom: 4,
     backgroundColor: mobileColors.accent,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     paddingHorizontal: 5,
     paddingVertical: 2
   },
   primaryBadgeTx: {
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: mobileColors.onAccent
   },
@@ -296,7 +292,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.error,
     alignItems: "center",
     justifyContent: "center"
@@ -327,7 +323,7 @@ const styles = StyleSheet.create({
   animalOfferTx: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   animalOfferActions: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   useBtn: {
@@ -357,7 +353,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: marketplaceColors.surfaceGray,
     gap: mobileSpacing.sm
   },
   emptyTx: {
