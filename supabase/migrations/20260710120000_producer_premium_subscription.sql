@@ -1,8 +1,15 @@
 -- Miroir Prisma 20260710120000_producer_premium_subscription
 
+-- Prisma 20260708154000_merchant_subscription_admin (non mirroir sous supabase/).
+DO $$ BEGIN
+  CREATE TYPE "MerchantPremiumBillingUnit" AS ENUM ('hour', 'day', 'month');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 DO $$ BEGIN
   ALTER TABLE "ProducerProfile" ADD COLUMN IF NOT EXISTS "subscriptionTier" "MerchantSubscriptionTier";
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "ProducerProfile" ADD COLUMN IF NOT EXISTS "subscriptionStatus" "MerchantSubscriptionStatus";
@@ -70,6 +77,7 @@ END $$;
 DO $$ BEGIN
   ALTER TABLE "PlatformSettings" ADD COLUMN IF NOT EXISTS "producerPremiumBillingUnit" "MerchantPremiumBillingUnit" NOT NULL DEFAULT 'month';
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "PlatformSettings" ADD COLUMN IF NOT EXISTS "producerPremiumBillingInterval" INTEGER NOT NULL DEFAULT 1;
