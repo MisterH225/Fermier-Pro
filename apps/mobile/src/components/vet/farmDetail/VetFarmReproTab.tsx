@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { VetEmptyState } from "./VetEmptyState";
 import { VetReadingCard } from "./VetReadingCard";
 import type { VetFarmSummaryDto, VetStatusLevel } from "../../../lib/api/vet";
 import {
@@ -90,16 +91,10 @@ export function VetFarmReproTab({
         {t("vet.farmDetail.repro.upcomingTitle")}
       </Text>
       {upcoming.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons
-            name="calendar-outline"
-            size={28}
-            color={vetColors.textMuted}
-          />
-          <Text style={styles.emptyTx}>
-            {t("vet.farmDetail.repro.upcomingEmpty")}
-          </Text>
-        </View>
+        <VetEmptyState
+          icon="calendar-outline"
+          message={t("vet.farmDetail.repro.upcomingEmpty")}
+        />
       ) : (
         upcoming.map((f) => {
           const imminent = f.daysRemaining <= 7;
@@ -138,16 +133,10 @@ export function VetFarmReproTab({
         {t("vet.farmDetail.repro.biosecurityTitle")}
       </Text>
       {barns.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons
-            name="home-outline"
-            size={28}
-            color={vetColors.textMuted}
-          />
-          <Text style={styles.emptyTx}>
-            {t("vet.farmDetail.repro.biosecurityEmpty")}
-          </Text>
-        </View>
+        <VetEmptyState
+          icon="home-outline"
+          message={t("vet.farmDetail.repro.biosecurityEmpty")}
+        />
       ) : (
         barns.map((barn) => {
           const tok = vetStatus[barn.status as VetStatusLevel];
@@ -183,16 +172,10 @@ export function VetFarmReproTab({
         {t("vet.farmDetail.repro.quarantineTitle")}
       </Text>
       {quarantine == null ? (
-        <View style={styles.emptyCard}>
-          <Ionicons
-            name="shield-outline"
-            size={28}
-            color={vetColors.textMuted}
-          />
-          <Text style={styles.emptyTx}>
-            {t("vet.farmDetail.repro.quarantineEmpty")}
-          </Text>
-        </View>
+        <VetEmptyState
+          icon="shield-outline"
+          message={t("vet.farmDetail.repro.quarantineEmpty")}
+        />
       ) : (
         <View style={styles.listCard}>
           <View style={styles.rowBetween}>
@@ -329,13 +312,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: vetStatus.alert.fg
   },
-  daysTx: { ...vetType.label, fontWeight: "700", color: vetColors.primary },
-  emptyCard: {
-    alignItems: "center",
-    gap: mobileSpacing.sm,
-    padding: mobileSpacing.xl,
-    backgroundColor: vetColors.primaryLight,
-    borderRadius: vetRadius.card
-  },
-  emptyTx: { ...vetType.label, textAlign: "center" }
+  daysTx: { ...vetType.label, fontWeight: "700", color: vetColors.primary }
 });

@@ -39,7 +39,7 @@ export function HealthStatusBanner({
   return (
     <View
       style={[styles.banner, { backgroundColor: token.bg }]}
-      accessibilityRole="summary"
+      accessibilityRole="text"
       accessibilityLabel={label}
     >
       <Ionicons name={token.icon} size={22} color={token.fg} />

@@ -67,7 +67,7 @@ export function VetReadingCard({
   return (
     <View
       style={styles.card}
-      accessibilityRole="summary"
+      accessibilityRole="text"
       accessibilityLabel={t("vet.farmDetail.readings.title")}
     >
       <View style={styles.head}>

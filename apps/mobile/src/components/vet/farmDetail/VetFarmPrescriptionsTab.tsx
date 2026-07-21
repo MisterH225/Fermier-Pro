@@ -11,12 +11,13 @@ import {
   Text,
   View
 } from "react-native";
+import { VetEmptyState } from "./VetEmptyState";
 import { useSession } from "../../../context/SessionContext";
 import {
   fetchFarmHealthEvents,
   fetchVetConsultations
 } from "../../../lib/api";
-import { vetColors, vetRadius } from "../../../theme/vetTheme";
+import { vetColors, vetRadius, vetShadow } from "../../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
 import type { RootStackParamList } from "../../../types/navigation";
 
@@ -118,7 +119,10 @@ export function VetFarmPrescriptionsTab({
 
   if (items.length === 0) {
     return (
-      <Text style={styles.empty}>{t("vet.farmDetail.noPrescriptions")}</Text>
+      <VetEmptyState
+        icon="document-text-outline"
+        message={t("vet.farmDetail.noPrescriptions")}
+      />
     );
   }
 
@@ -161,13 +165,11 @@ const styles = StyleSheet.create({
   block: { gap: mobileSpacing.sm },
   listCard: {
     backgroundColor: vetColors.cardBg,
-    borderRadius: vetRadius.button,
+    borderRadius: vetRadius.card,
     padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border,
-    gap: 2
+    gap: 2,
+    ...vetShadow.soft
   },
   listTitle: { fontWeight: "600", color: vetColors.textPrimary },
-  listMeta: { ...mobileTypography.meta, color: vetColors.textSecondary },
-  empty: { color: vetColors.textSecondary, marginVertical: mobileSpacing.sm }
+  listMeta: { ...mobileTypography.meta, color: vetColors.textSecondary }
 });

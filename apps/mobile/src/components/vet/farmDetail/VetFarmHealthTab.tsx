@@ -13,6 +13,7 @@ import { InfoRow, SectionHeader, vetPalette } from "../../common";
 import { BarTrend } from "../charts";
 import { HealthStatusBanner } from "./HealthStatusBanner";
 import { HealthTimeline } from "./HealthTimeline";
+import { VetEmptyState } from "./VetEmptyState";
 import { useSession } from "../../../context/SessionContext";
 import {
   fetchFarmActiveDiseaseCases,
@@ -234,7 +235,10 @@ export function VetFarmHealthTab({
       {activeCasesQ.isLoading ? (
         <ActivityIndicator color={vetColors.primary} />
       ) : activeCases.length === 0 ? (
-        <Text style={styles.empty}>{t("vet.farmDetail.noCases")}</Text>
+        <VetEmptyState
+          icon="medkit-outline"
+          message={t("vet.farmDetail.noCases")}
+        />
       ) : (
         activeCases.slice(0, 8).map((d) => (
           <View key={d.id} style={styles.listCard}>

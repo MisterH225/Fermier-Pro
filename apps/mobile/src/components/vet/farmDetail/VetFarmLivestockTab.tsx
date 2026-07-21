@@ -11,6 +11,7 @@ import {
   View
 } from "react-native";
 import { LineTrend } from "../charts";
+import { VetEmptyState } from "./VetEmptyState";
 import { VetReadingCard } from "./VetReadingCard";
 import type { VetFarmSummaryDto, VetStatusLevel } from "../../../lib/api/vet";
 import type { RootStackParamList } from "../../../types/navigation";
@@ -130,16 +131,10 @@ export function VetFarmLivestockTab({
         {t("vet.farmDetail.batchPerf.title")}
       </Text>
       {batches.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons
-            name="layers-outline"
-            size={28}
-            color={vetColors.textMuted}
-          />
-          <Text style={styles.emptyTx}>
-            {t("vet.farmDetail.batchPerf.empty")}
-          </Text>
-        </View>
+        <VetEmptyState
+          icon="layers-outline"
+          message={t("vet.farmDetail.batchPerf.empty")}
+        />
       ) : (
         batches.map((b) => {
           const tok = statusToken(b.status);
@@ -301,13 +296,5 @@ const styles = StyleSheet.create({
   },
   gmqTx: { fontWeight: "700", fontSize: 12 },
   casesTx: { ...vetType.label, color: vetColors.danger },
-  emptyCard: {
-    alignItems: "center",
-    gap: mobileSpacing.sm,
-    padding: mobileSpacing.xl,
-    backgroundColor: vetColors.primaryLight,
-    borderRadius: vetRadius.card
-  },
-  emptyTx: { ...vetType.label, textAlign: "center" },
   readonlyHint: { ...vetType.label, textAlign: "center", marginTop: 4 }
 });

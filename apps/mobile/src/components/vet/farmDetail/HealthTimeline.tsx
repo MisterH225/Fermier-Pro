@@ -10,6 +10,7 @@ import {
   vetType
 } from "../../../theme/vetTheme";
 import { mobileSpacing } from "../../../theme/mobileTheme";
+import { VetEmptyState } from "./VetEmptyState";
 
 type Props = {
   items: VetHealthTimelineItemDto[] | null | undefined;
@@ -34,16 +35,10 @@ export function HealthTimeline({ items, locale, pageSize = 5 }: Props) {
 
   if (list.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Ionicons
-          name="time-outline"
-          size={28}
-          color={vetColors.textMuted}
-        />
-        <Text style={styles.emptyTx}>
-          {t("vet.farmDetail.timeline.empty")}
-        </Text>
-      </View>
+      <VetEmptyState
+        icon="time-outline"
+        message={t("vet.farmDetail.timeline.empty")}
+      />
     );
   }
 
@@ -133,11 +128,5 @@ const styles = StyleSheet.create({
     color: vetColors.primary,
     fontWeight: "700",
     fontSize: 12
-  },
-  empty: {
-    alignItems: "center",
-    gap: mobileSpacing.sm,
-    padding: mobileSpacing.lg
-  },
-  emptyTx: { ...vetType.label, textAlign: "center" }
+  }
 });
