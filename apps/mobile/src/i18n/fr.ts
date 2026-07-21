@@ -113,6 +113,14 @@ export const fr = {
     countrySearchPlaceholder: "Rechercher un pays…",
     countryEmpty: "Aucun pays ne correspond."
   },
+  phoneInput: {
+    countryA11y: "Pays et indicatif, {{country}} {{dial}}",
+    nationalPlaceholder: "07 00 00 00 00",
+    nationalHint: "Indicatif déjà choisi — saisis uniquement le numéro local.",
+    countryModalTitle: "Pays / indicatif",
+    countrySearchPlaceholder: "Rechercher un pays…",
+    countryEmpty: "Aucun pays ne correspond."
+  },
   moduleRoadmap: {
     note: "Ce module arrive bientôt sur mobile."
   },
@@ -2738,7 +2746,7 @@ export const fr = {
       emailLabel: "E-mail invité (optionnel)",
       emailPlaceholder: "exemple@domaine.com",
       phoneLabel: "Téléphone invité (optionnel)",
-      phonePlaceholder: "+221 …",
+      phonePlaceholder: "07 00 00 00 00",
       note: "E-mail ou téléphone aide à retrouver l'invitation. Le lien se partage aussi après création.",
       submit: "Créer l'invitation",
       submitting: "Création…"
@@ -3804,7 +3812,7 @@ export const fr = {
         transferSuccessBody: "Le destinataire a reçu les fonds sur son solde.",
         amountPlaceholder: "Montant (FCFA)",
         phonePlaceholder: "Numéro mobile money (optionnel)",
-        recipientPhonePlaceholder: "Téléphone du destinataire",
+        recipientPhonePlaceholder: "07 00 00 00 00",
         lookupRecipientCta: "Vérifier le destinataire",
         recipientNotVerified: "Vérifiez d'abord le numéro du destinataire",
         notePlaceholder: "Motif (optionnel)",
