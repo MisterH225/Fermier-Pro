@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsISO8601,
   IsNumber,
@@ -33,6 +34,10 @@ export class ScheduleVetVisitDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(1)
   consultationPrice?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isFree?: boolean;
 }

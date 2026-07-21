@@ -12,6 +12,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { SupabaseJwtGuard } from "../auth/guards/supabase-jwt.guard";
 import { VetAcceptAppointmentDto } from "./dto/vet-accept-appointment.dto";
 import { VetRefuseAppointmentDto } from "./dto/vet-refuse-appointment.dto";
+import { ProducerRefuseAppointmentDto } from "./dto/producer-refuse-appointment.dto";
 import { RequestVetAppointmentDto } from "./dto/request-vet-appointment.dto";
 import { ScheduleFromVetAppointmentDto } from "./dto/schedule-from-vet-appointment.dto";
 import { SubmitAppointmentRatingDto } from "./dto/submit-appointment-rating.dto";
@@ -49,7 +50,8 @@ export class VetAppointmentController {
       scheduledAt: dto.scheduledAt,
       reason: dto.reason,
       notes: dto.notes,
-      servicePrice: dto.consultationPrice
+      servicePrice: dto.consultationPrice,
+      isFree: dto.isFree
     });
   }
 
@@ -102,6 +104,20 @@ export class VetAppointmentController {
     @Body() dto: VetRefuseAppointmentDto
   ) {
     return this.appointments.vetRefuse(user, id, dto.refusalReason);
+  }
+
+  @Post("vet-appointments/:id/producer-accept")
+  producerAccept(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.appointments.producerAccept(user, id);
+  }
+
+  @Post("vet-appointments/:id/producer-refuse")
+  producerRefuse(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ProducerRefuseAppointmentDto
+  ) {
+    return this.appointments.producerRefuse(user, id, dto.refusalReason);
   }
 
   @Post("vet-appointments/:id/payment/initiate")

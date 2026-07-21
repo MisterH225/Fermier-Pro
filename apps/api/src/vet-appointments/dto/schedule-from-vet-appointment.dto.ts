@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsISO8601,
   IsNumber,
@@ -21,8 +22,14 @@ export class ScheduleFromVetAppointmentDto {
   @MaxLength(2000)
   notes?: string;
 
+  /** Obligatoire si isFree n'est pas true : montant > 0. */
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(1)
   consultationPrice?: number;
+
+  /** Déclaration explicite de gratuité (requis si pas de montant). */
+  @IsOptional()
+  @IsBoolean()
+  isFree?: boolean;
 }

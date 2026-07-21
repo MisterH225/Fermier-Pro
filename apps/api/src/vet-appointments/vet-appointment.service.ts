@@ -35,8 +35,12 @@ import {
 } from "../marketplace/escrow/mobile-money.gateway";
 import { UserWalletService } from "../wallet/user-wallet.service";
 import { VetCalendarService } from "./vet-calendar.service";
+import { assertTransition } from "./vet-appointment-state-machine";
 
-const PAYMENT_DEADLINE_HOURS = 24;
+/** Délai de paiement après acceptation producteur (ou acceptation véto sur demande). */
+const PAYMENT_DEADLINE_HOURS = 48;
+/** Délai sans réponse producteur sur une proposition vétérinaire. */
+const PROPOSAL_EXPIRY_HOURS = 72;
 const RATING_TAGS = [
   "Ponctuel",
   "Professionnel",
@@ -144,10 +148,12 @@ export class VetAppointmentService {
       vetResponseNotes: row.vetResponseNotes,
       servicePrice:
         row.servicePrice != null ? Number(row.servicePrice) : null,
+      isFree: row.isFree,
       blockedAmount:
         row.blockedAmount != null ? Number(row.blockedAmount) : null,
       paymentDeadline: row.paymentDeadline?.toISOString() ?? null,
       paymentConfirmedAt: row.paymentConfirmedAt?.toISOString() ?? null,
+      proposedByVetAt: row.proposedByVetAt?.toISOString() ?? null,
       completedAt: row.completedAt?.toISOString() ?? null,
       conflictStatus: row.conflictStatus,
       conflictLabel: this.conflictLabel(row.conflictStatus, conflictDetails),
@@ -290,6 +296,7 @@ export class VetAppointmentService {
       reason: string;
       notes?: string;
       servicePrice?: number;
+      isFree?: boolean;
     }
   ) {
     const vetProfile = await this.prisma.vetProfile.findUnique({
@@ -336,8 +343,9 @@ export class VetAppointmentService {
   }
 
   /**
-   * Planification initiée par le vétérinaire (remplace VetConsultation scheduled_visit).
-   * Avec tarif → AWAITING_PAYMENT ; sans tarif → APPOINTMENT_CONFIRMED + calendrier bloqué.
+   * Proposition initiée par le vétérinaire.
+   * Crée toujours en VISIT_PROPOSED — le producteur doit accepter/refuser.
+   * Exige SOIT servicePrice > 0 SOIT isFree === true (pas d'ambiguïté).
    */
   async scheduleFromVet(
     vetUserId: string,
@@ -348,6 +356,7 @@ export class VetAppointmentService {
       reason: string;
       notes?: string;
       servicePrice?: number;
+      isFree?: boolean;
     }
   ) {
     const vetProfile = await this.prisma.vetProfile.findUnique({
@@ -381,133 +390,68 @@ export class VetAppointmentService {
       throw new BadRequestException("La visite doit être planifiée dans le futur");
     }
 
-    const conflict = await this.calendar.detectConflicts(vetUserId, requestedAt);
-    const farmLocation =
-      farm.address?.trim() || farm.name?.trim() || "—";
-    const duration = 1;
+    const isFree = input.isFree === true;
     const hasPrice =
       input.servicePrice != null &&
       Number.isFinite(input.servicePrice) &&
       input.servicePrice > 0;
 
-    if (hasPrice) {
-      const paymentDeadline = new Date();
-      paymentDeadline.setHours(
-        paymentDeadline.getHours() + PAYMENT_DEADLINE_HOURS
+    if (isFree && hasPrice) {
+      throw new BadRequestException(
+        "Une visite ne peut pas être à la fois gratuite et payante"
       );
-      const price = input.servicePrice!;
-
-      const row = await this.prisma.vetAppointment.create({
-        data: {
-          farmId,
-          producerUserId: farm.ownerId,
-          vetProfileId: vetProfile.id,
-          vetUserId,
-          status: VetAppointmentStatus.AWAITING_PAYMENT,
-          requestedAt,
-          confirmedAt: requestedAt,
-          estimatedDurationHours: duration,
-          reason: input.reason,
-          notes: input.notes?.trim() || null,
-          farmLocation,
-          servicePrice: new Prisma.Decimal(price),
-          blockedAmount: new Prisma.Decimal(price),
-          paymentDeadline,
-          commissionRate: new Prisma.Decimal(await this.commissionRate()),
-          conflictStatus: conflict.status,
-          conflictDetails: conflict.conflictingAppointment
-            ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
-            : undefined
-        },
-        include: VET_APPOINTMENT_INCLUDE
-      });
-
-      const vetName = row.vetProfile?.fullName ?? "Vétérinaire";
-      const when = this.formatWhen(requestedAt);
-      const priceFmt = `${Math.round(price).toLocaleString("fr-FR")} FCFA`;
-
-      await this.push.sendToUser(
-        farm.ownerId,
-        "Visite planifiée — paiement requis",
-        `Dr ${vetName} vous propose une visite le ${when}. Montant: ${priceFmt}. Payez avant ${this.formatWhen(paymentDeadline)} pour confirmer.`,
-        {
-          type: "vet_appointment_accepted",
-          appointmentId: row.id,
-          farmId
-        }
+    }
+    if (!isFree && !hasPrice) {
+      throw new BadRequestException(
+        "Déclarez un montant (servicePrice > 0) ou isFree=true avant de proposer la visite"
       );
-
-      await this.audit.record({
-        actorUserId: vetUserId,
-        farmId,
-        action: AUDIT_ACTION.vetConsultationCreated,
-        resourceType: "VetAppointment",
-        resourceId: row.id,
-        metadata: {
-          initiatedBy: "vet",
-          requestedAt: requestedAt.toISOString(),
-          servicePrice: price
-        }
-      });
-
-      return this.mapRow(row);
     }
 
-    const row = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.vetAppointment.create({
-        data: {
-          farmId,
-          producerUserId: farm.ownerId,
-          vetProfileId: vetProfile.id,
-          vetUserId,
-          status: VetAppointmentStatus.APPOINTMENT_CONFIRMED,
-          requestedAt,
-          confirmedAt: requestedAt,
-          estimatedDurationHours: duration,
-          reason: input.reason,
-          notes: input.notes?.trim() || null,
-          farmLocation,
-          commissionRate: new Prisma.Decimal(await this.commissionRate()),
-          conflictStatus: conflict.status,
-          conflictDetails: conflict.conflictingAppointment
-            ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
-            : undefined
-        },
-        include: VET_APPOINTMENT_INCLUDE
-      });
-      await this.calendar.blockSlot(
-        tx,
-        created.id,
+    const conflict = await this.calendar.detectConflicts(vetUserId, requestedAt);
+    const farmLocation =
+      farm.address?.trim() || farm.name?.trim() || "—";
+    const duration = 1;
+    const proposedByVetAt = new Date();
+    const price = hasPrice ? input.servicePrice! : null;
+
+    const row = await this.prisma.vetAppointment.create({
+      data: {
+        farmId,
+        producerUserId: farm.ownerId,
+        vetProfileId: vetProfile.id,
         vetUserId,
+        status: VetAppointmentStatus.VISIT_PROPOSED,
         requestedAt,
-        duration
-      );
-      return tx.vetAppointment.findUniqueOrThrow({
-        where: { id: created.id },
-        include: VET_APPOINTMENT_INCLUDE
-      });
+        confirmedAt: requestedAt,
+        estimatedDurationHours: duration,
+        reason: input.reason,
+        notes: input.notes?.trim() || null,
+        farmLocation,
+        isFree,
+        servicePrice: price != null ? new Prisma.Decimal(price) : null,
+        blockedAmount: price != null ? new Prisma.Decimal(price) : null,
+        proposedByVetAt,
+        commissionRate: new Prisma.Decimal(await this.commissionRate()),
+        conflictStatus: conflict.status,
+        conflictDetails: conflict.conflictingAppointment
+          ? (conflict.conflictingAppointment as Prisma.InputJsonValue)
+          : undefined
+      },
+      include: VET_APPOINTMENT_INCLUDE
     });
 
     const vetName = row.vetProfile?.fullName ?? "Vétérinaire";
     const when = this.formatWhen(requestedAt);
-    const producerLabel = farm.owner.fullName?.trim() || "Producteur";
+    const priceLabel = isFree
+      ? "Gratuite"
+      : `Montant ${Math.round(price!).toLocaleString("fr-FR")} FCFA`;
 
     await this.push.sendToUser(
       farm.ownerId,
-      "Visite vétérinaire confirmée",
-      `Dr ${vetName} le ${when} — ${farm.name}`,
+      "Proposition de visite",
+      `Dr ${vetName} propose une visite le ${when} — ${priceLabel}. Acceptez ou refusez.`,
       {
-        type: "vet_appointment_confirmed",
-        appointmentId: row.id,
-        farmId
-      }
-    );
-    await this.push.sendToUser(
-      vetUserId,
-      "Visite planifiée",
-      `${producerLabel} — ${farm.name} le ${when}`,
-      {
-        type: "vet_appointment_confirmed",
+        type: "vet_appointment_proposed",
         appointmentId: row.id,
         farmId
       }
@@ -522,11 +466,172 @@ export class VetAppointmentService {
       metadata: {
         initiatedBy: "vet",
         requestedAt: requestedAt.toISOString(),
-        freeVisit: true
+        isFree,
+        servicePrice: price
       }
     });
 
     return this.mapRow(row);
+  }
+
+  /**
+   * Producteur accepte une proposition vétérinaire (VISIT_PROPOSED).
+   * Gratuite → APPOINTMENT_CONFIRMED ; payante → AWAITING_PAYMENT (deadline 48h démarre ici).
+   */
+  async producerAccept(producer: User, appointmentId: string) {
+    const row = await this.requireProducerAppointment(producer.id, appointmentId, [
+      VetAppointmentStatus.VISIT_PROPOSED
+    ]);
+
+    if (row.isFree) {
+      assertTransition(row.status, "PRODUCER_ACCEPT_FREE");
+      const confirmedAt = row.confirmedAt ?? row.requestedAt;
+      const duration = Number(row.estimatedDurationHours);
+
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const appt = await tx.vetAppointment.update({
+          where: { id: appointmentId },
+          data: {
+            status: VetAppointmentStatus.APPOINTMENT_CONFIRMED,
+            confirmedAt
+          },
+          include: VET_APPOINTMENT_INCLUDE
+        });
+        await this.calendar.blockSlot(
+          tx,
+          appointmentId,
+          row.vetUserId,
+          confirmedAt,
+          duration
+        );
+        return tx.vetAppointment.findUniqueOrThrow({
+          where: { id: appt.id },
+          include: VET_APPOINTMENT_INCLUDE
+        });
+      });
+
+      const when = this.formatWhen(confirmedAt);
+      const producerName = updated.producer?.fullName?.trim() || "Producteur";
+      await this.push.sendToUser(
+        updated.vetUserId,
+        "Visite acceptée",
+        `${producerName} a accepté votre visite gratuite du ${when}.`,
+        {
+          type: "vet_appointment_confirmed",
+          appointmentId,
+          farmId: updated.farmId
+        }
+      );
+      await this.push.sendToUser(
+        updated.producerUserId,
+        "Visite confirmée",
+        `Visite gratuite confirmée avec Dr ${updated.vetProfile?.fullName ?? "le vétérinaire"} le ${when}.`,
+        {
+          type: "vet_appointment_confirmed",
+          appointmentId,
+          farmId: updated.farmId
+        }
+      );
+
+      return this.mapRow(updated);
+    }
+
+    const price = Number(row.servicePrice ?? row.blockedAmount ?? 0);
+    if (!Number.isFinite(price) || price <= 0) {
+      throw new BadRequestException(
+        "Montant de la proposition invalide — contactez le vétérinaire"
+      );
+    }
+
+    assertTransition(row.status, "PRODUCER_ACCEPT_PAID");
+    const paymentDeadline = new Date();
+    paymentDeadline.setHours(
+      paymentDeadline.getHours() + PAYMENT_DEADLINE_HOURS
+    );
+
+    const updated = await this.prisma.vetAppointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: VetAppointmentStatus.AWAITING_PAYMENT,
+        servicePrice: new Prisma.Decimal(price),
+        blockedAmount: new Prisma.Decimal(price),
+        paymentDeadline
+      },
+      include: VET_APPOINTMENT_INCLUDE
+    });
+
+    const when = this.formatWhen(updated.confirmedAt ?? updated.requestedAt);
+    const priceFmt = `${Math.round(price).toLocaleString("fr-FR")} FCFA`;
+    const producerName = updated.producer?.fullName?.trim() || "Producteur";
+
+    await this.push.sendToUser(
+      updated.vetUserId,
+      "Proposition acceptée",
+      `${producerName} a accepté la visite du ${when}. En attente de paiement (${priceFmt}).`,
+      {
+        type: "vet_appointment_accepted",
+        appointmentId,
+        farmId: updated.farmId
+      }
+    );
+    await this.push.sendToUser(
+      updated.producerUserId,
+      "Paiement requis",
+      `Payez ${priceFmt} avant ${this.formatWhen(paymentDeadline)} pour confirmer la visite du ${when}.`,
+      {
+        type: "vet_appointment_accepted",
+        appointmentId,
+        farmId: updated.farmId
+      }
+    );
+
+    return this.mapRow(updated);
+  }
+
+  /**
+   * Producteur refuse une proposition (VISIT_PROPOSED) ou un montant (AWAITING_PAYMENT).
+   */
+  async producerRefuse(
+    producer: User,
+    appointmentId: string,
+    refusalReason?: string
+  ) {
+    const row = await this.requireProducerAppointment(producer.id, appointmentId, [
+      VetAppointmentStatus.VISIT_PROPOSED,
+      VetAppointmentStatus.AWAITING_PAYMENT
+    ]);
+
+    assertTransition(row.status, "PRODUCER_REFUSE");
+
+    const updated = await this.prisma.vetAppointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: VetAppointmentStatus.REFUSED_BY_PRODUCER,
+        refusalReason: refusalReason?.trim() || null,
+        cancelledAt: new Date(),
+        paymentDeadline: null
+      },
+      include: VET_APPOINTMENT_INCLUDE
+    });
+
+    const producerName = updated.producer?.fullName?.trim() || "Le producteur";
+    const when = this.formatWhen(updated.confirmedAt ?? updated.requestedAt);
+    const reasonSuffix = refusalReason?.trim()
+      ? ` Motif: ${refusalReason.trim()}`
+      : "";
+
+    await this.push.sendToUser(
+      updated.vetUserId,
+      "Proposition refusée",
+      `${producerName} a refusé la visite du ${when}.${reasonSuffix}`,
+      {
+        type: "vet_appointment_refused_by_producer",
+        appointmentId,
+        farmId: updated.farmId
+      }
+    );
+
+    return this.mapRow(updated);
   }
 
   async listForUser(
@@ -1211,6 +1316,7 @@ export class VetAppointmentService {
     });
 
     for (const row of expired) {
+      assertTransition(row.status, "PAYMENT_EXPIRED");
       await this.prisma.vetAppointment.update({
         where: { id: row.id },
         data: { status: VetAppointmentStatus.PAYMENT_EXPIRED, cancelledAt: now }
@@ -1228,6 +1334,53 @@ export class VetAppointmentService {
         "RDV annulé",
         "Le producteur n'a pas payé — RDV annulé automatiquement.",
         { type: "vet_appointment_payment_expired_vet", appointmentId: row.id }
+      );
+    }
+    return expired.length;
+  }
+
+  /** VISIT_PROPOSED sans réponse producteur après 72h → expiration. */
+  async handleExpiredProposals(): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() - PROPOSAL_EXPIRY_HOURS);
+
+    const expired = await this.prisma.vetAppointment.findMany({
+      where: {
+        status: VetAppointmentStatus.VISIT_PROPOSED,
+        proposedByVetAt: { lt: cutoff }
+      },
+      include: {
+        vetProfile: { select: { fullName: true } },
+        producer: { select: { fullName: true } },
+        farm: { select: { name: true } }
+      }
+    });
+
+    const now = new Date();
+    for (const row of expired) {
+      assertTransition(row.status, "PROPOSAL_EXPIRED");
+      await this.prisma.vetAppointment.update({
+        where: { id: row.id },
+        data: {
+          status: VetAppointmentStatus.PAYMENT_EXPIRED,
+          cancelledAt: now,
+          cancellationReason: "Proposition expirée (72h sans réponse)"
+        }
+      });
+      const when = this.formatWhen(row.confirmedAt ?? row.requestedAt);
+      const vetName = row.vetProfile?.fullName ?? "le vétérinaire";
+      const producerName = row.producer?.fullName?.trim() || "Le producteur";
+      await this.push.sendToUser(
+        row.producerUserId,
+        "Proposition expirée",
+        `La proposition de visite de Dr ${vetName} le ${when} a expiré faute de réponse.`,
+        { type: "vet_appointment_proposal_expired", appointmentId: row.id }
+      );
+      await this.push.sendToUser(
+        row.vetUserId,
+        "Proposition expirée",
+        `${producerName} n'a pas répondu — proposition du ${when} expirée.`,
+        { type: "vet_appointment_proposal_expired_vet", appointmentId: row.id }
       );
     }
     return expired.length;

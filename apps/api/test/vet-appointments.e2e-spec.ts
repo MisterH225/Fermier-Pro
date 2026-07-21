@@ -256,7 +256,7 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
     expect(secondRes.body.conflictStatus).toMatch(/CONFLICT_/);
   });
 
-  it("véto planifie visite gratuite → VetAppointment APPOINTMENT_CONFIRMED", async () => {
+  it("véto propose visite gratuite → VISIT_PROPOSED puis accept → CONFIRMED", async () => {
     const scheduledAt = futureIso(12);
 
     const res = await request(app.getHttpServer())
@@ -267,21 +267,35 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
         farmId: ctx.farmId,
         scheduledAt,
         reason: "routine",
-        notes: "Visite e2e planifiée par le véto"
+        notes: "Visite e2e planifiée par le véto",
+        isFree: true
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe("APPOINTMENT_CONFIRMED");
+    expect(res.body.status).toBe("VISIT_PROPOSED");
 
     const row = await ctx.prisma.vetAppointment.findUniqueOrThrow({
       where: { id: res.body.id as string }
     });
     expect(row.vetUserId).toBe(ctx.vetUserId);
     expect(row.producerUserId).toBe(ctx.producerUserId);
-    expect(row.calendarBlocked).toBe(true);
+    expect(row.isFree).toBe(true);
+    expect(row.calendarBlocked).toBe(false);
+    expect(row.proposedByVetAt).toBeTruthy();
+
+    const accept = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${res.body.id}/producer-accept`)
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .expect(201);
+
+    expect(accept.body.status).toBe("APPOINTMENT_CONFIRMED");
+    const after = await ctx.prisma.vetAppointment.findUniqueOrThrow({
+      where: { id: res.body.id as string }
+    });
+    expect(after.calendarBlocked).toBe(true);
   });
 
-  it("véto planifie avec tarif → AWAITING_PAYMENT", async () => {
+  it("véto propose avec tarif → VISIT_PROPOSED puis accept → AWAITING_PAYMENT", async () => {
     const scheduledAt = futureIso(13);
 
     const res = await request(app.getHttpServer())
@@ -296,12 +310,63 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.status).toBe("AWAITING_PAYMENT");
+    expect(res.body.status).toBe("VISIT_PROPOSED");
 
     const row = await ctx.prisma.vetAppointment.findUniqueOrThrow({
       where: { id: res.body.id as string }
     });
     expect(Number(row.servicePrice)).toBe(45000);
+    expect(row.isFree).toBe(false);
     expect(row.calendarBlocked).toBe(false);
+    expect(row.paymentDeadline).toBeNull();
+
+    const accept = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${res.body.id}/producer-accept`)
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .expect(201);
+
+    expect(accept.body.status).toBe("AWAITING_PAYMENT");
+    expect(accept.body.paymentDeadline).toBeTruthy();
+  });
+
+  it("véto propose sans tarif ni isFree → 400", async () => {
+    const scheduledAt = futureIso(14);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/vet-profiles/me/schedule-visit")
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({
+        farmId: ctx.farmId,
+        scheduledAt,
+        reason: "routine"
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("producteur refuse une proposition → REFUSED_BY_PRODUCER", async () => {
+    const scheduledAt = futureIso(15);
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/farms/${ctx.farmId}/vet-appointments/schedule-from-vet`)
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({
+        scheduledAt,
+        reason: "followup",
+        isFree: true
+      });
+
+    expect(res.status).toBe(201);
+    const id = res.body.id as string;
+
+    const refuse = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${id}/producer-refuse`)
+      .set("Authorization", `Bearer ${ctx.producerToken}`)
+      .send({ refusalReason: "Créneau inadapté" })
+      .expect(201);
+
+    expect(refuse.body.status).toBe("REFUSED_BY_PRODUCER");
   });
 });

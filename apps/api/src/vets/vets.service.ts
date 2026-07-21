@@ -1040,7 +1040,8 @@ export class VetsService {
         scheduledAt: dto.scheduledAt,
         reason: dto.reason,
         notes: dto.notes,
-        servicePrice: dto.consultationPrice
+        servicePrice: dto.consultationPrice,
+        isFree: dto.isFree
       }
     );
 
@@ -1184,6 +1185,7 @@ export class VetsService {
           status: {
             in: [
               VetAppointmentStatus.APPOINTMENT_REQUESTED,
+              VetAppointmentStatus.VISIT_PROPOSED,
               VetAppointmentStatus.AWAITING_PAYMENT,
               VetAppointmentStatus.APPOINTMENT_CONFIRMED,
               VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
