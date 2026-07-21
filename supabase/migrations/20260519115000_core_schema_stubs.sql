@@ -4,6 +4,17 @@
 -- skip column definitions and break subsequent indexes/constraints.
 -- Production already has the full Prisma schema; CREATE IF NOT EXISTS is a no-op there.
 
+DO $$ BEGIN
+  CREATE TYPE "ProfileType" AS ENUM (
+    'producer',
+    'technician',
+    'veterinarian',
+    'buyer',
+    'merchant'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS "User" (
   "id" TEXT PRIMARY KEY,
   "supabaseUserId" TEXT
