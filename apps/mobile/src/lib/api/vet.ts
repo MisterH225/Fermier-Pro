@@ -604,12 +604,12 @@ export function producerAcceptAppointment(
 export function producerRefuseAppointment(
   accessToken: string,
   appointmentId: string,
-  refusalReason?: string,
+  refusalReason: string,
   activeProfileId?: string | null
 ): Promise<VetAppointmentDto> {
   return apiPostJson(
     `/vet-appointments/${encodeURIComponent(appointmentId)}/producer-refuse`,
-    refusalReason ? { refusalReason } : {},
+    { refusalReason },
     accessToken,
     activeProfileId
   );

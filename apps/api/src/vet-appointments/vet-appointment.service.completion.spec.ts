@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import { ForbiddenException } from "@nestjs/common";
 import { VetAppointmentStatus } from "@prisma/client";
 import { VetAppointmentService } from "./vet-appointment.service";
 
@@ -92,6 +92,7 @@ describe("VetAppointmentService.confirmServiceCompletion", () => {
       {} as never,
       { record: jest.fn() } as never,
       { sendToUser } as never,
+      { notify: sendToUser } as never,
       {} as never,
       { get: jest.fn() } as never,
       { getVetCommissionRate: jest.fn().mockResolvedValue(0.05) } as never,
@@ -177,14 +178,27 @@ describe("VetAppointmentService.confirmServiceCompletion", () => {
     );
   });
 
-  it("visite payante sans montant valide → 400 (inchangé)", async () => {
-    const { service } = buildService(
-      baseRow({ isFree: false, servicePrice: 0 })
+  it("RDV confirmé orphelin (sans tarif ni paiement) clôturable sans fonds", async () => {
+    const { service, fundCreate, creditVetPayout, sendToUser } = buildService(
+      baseRow({
+        isFree: false,
+        servicePrice: null,
+        blockedAmount: null,
+        paymentConfirmedAt: null
+      })
     );
 
-    await expect(
-      service.confirmServiceCompletion(producer, "appt-1")
-    ).rejects.toBeInstanceOf(BadRequestException);
+    const result = await service.confirmServiceCompletion(producer, "appt-1");
+
+    expect(result.status).toBe(VetAppointmentStatus.APPOINTMENT_COMPLETED);
+    expect(fundCreate).not.toHaveBeenCalled();
+    expect(creditVetPayout).not.toHaveBeenCalled();
+    expect(sendToUser).toHaveBeenCalledWith(
+      "vet-1",
+      "Visite terminée",
+      expect.stringContaining("Aucun règlement"),
+      expect.objectContaining({ type: "vet_appointment_completed" })
+    );
   });
 
   it("tiers non partie → 403", async () => {

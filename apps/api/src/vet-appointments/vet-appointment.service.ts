@@ -29,6 +29,7 @@ import { FarmAccessService } from "../common/farm-access.service";
 import { FARM_SCOPE } from "../common/farm-scopes.constants";
 import { PrismaService } from "../prisma/prisma.service";
 import { PushNotificationsService } from "../push-notifications/push-notifications.service";
+import { UserNotificationsService } from "../user-notifications/user-notifications.service";
 import {
   MOBILE_MONEY_GATEWAY,
   type MobileMoneyGateway
@@ -74,6 +75,7 @@ export class VetAppointmentService {
     private readonly farmAccess: FarmAccessService,
     private readonly audit: AuditService,
     private readonly push: PushNotificationsService,
+    private readonly userNotifications: UserNotificationsService,
     private readonly calendar: VetCalendarService,
     private readonly config: ConfigService,
     private readonly platformSettings: PlatformSettingsService,
@@ -82,6 +84,16 @@ export class VetAppointmentService {
     private readonly userWallet: UserWalletService,
     private readonly appEvents: AppEventsService
   ) {}
+
+  /** Inbox cloche + push Expo (évite les push « fantômes » non persistés). */
+  private async notifyUser(
+    userId: string,
+    title: string,
+    body: string,
+    data: Record<string, string>
+  ): Promise<void> {
+    await this.userNotifications.notify(userId, title, body, data);
+  }
 
   private async commissionRate(): Promise<number> {
     return this.platformSettings.getVetCommissionRate();
@@ -438,7 +450,7 @@ export class VetAppointmentService {
       ? "Gratuite"
       : `Montant ${Math.round(price!).toLocaleString("fr-FR")} FCFA`;
 
-    await this.push.sendToUser(
+    await this.notifyUser(
       farm.ownerId,
       "Proposition de visite",
       `Dr ${vetName} propose une visite le ${when} — ${priceLabel}. Acceptez ou refusez.`,
@@ -586,8 +598,15 @@ export class VetAppointmentService {
   async producerRefuse(
     producer: User,
     appointmentId: string,
-    refusalReason?: string
+    refusalReason: string
   ) {
+    const note = refusalReason.trim();
+    if (!note) {
+      throw new BadRequestException(
+        "Un motif de refus est obligatoire pour informer le vétérinaire"
+      );
+    }
+
     const row = await this.requireProducerAppointment(producer.id, appointmentId, [
       VetAppointmentStatus.VISIT_PROPOSED,
       VetAppointmentStatus.AWAITING_PAYMENT
@@ -595,27 +614,29 @@ export class VetAppointmentService {
 
     assertTransition(row.status, "PRODUCER_REFUSE");
 
-    const updated = await this.prisma.vetAppointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: VetAppointmentStatus.REFUSED_BY_PRODUCER,
-        refusalReason: refusalReason?.trim() || null,
-        cancelledAt: new Date(),
-        paymentDeadline: null
-      },
-      include: VET_APPOINTMENT_INCLUDE
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (row.calendarBlocked) {
+        await this.calendar.unblockSlot(tx, appointmentId);
+      }
+      return tx.vetAppointment.update({
+        where: { id: appointmentId },
+        data: {
+          status: VetAppointmentStatus.REFUSED_BY_PRODUCER,
+          refusalReason: note,
+          cancelledAt: new Date(),
+          paymentDeadline: null
+        },
+        include: VET_APPOINTMENT_INCLUDE
+      });
     });
 
     const producerName = updated.producer?.fullName?.trim() || "Le producteur";
     const when = this.formatWhen(updated.confirmedAt ?? updated.requestedAt);
-    const reasonSuffix = refusalReason?.trim()
-      ? ` Motif: ${refusalReason.trim()}`
-      : "";
 
-    await this.push.sendToUser(
+    await this.notifyUser(
       updated.vetUserId,
       "Proposition refusée",
-      `${producerName} a refusé la visite du ${when}.${reasonSuffix}`,
+      `${producerName} a refusé la visite du ${when}. Motif : ${note.slice(0, 160)}`,
       {
         type: "vet_appointment_refused_by_producer",
         appointmentId,
@@ -1037,7 +1058,10 @@ export class VetAppointmentService {
       );
     }
 
-    if (row.isFree) {
+    const treatAsFree =
+      row.isFree || this.isOrphanConfirmedWithoutPrice(row);
+
+    if (treatAsFree) {
       if (!isProducer && !isVet) {
         throw new ForbiddenException("Accès refusé");
       }
@@ -1049,6 +1073,7 @@ export class VetAppointmentService {
           data: {
             status: VetAppointmentStatus.APPOINTMENT_COMPLETED,
             completedAt: new Date(),
+            isFree: true,
             commissionAmount: new Prisma.Decimal(0),
             vetReceivedAmount: new Prisma.Decimal(0)
           },
@@ -1065,10 +1090,10 @@ export class VetAppointmentService {
       const actorLabel = isProducer
         ? updated.producer?.fullName?.trim() || "le producteur"
         : `Dr ${updated.vetProfile?.fullName ?? "le vétérinaire"}`;
-      await this.push.sendToUser(
+      await this.notifyUser(
         notifyUserId,
         "Visite terminée",
-        `Visite gratuite clôturée par ${actorLabel}. Aucun règlement.`,
+        `Visite clôturée par ${actorLabel}. Aucun règlement.`,
         { type: "vet_appointment_completed", appointmentId }
       );
 
@@ -1308,6 +1333,30 @@ export class VetAppointmentService {
     );
   }
 
+  /**
+   * Ancien flux : RDV confirmé sans tarif ni paiement — impossible à clôturer
+   * via le chemin payant. Traité comme une visite gratuite pour la clôture.
+   */
+  private isOrphanConfirmedWithoutPrice(row: {
+    status: VetAppointmentStatus;
+    isFree: boolean;
+    servicePrice: Prisma.Decimal | null;
+    paymentConfirmedAt: Date | null;
+    blockedAmount: Prisma.Decimal | null;
+  }): boolean {
+    if (row.status !== VetAppointmentStatus.APPOINTMENT_CONFIRMED) {
+      return false;
+    }
+    if (row.isFree) {
+      return false;
+    }
+    if (this.hasConfirmedPayment(row)) {
+      return false;
+    }
+    const price = Number(row.servicePrice ?? 0);
+    return !Number.isFinite(price) || price <= 0;
+  }
+
   async cancelByProducer(producer: User, appointmentId: string, reason: string) {
     const note = reason.trim();
     if (!note) {
@@ -1360,7 +1409,7 @@ export class VetAppointmentService {
         ? ` Remboursement intégral: ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
         : "";
     const reasonMsg = ` Motif : ${note.slice(0, 160)}`;
-    await this.push.sendToUser(
+    await this.notifyUser(
       row.vetUserId,
       "RDV annulé",
       `${producer.fullName?.trim() || "Le producteur"} a annulé.${refundMsg}${reasonMsg}`,
@@ -1449,7 +1498,7 @@ export class VetAppointmentService {
         ? ` Remboursement intégral de ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
         : "";
     const reasonMsg = ` Motif : ${note.slice(0, 160)}`;
-    await this.push.sendToUser(
+    await this.notifyUser(
       row.producerUserId,
       "RDV annulé",
       `Dr ${vetName} a annulé votre RDV.${refundMsg}${reasonMsg}`,

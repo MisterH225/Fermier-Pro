@@ -233,7 +233,9 @@ export function VetDashboardScreen() {
                     statusLabel={
                       v.kind === "appointment" && v.status === "APPOINTMENT_REQUESTED"
                         ? t("vet.appointment.requestPending")
-                        : undefined
+                        : v.kind === "appointment" && v.status === "VISIT_PROPOSED"
+                          ? t("vet.appointment.awaitingProducerResponse")
+                          : undefined
                     }
                     onPress={() => {
                       if (v.kind === "appointment") {

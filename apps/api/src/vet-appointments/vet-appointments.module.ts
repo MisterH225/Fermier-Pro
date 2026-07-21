@@ -5,6 +5,7 @@ import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { PushNotificationsModule } from "../push-notifications/push-notifications.module";
+import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { WalletModule } from "../wallet/wallet.module";
 import { VetAppointmentController } from "./vet-appointment.controller";
 import { VetAppointmentCronService } from "./vet-appointment.cron";
@@ -18,6 +19,7 @@ import { VetCalendarService } from "./vet-calendar.service";
     PrismaModule,
     ConfigModule,
     PushNotificationsModule,
+    UserNotificationsModule,
     WalletModule,
     AppEventsModule
   ],

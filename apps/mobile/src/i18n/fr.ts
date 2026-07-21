@@ -1248,7 +1248,15 @@ export const fr = {
       proposalHint: "Acceptez ou refusez cette proposition. Le tarif ci-dessous est déclaré avant votre acceptation.",
       producerAcceptCta: "Accepter",
       producerRefuseCta: "Refuser",
-      producerRefusePlaceholder: "Motif du refus (optionnel)",
+      producerRefusePlaceholder: "Motif du refus (obligatoire)",
+      producerRefuseReasonRequired:
+        "Indiquez un motif — le vétérinaire en sera informé.",
+      refusedByProducer: "Refusé par le producteur",
+      refusalReasonLabel: "Motif du refus",
+      awaitingProducerResponse: "En attente de la réponse du producteur",
+      orphanConfirmedHint:
+        "Ce rendez-vous a été confirmé sans tarif. Vous pouvez l’annuler ou le marquer terminé sans paiement.",
+      closeOrphanCta: "Marquer terminé (sans paiement)",
       producerAcceptedPaidTitle: "Proposition acceptée",
       producerAcceptedPaidBody: "Payez dans les 48 h pour confirmer le rendez-vous.",
       producerAcceptedFreeTitle: "Visite confirmée",
