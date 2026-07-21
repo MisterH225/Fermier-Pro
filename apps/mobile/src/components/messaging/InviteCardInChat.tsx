@@ -6,12 +6,7 @@ import type { FarmInvitationChatPayload } from "../../lib/farmInvitationMessage"
 import { useSession } from "../../context/SessionContext";
 import { respondToMyInvitation } from "../../lib/api";
 import { getUserFacingError } from "../../lib/userFacingError";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   payload: FarmInvitationChatPayload;
@@ -101,8 +96,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     backgroundColor: mobileColors.background
   },
-  icon: { fontSize: 24, marginBottom: 4 },
-  title: { fontWeight: "800", fontSize: 14, color: mobileColors.textPrimary },
+  icon: { fontSize: mobileFontSize.xl, marginBottom: 4 },
+  title: { fontWeight: "800", fontSize: mobileFontSize.md, color: mobileColors.textPrimary },
   farm: {
     ...mobileTypography.body,
     fontWeight: "700",
@@ -134,6 +129,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.border
   },
-  btnTxAccept: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 13 },
-  btnTxDecline: { color: mobileColors.textPrimary, fontWeight: "600", fontSize: 13 }
+  btnTxAccept: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.sm },
+  btnTxDecline: { color: mobileColors.textPrimary, fontWeight: "600", fontSize: mobileFontSize.sm }
 });

@@ -11,12 +11,7 @@ import type { AnimalListItem } from "../../lib/api";
 import { fetchFarmAnimals } from "../../lib/api";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -100,7 +95,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   meta: {

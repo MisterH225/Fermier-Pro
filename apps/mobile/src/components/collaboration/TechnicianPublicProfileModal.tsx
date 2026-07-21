@@ -4,12 +4,7 @@ import type { TechnicianProfileDto } from "../../lib/api";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import { SecondaryButton } from "../ui/SecondaryButton";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 type Props = {
   visible: boolean;
   tech: TechnicianProfileDto | null;
@@ -149,19 +144,19 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md,
     marginBottom: mobileSpacing.lg
   },
-  photo: { width: 72, height: 72, borderRadius: 36 },
+  photo: { width: 72, height: 72, borderRadius: mobileRadius.xl },
   photoPh: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
-  photoTx: { fontSize: 32 },
+  photoTx: { fontSize: mobileFontSize.xxl },
   heroBody: { flex: 1, justifyContent: "center", gap: 4 },
-  avail: { fontWeight: "800", fontSize: 14 },
-  availOk: { color: "#166534" },
+  avail: { fontWeight: "800", fontSize: mobileFontSize.md },
+  availOk: { color: mobileStatusSurfaces.successText },
   availOff: { color: mobileColors.textSecondary },
   loc: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   section: { marginBottom: mobileSpacing.lg },
@@ -181,7 +176,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4
   },
-  pillTx: { fontSize: 12, fontWeight: "600", color: mobileColors.accent },
+  pillTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: mobileColors.accent },
   pretension: { fontWeight: "700", color: mobileColors.textPrimary },
   bio: { ...mobileTypography.body, lineHeight: 22 },
   actions: { gap: mobileSpacing.sm, width: "100%" }

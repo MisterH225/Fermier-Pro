@@ -5,12 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { FeedCommentDto } from "../../lib/api/community-feed";
 import { ProfileBadge } from "../feed/ProfileBadge";
 import { ModerationWarningBanner } from "../feed/ModerationWarningBanner";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { FeedAvatar } from "./FeedAvatar";
 import { FeedCommentInputBar } from "./FeedCommentInputBar";
 import { formatFeedTime, resolveAuthorDisplayName } from "./feedDisplayUtils";
@@ -179,18 +174,18 @@ const styles = StyleSheet.create({
   authorName: {
     ...mobileTypography.meta,
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textPrimary
   },
   time: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     marginTop: 1
   },
   body: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     color: mobileColors.textPrimary,
     marginTop: mobileSpacing.xs
@@ -210,7 +205,7 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     fontWeight: "600"
   },
@@ -224,7 +219,7 @@ const styles = StyleSheet.create({
   },
   reactionTx: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     fontWeight: "600"
   }

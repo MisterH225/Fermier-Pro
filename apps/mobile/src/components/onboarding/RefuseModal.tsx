@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import { authColors, authRadii } from "../../theme/authTheme";
+import { mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -41,9 +42,9 @@ export function RefuseModal({ visible, onClose, onReread, onQuit }: Props) {
 
 const styles = StyleSheet.create({
   body: { alignItems: "center", paddingVertical: 8, gap: 12 },
-  icon: { fontSize: 40 },
+  icon: { fontSize: mobileFontSize.xxl },
   message: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     lineHeight: 22,
     color: authColors.body,
     textAlign: "center"
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryLabel: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: authColors.forest
   }

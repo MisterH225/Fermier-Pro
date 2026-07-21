@@ -7,7 +7,9 @@ import {
   View
 } from "react-native";
 import type { AuthMeResponse } from "../lib/api";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
+import { producerColors } from "../theme/producerTheme";
+import { uiNamedColors } from "../theme/uiNamedColors";
 
 const PROFILE_LABEL: Record<string, string> = {
   producer: "Producteur",
@@ -117,40 +119,40 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: mobileColors.background,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     overflow: "hidden",
     padding: 20,
     paddingBottom: 28,
     maxHeight: "70%"
   },
   title: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
-    color: "#1f2910",
+    color: producerColors.oliveDark,
     marginBottom: 8
   },
   hint: {
-    fontSize: 13,
-    color: "#6d745b",
+    fontSize: mobileFontSize.sm,
+    color: producerColors.oliveMuted,
     marginBottom: 16,
     lineHeight: 18
   },
   row: {
     paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
-    backgroundColor: "#fafafa"
+    borderColor: producerColors.oliveBorder,
+    backgroundColor: mobileColors.surface
   },
   rowActive: {
     borderColor: mobileColors.accent,
-    backgroundColor: "#f0f4e4"
+    backgroundColor: uiNamedColors.cF0F4E4
   },
   rowText: {
-    fontSize: 16,
-    color: "#1f2910"
+    fontSize: mobileFontSize.lg,
+    color: producerColors.oliveDark
   },
   cancel: {
     marginTop: 8,
@@ -167,7 +169,7 @@ const styles = StyleSheet.create({
   },
   miniBtnText: {
     color: mobileColors.onAccent,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600"
   }
 });

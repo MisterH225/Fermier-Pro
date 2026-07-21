@@ -6,11 +6,7 @@ import {
   TextInput,
   View
 } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   value: string;
@@ -76,13 +72,13 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   sendBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center"

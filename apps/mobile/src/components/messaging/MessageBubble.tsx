@@ -6,12 +6,9 @@ import { parseMarketplaceOfferMessage } from "../../lib/marketplaceOfferMessage"
 import { InviteCardInChat } from "./InviteCardInChat";
 import { formatPrivacyDisplayName } from "../../lib/userDisplay";
 import { ProposalCardInChat } from "./ProposalCardInChat";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { merchantColors } from "../../theme/merchantTheme";
 
 function formatMessageTime(iso: string): string {
   try {
@@ -132,14 +129,14 @@ const styles = StyleSheet.create({
   body: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     lineHeight: 21
   },
   bodyMine: { color: mobileColors.onAccent },
   time: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     marginTop: 6,
     alignSelf: "flex-end"
   },
@@ -148,22 +145,22 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: mobileSpacing.sm,
     maxWidth: "92%",
-    backgroundColor: "#FEF3C7",
+    backgroundColor: producerColors.kpiAmberSoft,
     borderRadius: mobileRadius.pill,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm
   },
   systemTx: {
     ...mobileTypography.meta,
-    color: "#92400E",
+    color: merchantColors.amberText,
     fontStyle: "italic",
     textAlign: "center",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   chatImage: {
     width: 220,
     height: 160,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted
   }
 });

@@ -27,17 +27,7 @@ import { useSession } from "../../../context/SessionContext";
 
 import type { RootStackParamList } from "../../../types/navigation";
 
-import {
-
-  mobileColors,
-
-  mobileRadius,
-
-  mobileSpacing,
-
-  mobileTypography
-
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 import { ScreenSection } from "../../layout/ScreenSection";
 import { EmptyStateCard } from "../../common/EmptyStateCard";
@@ -704,7 +694,7 @@ const styles = StyleSheet.create({
 
   addPillTx: {
 
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
 
     fontWeight: "700",
 
@@ -784,13 +774,13 @@ const styles = StyleSheet.create({
 
     letterSpacing: 0.6,
 
-    fontSize: 11
+    fontSize: mobileFontSize.xs
 
   },
 
   columnSub: {
 
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
 
     color: mobileColors.textSecondary,
 

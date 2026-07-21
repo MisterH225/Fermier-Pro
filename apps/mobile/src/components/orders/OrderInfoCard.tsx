@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
 
 export type OrderInfoRow = {
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     marginBottom: 2
   },
   title: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "800"
   },
   row: {
@@ -103,6 +103,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
     fontWeight: "700",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   }
 });

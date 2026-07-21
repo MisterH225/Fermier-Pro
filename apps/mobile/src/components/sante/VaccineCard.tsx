@@ -15,14 +15,10 @@ import {
   type VaccineCoverageItemDto,
   type VaccineSubjectRowDto
 } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { VaccineExpandableList } from "./VaccineExpandableList";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 if (
   Platform.OS === "android" &&
@@ -42,24 +38,24 @@ type Props = {
 
 function coverageBarColor(rate: number): string {
   if (rate >= 80) {
-    return "#1D9E75";
+    return uiNamedColors.c1D9E75;
   }
   if (rate >= 60) {
-    return "#BA7517";
+    return uiNamedColors.cBA7517;
   }
-  return "#E24B4A";
+  return uiNamedColors.cE24B4A;
 }
 
 function typeBadgeStyle(type: string): { bg: string; fg: string } {
   switch (type) {
     case "viral":
-      return { bg: "#EFF6FF", fg: "#2563EB" };
+      return { bg: uiNamedColors.cEFF6FF, fg: uiNamedColors.c2563EB };
     case "bacterial":
-      return { bg: "#ECFDF5", fg: "#059669" };
+      return { bg: producerColors.successMintBg, fg: uiNamedColors.c059669 };
     case "antiparasitic":
-      return { bg: "#FFF7ED", fg: "#EA580C" };
+      return { bg: uiNamedColors.cFFF7ED, fg: uiNamedColors.cEA580C };
     default:
-      return { bg: "#F4F4F5", fg: mobileColors.textSecondary };
+      return { bg: uiNamedColors.cF4F4F5, fg: mobileColors.textSecondary };
   }
 }
 
@@ -174,13 +170,13 @@ export function VaccineCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md,
     ...mobileShadows.card
   },
   header: { flexDirection: "row", gap: mobileSpacing.sm },
-  icon: { fontSize: 28 },
+  icon: { fontSize: mobileFontSize.xxl },
   headerText: { flex: 1 },
   name: {
     ...mobileTypography.cardTitle,
@@ -199,11 +195,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: mobileRadius.pill
   },
-  typeBadgeTx: { fontSize: 11, fontWeight: "700" },
+  typeBadgeTx: { fontSize: mobileFontSize.xs, fontWeight: "700" },
   freq: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   },
   sub: {
     ...mobileTypography.meta,
@@ -212,18 +208,18 @@ const styles = StyleSheet.create({
   },
   stats: {
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textPrimary,
     marginTop: mobileSpacing.sm
   },
   barTrack: {
     height: 8,
     backgroundColor: mobileColors.border,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     marginTop: mobileSpacing.sm,
     overflow: "hidden"
   },
-  barFill: { height: "100%", borderRadius: 4 },
+  barFill: { height: "100%", borderRadius: mobileRadius.sm },
   coverageLabel: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
@@ -237,7 +233,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.sm,
     borderRadius: mobileRadius.sm
   },
-  bulkBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 13 },
+  bulkBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.sm },
   expandBtn: {
     marginTop: mobileSpacing.md,
     alignItems: "center",
@@ -246,6 +242,6 @@ const styles = StyleSheet.create({
   expandTx: {
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   }
 });

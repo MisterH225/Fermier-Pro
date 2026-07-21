@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: mobileColors.background,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     overflow: "hidden",
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.lg

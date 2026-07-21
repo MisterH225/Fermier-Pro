@@ -9,12 +9,7 @@ import {
 } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const RADIUS_OPTIONS = [25, 50, 100, 200, 2000] as const;
 const EXP_OPTIONS = [
@@ -166,7 +161,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.accent
   },
-  pillTx: { fontSize: 12, color: mobileColors.textSecondary },
+  pillTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   pillTxOn: { fontWeight: "700", color: mobileColors.accent },
   input: {
     borderWidth: 1,

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FinanceCategoryDto } from "../../lib/api";
-import { mobileColors, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { getFinanceCategoryVisual } from "./financeCategoryVisual";
 
 const CIRCLE = 56;
@@ -90,12 +90,12 @@ const styles = StyleSheet.create({
     borderColor: "transparent"
   },
   emoji: {
-    fontSize: 26
+    fontSize: mobileFontSize.xxl
   },
   label: {
     ...mobileTypography.meta,
     marginTop: 6,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: mobileColors.textPrimary,
     textAlign: "center",

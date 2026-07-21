@@ -23,12 +23,7 @@ import {
 } from "../../../hooks/useOfflineMutation";
 import { optimisticPatchAnimalStatus } from "../../../lib/offline/optimistic";
 import { isOfflineQueuedResult } from "../../../lib/offline/types";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import type { AnimalStatusKey } from "./animalUtils";
 import { animalDisplayTag, normalizeAnimalStatusKey } from "./animalUtils";
 
@@ -324,5 +319,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

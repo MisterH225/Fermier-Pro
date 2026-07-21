@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Card } from "../ui/Card";
-import { mobileColors, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type KpiCardProps = {
   label: string;
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   value: {
-    fontSize: 24,
+    fontSize: mobileFontSize.xl,
     lineHeight: 30,
     fontWeight: "700"
   }

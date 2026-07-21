@@ -14,24 +14,21 @@ import {
 import { useSession } from "../../context/SessionContext";
 import type { FarmMemberDto, MemberActivityLogDto } from "../../lib/api";
 import { fetchFarmActivityLogs } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ActivityToggleHeader } from "./ActivityToggleHeader";
 import { MemberAvatar } from "./MemberAvatar";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const COLLAPSED_COUNT = 3;
 
 const MODULE_COLORS: Record<string, string> = {
-  cheptel: "#1C7ED6",
-  health: "#2F9E44",
-  finance: "#F59F00",
-  stock: "#E8590C",
-  gestation: "#7E3FF2",
-  collaboration: "#868E96"
+  cheptel: uiNamedColors.c1C7ED6,
+  health: producerColors.primary,
+  finance: uiNamedColors.cF59F00,
+  stock: uiNamedColors.cE8590C,
+  gestation: uiNamedColors.c7E3FF2,
+  collaboration: uiNamedColors.c868E96
 };
 
 const ACTION_LABEL_FR: Record<string, string> = {
@@ -289,7 +286,7 @@ const itemStyles = StyleSheet.create({
   },
   action: {
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
@@ -307,14 +304,14 @@ const itemStyles = StyleSheet.create({
     borderRadius: mobileRadius.sm
   },
   modTxt: {
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     letterSpacing: 0.3,
     textTransform: "uppercase"
   },
   date: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary
   }
 });

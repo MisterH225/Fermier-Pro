@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, G } from "react-native-svg";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   score: number;
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   score: {
-    fontSize: 36,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "800",
     color: mobileColors.textPrimary
   },

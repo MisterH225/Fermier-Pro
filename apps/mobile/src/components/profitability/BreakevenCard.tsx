@@ -112,9 +112,9 @@ const styles = StyleSheet.create({
   barTrack: {
     height: 8,
     backgroundColor: mobileColors.border,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     marginTop: mobileSpacing.md,
     overflow: "hidden"
   },
-  barFill: { height: "100%", borderRadius: 4 }
+  barFill: { height: "100%", borderRadius: mobileRadius.sm }
 });

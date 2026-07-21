@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   cardIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"

@@ -1,11 +1,9 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+import { buyerColors } from "../../theme/buyerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 export type FinanceDonutSlice = {
   label: string;
@@ -34,16 +32,16 @@ const INNER_R = 54;
 
 /** Teintes éloignées (bleu, orange, violet…) — pas plusieurs verts. */
 export const FINANCE_CATEGORY_PALETTE = [
-  "#2563EB",
-  "#EA580C",
-  "#7C3AED",
-  "#DC2626",
-  "#0891B2",
-  "#DB2777",
-  "#CA8A04",
-  "#4F46E5",
-  "#0D9488",
-  "#64748B"
+  uiNamedColors.c2563EB,
+  uiNamedColors.cEA580C,
+  buyerColors.primary,
+  uiNamedColors.cDC2626,
+  uiNamedColors.c0891B2,
+  uiNamedColors.cDB2777,
+  uiNamedColors.cCA8A04,
+  uiNamedColors.c4F46E5,
+  uiNamedColors.c0D9488,
+  uiNamedColors.c64748B
 ] as const;
 
 export function financeCategoryColor(categoryIndex: number): string {
@@ -221,7 +219,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg
   },
   centerPct: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     letterSpacing: -0.5
@@ -246,7 +244,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 10,
     height: 10,
-    borderRadius: 5
+    borderRadius: mobileRadius.sm
   },
   legendLab: {
     ...mobileTypography.body,

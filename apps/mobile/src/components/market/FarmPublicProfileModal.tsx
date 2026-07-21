@@ -3,12 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import type { MarketplaceListingFarmInfo } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -106,13 +101,13 @@ const styles = StyleSheet.create({
   avatar: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarTx: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.accent
   },
@@ -140,7 +135,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     ...mobileTypography.title,
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary
   },
   statLabel: {

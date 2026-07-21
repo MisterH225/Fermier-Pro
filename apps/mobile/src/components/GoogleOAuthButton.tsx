@@ -10,6 +10,7 @@ import {
 import { formatAuthError } from "../lib/authErrors";
 import { signInWithGoogle } from "../lib/googleAuth";
 import { authColors, authRadii } from "../theme/authTheme";
+import { mobileFontSize } from "../theme/mobileTheme";
 
 /**
  * Connexion via Google (Supabase Auth).
@@ -84,14 +85,14 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   label: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: authColors.forest
   },
   err: {
     marginTop: 12,
     color: authColors.error,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     textAlign: "center"
   }

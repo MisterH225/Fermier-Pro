@@ -9,12 +9,8 @@ import {
 } from "react-native";
 import { fetchVetVisitQuotes, respondVetVisitQuote } from "../../lib/api";
 import { formatFarmMoney } from "../../lib/formatMoney";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   farmId: string;
@@ -104,14 +100,14 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   card: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: uiNamedColors.cEFF6FF,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,
     borderWidth: 1,
-    borderColor: "#BFDBFE"
+    borderColor: uiNamedColors.cBFDBFE
   },
-  vet: { fontWeight: "700", fontSize: 16 },
+  vet: { fontWeight: "700", fontSize: mobileFontSize.lg },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary, marginTop: 4 },
   row: { flexDirection: "row", gap: 8, marginTop: 10 },
   accept: {

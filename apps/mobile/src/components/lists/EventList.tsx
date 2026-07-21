@@ -17,14 +17,10 @@ import type { EventItem, FilterPill } from "./types";
 import { EmptyStateCard } from "../common/EmptyStateCard";
 import { ListItemSkeleton } from "../common/SkeletonBlocks";
 import { ScreenSection } from "../layout/ScreenSection";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
-const LIST_BG = "#F5F5F5";
+const LIST_BG = uiNamedColors.cF5F5F5;
 
 export type EventListProps = {
   data: EventItem[];
@@ -333,7 +329,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   addTx: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.accent
   },
@@ -351,7 +347,7 @@ const styles = StyleSheet.create({
   },
   skelCard: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm
   },
@@ -359,18 +355,18 @@ const styles = StyleSheet.create({
   skelCircle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.surfaceMuted
   },
   skelLineLg: {
     height: 14,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.surfaceMuted,
     width: "70%"
   },
   skelLineSm: {
     height: 10,
-    borderRadius: 5,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.surfaceMuted,
     width: "50%"
   },

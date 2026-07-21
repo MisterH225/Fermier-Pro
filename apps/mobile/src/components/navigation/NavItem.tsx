@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
-import { mobileColors, mobileRadius, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type NavItemProps = {
   emoji: string;
@@ -103,29 +104,29 @@ const styles = StyleSheet.create({
     right: -6,
     minWidth: 16,
     height: 16,
-    borderRadius: 8,
-    backgroundColor: "#E03131",
+    borderRadius: mobileRadius.sm,
+    backgroundColor: uiNamedColors.cE03131,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 3
   },
   badgeTx: {
-    color: "#fff",
-    fontSize: 9,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     lineHeight: 11
   },
   emoji: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     lineHeight: 26
   },
   emojiDense: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22
   },
   label: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     textAlign: "center",

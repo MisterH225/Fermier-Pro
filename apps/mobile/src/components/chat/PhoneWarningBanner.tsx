@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
+import { mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 export type PhoneWarningVariant =
   | "realtime_warning"
@@ -63,23 +65,23 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#FFF8E7",
+    backgroundColor: uiNamedColors.cFFF8E7,
     borderWidth: 1,
-    borderColor: "#BA7517",
-    borderRadius: 8
+    borderColor: uiNamedColors.cBA7517,
+    borderRadius: mobileRadius.sm
   },
   wrapRealtime: {
     minHeight: 32,
     marginBottom: 4
   },
   icon: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     lineHeight: 18
   },
   text: {
     flex: 1,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 16,
-    color: "#BA7517"
+    color: uiNamedColors.cBA7517
   }
 });

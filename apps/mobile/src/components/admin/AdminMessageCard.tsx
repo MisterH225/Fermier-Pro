@@ -3,20 +3,18 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import type { AdminMessageDto, AdminMessageTypeDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const TYPE_META: Record<
   AdminMessageTypeDto,
   { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }
 > = {
-  warning: { icon: "warning", color: "#B45309", bg: "#FEF3C7" },
-  info: { icon: "information-circle", color: "#1D4ED8", bg: "#DBEAFE" },
-  notification: { icon: "megaphone", color: "#047857", bg: "#D1FAE5" }
+  warning: { icon: "warning", color: producerColors.warningDeep, bg: producerColors.kpiAmberSoft },
+  info: { icon: "information-circle", color: uiNamedColors.c1D4ED8, bg: merchantColors.blueSoftBg },
+  notification: { icon: "megaphone", color: merchantColors.greenText, bg: uiNamedColors.cD1FAE5 }
 };
 
 type Props = {
@@ -98,7 +96,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: mobileColors.border
   },
@@ -111,7 +109,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -120,7 +118,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.accent,
     marginTop: 6
   },
@@ -133,19 +131,19 @@ const styles = StyleSheet.create({
   },
   tagTx: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.accent,
     fontWeight: "700"
   },
   subject: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary,
     flex: 1
   },
   message: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20
   },
@@ -166,7 +164,7 @@ const styles = StyleSheet.create({
   },
   swipeDeleteTx: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: mobileColors.onAccent
   }

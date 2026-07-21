@@ -7,13 +7,7 @@ import {
   type StyleProp,
   type ViewStyle
 } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 /** Padding + gap standard pour les écrans profil / dashboard (canvas entre cartes). */
 export const profileScreenScrollContent = {
@@ -101,7 +95,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     letterSpacing: 0.8,

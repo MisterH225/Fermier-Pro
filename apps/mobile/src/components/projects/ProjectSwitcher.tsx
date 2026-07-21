@@ -12,16 +12,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useActiveProject } from "../../context/ActiveProjectContext";
 import type { ArchiveFarmReason, FarmDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ProjectCard } from "./ProjectCard";
 import { ArchiveProjectModal } from "./ArchiveProjectModal";
 import { DeleteProjectModal } from "./DeleteProjectModal";
 import { getUserFacingError } from "../../lib/userFacingError";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
+import { producerColors } from "../../theme/producerTheme";
 
 type ProjectSwitcherProps = {
   onCreateProject: () => void;
@@ -132,7 +129,7 @@ export function ProjectSwitcher({
 
       {!canCreateNewProject && (
         <View style={styles.limitBanner}>
-          <Ionicons name="warning" size={18} color="#d97706" />
+          <Ionicons name="warning" size={18} color={marketplaceColors.pending} />
           <Text style={styles.limitText}>
             Limite de 3 projets atteinte. Archivez un projet pour en créer un nouveau.
           </Text>
@@ -192,7 +189,7 @@ export function ProjectSwitcher({
           <Ionicons
             name="add-circle"
             size={20}
-            color={canCreateNewProject ? "#fff" : mobileColors.textSecondary}
+            color={canCreateNewProject ? mobileColors.background : mobileColors.textSecondary}
           />
           <Text
             style={[
@@ -251,7 +248,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 20
+    fontSize: mobileFontSize.xl
   },
   subtitle: {
     ...mobileTypography.meta,
@@ -262,7 +259,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#fef3c7",
+    backgroundColor: producerColors.kpiAmberSoft,
     padding: mobileSpacing.md,
     marginHorizontal: mobileSpacing.md,
     marginTop: mobileSpacing.md,
@@ -271,7 +268,7 @@ const styles = StyleSheet.create({
   limitText: {
     flex: 1,
     ...mobileTypography.meta,
-    color: "#d97706"
+    color: marketplaceColors.pending
   },
   scrollView: {
     flex: 1

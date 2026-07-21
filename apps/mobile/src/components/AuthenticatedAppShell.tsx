@@ -36,6 +36,9 @@ import { needsTechOnboarding } from "../lib/techOnboardingState";
 import { needsBuyerOnboarding } from "../lib/buyerOnboardingState";
 import { needsMerchantOnboarding } from "../lib/merchantOnboardingState";
 import { MerchantOnboardingScreen } from "../screens/onboarding/merchant/MerchantOnboardingScreen";
+import { mobileColors, mobileRadius } from "../theme/mobileTheme";
+import { producerColors } from "../theme/producerTheme";
+import { uiNamedColors } from "../theme/uiNamedColors";
 
 /**
  * Après SessionProvider : onboarding profil si aucun profil API, sinon navigation principale.
@@ -56,7 +59,7 @@ function AuthenticatedAppShellInner() {
   if (authLoading) {
     return (
       <View style={styles.loaderWrap}>
-        <ActivityIndicator size="large" color="#1B3B2E" />
+        <ActivityIndicator size="large" color={uiNamedColors.c1B3B2E} />
       </View>
     );
   }
@@ -191,22 +194,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: mobileColors.background,
     paddingHorizontal: 24
   },
   errText: {
-    color: "#B91C1C",
+    color: producerColors.dangerStrong,
     textAlign: "center",
     marginBottom: 16
   },
   retryBtn: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: "#1B3B2E",
-    borderRadius: 24
+    backgroundColor: uiNamedColors.c1B3B2E,
+    borderRadius: mobileRadius.xl
   },
   retryLabel: {
-    color: "#fff",
+    color: mobileColors.background,
     fontWeight: "600"
   }
 });

@@ -2,12 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "../../context/SessionContext";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ActiveProfileSwitcherModal } from "./ActiveProfileSwitcherModal";
 
 type ActiveProfileSwitcherControlProps = {
@@ -101,7 +96,7 @@ const styles = StyleSheet.create({
   activeDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.success,
     marginRight: 10
   },
@@ -111,7 +106,7 @@ const styles = StyleSheet.create({
   },
   primary: {
     ...mobileTypography.cardTitle,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   hint: {
@@ -121,7 +116,7 @@ const styles = StyleSheet.create({
     lineHeight: 17
   },
   chevron: {
-    fontSize: 24,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textSecondary
   }
 });

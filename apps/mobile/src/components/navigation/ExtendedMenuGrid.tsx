@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
 
     overflow: "hidden",
 
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
 
     shadowOffset: { width: 0, height: 4 },
 
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
 
     justifyContent: "center",
 
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
 
     shadowOffset: { width: 0, height: 4 },
 

@@ -13,6 +13,7 @@ import {
 } from "../../theme/mobileTheme";
 import { HorizonTabs } from "./HorizonTabs";
 import { formatPredictionDate } from "./predictionFormatters";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   payload: FarmPredictionsPayload;
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   feedName: { ...mobileTypography.body, fontWeight: "600" },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   needed: { ...mobileTypography.body },
-  ok: { ...mobileTypography.meta, color: "#1D9E75" },
-  warn: { ...mobileTypography.meta, color: "#BA7517" },
-  critical: { ...mobileTypography.meta, color: "#D64545" }
+  ok: { ...mobileTypography.meta, color: uiNamedColors.c1D9E75 },
+  warn: { ...mobileTypography.meta, color: uiNamedColors.cBA7517 },
+  critical: { ...mobileTypography.meta, color: mobileColors.error }
 });

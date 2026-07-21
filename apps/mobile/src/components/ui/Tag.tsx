@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type TagTone = "neutral" | "success" | "warning" | "danger";
 
@@ -24,16 +26,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   text: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600"
   }
 });
 
 const toneBoxStyles = StyleSheet.create({
   neutral: { backgroundColor: mobileColors.surfaceMuted },
-  success: { backgroundColor: "#EAF7EE" },
-  warning: { backgroundColor: "#FEF6E6" },
-  danger: { backgroundColor: "#FDECEC" }
+  success: { backgroundColor: producerColors.primaryLight },
+  warning: { backgroundColor: uiNamedColors.cFEF6E6 },
+  danger: { backgroundColor: uiNamedColors.cFDECEC }
 });
 
 const toneTextStyles = StyleSheet.create({

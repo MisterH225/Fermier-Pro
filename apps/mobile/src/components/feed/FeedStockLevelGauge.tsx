@@ -1,12 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   name: string;
@@ -157,7 +151,7 @@ const styles = StyleSheet.create({
   },
   cardEmbedded: {
     marginBottom: 0,
-    borderRadius: 0,
+    borderRadius: mobileRadius.sm,
     borderWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
@@ -178,7 +172,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4
+    borderRadius: mobileRadius.sm
   },
   name: {
     flex: 1,
@@ -199,7 +193,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs
   },
   displayValue: {
-    fontSize: 28,
+    fontSize: mobileFontSize.xxl,
     lineHeight: 34,
     fontWeight: "800",
     color: mobileColors.textPrimary,

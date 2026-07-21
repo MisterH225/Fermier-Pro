@@ -5,12 +5,7 @@ import type {
   FarmPredictionsPayload,
   PredictionHorizonKey
 } from "../../lib/api/predictions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { HorizonTabs } from "./HorizonTabs";
 import { formatCurrency } from "./predictionFormatters";
@@ -77,11 +72,11 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: mobileColors.accent
   },
-  emoji: { fontSize: 22 },
+  emoji: { fontSize: mobileFontSize.xl },
   title: { ...mobileTypography.cardTitle, color: mobileColors.textPrimary },
   value: {
     ...mobileTypography.title,
-    fontSize: 32,
+    fontSize: mobileFontSize.xxl,
     color: mobileColors.accent,
     fontWeight: "700"
   },

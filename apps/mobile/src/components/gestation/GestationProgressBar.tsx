@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   progressPct: number;
@@ -33,5 +33,5 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.pill
   },
-  label: { fontSize: 12, color: mobileColors.textSecondary }
+  label: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary }
 });

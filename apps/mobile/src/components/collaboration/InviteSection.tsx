@@ -5,12 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "../../context/SessionContext";
 import { regenerateFarmDefaultInvitation } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { useModal } from "../modals/useModal";
 import { CollaborativeAccessPanel } from "../account/CollaborativeAccessPanel";
 import { PendingScanRequestsSection } from "./PendingScanRequestsSection";
@@ -155,7 +150,7 @@ const styles = StyleSheet.create({
   },
   readOnlyNote: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20,
     paddingHorizontal: mobileSpacing.sm

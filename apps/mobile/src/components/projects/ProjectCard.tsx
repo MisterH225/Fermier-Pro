@@ -2,12 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { FarmDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type ProjectCardProps = {
   farm: FarmDto;
@@ -166,7 +163,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     justifyContent: "center",
     alignItems: "center"
@@ -175,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.border
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "700",
     color: mobileColors.accent
   },
@@ -188,7 +185,7 @@ const styles = StyleSheet.create({
   },
   name: {
     ...mobileTypography.title,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     flex: 1
   },
   checkmark: {
@@ -211,7 +208,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill
   },
   badgeActiveText: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: mobileColors.accent
   },
@@ -222,20 +219,20 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.pill
   },
   badgeInactiveText: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
   badgeArchived: {
-    backgroundColor: "#fef3c7",
+    backgroundColor: producerColors.kpiAmberSoft,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: mobileRadius.pill
   },
   badgeArchivedText: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
-    color: "#d97706"
+    color: marketplaceColors.pending
   },
   meta: {
     marginTop: mobileSpacing.sm,
@@ -266,17 +263,17 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.canvas
   },
   actionText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.accent
   },
   actionTextSecondary: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "500",
     color: mobileColors.textSecondary
   },
   actionTextDanger: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "500",
     color: mobileColors.error
   }

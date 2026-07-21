@@ -21,12 +21,9 @@ import {
 import { formatAuthError } from "../../lib/authErrors";
 import { formatHealthDay } from "../sante/healthUtils";
 import { animalDisplayTag } from "../cheptel/animals/animalUtils";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileKpiPalette, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   visible: boolean;
@@ -74,13 +71,13 @@ function severityLabel(
 
 function severityColor(severity?: string | null): string {
   if (severity === "severe") {
-    return "#DC2626";
+    return uiNamedColors.cDC2626;
   }
   if (severity === "moderate") {
-    return "#F97316";
+    return mobileKpiPalette.gestation.accent;
   }
   if (severity === "mild") {
-    return "#22C55E";
+    return producerColors.chartGreen;
   }
   return mobileColors.textSecondary;
 }
@@ -412,7 +409,7 @@ const styles = StyleSheet.create({
   timelineDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.accent,
     marginTop: 4
   },
@@ -460,5 +457,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

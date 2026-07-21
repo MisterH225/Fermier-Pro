@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSession } from "../../context/SessionContext";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { AdminMessagesModal } from "../admin/AdminMessagesModal";
 
 const SUPPORT_EMAIL = "support@fermierpro.com";
@@ -123,10 +123,10 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.xl,
     gap: mobileSpacing.md
   },
-  icon: { fontSize: 48 },
+  icon: { fontSize: mobileFontSize.xxl },
   title: {
     ...mobileTypography.title,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     textAlign: "center"
   },
   body: {
@@ -144,14 +144,14 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     paddingHorizontal: mobileSpacing.xl,
     paddingVertical: 14,
-    borderRadius: 12
+    borderRadius: mobileRadius.md
   },
   btnTx: { color: mobileColors.onAccent, fontWeight: "700" },
   secondaryBtn: {
     marginTop: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.xl,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: mobileColors.border,
     backgroundColor: mobileColors.background

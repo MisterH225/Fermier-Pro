@@ -3,12 +3,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatFarmMoney, formatPricePerKg } from "../../lib/formatMoney";
 import type { MarketplaceOfferChatPayload } from "../../lib/marketplaceOfferMessage";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = {
@@ -93,7 +88,7 @@ const styles = StyleSheet.create({
   },
   wrapMine: {
     alignSelf: "flex-end",
-    backgroundColor: "#E8F5E9",
+    backgroundColor: mobileStatusSurfaces.positiveBg,
     borderColor: mobileColors.accent
   },
   wrapOther: {
@@ -103,7 +98,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     ...mobileTypography.meta,
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: mobileColors.accent,
     textTransform: "uppercase",
@@ -117,7 +112,7 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   price: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     marginBottom: 4

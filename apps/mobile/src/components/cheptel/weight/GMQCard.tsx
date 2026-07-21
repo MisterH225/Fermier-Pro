@@ -1,12 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { GmqAnimalSummaryDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = { row: GmqAnimalSummaryDto };
 
@@ -49,8 +44,8 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   head: { flexDirection: "row", justifyContent: "space-between" },
-  label: { fontWeight: "700", fontSize: 15 },
-  status: { fontSize: 16 },
+  label: { fontWeight: "700", fontSize: mobileFontSize.md },
+  status: { fontSize: mobileFontSize.lg },
   line: { ...mobileTypography.meta, marginTop: 4, color: mobileColors.textSecondary },
   gmq: { marginTop: 8, fontWeight: "700", color: mobileColors.accent }
 });

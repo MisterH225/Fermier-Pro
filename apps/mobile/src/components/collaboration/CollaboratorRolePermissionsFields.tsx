@@ -11,12 +11,7 @@ import {
   toggleInvitationPermission,
   type PermissionKey
 } from "../../lib/memberPermissions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type RecipientOption = {
   key: InvitationRecipientKind;
@@ -156,7 +151,7 @@ const styles = StyleSheet.create({
   },
   recipientLabel: {
     ...mobileTypography.body,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },
@@ -166,7 +161,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: mobileColors.textSecondary,
     marginBottom: mobileSpacing.sm
@@ -191,7 +186,7 @@ const styles = StyleSheet.create({
   permTick: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     borderWidth: 1.5,
     borderColor: mobileColors.border,
     backgroundColor: mobileColors.background,

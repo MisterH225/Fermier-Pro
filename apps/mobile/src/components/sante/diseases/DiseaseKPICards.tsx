@@ -1,10 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { FarmDiseasesOverviewDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileKpiPalette, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
+import { merchantColors } from "../../../theme/merchantTheme";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 type Props = {
   overview: FarmDiseasesOverviewDto | undefined;
@@ -17,10 +15,10 @@ type Props = {
 };
 
 const CARDS = [
-  { key: "active", icon: "🤒", bg: "#FFF3E0", accent: "#FF8C00" },
-  { key: "resolved", icon: "✅", bg: "#E8F5E9", accent: "#2E7D32" },
-  { key: "rate", icon: "📊", bg: "#EDE7F6", accent: "#6A1B9A" },
-  { key: "isolation", icon: "🔒", bg: "#FCE4EC", accent: "#C2185B" }
+  { key: "active", icon: "🤒", bg: mobileStatusSurfaces.warningBg, accent: mobileKpiPalette.gestation.accent },
+  { key: "resolved", icon: "✅", bg: mobileStatusSurfaces.positiveBg, accent: mobileStatusSurfaces.positiveText },
+  { key: "rate", icon: "📊", bg: uiNamedColors.cEDE7F6, accent: uiNamedColors.c6A1B9A },
+  { key: "isolation", icon: "🔒", bg: merchantColors.roseSoftBg, accent: uiNamedColors.cC2185B }
 ] as const;
 
 export function DiseaseKPICards({ overview, labels }: Props) {
@@ -66,18 +64,18 @@ const styles = StyleSheet.create({
     width: "47%",
     flexGrow: 1,
     minWidth: "46%",
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.md,
     minHeight: 96
   },
-  icon: { fontSize: 20, marginBottom: mobileSpacing.xs },
+  icon: { fontSize: mobileFontSize.xl, marginBottom: mobileSpacing.xs },
   title: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     fontWeight: "600"
   },
   value: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     marginTop: mobileSpacing.xs
   }

@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import i18n from "../../i18n/i18n";
 import { type AppLocaleCode, setStoredAppLocale } from "../../lib/appLocale";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
 
 const OPTIONS: { code: AppLocaleCode; label: string; flag: string }[] = [
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   rowPressed: { opacity: 0.7 },
-  flag: { fontSize: 22 },
+  flag: { fontSize: mobileFontSize.xl },
   label: { ...mobileTypography.body, flex: 1 },
   check: { color: mobileColors.accent, fontWeight: "700" }
 });

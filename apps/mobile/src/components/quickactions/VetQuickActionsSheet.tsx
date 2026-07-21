@@ -3,11 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import {
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { vetColors } from "../../theme/vetTheme";
 import {
   VET_QUICK_ACTION_IDS,
@@ -107,7 +103,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: vetColors.cardBg
@@ -115,7 +111,7 @@ const styles = StyleSheet.create({
   label: {
     ...mobileTypography.cardTitle,
     flex: 1,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: vetColors.textPrimary
   }
 });

@@ -4,18 +4,16 @@ import { useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import type { SmartAlertListItemDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { useTranslation } from "react-i18next";
 import { resolveSmartAlertText } from "../../lib/smartAlertDisplay";
 import { resolveDeepNavProfile } from "../../lib/resolveDeepNavProfile";
 import { navigateToAlert } from "../../services/navigation/DeepNavigationService";
 import { useSession } from "../../context/SessionContext";
+import { merchantColors } from "../../theme/merchantTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 function moduleIcon(
   m: SmartAlertListItemDto["module"]
@@ -44,19 +42,19 @@ function moduleIconColors(m: SmartAlertListItemDto["module"]): {
 } {
   switch (m) {
     case "finance":
-      return { bg: "#D1FAE5", fg: "#047857" };
+      return { bg: uiNamedColors.cD1FAE5, fg: merchantColors.greenText };
     case "stock":
-      return { bg: "#FEF3C7", fg: "#B45309" };
+      return { bg: producerColors.kpiAmberSoft, fg: producerColors.warningDeep };
     case "health":
-      return { bg: "#FEE2E2", fg: "#B91C1C" };
+      return { bg: mobileStatusSurfaces.errorBg, fg: producerColors.dangerStrong };
     case "market":
-      return { bg: "#DBEAFE", fg: "#1D4ED8" };
+      return { bg: merchantColors.blueSoftBg, fg: uiNamedColors.c1D4ED8 };
     case "gestation":
-      return { bg: "#FCE7F3", fg: "#BE185D" };
+      return { bg: uiNamedColors.cFCE7F3, fg: uiNamedColors.cBE185D };
     case "cheptel":
-      return { bg: "#E0E7FF", fg: "#4338CA" };
+      return { bg: producerColors.financeIndigoBg, fg: uiNamedColors.c4338CA };
     default:
-      return { bg: "#D1FAE5", fg: "#047857" };
+      return { bg: uiNamedColors.cD1FAE5, fg: merchantColors.greenText };
   }
 }
 
@@ -107,7 +105,7 @@ export function AlertCard({
           accessibilityRole="button"
           accessibilityLabel={t("smartAlerts.markRead")}
         >
-          <Ionicons name="checkmark-done" size={22} color="#fff" />
+          <Ionicons name="checkmark-done" size={22} color={mobileColors.background} />
         </Pressable>
       );
     }
@@ -120,7 +118,7 @@ export function AlertCard({
           accessibilityRole="button"
           accessibilityLabel={t("smartAlerts.delete")}
         >
-          <Ionicons name="trash-outline" size={22} color="#fff" />
+          <Ionicons name="trash-outline" size={22} color={mobileColors.background} />
         </Pressable>
       );
     }
@@ -179,7 +177,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: mobileColors.border,
     marginBottom: mobileSpacing.sm
@@ -189,7 +187,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -204,7 +202,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.accent,
     marginTop: 6
   },

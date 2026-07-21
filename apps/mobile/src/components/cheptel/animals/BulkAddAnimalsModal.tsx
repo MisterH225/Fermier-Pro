@@ -11,11 +11,7 @@ import {
   type BulkCreateAnimalsPayload
 } from "../../../lib/api";
 import { useCheptelPens } from "../../../lib/cheptelPensQuery";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { defaultSexForCategory, type CreateAnimalCategoryKey } from "./animalUtils";
 import { BulkAddStep1 } from "./BulkAddStep1";
 import { BulkAddStep2Preview } from "./BulkAddStep2Preview";
@@ -271,5 +267,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
-  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

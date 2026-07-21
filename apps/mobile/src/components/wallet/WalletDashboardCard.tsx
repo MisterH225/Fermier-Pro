@@ -18,14 +18,9 @@ import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
 import { buyerColors } from "../../theme/buyerTheme";
 import { techColors } from "../../theme/technicianTheme";
 import { vetColors } from "../../theme/vetTheme";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const BALANCE_HIDDEN_KEY = "@fermier/wallet_balance_hidden";
 
@@ -149,7 +144,7 @@ export function WalletDashboardCard({
         </Pressable>
 
         <View style={styles.currencyPill}>
-          <Ionicons name="cash-outline" size={14} color="#FFFFFF" />
+          <Ionicons name="cash-outline" size={14} color={mobileColors.background} />
           <Text style={styles.currencyPillText}>{currency}</Text>
         </View>
 
@@ -168,7 +163,7 @@ export function WalletDashboardCard({
 
         {monthCreditsLabel ? (
           <View style={[styles.growthBadge, { backgroundColor: accent }]}>
-            <Ionicons name="trending-up" size={14} color="#FFFFFF" />
+            <Ionicons name="trending-up" size={14} color={mobileColors.background} />
             <Text style={styles.growthBadgeText}>{monthCreditsLabel}</Text>
           </View>
         ) : null}
@@ -201,7 +196,7 @@ export function WalletDashboardCard({
         >
           <Text style={styles.dockBtnLabel}>{t("wallet.dashboard.transfer")}</Text>
           <View style={styles.dockIconCircle}>
-            <Ionicons name="arrow-up-outline" size={18} color="#FFFFFF" />
+            <Ionicons name="arrow-up-outline" size={18} color={mobileColors.background} />
           </View>
         </Pressable>
 
@@ -227,7 +222,7 @@ export function WalletDashboardCard({
           ]}
         >
           <View style={styles.dockIconCircle}>
-            <Ionicons name="arrow-down-outline" size={18} color="#FFFFFF" />
+            <Ionicons name="arrow-down-outline" size={18} color={mobileColors.background} />
           </View>
           <Text style={[styles.dockBtnLabel, styles.dockBtnLabelRight]}>
             {t("wallet.dashboard.withdraw")}
@@ -238,10 +233,10 @@ export function WalletDashboardCard({
   );
 }
 
-const CARD_BG = "#EBEBF0";
-const DOCK_BG = "#161616";
-const DOCK_BTN = "#2A2A2A";
-const DOCK_SQUARE = "#E8E8ED";
+const CARD_BG = uiNamedColors.cEBEBF0;
+const DOCK_BG = uiNamedColors.c161616;
+const DOCK_BTN = uiNamedColors.c2A2A2A;
+const DOCK_SQUARE = uiNamedColors.cE8E8ED;
 
 const styles = StyleSheet.create({
   wrap: {
@@ -250,7 +245,7 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     backgroundColor: CARD_BG,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     paddingTop: mobileSpacing.md,
     paddingHorizontal: mobileSpacing.md,
     paddingBottom: mobileSpacing.lg,
@@ -269,7 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#1A1A1A",
+    backgroundColor: uiNamedColors.c1A1A1A,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: mobileRadius.pill,
@@ -277,7 +272,7 @@ const styles = StyleSheet.create({
   },
   currencyPillText: {
     ...mobileTypography.meta,
-    color: "#FFFFFF",
+    color: mobileColors.background,
     fontWeight: "700",
     letterSpacing: 0.4
   },
@@ -292,14 +287,14 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   balanceMain: {
-    fontSize: 32,
+    fontSize: mobileFontSize.xxl,
     lineHeight: 36,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     letterSpacing: -1
   },
   balanceDecimal: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     lineHeight: 24,
     fontWeight: "500",
     color: mobileColors.textSecondary,
@@ -318,9 +313,9 @@ const styles = StyleSheet.create({
   },
   growthBadgeText: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
-    color: "#FFFFFF"
+    color: mobileColors.background
   },
   detailsLink: {
     flexDirection: "row",
@@ -338,7 +333,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: mobileSpacing.xs,
     backgroundColor: DOCK_BG,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     padding: mobileSpacing.xs
   },
   dockBtnWide: {
@@ -347,7 +342,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: DOCK_BTN,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     paddingVertical: 10,
     paddingHorizontal: mobileSpacing.sm,
     minHeight: 48
@@ -359,7 +354,7 @@ const styles = StyleSheet.create({
   dockBtnSquare: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     backgroundColor: DOCK_SQUARE,
     alignItems: "center",
     justifyContent: "center"
@@ -369,9 +364,9 @@ const styles = StyleSheet.create({
   },
   dockBtnLabel: {
     ...mobileTypography.cardTitle,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
-    color: "#FFFFFF"
+    color: mobileColors.background
   },
   dockBtnLabelRight: {
     flex: 1,
@@ -380,7 +375,7 @@ const styles = StyleSheet.create({
   dockIconCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.35)",
     alignItems: "center",

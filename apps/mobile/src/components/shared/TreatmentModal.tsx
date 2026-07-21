@@ -14,12 +14,7 @@ import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 import { addDiseaseTreatment, type AddDiseaseTreatmentBody } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -153,5 +148,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

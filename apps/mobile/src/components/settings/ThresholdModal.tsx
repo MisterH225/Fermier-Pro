@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
 
 type Props = {
@@ -79,13 +79,13 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     padding: mobileSpacing.sm,
     ...mobileTypography.body
   },
   saveBtn: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },

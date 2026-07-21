@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { techColors, techShadow, techRadius } from "../../../theme/technicianTheme";
 import { TECH_NAV_BAR_HEIGHT } from "./techNavMetrics";
 import type { TechMainTab } from "./types";
@@ -183,14 +183,14 @@ const styles = StyleSheet.create({
   },
   label: {
     ...mobileTypography.meta,
-    fontSize: 8,
+    fontSize: mobileFontSize.xs,
     lineHeight: 10,
     fontWeight: "600",
     color: techColors.textMuted
   },
   labelActive: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "700",
     color: techColors.onPrimary
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   plusLabel: {
     ...mobileTypography.meta,
-    fontSize: 9,
+    fontSize: mobileFontSize.xs,
     lineHeight: 11,
     fontWeight: "600",
     color: techColors.textSecondary

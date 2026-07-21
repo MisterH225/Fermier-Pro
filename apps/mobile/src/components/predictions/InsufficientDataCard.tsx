@@ -1,12 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import type { FarmPredictionsResult } from "../../lib/api/predictions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   data: FarmPredictionsResult;
@@ -60,7 +55,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   icon: {
-    fontSize: 28
+    fontSize: mobileFontSize.xxl
   },
   title: {
     ...mobileTypography.cardTitle,

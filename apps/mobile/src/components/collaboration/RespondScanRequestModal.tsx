@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   requesterIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center"

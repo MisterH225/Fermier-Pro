@@ -1,11 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { OnboardingFormState } from "../../hooks/useOnboarding";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 
 type Props = {
   form: OnboardingFormState;
@@ -67,7 +63,7 @@ export function OnboardingSummary({
 const styles = StyleSheet.create({
   box: {
     backgroundColor: mobileColors.surfaceMuted,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     gap: 8
   },

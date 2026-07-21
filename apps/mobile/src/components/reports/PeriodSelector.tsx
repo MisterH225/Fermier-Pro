@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmReportPeriodType } from "../../lib/api";
 import { AppDatePicker } from "../common/AppDatePicker";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type ReportAnchorState = {
   year: number;
@@ -43,7 +43,7 @@ function Chip({
       <Text
         style={[
           styles.chipLabel,
-          { color: active ? "#FFFFFF" : mobileColors.textPrimary }
+          { color: active ? mobileColors.background : mobileColors.textPrimary }
         ]}
       >
         {label}
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm
   },
-  navBtnText: { fontSize: 18, color: mobileColors.accent, fontWeight: "800" },
+  navBtnText: { fontSize: mobileFontSize.lg, color: mobileColors.accent, fontWeight: "800" },
   navCenter: { flex: 1, alignItems: "center" },
   navMain: { ...mobileTypography.cardTitle, color: mobileColors.textPrimary },
   navSub: { ...mobileTypography.meta, color: mobileColors.textSecondary }

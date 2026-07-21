@@ -23,12 +23,7 @@ import {
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { refreshFarmFeedQueries } from "../../lib/feedStockQuery";
 import { getUserFacingError } from "../../lib/userFacingError";
 
@@ -550,7 +545,7 @@ const styles = StyleSheet.create({
   chipTxOn: { color: mobileColors.onAccent },
   fieldLabel: {
     ...mobileTypography.meta,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary
   },

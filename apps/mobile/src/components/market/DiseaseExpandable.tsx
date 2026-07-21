@@ -3,11 +3,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListingHealthData } from "../../lib/api";
 import { ExpandableSection, type ExpandableBadge } from "../common/ExpandableSection";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   healthData: MarketplaceListingHealthData;
@@ -21,16 +19,16 @@ function diseaseBadge(
   if (healthData.pastDiseases.length === 0) {
     return {
       label: t("marketScreen.detail.health.diseasesBadgeNone"),
-      color: "#DCFCE7",
-      textColor: "#166534"
+      color: mobileStatusSurfaces.successBg,
+      textColor: mobileStatusSurfaces.successText
     };
   }
   return {
     label: t("marketScreen.detail.health.diseasesBadgeCount", {
       count: healthData.pastDiseases.length
     }),
-    color: "#FFEDD5",
-    textColor: "#9A3412"
+    color: uiNamedColors.cFFEDD5,
+    textColor: uiNamedColors.c9A3412
   };
 }
 
@@ -120,7 +118,7 @@ const styles = StyleSheet.create({
   activeWarning: {
     ...mobileTypography.meta,
     fontWeight: "800",
-    color: "#B45309",
+    color: producerColors.warningDeep,
     marginBottom: mobileSpacing.sm
   },
   empty: {
@@ -135,7 +133,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: mobileColors.accent,
     marginBottom: 6,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   row: {
     flexDirection: "row",
@@ -147,12 +145,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: mobileColors.border
   },
-  rowIcon: { fontSize: 16, width: 24, marginTop: 2 },
+  rowIcon: { fontSize: mobileFontSize.lg, width: 24, marginTop: 2 },
   rowBody: { flex: 1, minWidth: 0 },
   rowName: {
     ...mobileTypography.body,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   rowPeriod: {
@@ -168,7 +166,7 @@ const styles = StyleSheet.create({
   },
   rowDuration: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     maxWidth: 72,
     textAlign: "right"

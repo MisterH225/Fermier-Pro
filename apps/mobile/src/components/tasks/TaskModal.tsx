@@ -28,12 +28,7 @@ import {
   offlineQueuedMessage,
   useOfflineMutation
 } from "../../hooks/useOfflineMutation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { TaskDueDateField } from "./TaskDueDateField";
 import {
   TASK_CATEGORIES,
@@ -555,6 +550,6 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   btnDisabled: { opacity: 0.6 }
 });

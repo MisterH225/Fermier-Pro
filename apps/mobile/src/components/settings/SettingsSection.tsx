@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 
 type Props = {
   title: string;
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     marginLeft: mobileSpacing.md
   },
   group: {
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     overflow: "hidden",
     backgroundColor: mobileColors.background
   }

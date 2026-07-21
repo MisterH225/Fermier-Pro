@@ -8,12 +8,7 @@ import {
   View
 } from "react-native";
 import { fetchGestationAiMatingPlan } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { GestationAiMatingRecommendation } from "../../lib/api";
 
 type Props = {
@@ -84,7 +79,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.border
   },
-  sow: { fontWeight: "700", fontSize: 16 },
+  sow: { fontWeight: "700", fontSize: mobileFontSize.lg },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary, marginTop: 4 },
   reason: { ...mobileTypography.body, marginTop: 6 },
   btn: {
@@ -96,5 +91,5 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accentSoft
   },
   btnTx: { color: mobileColors.accent, fontWeight: "700" },
-  badge: { fontSize: 12, color: mobileColors.accent, fontWeight: "600" }
+  badge: { fontSize: mobileFontSize.sm, color: mobileColors.accent, fontWeight: "600" }
 });

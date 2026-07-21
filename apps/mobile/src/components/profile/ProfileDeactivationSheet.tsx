@@ -13,12 +13,7 @@ import type {
   ProfileDeactivationPreviewDto,
   ProfileTypeChoice
 } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
 
@@ -113,7 +108,7 @@ export function ProfileDeactivationSheet({
             accessibilityLabel={t("account.sensitiveZone.confirmAction")}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.background} />
             ) : (
               <Text style={styles.confirmTx}>
                 {t("account.sensitiveZone.confirmAction")}
@@ -227,33 +222,33 @@ const styles = StyleSheet.create({
   },
   blockTx: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.error,
     lineHeight: 20
   },
   resolveLink: {
     ...mobileTypography.meta,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.accent,
     fontWeight: "600"
   },
   lastProfileHint: {
     ...mobileTypography.meta,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.sm,
     lineHeight: 18
   },
   effectHide: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary,
     marginBottom: 4,
     lineHeight: 20
   },
   effectKeep: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     marginBottom: 4,
     lineHeight: 20
@@ -269,7 +264,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     backgroundColor: mobileColors.background
   },
@@ -283,9 +278,9 @@ const styles = StyleSheet.create({
     opacity: 0.45
   },
   confirmTx: {
-    color: "#fff",
+    color: mobileColors.background,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   errorTx: {
     ...mobileTypography.meta,

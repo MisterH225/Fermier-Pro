@@ -12,12 +12,7 @@ import {
 import { useSession } from "../../context/SessionContext";
 import i18n from "../../i18n/i18n";
 import { type AppLocaleCode, setStoredAppLocale } from "../../lib/appLocale";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { Card } from "../ui/Card";
 import { ActiveProfileSwitcherControl } from "./ActiveProfileSwitcherControl";
@@ -192,7 +187,7 @@ const styles = StyleSheet.create({
   },
   name: {
     ...mobileTypography.title,
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textPrimary,
     marginBottom: 4
   },
@@ -203,13 +198,13 @@ const styles = StyleSheet.create({
   },
   meta: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     marginTop: 4
   },
   hint: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.md
@@ -235,7 +230,7 @@ const styles = StyleSheet.create({
   },
   localeTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   localeTitleOn: {
@@ -247,7 +242,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   check: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.accent
   },
@@ -267,7 +262,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   secondaryChevron: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textSecondary
   },
   signOutBtn: {
@@ -284,7 +279,7 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   signOutLabel: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.error
   }

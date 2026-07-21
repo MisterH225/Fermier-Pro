@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileRadius, mobileSpacing, mobileTypography, mobileColors } from "../../theme/mobileTheme";
 
 type Props = {
   value: string;
@@ -27,13 +27,13 @@ export function ChartTooltip({ value, left, top }: Props) {
 const styles = StyleSheet.create({
   bubble: {
     position: "absolute",
-    backgroundColor: "#111111",
+    backgroundColor: mobileColors.textPrimary,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.xs,
     borderRadius: mobileRadius.md,
     minWidth: 72,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   },
   text: {
     ...mobileTypography.meta,
-    color: "#FFFFFF",
+    color: mobileColors.background,
     fontWeight: "700"
   }
 });

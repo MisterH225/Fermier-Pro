@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type SellChooserChoice = "marketplace" | "recordedSale";
 
@@ -104,7 +99,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: mobileColors.accentSoft
@@ -113,7 +108,7 @@ const styles = StyleSheet.create({
   title: {
     ...mobileTypography.cardTitle,
     color: mobileColors.textPrimary,
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   subtitle: {
     ...mobileTypography.meta,

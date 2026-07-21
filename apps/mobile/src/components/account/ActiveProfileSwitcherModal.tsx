@@ -16,12 +16,7 @@ import { useSession } from "../../context/SessionContext";
 import { createProfile, type ProfileTypeChoice } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
 import { profileTypeIcon } from "../../lib/profileTypeIcon";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { profileAccentColor } from "../../theme/profileTheme";
 
 const PROFILE_TYPES: ProfileTypeChoice[] = [
@@ -137,7 +132,7 @@ export function ActiveProfileSwitcherModal({
                     <Ionicons
                       name={profileTypeIcon(p.type)}
                       size={22}
-                      color={active ? "#fff" : accent}
+                      color={active ? mobileColors.background : accent}
                     />
                   </View>
                   <View style={styles.rowText}>
@@ -158,7 +153,7 @@ export function ActiveProfileSwitcherModal({
                     ) : null}
                   </View>
                   {loading ? (
-                    <ActivityIndicator color={active ? "#fff" : accent} />
+                    <ActivityIndicator color={active ? mobileColors.background : accent} />
                   ) : active ? (
                     <Ionicons
                       name="checkmark-circle"
@@ -254,7 +249,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.cardTitle,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     flex: 1,
     marginRight: mobileSpacing.md
   },
@@ -262,7 +257,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   sub: {
     ...mobileTypography.body,
@@ -316,7 +311,7 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   rowTitleActive: {
@@ -349,7 +344,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     fontWeight: "600",
     color: mobileColors.accent,
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   addBlock: {
     marginTop: mobileSpacing.lg,
@@ -384,7 +379,7 @@ const styles = StyleSheet.create({
   },
   typeChipText: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "500",
     color: mobileColors.textPrimary
   },

@@ -79,21 +79,21 @@ const styles = StyleSheet.create({
   circle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: skelBg
   },
   listTextCol: { flex: 1, gap: 8 },
   listRightCol: { alignItems: "flex-end", gap: 6 },
   lineLg: {
     height: 14,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     backgroundColor: skelBg,
     width: "100%"
   },
   lineShorter: { width: "78%" },
   lineSm: {
     height: 10,
-    borderRadius: 5,
+    borderRadius: mobileRadius.sm,
     backgroundColor: skelBg,
     width: "70%"
   },

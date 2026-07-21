@@ -5,14 +5,10 @@ import type {
   FarmPredictionsPayload,
   PredictionHorizonKey
 } from "../../lib/api/predictions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { HorizonTabs } from "./HorizonTabs";
 import { formatCurrency } from "./predictionFormatters";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   payload: FarmPredictionsPayload;
@@ -51,11 +47,11 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg,
     gap: mobileSpacing.sm
   },
-  positive: { backgroundColor: "#E8F8F1" },
-  negative: { backgroundColor: "#FDECEC" },
+  positive: { backgroundColor: uiNamedColors.cE8F8F1 },
+  negative: { backgroundColor: uiNamedColors.cFDECEC },
   title: { ...mobileTypography.cardTitle },
-  margin: { fontSize: 26, fontWeight: "700" },
+  margin: { fontSize: mobileFontSize.xxl, fontWeight: "700" },
   pct: { ...mobileTypography.body, fontWeight: "600" },
-  textPos: { color: "#1D9E75" },
-  textNeg: { color: "#D64545" }
+  textPos: { color: uiNamedColors.c1D9E75 },
+  textNeg: { color: mobileColors.error }
 });

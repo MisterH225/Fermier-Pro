@@ -11,6 +11,7 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { formatCurrency, formatPredictionDate } from "./predictionFormatters";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   payload: FarmPredictionsPayload;
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { ...mobileTypography.meta, fontWeight: "600" },
   trendExpl: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  avoid: { ...mobileTypography.meta, color: "#BA7517" },
+  avoid: { ...mobileTypography.meta, color: uiNamedColors.cBA7517 },
   cta: {
     marginTop: mobileSpacing.sm,
     backgroundColor: mobileColors.accent,
@@ -104,5 +105,5 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  ctaText: { color: "#fff", fontWeight: "600" }
+  ctaText: { color: mobileColors.background, fontWeight: "600" }
 });

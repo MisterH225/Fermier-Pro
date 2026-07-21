@@ -1,12 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   /** Titre de section (style profil : petites capitales). */
@@ -67,7 +61,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     letterSpacing: 0.8,

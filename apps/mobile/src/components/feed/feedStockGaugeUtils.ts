@@ -1,12 +1,13 @@
+import { uiNamedColors } from "../../theme/uiNamedColors";
 /** Statut calcul stock (aligné API). */
 export type FeedStockGaugeStatus = "ok" | "warning" | "critical" | "no_data";
 
 /** Couleurs jauge selon criticité stock. */
 export const FEED_GAUGE_STATUS_COLORS: Record<FeedStockGaugeStatus, string> = {
-  ok: "#1D9E75",
-  warning: "#BA7517",
-  critical: "#E24B4A",
-  no_data: "#B4B2A9"
+  ok: uiNamedColors.c1D9E75,
+  warning: uiNamedColors.cBA7517,
+  critical: uiNamedColors.cE24B4A,
+  no_data: uiNamedColors.cB4B2A9
 };
 
 /** Remplissage jauge = % restant depuis la dernière entrée. */

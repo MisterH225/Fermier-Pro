@@ -1,12 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import {
   LIVESTOCK_EXIT_VERB_KEYS,
   LIVESTOCK_EXIT_VERB_ORDER,
@@ -80,6 +75,6 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     fontWeight: "700",
     color: mobileColors.textPrimary,
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   }
 });

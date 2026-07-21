@@ -14,13 +14,10 @@ import {
   roundCoerced
 } from "../../lib/coerceNumber";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   data: FarmProfitabilityDashboardDto | undefined;
@@ -69,8 +66,8 @@ export function RentabilityHeroCard({
   const breakevenPricePerKg = roundCoerced(data.breakevenPricePerKg);
   const isProfit = netMargin != null && netMargin > 0;
   const isLoss = netMargin != null && netMargin < 0;
-  const bg = isLoss ? "#FEE2E2" : isProfit ? "#DCFCE7" : "#FEF3C7";
-  const accent = isLoss ? "#DC2626" : isProfit ? "#16A34A" : "#D97706";
+  const bg = isLoss ? mobileStatusSurfaces.errorBg : isProfit ? mobileStatusSurfaces.successBg : producerColors.kpiAmberSoft;
+  const accent = isLoss ? uiNamedColors.cDC2626 : isProfit ? uiNamedColors.c16A34A : marketplaceColors.pending;
 
   const periods = [
     { key: "current_month" as const, label: t("profitability.periodMonth") },
@@ -209,7 +206,7 @@ const styles = StyleSheet.create({
   periodPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     backgroundColor: "rgba(255,255,255,0.55)"
   },
   periodPillOn: { backgroundColor: mobileColors.textPrimary },
@@ -218,14 +215,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
-  periodPillTextOn: { color: "#fff" },
+  periodPillTextOn: { color: mobileColors.background },
   insufficient: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.md
   },
   mainValue: {
-    fontSize: 32,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "900",
     marginTop: mobileSpacing.md
   },
@@ -246,7 +243,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   miniValue: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "800",
     marginTop: 2
   },

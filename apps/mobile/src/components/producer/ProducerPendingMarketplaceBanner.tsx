@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center"

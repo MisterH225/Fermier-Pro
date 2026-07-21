@@ -1,8 +1,9 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { FilterPill } from "./types";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
-const DEFAULT_ACTIVE_BG = "#1B3B2E";
+const DEFAULT_ACTIVE_BG = uiNamedColors.c1B3B2E;
 
 type Props = {
   pills: FilterPill[];

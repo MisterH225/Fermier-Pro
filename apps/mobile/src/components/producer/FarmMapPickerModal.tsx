@@ -11,12 +11,7 @@ import {
 } from "react-native";
 import MapView, { Marker, type LatLng } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const DEFAULT_FR: LatLng = { latitude: 46.603354, longitude: 1.888334 };
 
@@ -179,7 +174,7 @@ const styles = StyleSheet.create({
   },
   toolbarBtnText: {
     ...mobileTypography.body,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textSecondary
   },
   toolbarTitle: {
@@ -187,13 +182,13 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     marginHorizontal: mobileSpacing.sm
   },
   toolbarConfirm: {
     ...mobileTypography.body,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.accent,
     textAlign: "right"
@@ -229,7 +224,7 @@ const styles = StyleSheet.create({
   coordText: {
     ...mobileTypography.body,
     flex: 1,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   }
 });

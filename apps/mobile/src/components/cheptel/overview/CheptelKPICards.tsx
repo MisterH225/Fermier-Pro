@@ -2,11 +2,9 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import type { CheptelOverviewDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileKpiPalette, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
+import { merchantColors } from "../../../theme/merchantTheme";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 type Props = {
   overview: CheptelOverviewDto | undefined;
@@ -105,23 +103,23 @@ export function CheptelKPICards({ overview }: Props) {
     {
       key: "nursing",
       icon: "🍼",
-      bg: "#FCE4EC",
-      accent: "#EC407A",
+      bg: merchantColors.roseSoftBg,
+      accent: uiNamedColors.cEC407A,
       labelKey: "cheptel.kpiNursing",
       unitKey: "health.diseases.unitSubjects",
       fullWidth: true,
       value: (o) => String(o.kpis.nursingCount ?? 0),
       widget: (o) =>
         miniDonut(
-          [{ value: o.kpis.nursingCount ?? 0, color: "#EC407A" }],
-          "#EC407A"
+          [{ value: o.kpis.nursingCount ?? 0, color: uiNamedColors.cEC407A }],
+          uiNamedColors.cEC407A
         )
     },
     {
       key: "total",
       icon: "🐷",
-      bg: "#FFF3E0",
-      accent: "#FF8C00",
+      bg: mobileStatusSurfaces.warningBg,
+      accent: mobileKpiPalette.gestation.accent,
       labelKey: "cheptel.totalHeadcount",
       unitKey: "health.diseases.unitSubjects",
       value: (o) => String(o.kpis.totalHeadcount ?? "—"),
@@ -129,16 +127,16 @@ export function CheptelKPICards({ overview }: Props) {
         miniDonut(
           (o.miniWidgets?.categoryDonut ?? []).map((s, i) => ({
             value: s.count,
-            color: ["#FF8C00", "#4ECDC4", "#45B7D1", "#96CEB4"][i % 4]!
+            color: [mobileKpiPalette.gestation.accent, uiNamedColors.c4ECDC4, uiNamedColors.c45B7D1, uiNamedColors.c96CEB4][i % 4]!
           })),
-          "#FF8C00"
+          mobileKpiPalette.gestation.accent
         )
     },
     {
       key: "breeding",
       icon: "🐽",
-      bg: "#FCE4EC",
-      accent: "#E91E8C",
+      bg: merchantColors.roseSoftBg,
+      accent: uiNamedColors.cE91E8C,
       labelKey: "cheptel.kpiBreedingFemales",
       unitKey: "cheptel.kpiUnitSows",
       value: (o) => String(o.kpis.breedingFemalesCount ?? "—"),
@@ -146,36 +144,36 @@ export function CheptelKPICards({ overview }: Props) {
         miniDonut(
           (o.miniWidgets?.breedingDonut ?? []).map((s) => ({
             value: s.count,
-            color: s.label === "gestating" ? "#E91E8C" : "#F8BBD0"
+            color: s.label === "gestating" ? uiNamedColors.cE91E8C : uiNamedColors.cF8BBD0
           })),
-          "#E91E8C"
+          uiNamedColors.cE91E8C
         )
     },
     {
       key: "fattening",
       icon: "📈",
-      bg: "#E8F5E9",
-      accent: "#2E7D32",
+      bg: mobileStatusSurfaces.positiveBg,
+      accent: mobileStatusSurfaces.positiveText,
       labelKey: "cheptel.kpiFattening",
       unitKey: "health.diseases.unitSubjects",
       value: (o) => String(o.kpis.fatteningCount ?? "—"),
-      widget: (o) => miniBars(o.miniWidgets?.fatteningTrend ?? [], "#2E7D32")
+      widget: (o) => miniBars(o.miniWidgets?.fatteningTrend ?? [], mobileStatusSurfaces.positiveText)
     },
     {
       key: "starter",
       icon: "🐣",
-      bg: "#E3F2FD",
-      accent: "#1565C0",
+      bg: mobileStatusSurfaces.infoBg,
+      accent: mobileStatusSurfaces.infoText,
       labelKey: "cheptel.kpiStarter",
       unitKey: "health.diseases.unitSubjects",
       value: (o) => String(o.kpis.starterCount ?? "—"),
-      widget: (o) => miniBars(o.miniWidgets?.starterTrend ?? [], "#1565C0")
+      widget: (o) => miniBars(o.miniWidgets?.starterTrend ?? [], mobileStatusSurfaces.infoText)
     },
     {
       key: "occupancy",
       icon: "🏠",
-      bg: "#EDE7F6",
-      accent: "#6A1B9A",
+      bg: uiNamedColors.cEDE7F6,
+      accent: uiNamedColors.c6A1B9A,
       labelKey: "cheptel.occupancy",
       value: (o) =>
         o.kpis.occupancyRate != null ? `${o.kpis.occupancyRate}%` : "—",
@@ -183,16 +181,16 @@ export function CheptelKPICards({ overview }: Props) {
         miniDonut(
           (o.miniWidgets?.occupancyDonut ?? []).map((s) => ({
             value: s.count,
-            color: s.label === "occupied" ? "#6A1B9A" : "#D1C4E9"
+            color: s.label === "occupied" ? uiNamedColors.c6A1B9A : uiNamedColors.cD1C4E9
           })),
-          "#6A1B9A"
+          uiNamedColors.c6A1B9A
         )
     },
     {
       key: "sick",
       icon: "🤒",
-      bg: "#FFF8E1",
-      accent: "#F57F17",
+      bg: mobileKpiPalette.dueMonth.bg,
+      accent: mobileStatusSurfaces.warningText,
       labelKey: "cheptel.kpiSick",
       unitKey: "health.diseases.unitSubjects",
       value: (o) => String(o.kpis.sickAnimalsCount ?? 0),
@@ -202,8 +200,8 @@ export function CheptelKPICards({ overview }: Props) {
           return null;
         }
         return (
-          <View style={[styles.alertBadge, { borderColor: "#F57F17" }]}>
-            <Text style={[styles.alertText, { color: "#F57F17" }]}>!</Text>
+          <View style={[styles.alertBadge, { borderColor: mobileStatusSurfaces.warningText }]}>
+            <Text style={[styles.alertText, { color: mobileStatusSurfaces.warningText }]}>!</Text>
           </View>
         );
       }
@@ -252,10 +250,10 @@ const styles = StyleSheet.create({
     width: "47%",
     flexGrow: 1,
     minWidth: "46%",
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.md,
     minHeight: 120,
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -267,7 +265,7 @@ const styles = StyleSheet.create({
     flexGrow: 0
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  icon: { fontSize: 18 },
+  icon: { fontSize: mobileFontSize.lg },
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
@@ -281,16 +279,16 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm
   },
   valueCol: { flex: 1 },
-  value: { fontSize: 24, fontWeight: "800" },
+  value: { fontSize: mobileFontSize.xl, fontWeight: "800" },
   unit: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   widgetCol: { alignItems: "flex-end", justifyContent: "flex-end" },
   alertBadge: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center"
   },
-  alertText: { fontWeight: "800", fontSize: 16 }
+  alertText: { fontWeight: "800", fontSize: mobileFontSize.lg }
 });

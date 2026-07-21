@@ -26,13 +26,7 @@ import { patchAuthProfile, type PatchMeProfilePayload, type FarmDto } from "../.
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { AccountSettingsPanel } from "../account/AccountSettingsPanel";
 import { ActiveProfileSwitcherControl } from "../account/ActiveProfileSwitcherControl";
@@ -583,7 +577,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     flex: 1,
     textAlign: "center",
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
@@ -591,7 +585,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
@@ -632,7 +626,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: mobileColors.background,
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
     shadowRadius: 4,
@@ -640,7 +634,7 @@ const styles = StyleSheet.create({
   },
   heroName: {
     marginTop: mobileSpacing.lg,
-    fontSize: 26,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     textAlign: "center",
@@ -649,13 +643,13 @@ const styles = StyleSheet.create({
   heroEmail: {
     marginTop: 6,
     ...mobileTypography.body,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },
   sectionHeader: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     letterSpacing: 0.8,
@@ -690,7 +684,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     maxWidth: "46%",
     ...mobileTypography.body,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textSecondary
   },
   rowInput: {
@@ -698,7 +692,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 44,
     paddingVertical: 8,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     textAlign: "right"
   },
@@ -717,7 +711,7 @@ const styles = StyleSheet.create({
   gpsLabel: {
     flex: 1,
     ...mobileTypography.body,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "500",
     color: mobileColors.accent
   },
@@ -735,7 +729,7 @@ const styles = StyleSheet.create({
   },
   projectCurrentName: {
     ...mobileTypography.body,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },

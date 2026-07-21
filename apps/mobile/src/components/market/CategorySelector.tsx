@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
-import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileRadius, mobileSpacing, mobileTypography, mobileColors } from "../../theme/mobileTheme";
+import { buyerColors } from "../../theme/buyerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 export type PigPriceCategoryKey = "all" | "porcelet" | "croissance" | "charcutier" | "reproducteur";
 
@@ -50,11 +52,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: 8,
     borderRadius: mobileRadius.pill,
-    backgroundColor: "#F1F3F5",
+    backgroundColor: uiNamedColors.cF1F3F5,
     borderWidth: 1,
-    borderColor: "#DEE2E6"
+    borderColor: uiNamedColors.cDEE2E6
   },
-  pillActive: { backgroundColor: "#7C3AED", borderColor: "#7C3AED" },
-  pillText: { ...mobileTypography.meta, fontWeight: "600", color: "#495057" },
-  pillTextActive: { color: "#fff" }
+  pillActive: { backgroundColor: buyerColors.primary, borderColor: buyerColors.primary },
+  pillText: { ...mobileTypography.meta, fontWeight: "600", color: uiNamedColors.c495057 },
+  pillTextActive: { color: mobileColors.background }
 });

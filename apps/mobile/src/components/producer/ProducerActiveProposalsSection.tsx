@@ -13,12 +13,7 @@ import {
 } from "../../lib/producerMarketplacePending";
 import { fetchMarketplaceTransactions, fetchReceivedMarketplaceOffers } from "../../lib/api";
 import { offerStatusLabel } from "../../lib/marketplaceLabels";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = {
@@ -142,7 +137,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, minWidth: 0 },
   rowTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   rowMeta: {

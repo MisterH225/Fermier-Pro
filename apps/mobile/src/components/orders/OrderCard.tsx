@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatMarketMoney } from "../../lib/formatMoney";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { DeadlineNotice } from "./DeadlineNotice";
 import {
   OrderStatusBadge,
@@ -178,15 +178,15 @@ const styles = StyleSheet.create({
     gap: 6,
     flexWrap: "wrap"
   },
-  referenceLabel: { fontSize: 11, fontWeight: "600" },
+  referenceLabel: { fontSize: mobileFontSize.xs, fontWeight: "600" },
   typeTag: {
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 999
+    borderRadius: mobileRadius.pill
   },
-  typeTagText: { fontSize: 10, fontWeight: "800" },
-  reference: { fontSize: 16, fontWeight: "800" },
-  itemSummary: { fontSize: 12, fontWeight: "500" },
+  typeTagText: { fontSize: mobileFontSize.xs, fontWeight: "800" },
+  reference: { fontSize: mobileFontSize.lg, fontWeight: "800" },
+  itemSummary: { fontSize: mobileFontSize.sm, fontWeight: "500" },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -202,20 +202,20 @@ const styles = StyleSheet.create({
   avatar: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center"
   },
-  avatarText: { fontSize: 14, fontWeight: "800" },
-  counterpartyText: { flex: 1, fontSize: 14, fontWeight: "700" },
-  amount: { fontSize: 15, fontWeight: "800" },
+  avatarText: { fontSize: mobileFontSize.md, fontWeight: "800" },
+  counterpartyText: { flex: 1, fontSize: mobileFontSize.md, fontWeight: "700" },
+  amount: { fontSize: mobileFontSize.md, fontWeight: "800" },
   nextAction: {
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 10
+    borderRadius: mobileRadius.md
   },
-  nextActionText: { flex: 1, fontSize: 12, fontWeight: "700" }
+  nextActionText: { flex: 1, fontSize: mobileFontSize.sm, fontWeight: "700" }
 });

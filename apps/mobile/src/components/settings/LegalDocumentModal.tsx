@@ -7,12 +7,7 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -89,14 +84,14 @@ const styles = StyleSheet.create({
     ...mobileTypography.sectionTitle,
     color: mobileColors.textPrimary,
     flex: 1,
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   closeBtn: {
     padding: mobileSpacing.xs,
     marginTop: 2
   },
   closeTx: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textSecondary,
     fontWeight: "600"
   },
@@ -110,6 +105,6 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
     lineHeight: 22,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   }
 });

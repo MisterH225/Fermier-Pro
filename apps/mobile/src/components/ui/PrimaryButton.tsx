@@ -1,5 +1,5 @@
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type PrimaryButtonProps = {
   label: string;
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: mobileColors.onAccent,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   }
 });

@@ -8,12 +8,7 @@ import {
   DISEASE_STATUSES,
   MORTALITY_CAUSES
 } from "./healthUtils";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type HealthFormState = {
   occurredDate: string;
@@ -267,7 +262,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: `${mobileColors.accent}18`
   },
-  chipTx: { fontSize: 13, color: mobileColors.textPrimary },
+  chipTx: { fontSize: mobileFontSize.sm, color: mobileColors.textPrimary },
   modalActions: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -24,12 +24,7 @@ import {
   type TechnicianProfileDto,
   type VetSearchItemDto
 } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { DirectInviteModal } from "./DirectInviteModal";
 import { DirectoryFiltersPanel } from "./DirectoryFiltersPanel";
@@ -387,12 +382,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6
   },
-  filterChipTx: { fontSize: 12, fontWeight: "600", color: mobileColors.accent },
+  filterChipTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: mobileColors.accent },
   filterIconBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4
   },
-  filterIconTx: { fontSize: 18 },
+  filterIconTx: { fontSize: mobileFontSize.lg },
   filterMeta: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,

@@ -21,12 +21,7 @@ import {
   permissionsToScopes,
   scopesToPermissions
 } from "../../lib/memberPermissions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
 import { MemberAvatar } from "./MemberAvatar";
@@ -292,7 +287,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start"
   },
   badgeTxt: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     letterSpacing: 0.3
   },
@@ -331,7 +326,7 @@ const styles = StyleSheet.create({
   permTick: {
     width: 20,
     height: 20,
-    borderRadius: 5,
+    borderRadius: mobileRadius.sm,
     borderWidth: 1.5,
     borderColor: mobileColors.border,
     backgroundColor: mobileColors.background,
@@ -345,7 +340,7 @@ const styles = StyleSheet.create({
   },
   permLabel: {
     ...mobileTypography.body,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   permLabelOn: {
     color: mobileColors.textPrimary,
@@ -400,12 +395,12 @@ const styles = StyleSheet.create({
   },
   revokeConfirmTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.error
   },
   revokeConfirmBody: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
   revokeConfirmRow: {

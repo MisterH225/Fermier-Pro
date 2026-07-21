@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { RootStackParamList } from "../../types/navigation";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { DeleteAccountConfirmModal } from "./DeleteAccountConfirmModal";
 import { DeleteAccountWarningModal } from "./DeleteAccountWarningModal";
 
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md
   },
   zoneLabel: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.error,
     marginBottom: mobileSpacing.sm,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   },
   deleteTx: {
     ...mobileTypography.body,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.error,
     fontWeight: "500"
   }

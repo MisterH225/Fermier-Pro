@@ -28,13 +28,8 @@ import {
 } from "../../lib/ordersTrackingDismiss";
 import type { RootStackParamList } from "../../types/navigation";
 import { OrderStatusBadge } from "../orders";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   /** Conservé pour compatibilité des dashboards existants (non utilisé sur le fond carte). */
@@ -135,7 +130,7 @@ export function ShopOrdersTrackingCard(_props: Props) {
       accessibilityRole="button"
       accessibilityLabel={t("ordersTracking.dismissA11y")}
     >
-      <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+      <Ionicons name="trash-outline" size={22} color={mobileColors.background} />
       <Text style={styles.swipeLabel}>{t("ordersTracking.dismiss")}</Text>
     </Pressable>
   );
@@ -223,7 +218,7 @@ export function ShopOrdersTrackingCard(_props: Props) {
                       ]}
                     >
                       {filled || step.current ? (
-                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                        <Ionicons name="checkmark" size={14} color={mobileColors.background} />
                       ) : null}
                     </View>
                     {index < steps.length - 1 ? (
@@ -271,7 +266,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 28,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.lg,
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -287,24 +282,24 @@ const styles = StyleSheet.create({
   },
   refBlock: { flex: 1, gap: 4 },
   refLabel: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
   refValue: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary
   },
   partiesRow: { flexDirection: "row", gap: 16 },
   partyCol: { flex: 1, gap: 4 },
   partyLabel: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
   partyValue: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     lineHeight: 20
@@ -326,40 +321,40 @@ const styles = StyleSheet.create({
   lineLeft: { borderTopRightRadius: 2, borderBottomRightRadius: 2 },
   lineRight: { borderTopLeftRadius: 2, borderBottomLeftRadius: 2 },
   lineDone: { backgroundColor: mobileColors.textPrimary },
-  lineIdle: { backgroundColor: "#E5E7EB" },
+  lineIdle: { backgroundColor: uiNamedColors.cE5E7EB },
   node: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center"
   },
   nodeDone: { backgroundColor: mobileColors.textPrimary },
-  nodeIdle: { backgroundColor: "#D1D5DB" },
+  nodeIdle: { backgroundColor: uiNamedColors.cD1D5DB },
   stepLabel: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     textAlign: "center",
     fontWeight: "700"
   },
   stepLabelActive: { color: mobileColors.textPrimary },
-  stepLabelIdle: { color: "#9CA3AF", fontWeight: "600" },
+  stepLabelIdle: { color: uiNamedColors.c9CA3AF, fontWeight: "600" },
   stepTime: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },
   swipeDelete: {
     width: 96,
     marginLeft: 8,
-    borderRadius: 28,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.error,
     alignItems: "center",
     justifyContent: "center",
     gap: 4
   },
   swipeLabel: {
-    color: "#FFFFFF",
-    fontSize: 12,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700"
   }
 });

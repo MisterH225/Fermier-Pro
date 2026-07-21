@@ -1,12 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ModalSection } from "../../modals/ModalSection";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import type { BulkAddFormState } from "./BulkAddAnimalsModal";
 import { tagPrefixForCategory } from "./animalUtils";
 import { useQuery } from "@tanstack/react-query";
@@ -227,5 +222,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.6 },
-  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

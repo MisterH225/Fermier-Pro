@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { FarmPredictionsPayload } from "../../lib/api/predictions";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 import {
   mobileColors,
   mobileRadius,
@@ -12,9 +13,9 @@ type Props = {
 };
 
 const PRIORITY_COLOR = {
-  high: "#D64545",
-  medium: "#BA7517",
-  low: "#B4B2A9"
+  high: mobileColors.error,
+  medium: uiNamedColors.cBA7517,
+  low: uiNamedColors.cB4B2A9
 } as const;
 
 export function PredictiveAlertsCard({ payload }: Props) {

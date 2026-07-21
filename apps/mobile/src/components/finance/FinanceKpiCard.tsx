@@ -1,11 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 import { SmartChart } from "../charts";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileKpiPalette } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 /** Palettes pastel (réf. dashboard bien-être : orange, bleu, jaune, vert). */
 export type FinanceKpiPastelVariant = "orange" | "blue" | "yellow" | "green";
@@ -23,26 +20,26 @@ const PASTEL: Record<
   { bg: string; accent: string; title: string; value: string }
 > = {
   orange: {
-    bg: "#FFF4EB",
-    accent: "#F97316",
+    bg: uiNamedColors.cFFF4EB,
+    accent: mobileKpiPalette.gestation.accent,
     title: mobileColors.textSecondary,
     value: mobileColors.textPrimary
   },
   blue: {
-    bg: "#EFF6FF",
-    accent: "#3B82F6",
+    bg: uiNamedColors.cEFF6FF,
+    accent: producerColors.chartBlue,
     title: mobileColors.textSecondary,
     value: mobileColors.textPrimary
   },
   yellow: {
-    bg: "#FFFBEB",
-    accent: "#EAB308",
+    bg: uiNamedColors.cFFFBEB,
+    accent: producerColors.chartYellow,
     title: mobileColors.textSecondary,
     value: mobileColors.textPrimary
   },
   green: {
-    bg: "#ECFDF5",
-    accent: "#22C55E",
+    bg: producerColors.successMintBg,
+    accent: producerColors.chartGreen,
     title: mobileColors.textSecondary,
     value: mobileColors.textPrimary
   }

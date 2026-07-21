@@ -1,9 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 export type CheptelStyleKpiCardProps = {
   icon: string;
@@ -56,17 +52,17 @@ export const cheptelKpiGridStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     padding: mobileSpacing.md,
     minHeight: 120,
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  icon: { fontSize: 18 },
+  icon: { fontSize: mobileFontSize.lg },
   label: {
     ...mobileTypography.meta,
     fontWeight: "600",
@@ -80,7 +76,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm
   },
   valueCol: { flex: 1 },
-  value: { fontSize: 24, fontWeight: "800" },
+  value: { fontSize: mobileFontSize.xl, fontWeight: "800" },
   unit: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   widgetCol: { alignItems: "flex-end", justifyContent: "flex-end" }
 });

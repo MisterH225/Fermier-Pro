@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: mobileRadius.lg,
     overflow: "hidden",
     ...{
-      shadowColor: "#000",
+      shadowColor: mobileColors.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.06,
       shadowRadius: 8,

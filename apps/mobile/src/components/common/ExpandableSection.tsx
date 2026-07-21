@@ -9,12 +9,7 @@ import {
   UIManager,
   View
 } from "react-native";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 if (
   Platform.OS === "android" &&
@@ -147,12 +142,12 @@ const styles = StyleSheet.create({
     maxWidth: 160
   },
   badgeTx: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   chevron: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     width: 18,
     textAlign: "center"

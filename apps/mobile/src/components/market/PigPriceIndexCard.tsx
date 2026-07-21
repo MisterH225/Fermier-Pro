@@ -4,13 +4,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSession } from "../../context/SessionContext";
 import { fetchHybridPigPriceIndex, type HybridPigPriceIndexDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 function formatRelativeTime(iso: string | null, locale: string): string {
   if (!iso) {
@@ -52,7 +48,7 @@ function trendColor(trend: "up" | "down" | "stable", variation: number | null) {
   if (trend === "stable" || variation == null) {
     return mobileColors.textSecondary;
   }
-  return variation >= 0 ? "#2F9E44" : "#E03131";
+  return variation >= 0 ? producerColors.primary : uiNamedColors.cE03131;
 }
 
 type Props = {
@@ -136,7 +132,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary
   },
   price: {
-    fontSize: 28,
+    fontSize: mobileFontSize.xxl,
     lineHeight: 34,
     fontWeight: "800",
     color: mobileColors.textPrimary

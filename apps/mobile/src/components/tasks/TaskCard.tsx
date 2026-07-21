@@ -1,12 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FarmTaskDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { TaskViewMode } from "./taskConstants";
 import { taskCategoryMeta } from "./taskConstants";
 import {
@@ -134,7 +128,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: mobileSpacing.sm,
     left: mobileSpacing.sm,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   gridTop: {
     flexDirection: "row",
@@ -143,8 +137,8 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.md,
     marginBottom: mobileSpacing.sm
   },
-  gridEmoji: { fontSize: 28 },
-  listEmoji: { fontSize: 28, marginTop: mobileSpacing.md },
+  gridEmoji: { fontSize: mobileFontSize.xxl },
+  listEmoji: { fontSize: mobileFontSize.xxl, marginTop: mobileSpacing.md },
   listBody: { flex: 1, minWidth: 0 },
   title: {
     ...mobileTypography.cardTitle,
@@ -160,7 +154,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: mobileRadius.md,
     borderWidth: 2,
     borderColor: mobileColors.border,
     alignItems: "center",
@@ -171,5 +165,5 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     borderColor: mobileColors.accent
   },
-  checkMark: { color: mobileColors.onAccent, fontWeight: "800", fontSize: 14 }
+  checkMark: { color: mobileColors.onAccent, fontWeight: "800", fontSize: mobileFontSize.md }
 });

@@ -28,11 +28,7 @@ import {
 } from "../../hooks/useOfflineMutation";
 import { isoDateWithLocalTime } from "../../lib/dateTime";
 import { amountToInput, parseAmount } from "../../lib/finance/amountUtils";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -269,7 +265,7 @@ export function EditTransactionModal({ visible, payload, onClose }: Props) {
 
 const styles = StyleSheet.create({
   fieldLab: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textSecondary
   },
@@ -301,6 +297,6 @@ const styles = StyleSheet.create({
   primaryTx: {
     color: mobileColors.accent,
     fontWeight: "800",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   }
 });

@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { EventItem } from "./types";
-import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 function iconFor(item: EventItem): keyof typeof Ionicons.glyphMap {
   if (item.iconType === "custom" && item.customIcon) {
@@ -27,11 +28,11 @@ function circleColors(item: EventItem): { bg: string; fg: string } {
   }
   switch (item.iconType) {
     case "in":
-      return { bg: "#DCFCE7", fg: mobileColors.success };
+      return { bg: mobileStatusSurfaces.successBg, fg: mobileColors.success };
     case "out":
-      return { bg: "#FEE2E2", fg: mobileColors.error };
+      return { bg: mobileStatusSurfaces.errorBg, fg: mobileColors.error };
     case "cancelled":
-      return { bg: "#FFEDD5", fg: "#C2410C" };
+      return { bg: uiNamedColors.cFFEDD5, fg: uiNamedColors.cC2410C };
     case "check":
       return { bg: mobileColors.surfaceMuted, fg: mobileColors.textSecondary };
     default:
@@ -91,7 +92,7 @@ export function EventListItem({ item, onPress }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.sm,
     ...mobileShadows.card
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -121,13 +122,13 @@ const styles = StyleSheet.create({
   },
   right: { alignItems: "flex-end", minWidth: 96 },
   value: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "800"
   },
   date: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
     marginTop: 4,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   }
 });

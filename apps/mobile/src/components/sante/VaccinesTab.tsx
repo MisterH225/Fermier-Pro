@@ -21,12 +21,7 @@ import {
   type VaccineSubjectRowDto
 } from "../../lib/api";
 import { invalidateAIInsights } from "../../services/ai/AIRecommendationService";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
 import { useModal } from "../modals/useModal";
 import { BulkVaccineModal } from "./BulkVaccineModal";
@@ -308,7 +303,7 @@ const styles = StyleSheet.create({
   addCustomTx: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   lab: {
     ...mobileTypography.meta,
@@ -336,7 +331,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: `${mobileColors.accent}14`
   },
-  chipTx: { fontSize: 12, color: mobileColors.textPrimary },
+  chipTx: { fontSize: mobileFontSize.sm, color: mobileColors.textPrimary },
   saveBtn: {
     backgroundColor: mobileColors.accent,
     padding: mobileSpacing.md,

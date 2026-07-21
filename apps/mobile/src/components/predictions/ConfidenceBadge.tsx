@@ -2,11 +2,12 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { confidenceLevel } from "./predictionFormatters";
 import { mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const COLORS = {
-  high: "#1D9E75",
-  medium: "#BA7517",
-  low: "#B4B2A9"
+  high: uiNamedColors.c1D9E75,
+  medium: uiNamedColors.cBA7517,
+  low: uiNamedColors.cB4B2A9
 } as const;
 
 type Props = {
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 6,
     height: 6,
-    borderRadius: 3
+    borderRadius: mobileRadius.sm
   },
   text: {
     ...mobileTypography.meta,

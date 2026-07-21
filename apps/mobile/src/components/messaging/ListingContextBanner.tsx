@@ -3,12 +3,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ChatListingSummary } from "../../lib/api";
 import { ListingImage } from "../marketplace/ListingImage";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = {
@@ -74,7 +69,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, minWidth: 0 },
   label: {
     ...mobileTypography.meta,
-    fontSize: 10,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.4
@@ -83,16 +78,16 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     fontWeight: "700",
     color: mobileColors.textPrimary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   meta: {
     ...mobileTypography.meta,
     color: mobileColors.accent,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     marginTop: 2
   },
   chevron: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     color: mobileColors.textSecondary,
     fontWeight: "300"
   }

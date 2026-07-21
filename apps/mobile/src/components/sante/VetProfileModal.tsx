@@ -11,12 +11,10 @@ import {
 } from "react-native";
 import { openPhoneCall } from "../../lib/phone";
 import { ensureDirectChatRoom, fetchVetPublicProfile } from "../../lib/api";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
+import { producerColors } from "../../theme/producerTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   visible: boolean;
@@ -281,10 +279,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: mobileSpacing.sm
   },
-  verified: { color: "#059669", fontWeight: "700" },
+  verified: { color: uiNamedColors.c059669, fontWeight: "700" },
   pending: { color: mobileColors.textSecondary },
-  availability: { fontWeight: "700", fontSize: 13 },
-  availabilityOn: { color: "#059669" },
+  availability: { fontWeight: "700", fontSize: mobileFontSize.sm },
+  availabilityOn: { color: uiNamedColors.c059669 },
   availabilityOff: { color: mobileColors.textSecondary },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   visits: {
@@ -296,9 +294,9 @@ const styles = StyleSheet.create({
   err: { color: mobileColors.error },
   reviews: { marginTop: mobileSpacing.sm, gap: mobileSpacing.sm },
   reviewRow: { gap: 2 },
-  reviewScore: { color: "#F59E0B", fontWeight: "700", fontSize: 14 },
+  reviewScore: { color: producerColors.warning, fontWeight: "700", fontSize: mobileFontSize.md },
   reviewComment: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  reviewTags: { ...mobileTypography.meta, fontSize: 11, color: mobileColors.textSecondary },
+  reviewTags: { ...mobileTypography.meta, fontSize: mobileFontSize.xs, color: mobileColors.textSecondary },
   actions: { gap: mobileSpacing.sm },
   contactRow: {
     flexDirection: "row",
@@ -308,7 +306,7 @@ const styles = StyleSheet.create({
   btnPrimary: {
     backgroundColor: mobileColors.accent,
     padding: mobileSpacing.md,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnPrimaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
@@ -316,7 +314,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.accent,
     padding: mobileSpacing.md,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnSecondaryTx: { color: mobileColors.accent, fontWeight: "700" }

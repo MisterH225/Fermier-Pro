@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
 
 export type OrderTrackingStep = {
@@ -114,7 +114,7 @@ export function OrderTrackingStepper({
                       defaultValue: "Litige"
                     })}
                   >
-                    <Ionicons name="warning" size={9} color="#FFFFFF" />
+                    <Ionicons name="warning" size={9} color={mobileColors.background} />
                   </View>
                 ) : null}
               </View>
@@ -200,18 +200,18 @@ const styles = StyleSheet.create({
     right: -5,
     width: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF"
+    borderColor: mobileColors.background
   },
   label: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     textAlign: "center"
   },
   time: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "500"
   }
 });

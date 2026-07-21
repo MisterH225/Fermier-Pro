@@ -14,7 +14,7 @@ import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
 import { useSession } from "../../context/SessionContext";
 import { fetchUserWalletEntries } from "../../lib/api";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import {
   isWalletEntryCredit,
@@ -170,16 +170,16 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center"
   },
-  iconCredit: { backgroundColor: "#E8F5E9" },
+  iconCredit: { backgroundColor: mobileStatusSurfaces.positiveBg },
   iconDebit: { backgroundColor: buyerColors.primaryLight },
   rowBody: { flex: 1, gap: 2 },
   rowTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: buyerColors.textPrimary
   },
   rowMeta: {
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   },
   rowAmount: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontVariant: ["tabular-nums"]
   },
   amountCredit: { color: buyerColors.success },

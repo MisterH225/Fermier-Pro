@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
 
 type Props = {
@@ -125,28 +125,28 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800"
   },
   body: { flex: 1, gap: 2 },
   name: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800"
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "500"
   },
   actions: { flexDirection: "row", gap: 8 },
   actionButton: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: mobileRadius.xl,
     alignItems: "center",
     justifyContent: "center"
   },

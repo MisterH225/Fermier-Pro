@@ -16,7 +16,7 @@ import {
   patchGestationStatus,
   toggleGestationChecklistItem
 } from "../../lib/api";
-import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { useOfflineMutation } from "../../hooks/useOfflineMutation";
 
 type Props = {
@@ -288,8 +288,8 @@ export function GestationDetailModal({
 
 const styles = StyleSheet.create({
   body: { gap: mobileSpacing.md, paddingBottom: mobileSpacing.lg },
-  meta: { color: mobileColors.textSecondary, fontSize: 13 },
-  section: { fontWeight: "700", marginTop: 8, fontSize: 15 },
+  meta: { color: mobileColors.textSecondary, fontSize: mobileFontSize.sm },
+  section: { fontWeight: "700", marginTop: 8, fontSize: mobileFontSize.md },
   vaccineRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -297,20 +297,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   vaccineName: { fontWeight: "600" },
-  vaccineDate: { fontSize: 12, color: mobileColors.textSecondary },
+  vaccineDate: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   smallBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     backgroundColor: mobileColors.accent,
-    borderRadius: 8
+    borderRadius: mobileRadius.sm
   },
-  smallBtnText: { color: mobileColors.onAccent, fontSize: 12 },
+  smallBtnText: { color: mobileColors.onAccent, fontSize: mobileFontSize.sm },
   checkRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  checkLabel: { flex: 1, fontSize: 14 },
+  checkLabel: { flex: 1, fontSize: mobileFontSize.md },
   btn: {
     backgroundColor: mobileColors.accent,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   btnText: { color: mobileColors.onAccent, fontWeight: "600" }

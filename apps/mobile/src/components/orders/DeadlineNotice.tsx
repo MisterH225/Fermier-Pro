@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { ordersPalette, type OrderPalette } from "./orderTheme";
+import { mobileFontSize } from "../../theme/mobileTheme";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -97,10 +98,10 @@ const styles = StyleSheet.create({
   wrap: { gap: 2 },
   deadline: {
     fontWeight: "700",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   outcome: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "500",
     lineHeight: 17
   }

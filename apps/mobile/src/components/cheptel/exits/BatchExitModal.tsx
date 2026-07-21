@@ -14,12 +14,7 @@ import { getUserFacingError } from "../../../lib/userFacingError";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import {
   LIVESTOCK_EXIT_VERB_KEYS,
   type LivestockExitKind
@@ -258,6 +253,6 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   }
 });

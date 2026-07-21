@@ -9,6 +9,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { merchantColors } from "../../theme/merchantTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   notification: UserNotificationDto;
@@ -28,8 +30,8 @@ export function UserNotificationCard({
     String(notification.data?.ruleKey ?? "").startsWith(
       "finance-expense-inactive"
     );
-  const iconBg = isOrder ? "#DBEAFE" : isFinanceReminder ? "#D1FAE5" : "#D1FAE5";
-  const iconColor = isOrder ? "#1D4ED8" : "#047857";
+  const iconBg = isOrder ? merchantColors.blueSoftBg : isFinanceReminder ? uiNamedColors.cD1FAE5 : uiNamedColors.cD1FAE5;
+  const iconColor = isOrder ? uiNamedColors.c1D4ED8 : merchantColors.greenText;
   const iconName = isOrder
     ? "bag-handle"
     : isFinanceReminder
@@ -79,7 +81,7 @@ export function UserNotificationCard({
           accessibilityRole="button"
           accessibilityLabel={t("smartAlerts.delete")}
         >
-          <Ionicons name="trash-outline" size={22} color="#fff" />
+          <Ionicons name="trash-outline" size={22} color={mobileColors.background} />
         </Pressable>
       )}
     >
@@ -94,7 +96,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: mobileColors.border,
     marginBottom: mobileSpacing.sm
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -119,7 +121,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.accent,
     marginTop: 6
   },

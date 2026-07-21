@@ -33,12 +33,11 @@ import {
   roundCoerced
 } from "../../lib/coerceNumber";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileKpiPalette } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { buyerColors } from "../../theme/buyerTheme";
+import { vetColors } from "../../theme/vetTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   farmId: string;
@@ -192,8 +191,8 @@ export function RentabilityScreen({
             <View style={cheptelKpiGridStyles.half}>
               <CheptelStyleKpiCard
                 icon="📊"
-                bg="#ECFDF5"
-                accent="#16A34A"
+                bg={producerColors.successMintBg}
+                accent={uiNamedColors.c16A34A}
                 label={t("profitability.grossMargin")}
                 value={
                   metrics.grossMargin != null
@@ -206,8 +205,8 @@ export function RentabilityScreen({
             <View style={cheptelKpiGridStyles.half}>
               <CheptelStyleKpiCard
                 icon="💰"
-                bg="#EFF6FF"
-                accent="#2563EB"
+                bg={uiNamedColors.cEFF6FF}
+                accent={uiNamedColors.c2563EB}
                 label={t("profitability.netMargin")}
                 value={
                   metrics.netMargin != null
@@ -220,8 +219,8 @@ export function RentabilityScreen({
             <View style={cheptelKpiGridStyles.half}>
               <CheptelStyleKpiCard
                 icon="⚖️"
-                bg="#FFF7ED"
-                accent="#EA580C"
+                bg={uiNamedColors.cFFF7ED}
+                accent={uiNamedColors.cEA580C}
                 label={t("profitability.costPerKg")}
                 value={
                   roundCoerced(metrics.costPerKg) != null
@@ -238,8 +237,8 @@ export function RentabilityScreen({
             <View style={cheptelKpiGridStyles.half}>
               <CheptelStyleKpiCard
                 icon="📈"
-                bg="#F5F3FF"
-                accent="#7C3AED"
+                bg={uiNamedColors.cF5F3FF}
+                accent={buyerColors.primary}
                 label="ROI"
                 value={formatOptionalPct(metrics.roi) ?? "—"}
                 unit={t("profitability.roiHint")}
@@ -268,7 +267,7 @@ export function RentabilityScreen({
                 label: c.label,
                 value: c.amount,
                 display: `${roundCoerced(c.pct) ?? 0}%`,
-                color: ["#F97316", "#3B82F6", "#22C55E", "#A855F7", "#EF4444"][i % 5]!
+                color: [mobileKpiPalette.gestation.accent, producerColors.chartBlue, producerColors.chartGreen, uiNamedColors.cA855F7, vetColors.danger][i % 5]!
               }))}
             />
           </View>
@@ -297,7 +296,7 @@ export function RentabilityScreen({
                     styles.batchPill,
                     selectedBatch?.batchId === b.batchId && styles.batchPillOn,
                     {
-                      borderColor: positive ? "#16A34A" : "#DC2626"
+                      borderColor: positive ? uiNamedColors.c16A34A : uiNamedColors.cDC2626
                     }
                   ]}
                   onPress={() => setSelectedBatchId(b.batchId)}
@@ -307,7 +306,7 @@ export function RentabilityScreen({
                     <Text
                       style={[
                         styles.batchPillPct,
-                        { color: positive ? "#16A34A" : "#DC2626" }
+                        { color: positive ? uiNamedColors.c16A34A : uiNamedColors.cDC2626 }
                       ]}
                     >
                       {formatOptionalNumber(pctVal, 0)}%
@@ -352,7 +351,7 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     backgroundColor: mobileColors.surfaceMuted
   },
   pillOn: { backgroundColor: mobileColors.textPrimary },
@@ -361,7 +360,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
-  pillTextOn: { color: "#fff" },
+  pillTextOn: { color: mobileColors.background },
   segmentRow: {
     flexDirection: "row",
     gap: 6,
@@ -370,7 +369,7 @@ const styles = StyleSheet.create({
   segment: {
     flex: 1,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted,
     alignItems: "center"
   },
@@ -380,7 +379,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: mobileColors.textSecondary
   },
-  segmentTextOn: { color: "#fff" },
+  segmentTextOn: { color: mobileColors.background },
   insufficient: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
@@ -400,7 +399,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.surface,
     minWidth: 100
   },
-  batchPillOn: { backgroundColor: "#F0FDF4" },
+  batchPillOn: { backgroundColor: uiNamedColors.cF0FDF4 },
   batchPillText: { ...mobileTypography.meta, fontWeight: "700" },
   batchPillPct: { ...mobileTypography.meta, fontWeight: "800", marginTop: 2 }
 });

@@ -4,14 +4,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import type { PenAnimalRowDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { ExitVerbActions } from "../exits/ExitVerbActions";
 import type { LivestockExitKind } from "../exits/livestockExitKind";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 type Action = {
   key: string;
@@ -142,8 +138,8 @@ export function AnimalActionModal({
 
 const styles = StyleSheet.create({
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  alert: { color: mobileColors.error, fontWeight: "700", fontSize: 13 },
-  gestation: { color: "#BE185D", fontWeight: "600", fontSize: 13 },
+  alert: { color: mobileColors.error, fontWeight: "700", fontSize: mobileFontSize.sm },
+  gestation: { color: uiNamedColors.cBE185D, fontWeight: "600", fontSize: mobileFontSize.sm },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -159,7 +155,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   actionLabel: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     textAlign: "center",
     color: mobileColors.textPrimary

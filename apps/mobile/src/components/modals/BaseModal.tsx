@@ -17,12 +17,7 @@ import {
   type ViewStyle
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const SHEET_RADIUS = 24;
 const SHEET_H_MARGIN = 10; // marge horizontale — sheet flottant hors des bords d'écran
@@ -332,7 +327,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingHorizontal: mobileSpacing.lg,
     paddingTop: mobileSpacing.xs,
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.10,
     shadowRadius: 8,
@@ -345,7 +340,7 @@ const styles = StyleSheet.create({
   handleBar: {
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "rgba(0,0,0,0.18)"
   },
   headerRow: {
@@ -379,7 +374,7 @@ const styles = StyleSheet.create({
   },
   headerAmount: {
     ...mobileTypography.title,
-    fontSize: 26,
+    fontSize: mobileFontSize.xxl,
     color: mobileColors.textPrimary,
     marginBottom: mobileSpacing.sm
   },
@@ -417,7 +412,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center"
@@ -441,6 +436,6 @@ const styles = StyleSheet.create({
   destructiveTx: {
     color: mobileColors.error,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   }
 });

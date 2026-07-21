@@ -5,11 +5,7 @@ import type { MarketplaceListingFarmInfo, ProducerScoreDto } from "../../lib/api
 import { DetailCard, DetailSectionLabel } from "../marketplace/listingDetailUi";
 import { ProducerScoreBadge } from "../marketplace/ProducerScoreBadge";
 import { FarmPublicProfileModal } from "./FarmPublicProfileModal";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   farmInfo: MarketplaceListingFarmInfo | null | undefined;
@@ -113,24 +109,24 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarTx: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
     color: mobileColors.accent
   },
   center: { flex: 1, minWidth: 0 },
   farmName: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   location: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     marginTop: 2
   },
@@ -150,11 +146,11 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   producerLabel: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   producerValue: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.textPrimary,
     flex: 1

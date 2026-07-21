@@ -1,11 +1,6 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { AnimalListItem, BatchListItem, FarmHealthEntityType } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   livestockMode: "individual" | "batch" | "hybrid";
@@ -113,5 +108,5 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     backgroundColor: `${mobileColors.accent}18`
   },
-  chipTx: { fontSize: 13, color: mobileColors.textPrimary }
+  chipTx: { fontSize: mobileFontSize.sm, color: mobileColors.textPrimary }
 });

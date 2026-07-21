@@ -7,11 +7,7 @@ import {
 } from "../../finance/FinanceDonutChart";
 import { cheptelCategoryColor } from "./cheptelCategoryColors";
 import type { CheptelCategoryBreakdownRow } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../../theme/mobileTheme";
 
 type Props = {
   rows: CheptelCategoryBreakdownRow[];
@@ -69,7 +65,7 @@ const styles = StyleSheet.create({
   tooltip: {
     marginTop: mobileSpacing.sm,
     padding: mobileSpacing.md,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted,
     alignItems: "center"
   },

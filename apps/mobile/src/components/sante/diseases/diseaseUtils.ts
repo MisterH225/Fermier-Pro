@@ -6,6 +6,7 @@ import type {
 } from "../../../lib/api";
 import { animalDisplayTag } from "../../cheptel/animals/animalUtils";
 import { formatHealthDay } from "../healthUtils";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 export function diseaseDurationDays(
   occurredAt: string,
@@ -31,15 +32,15 @@ export function diseaseDurationLabel(
 
 export function diseaseSeverityColor(severity?: string | null): string {
   if (severity === "severe") {
-    return "#DC2626";
+    return uiNamedColors.cDC2626;
   }
   if (severity === "moderate") {
-    return "#F97316";
+    return uiNamedColors.cF97316;
   }
   if (severity === "mild") {
-    return "#22C55E";
+    return uiNamedColors.c22C55E;
   }
-  return "#64748B";
+  return uiNamedColors.c64748B;
 }
 
 export function diseaseDiagnosisLabel(record: FarmHealthRecordRowDto): string {

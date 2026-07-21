@@ -1,11 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type NoActiveProjectScreenProps = {
   hasArchivedProjects: boolean;
@@ -67,7 +62,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     textAlign: "center",
     marginBottom: mobileSpacing.sm
   },

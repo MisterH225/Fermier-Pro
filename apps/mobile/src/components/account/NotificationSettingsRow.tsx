@@ -13,12 +13,9 @@ import {
 import { useSession } from "../../context/SessionContext";
 import { patchAuthProfile } from "../../lib/api";
 import { obtainExpoPushToken } from "../../lib/expoPush";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { Card } from "../ui/Card";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 function pushPlatformParam():
   | "ios"
@@ -137,9 +134,9 @@ export function NotificationSettingsRow() {
             onValueChange={(v) => void onToggle(v)}
             trackColor={{
               false: mobileColors.border,
-              true: "#c7ddff"
+              true: uiNamedColors.cC7DDFF
             }}
-            thumbColor={displayOn ? mobileColors.accent : "#f4f4f5"}
+            thumbColor={displayOn ? mobileColors.accent : uiNamedColors.cF4F4F5}
             accessibilityLabel={t("account.notificationsA11y")}
           />
         )}
@@ -170,13 +167,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.body,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
   hint: {
     ...mobileTypography.meta,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     lineHeight: 18,
     color: mobileColors.textSecondary,
     marginTop: 4

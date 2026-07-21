@@ -2,11 +2,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListingHealthData } from "../../lib/api";
 import { ExpandableSection, type ExpandableBadge } from "../common/ExpandableSection";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
   healthData: MarketplaceListingHealthData;
@@ -21,19 +18,19 @@ function vaccineBadge(
     case "up_to_date":
       return {
         label: t("marketScreen.detail.health.vaccinesBadgeOk"),
-        color: "#DCFCE7",
-        textColor: "#166534"
+        color: mobileStatusSurfaces.successBg,
+        textColor: mobileStatusSurfaces.successText
       };
     case "overdue":
       return {
         label: t("marketScreen.detail.health.vaccinesBadgeOverdue"),
-        color: "#FEE2E2",
-        textColor: "#991B1B"
+        color: mobileStatusSurfaces.errorBg,
+        textColor: uiNamedColors.c991B1B
       };
     default:
       return {
         label: t("marketScreen.detail.health.vaccinesBadgeNone"),
-        color: "#F3F4F6",
+        color: uiNamedColors.cF3F4F6,
         textColor: mobileColors.textSecondary
       };
   }
@@ -136,7 +133,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: mobileColors.accent,
     marginBottom: 6,
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   row: {
     flexDirection: "row",
@@ -148,12 +145,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: mobileColors.border
   },
-  rowIcon: { fontSize: 16, width: 24 },
+  rowIcon: { fontSize: mobileFontSize.lg, width: 24 },
   rowBody: { flex: 1, minWidth: 0 },
   rowName: {
     ...mobileTypography.body,
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textPrimary
   },
   rowDate: {
@@ -163,7 +160,7 @@ const styles = StyleSheet.create({
   },
   rowStatus: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: mobileColors.textSecondary,
     maxWidth: 88,

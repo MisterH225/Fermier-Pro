@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const CONFIRM_WORD = "SUPPRIMER";
 
@@ -88,7 +83,7 @@ export function DeleteAccountConfirmModal({
 
 const styles = StyleSheet.create({
   icon: {
-    fontSize: 36,
+    fontSize: mobileFontSize.xxl,
     textAlign: "center",
     marginBottom: mobileSpacing.md
   },
@@ -103,7 +98,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     backgroundColor: mobileColors.background,
     marginBottom: mobileSpacing.sm
@@ -118,7 +113,7 @@ const styles = StyleSheet.create({
     opacity: 0.45
   },
   deleteTx: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.onAccent
   }

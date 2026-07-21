@@ -29,12 +29,7 @@ import {
   animalDisplayTag,
   formatAnimalKg
 } from "./animalUtils";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 export type SaleResult = AnimalSaleResultDto;
 
@@ -448,5 +443,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  primaryBtnText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

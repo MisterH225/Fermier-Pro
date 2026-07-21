@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOfflineSync } from "../context/OfflineSyncContext";
 import { isPermanentFailure } from "../lib/offline/types";
 import type { OfflineQueueItem } from "../lib/offline/types";
-import { mobileColors, mobileSpacing } from "../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
+import { uiNamedColors } from "../theme/uiNamedColors";
 
 function statusLabel(
   item: OfflineQueueItem,
@@ -86,7 +87,7 @@ export function OfflineBanner() {
         <View style={styles.queueBlock}>
           <View style={styles.row}>
             {isSyncing ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={mobileColors.background} size="small" />
             ) : null}
             <Pressable
               onPress={() => setExpanded((v) => !v)}
@@ -145,14 +146,14 @@ export function OfflineBanner() {
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: "#6d4c41",
+    backgroundColor: uiNamedColors.c6D4C41,
     paddingHorizontal: 14,
     paddingBottom: 10,
     gap: 6
   },
   text: {
-    color: "#fff",
-    fontSize: 13,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.sm,
     textAlign: "center",
     lineHeight: 18
   },
@@ -167,13 +168,13 @@ const styles = StyleSheet.create({
     gap: 8
   },
   queueText: {
-    color: "#fff",
-    fontSize: 12,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.sm,
     lineHeight: 16
   },
   syncBtn: {
-    color: "#FFE082",
-    fontSize: 12,
+    color: uiNamedColors.cFFE082,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     textDecorationLine: "underline"
   },
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: mobileSpacing.sm,
     backgroundColor: "rgba(0,0,0,0.18)",
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     paddingHorizontal: 10,
     paddingVertical: 8
   },
@@ -191,28 +192,28 @@ const styles = StyleSheet.create({
     gap: 2
   },
   itemLabel: {
-    color: "#fff",
-    fontSize: 12,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600"
   },
   itemStatus: {
-    color: "#FFE082",
-    fontSize: 11
+    color: uiNamedColors.cFFE082,
+    fontSize: mobileFontSize.xs
   },
   itemError: {
-    color: "#ffcdd2",
-    fontSize: 10,
+    color: uiNamedColors.cFFCDD2,
+    fontSize: mobileFontSize.xs,
     lineHeight: 13
   },
   retryBtn: {
     backgroundColor: mobileColors.accent,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6
+    borderRadius: mobileRadius.sm
   },
   retryBtnText: {
-    color: "#fff",
-    fontSize: 11,
+    color: mobileColors.background,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700"
   }
 });

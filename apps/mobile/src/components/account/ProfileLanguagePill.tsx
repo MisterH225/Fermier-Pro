@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import i18n from "../../i18n/i18n";
 import { type AppLocaleCode, setStoredAppLocale } from "../../lib/appLocale";
-import { mobileColors, mobileRadius, mobileShadows, mobileSpacing } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 /** Largeur du menu déroulant (compact). */
 const MENU_WIDTH = 128;
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     opacity: 0.92
   },
   pillFlag: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     lineHeight: PILL_H - 4
   },
   modalFill: {
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     opacity: 0.88
   },
   menuLabel: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "500",
     color: mobileColors.textPrimary,
     flex: 1,
@@ -227,6 +227,6 @@ const styles = StyleSheet.create({
     color: mobileColors.onAccent
   },
   menuFlag: {
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   }
 });

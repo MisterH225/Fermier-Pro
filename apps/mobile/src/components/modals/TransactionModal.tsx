@@ -43,12 +43,7 @@ import {
 } from "../../hooks/useOfflineMutation";
 import { optimisticFinanceTransaction } from "../../lib/offline/optimistic";
 import { isOfflineQueuedResult } from "../../lib/offline/types";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   visible: boolean;
@@ -572,7 +567,7 @@ export function TransactionModal({ visible, payload, onClose }: Props) {
 
 const styles = StyleSheet.create({
   fieldLab: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: mobileColors.textSecondary
   },
@@ -671,6 +666,6 @@ const styles = StyleSheet.create({
   primaryTx: {
     color: mobileColors.accent,
     fontWeight: "800",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   }
 });

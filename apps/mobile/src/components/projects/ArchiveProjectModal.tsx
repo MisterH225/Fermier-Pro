@@ -9,6 +9,7 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type ArchiveProjectModalProps = {
   visible: boolean;
@@ -53,7 +54,7 @@ export function ArchiveProjectModal({
     >
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="archive" size={48} color="#d97706" />
+          <Ionicons name="archive" size={48} color={marketplaceColors.pending} />
         </View>
 
         <Text style={styles.message}>
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
   radio: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: mobileRadius.sm,
     borderWidth: 2,
     borderColor: mobileColors.border,
     marginRight: mobileSpacing.sm,
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: mobileRadius.sm,
     backgroundColor: mobileColors.accent
   },
   reasonText: {
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingVertical: 14,
     borderRadius: mobileRadius.md,
-    backgroundColor: "#d97706",
+    backgroundColor: marketplaceColors.pending,
     alignItems: "center",
     justifyContent: "center",
     gap: 6

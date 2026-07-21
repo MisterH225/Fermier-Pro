@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { CheptelPenRowDto, PenCategoryKey, PenUsageTag } from "../../../lib/api";
+import { uiNamedColors } from "../../../theme/uiNamedColors";
 
 type IonIcon = keyof typeof Ionicons.glyphMap;
 
@@ -31,66 +32,66 @@ const GROWTH_AGE_WEEKS = 10;
 const PEN_VISUALS: Record<PenVisualKey, PenVisual> = {
   maternity: {
     key: "maternity",
-    bg: "#FDF2F8",
-    border: "#F9A8D4",
-    accent: "#DB2777",
-    iconBg: "#FCE7F3",
+    bg: uiNamedColors.cFDF2F8,
+    border: uiNamedColors.cF9A8D4,
+    accent: uiNamedColors.cDB2777,
+    iconBg: uiNamedColors.cFCE7F3,
     icon: "heart-outline"
   },
   starter: {
     key: "starter",
-    bg: "#EFF6FF",
-    border: "#93C5FD",
-    accent: "#2563EB",
-    iconBg: "#DBEAFE",
+    bg: uiNamedColors.cEFF6FF,
+    border: uiNamedColors.c93C5FD,
+    accent: uiNamedColors.c2563EB,
+    iconBg: uiNamedColors.cDBEAFE,
     icon: "egg-outline"
   },
   growth: {
     key: "growth",
-    bg: "#F5F3FF",
-    border: "#C4B5FD",
-    accent: "#7C3AED",
-    iconBg: "#EDE9FE",
+    bg: uiNamedColors.cF5F3FF,
+    border: uiNamedColors.cC4B5FD,
+    accent: uiNamedColors.c7C3AED,
+    iconBg: uiNamedColors.cEDE9FE,
     icon: "trending-up-outline"
   },
   fattening: {
     key: "fattening",
-    bg: "#F0FDF4",
-    border: "#86EFAC",
-    accent: "#16A34A",
-    iconBg: "#DCFCE7",
+    bg: uiNamedColors.cF0FDF4,
+    border: uiNamedColors.c86EFAC,
+    accent: uiNamedColors.c16A34A,
+    iconBg: uiNamedColors.cDCFCE7,
     icon: "nutrition-outline"
   },
   boar: {
     key: "boar",
-    bg: "#FFF7ED",
-    border: "#FDBA74",
-    accent: "#EA580C",
-    iconBg: "#FFEDD5",
+    bg: uiNamedColors.cFFF7ED,
+    border: uiNamedColors.cFDBA74,
+    accent: uiNamedColors.cEA580C,
+    iconBg: uiNamedColors.cFFEDD5,
     icon: "male-outline"
   },
   quarantine: {
     key: "quarantine",
-    bg: "#FEF2F2",
-    border: "#FCA5A5",
-    accent: "#DC2626",
-    iconBg: "#FEE2E2",
+    bg: uiNamedColors.cFEF2F2,
+    border: uiNamedColors.cFCA5A5,
+    accent: uiNamedColors.cDC2626,
+    iconBg: uiNamedColors.cFEE2E2,
     icon: "shield-outline"
   },
   mixed: {
     key: "mixed",
-    bg: "#FFFBEB",
-    border: "#FCD34D",
-    accent: "#D97706",
-    iconBg: "#FEF3C7",
+    bg: uiNamedColors.cFFFBEB,
+    border: uiNamedColors.cFCD34D,
+    accent: uiNamedColors.cD97706,
+    iconBg: uiNamedColors.cFEF3C7,
     icon: "grid-outline"
   },
   empty: {
     key: "empty",
-    bg: "#F9FAFB",
-    border: "#E5E7EB",
-    accent: "#6B7280",
-    iconBg: "#F3F4F6",
+    bg: uiNamedColors.cF9FAFB,
+    border: uiNamedColors.cE5E7EB,
+    accent: uiNamedColors.c6B7280,
+    iconBg: uiNamedColors.cF3F4F6,
     icon: "cube-outline"
   }
 };
