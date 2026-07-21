@@ -86,7 +86,7 @@ export function CreateFarmScreen({ navigation }: Props) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("", t("producer.gpsDenied"));
+        Alert.alert(t("common.accessDeniedTitle"), t("producer.gpsDenied"));
         return;
       }
       const pos = await Location.getCurrentPositionAsync({
@@ -97,7 +97,7 @@ export function CreateFarmScreen({ navigation }: Props) {
         longitude: pos.coords.longitude
       });
     } catch {
-      Alert.alert("", t("createFarmScreen.gpsError"));
+      Alert.alert(t("common.error"), t("createFarmScreen.gpsError"));
     } finally {
       setGpsBusy(false);
     }

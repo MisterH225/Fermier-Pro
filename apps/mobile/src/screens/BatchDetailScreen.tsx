@@ -159,14 +159,14 @@ export function BatchDetailScreen({ route, navigation }: Props) {
         queryKey: ["farmBatches", farmId]
       });
       if (isOfflineQueuedResult(data)) {
-        Alert.alert("", offlineQueuedMessage(t));
+        Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
       }
     },
     onQueued: () => {
       setAvgText("");
       setHeadText("");
       setNoteText("");
-      Alert.alert("", offlineQueuedMessage(t));
+      Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
     },
     onError: (e: Error) => {
       Alert.alert(t("common.errors.saveFailed"), getUserFacingError(e, t));

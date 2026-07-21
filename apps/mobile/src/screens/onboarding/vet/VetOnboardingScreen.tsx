@@ -91,7 +91,7 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   const pickDiploma = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("", t("vetOnboarding.diplomaPermission"));
+      Alert.alert(t("common.accessDeniedTitle"), t("vetOnboarding.diplomaPermission"));
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -170,7 +170,7 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
     const fallbackId = pickNonVetFallbackProfileId(authMe, activeProfileId);
     if (!fallbackId) {
       setCancelModalOpen(false);
-      Alert.alert("", t("vetOnboarding.cancelNoProfile"));
+      Alert.alert(t("common.infoTitle"), t("vetOnboarding.cancelNoProfile"));
       return;
     }
     setCancelBusy(true);

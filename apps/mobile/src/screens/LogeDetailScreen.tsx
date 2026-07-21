@@ -516,7 +516,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
             return;
           }
           if (a.activeGestation) {
-            Alert.alert("", t("cheptel.actions.gestationAlreadyActive"));
+            Alert.alert(t("common.infoTitle"), t("cheptel.actions.gestationAlreadyActive"));
             return;
           }
           setGestationSow(a);

@@ -143,7 +143,7 @@ export function BulkVaccineModal({
     onQueued: () => {
       onSuccess(selected.size);
       onClose();
-      Alert.alert("", offlineQueuedMessage(t));
+      Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
     },
     onError: (e: Error) =>
       Alert.alert(t("health.errorTitle"), getUserFacingError(e, t))

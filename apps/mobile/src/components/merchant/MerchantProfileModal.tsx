@@ -192,7 +192,7 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
     try {
       const supabase = getSupabase();
       if (!supabase || !authMe?.user.supabaseUserId) {
-        Alert.alert("", t("merchant.profile.photoUploadError"));
+        Alert.alert(t("common.error"), t("merchant.profile.photoUploadError"));
         setSaving(false);
         return;
       }
@@ -248,7 +248,7 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
       });
       await meQ.refetch();
       await dashQ.refetch();
-      Alert.alert("", t("merchant.profile.cancelSubscriptionSuccess"));
+      Alert.alert(t("common.successTitle"), t("merchant.profile.cancelSubscriptionSuccess"));
     } catch (e) {
       Alert.alert(
         "",

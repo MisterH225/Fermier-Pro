@@ -84,7 +84,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
       });
       onClose();
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
   });
 
   const revokeMut = useMutation({
@@ -107,7 +107,7 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
     },
     onError: (e: Error) => {
       setRevokeConfirmOpen(false);
-      Alert.alert("", e.message);
+      Alert.alert(t("common.error"), e.message);
     }
   });
 

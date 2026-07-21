@@ -235,7 +235,7 @@ export function StockModal({
       void refreshFarmFeedQueries(qc, farmId, activeProfileId);
       onSuccess?.();
       onClose();
-      Alert.alert("", offlineQueuedMessage(t));
+      Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
     }
   });
 

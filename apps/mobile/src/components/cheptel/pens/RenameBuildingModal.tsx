@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -41,6 +42,7 @@ export function RenameBuildingModal({
   onClose,
   onRenamed
 }: Props) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export function RenameBuildingModal({
       onRenamed();
       onClose();
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
   });
 
   if (!barn) {

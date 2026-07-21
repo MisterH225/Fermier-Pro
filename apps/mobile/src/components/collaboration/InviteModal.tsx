@@ -102,7 +102,7 @@ export function InviteModal({ visible, farmId, farmName, onClose }: Props) {
       });
       onClose();
     } catch (e) {
-      Alert.alert("", e instanceof Error ? e.message : t("collab.createError"));
+      Alert.alert(t("common.error"), e instanceof Error ? e.message : t("collab.createError"));
     } finally {
       setSubmitting(false);
     }

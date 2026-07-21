@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -58,6 +59,7 @@ export function CreateBuildingModal({
   onClose,
   onCreated
 }: Props) {
+  const { t } = useTranslation();
   const { open } = useModal();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -168,7 +170,7 @@ export function CreateBuildingModal({
         autoDismissMs: 2200
       });
     },
-    onError: (e: Error) => Alert.alert("", e.message)
+    onError: (e: Error) => Alert.alert(t("common.error"), e.message)
   });
 
   return (

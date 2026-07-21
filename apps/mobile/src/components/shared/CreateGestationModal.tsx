@@ -146,7 +146,7 @@ export function CreateGestationModal({
     onQueued: () => {
       onCreated?.();
       onClose();
-      Alert.alert("", offlineQueuedMessage(t));
+      Alert.alert(t("common.infoTitle"), offlineQueuedMessage(t));
     },
     onError: (e: Error) => Alert.alert(t("gestationScreen.error"), getUserFacingError(e, t))
   });
