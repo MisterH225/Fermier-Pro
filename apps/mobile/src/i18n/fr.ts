@@ -61,7 +61,7 @@ export const fr = {
     unitPerHead: "par tête vendue",
     unitPerKg: "par kg vendu",
     unitPerService: "pour cette prestation",
-    previewHint: "Montant estimé selon les taux en vigueur. Aucune confirmation supplémentaire des CGU n'est requise pour mettre en vente."
+    previewHint: "Montant estimé selon les taux en vigueur. Aucune confirmation CGU supplémentaire pour vendre."
   },
   farmListScreen: {
     addFarm: "+ Ferme",
@@ -69,7 +69,7 @@ export const fr = {
     apiHint: "Vérifie EXPO_PUBLIC_API_URL (émulateur : souvent http://10.0.2.2:3000).",
     welcome: "Bonjour {{name}}",
     emptyTitle: "Aucune ferme",
-    emptySub: "Crée une ferme avec le bouton « + Ferme » (profil producteur), ou depuis un client API POST /farms. Tu peux aussi parcourir le marché.",
+    emptySub: "Crée une ferme avec « + Ferme » (profil producteur), ou parcours le marché.",
     cardMode: "{{species}} · mode {{mode}}",
     headerMessages: "Messages",
     headerMarket: "Marché",
@@ -115,7 +115,7 @@ export const fr = {
   },
   firstConnection: {
     title: "Première connexion",
-    subtitle: "Choisis ton métier : tu accéderas ensuite à un tableau de bord adapté. Tu pourras ajouter d’autres rôles plus tard depuis ton profil.",
+    subtitle: "Choisis ton métier pour un tableau de bord adapté. Tu pourras ajouter d'autres rôles plus tard.",
     continue: "Continuer",
     signOut: "Utiliser un autre compte",
     pickProfile: "Choisis un profil pour continuer.",
@@ -149,7 +149,7 @@ export const fr = {
     validationIncomplete: "Complète tous les champs requis.",
     skipModal: {
       title: "Votre tableau de bord sera vide",
-      message: "Sans configurer votre projet, aucune donnée ne pourra être affichée. Vous pourrez compléter ces informations à tout moment depuis votre profil.",
+      message: "Sans projet configuré, aucune donnée ne s'affiche. Vous pourrez compléter plus tard dans votre profil.",
       continue: "Continuer la configuration",
       skipAnyway: "Passer quand même"
     },
@@ -204,7 +204,7 @@ export const fr = {
     },
     step4: {
       title: "Configuration des loges",
-      subtitle: "Colonne gauche = Bâtiment A, colonne droite = Bâtiment B (modifiable ensuite). Les sujets seront affectés automatiquement selon vos effectifs.",
+      subtitle: "Gauche = Bâtiment A, droite = Bâtiment B (modifiable). Les sujets sont affectés selon vos effectifs.",
       buildings: "Nombre de bâtiments (colonnes)",
       pensPerBuilding: "Loges par colonne (numérotées de haut en bas)",
       capacity: "Capacité max par loge",
@@ -300,8 +300,8 @@ export const fr = {
     notificationsTitle: "Notifications",
     notificationsLabel: "Alertes sur cet appareil",
     notificationsHint: "Active les notifications pour recevoir des alertes (autorisation système requise).",
-    notificationsPermissionDenied: "Les notifications sont refusées dans les réglages du téléphone. Tu peux les activer plus tard dans les paramètres.",
-    notificationsTokenError: "Impossible d’obtenir un jeton push (réseau ou appareil). Réessaie sur un téléphone avec Expo Go ou un build de développement.",
+    notificationsPermissionDenied: "Notifications refusées sur le téléphone. Tu pourras les activer plus tard dans les réglages.",
+    notificationsTokenError: "Impossible d'obtenir un jeton push. Réessaie sur un téléphone avec Expo Go ou un build de développement.",
     notificationsTokenMissingProject: "Les alertes sont activées, mais le jeton push n’a pas pu être enregistré : le projet Expo (EAS) n’est pas configuré. Dans apps/mobile, exécute « npx eas init », copie le projectId dans EXPO_PUBLIC_EAS_PROJECT_ID (.env), puis redémarre Expo.",
     notificationsSaveError: "Impossible d’enregistrer les préférences.",
     notificationsA11y: "Activer ou désactiver les notifications push",
@@ -422,7 +422,7 @@ export const fr = {
     },
     deleteAccount: {
       warningTitle: "Supprimer votre compte ?",
-      warningMessage: "Cette action est irréversible. Toutes vos données seront définitivement supprimées : ferme, cheptel, finances, santé, stock, gestations, rapports. Les personnes ayant accès à votre projet perdront immédiatement cet accès.",
+      warningMessage: "Action définitive. Toutes vos données de ferme seront effacées. Les accès partagés seront coupés.",
       consequences: {
         farm: "✗ Votre ferme et tous ses paramètres",
         animals: "✗ Tous vos animaux et leur historique",
@@ -494,7 +494,7 @@ export const fr = {
       suspendedHint: "Cet acheteur ne peut pas conclure de vente pour le moment.",
       acceptDisabled: "Acceptation impossible — acheteur suspendu par la plateforme.",
       sheetTitle: "Météo Acheteur",
-      sheetIntro: "Indicateur de fiabilité basé sur l'historique de paiements crédit. Plus le ciel est clair, plus l'acheteur est fiable.",
+      sheetIntro: "Fiabilité basée sur l'historique de paiements crédit. Ciel clair = acheteur plus fiable.",
       levelIndex: "Niveau {{n}}/{{total}}",
       current: "Actuel",
       stats: "{{total}} achats, {{onTime}} à l'heure"
@@ -587,7 +587,7 @@ export const fr = {
       totalPaymentLabel: "Total à payer",
       feePerKgNote: "Montant estimé. Le total sera ajusté au poids réel à la récupération.",
       feeConsentTitle: "Confirmer le paiement",
-      feeConsentBody: "Montant de l'achat : {{dealAmount}}\nFrais de plateforme ({{pct}} %) : {{feeAmount}}\n\n💳 Total à payer : {{totalAmount}}\n\n🔒 Votre argent est bloqué en sécurité par Fermier Pro. Il ne sera versé au vendeur que lorsque vous aurez confirmé la réception et le poids.\n\nEn appuyant sur « Confirmer », vous acceptez de régler ce montant.",
+      feeConsentBody: "Achat : {{dealAmount}} · Frais ({{pct}} %) : {{feeAmount}}\n💳 Total : {{totalAmount}}\n🔒 Argent bloqué jusqu'à réception et poids confirmés.\n« Confirmer » = vous acceptez de payer.",
       feeConsentConfirm: "Confirmer et payer",
       feeConsentCancel: "Annuler",
       paymentSuccessTitle: "Paiement confirmé",
@@ -627,8 +627,8 @@ export const fr = {
       weightDeclaredBody: "Le vendeur peut confirmer votre pesée ou indiquer la sienne.",
       sellerWeightReview: "Poids déclaré par l'acheteur",
       sellerDeclareWeightTitle: "Votre pesée",
-      sellerDeclareWeightHint: "Indiquez le poids mesuré à la remise. Si l'écart est faible, l'achat continue ; sinon vous pourrez demander de l'aide.",
-      autoToleranceHint: "Si votre pesée diffère de moins de {{percent}} % (ou {{minKg}} kg) de celle de l'acheteur, l'achat sera confirmé au poids moyen.",
+      sellerDeclareWeightHint: "Indiquez le poids à la remise. Écart faible : l'achat continue. Sinon, demandez de l'aide.",
+      autoToleranceHint: "Écart < {{percent}} % (ou {{minKg}} kg) : l'achat est confirmé au poids moyen.",
       sellerDeclareWeightCta: "Indiquer ma pesée",
       sellerWeightLabel: "Votre poids (kg)",
       buyerDeclaredWeight: "Poids acheteur : {{kg}} kg",
@@ -964,12 +964,12 @@ export const fr = {
       noFarm: "Sans ferme",
       farmHint: "Lie une ferme pour rattacher le cheptel et conclure la vente (Finance + effectifs).",
       sectionCategory: "Catégorie",
-      categoryHint: "Porcelet : classement automatique selon le poids moyen (< 15 kg). Reproducteur, charcutier ou réformée : votre intention de vente est conservée.",
+      categoryHint: "Porcelet : classement auto si poids moyen < 15 kg. Autres catégories : votre intention de vente est gardée.",
       sectionAnimal: "Animaux du lot",
       animalMultiHint: "Sélectionne un ou plusieurs animaux actifs (obligatoire).",
       animalIndividualListedHint: "Les sujets marqués « solo » ont déjà une annonce individuelle — ajoute d'autres animaux pour créer un lot.",
       animalIndividualBlockedTitle: "Annonce individuelle existante",
-      animalIndividualBlockedBody: "Cet animal a déjà une annonce individuelle sur le marketplace. Retire l'autre annonce ou sélectionne plusieurs sujets pour un lot.",
+      animalIndividualBlockedBody: "Cet animal a déjà une annonce individuelle. Retire l'autre ou sélectionne plusieurs sujets.",
       noActiveAnimals: "Aucun animal actif sur cette ferme.",
       sectionListing: "Annonce",
       title: "Titre",
@@ -980,7 +980,7 @@ export const fr = {
       breedPlaceholder: "Ex. Large White",
       sectionPricingPork: "Poids et prix",
       sectionPricingFlat: "Prix forfaitaire",
-      flatPriceHint: "Prix forfaitaire à la tête (ex. 28 000 FCFA par porcelet). Le total du lot est calculé automatiquement selon le nombre de sujets sélectionnés.",
+      flatPriceHint: "Prix forfaitaire à la tête (ex. 28 000 FCFA). Le total du lot suit le nombre de sujets.",
       pricePerHead: "Prix à la tête (forfait)",
       lotTotalPrice: "Prix total du lot",
       flatLotAuto: "{{count}} sujet(s) × {{perHead}} = {{amount}}",
@@ -1011,7 +1011,7 @@ export const fr = {
       },
       sectionCredit: "Vente à crédit",
       creditEnabledLabel: "Accepter les offres à crédit",
-      creditEnabledHint: "Les acheteurs pourront proposer un paiement en plusieurs fois (avance sécurisée + solde sous 7 jours). Réservé aux annonces charcutier."
+      creditEnabledHint: "Paiement en plusieurs fois possible (avance sécurisée + solde sous 7 jours). Réservé aux annonces charcutier."
     },
     publishConfirmTitle: "Publier cette annonce ?",
     publishConfirmBody: "Elle sera visible par les acheteurs pendant la durée choisie.",
@@ -1033,7 +1033,7 @@ export const fr = {
     period12m: "12M",
     unit: "FCFA/kg",
     emptyData: "Données insuffisantes",
-    emptyDataHint: "Le graphe apparaît dès que la plateforme enregistre assez de ventes ou d'annonces (au moins 3 points sur la période). C'est normal en environnement de test ou au lancement.",
+    emptyDataHint: "Le graphe apparaît dès 3 ventes ou annonces sur la période. Normal au démarrage ou en test.",
     categoryAll: "Tous",
     categoryPorcelet: "Porcelets 🐣",
     categoryCroissance: "Croissance 📈",
@@ -1214,8 +1214,8 @@ export const fr = {
     },
     offPlatformVisit: {
       title: "Enregistrer une visite hors FermierPro",
-      subtitle:
-      "Pour une consultation réalisée hors plateforme (sans rendez-vous ni paiement FermierPro). Les visites planifiées via FermierPro se gèrent dans Rendez-vous vétérinaire."
+      subtitle: "Consultation hors plateforme. Les visites planifiées sont dans Rendez-vous vétérinaire."
+
     },
     appointment: {
       title: "Rendez-vous vétérinaire",
@@ -1259,8 +1259,8 @@ export const fr = {
       "Ce rendez-vous a été confirmé sans tarif. Vous pouvez l’annuler ou le marquer terminé sans paiement.",
       closeOrphanCta: "Marquer terminé (sans paiement)",
       reportTitle: "Rapport de visite",
-      reportHint:
-      "Après la visite, déposez le rapport (sujets traités, diagnostic, ordonnance). Il sera visible pour le producteur dans Santé.",
+      reportHint: "Après la visite, déposez le rapport (sujets, diagnostic, ordonnance). Visible dans Santé.",
+
       reportSubjects: "Sujets traités",
       reportSubjectsPlaceholder: "Ex. vaccination, contrôle gestation…",
       reportDiagnosis: "Diagnostic",
@@ -1472,8 +1472,8 @@ export const fr = {
       readings: {
         tripleSignal:
         "Trois signaux sur le même lot : GMQ sous l'objectif, cas actif et/ou pic de mortalité.",
-        densityGmq:
-        "Corrélation surpeuplement / GMQ : le bâtiment « {{barn}} » est en alerte densité et héberge un lot sous-performant.",
+        densityGmq: "Densité et GMQ : le bâtiment « {{barn}} » est en alerte et héberge un lot sous-performant.",
+
         vaccinePriority:
         "Priorité rappel vaccinal : couverture sous 90 % avec des cas actifs.",
         openBatch: "Ouvrir le lot",
@@ -1639,7 +1639,7 @@ export const fr = {
       teamDescription: "Gérer vos collaborateurs",
       settings: "Paramètres",
       nutrition: "Aliment",
-      nutritionRoadmap: "Le suivi des achats et du stock d’aliments sera disponible lorsque le module aliment sera activé pour ta ferme.",
+      nutritionRoadmap: "Achats et stock d'aliments disponibles quand le module aliment sera activé pour ta ferme.",
       communityFeed: "Communauté",
       communityFeedDescription: "Fil communautaire et publications",
       gestation: "Gestation",
@@ -1727,7 +1727,7 @@ export const fr = {
     cityPlaceholder: "Ex. Abidjan, Bouaké…",
     country: "Pays",
     countryPlaceholder: "Ex. Côte d'Ivoire",
-    locationHint: "La localisation (GPS ou ville) rattache automatiquement la ferme au département et à la région pour les statistiques.",
+    locationHint: "GPS ou ville : la ferme est rattachée au département et à la région pour les stats.",
     useGps: "Utiliser ma position GPS",
     orManual: "Ou renseigner manuellement :",
     gpsCaptured: "GPS capturé : {{lat}}, {{lng}}",
@@ -1836,7 +1836,7 @@ export const fr = {
     lastCheckAgo: "Dernier contrôle : il y a {{count}} j",
     unknownFeedType: "Aliment",
     phaseReviewTitle: "Phase aliment à préciser",
-    phaseReviewBody: "Indiquez la phase de chaque aliment pour affecter les coûts aux bonnes bandes (sous mère, transition, démarrage…).",
+    phaseReviewBody: "Indiquez la phase de chaque aliment pour affecter les coûts aux bonnes bandes.",
     phaseSuggestion: "Suggestion : {{phase}}",
     phases: {
       sous_mere: "Sous mère",
@@ -1868,7 +1868,7 @@ export const fr = {
       checkDeleteBtn: "Supprimer ce contrôle",
       deleteTitle: "Supprimer l'entrée ?",
       checkDeleteTitle: "Supprimer le contrôle ?",
-      deleteMessage: "Cette entrée sera supprimée. Si elle est liée à une dépense Finance, la liaison sera rompue (la dépense reste).",
+      deleteMessage: "Cette entrée sera supprimée. Si elle est liée à Finance, la liaison est rompue (la dépense reste).",
       checkDeleteMessage: "Ce contrôle sera supprimé et le stock sera recalculé à partir des autres mouvements.",
       savedTitle: "Entrée mise à jour",
       checkSavedTitle: "Contrôle mis à jour",
@@ -1952,7 +1952,7 @@ export const fr = {
       confirmAction: "Confirmer",
       editAction: "Modifier",
       editTitle: "Composer la bande",
-      editBody: "Vérifiez le groupage avant confirmation. Retirez les sujets d’une autre génération, ou séparez-les en plusieurs bandes.",
+      editBody: "Vérifiez le groupage. Retirez les sujets d'une autre génération, ou séparez-les en bandes.",
       editNeedAnimals: "Sélectionnez au moins un sujet.",
       generation: "Génération",
       selectAll: "Tout",
@@ -2181,7 +2181,7 @@ export const fr = {
         errorTitle: "Mise à jour impossible",
         financeLinked: "Un revenu sera créé dans Finance si un prix de vente est indiqué.",
         healthLinked: "Une sortie mortalité sera enregistrée (module Santé).",
-        exitedHint: "Le sujet quitte le cheptel actif (effectif, loges, annonces). Il reste consultable via le filtre « Sortis du cheptel »."
+        exitedHint: "Le sujet quitte le cheptel actif. Il reste visible via le filtre « Sortis du cheptel »."
       },
       sale: {
         title: "Enregistrer la vente",
@@ -2405,7 +2405,7 @@ export const fr = {
     badgePrefix: "Fiabilité",
     dashboard: {
       metricTitle: "Score global",
-      hint: "Ce score reflète la régularité de vos saisies, votre assiduité sur la plateforme et votre réactivité (offres, crédit).",
+      hint: "Score basé sur vos saisies, votre assiduité et votre réactivité (offres, crédit).",
       chartTitle: "Les 4 piliers",
       pillarShort: {
         data: "Saisies",
@@ -2543,9 +2543,9 @@ export const fr = {
   collab: {
     scanHint: "Scanne ou partage ce QR avec un vétérinaire, technicien ou partenaire pour qu’il demande à rejoindre la ferme.",
     defaultQrInfoTitle: "QR du projet — demande d'accès",
-    defaultQrInfoBody: "La personne scanne ce QR puis envoie une demande. Tu choisis son rôle (partenaire, véto, technicien) dans « Demandes de scan » avant qu'elle n'accède à la ferme.",
+    defaultQrInfoBody: "La personne scanne ce QR et envoie une demande. Choisis son rôle dans « Demandes de scan » avant l'accès.",
     scopedInviteInfoTitle: "Lien direct — rôle déjà défini",
-    scopedInviteInfoBody: "Utilise « Inviter une personne » pour générer un lien où le rôle et les permissions sont déjà configurés : la personne rejoint directement sans vérification manuelle.",
+    scopedInviteInfoBody: "« Inviter une personne » crée un lien avec rôle et droits déjà fixés. La personne rejoint sans étape manuelle.",
     noFarm: "Crée ou sélectionne ta ferme principale pour générer un accès collaboratif.",
     loadError: "Impossible de charger le lien collaboratif.",
     retry: "Réessayer",
@@ -2557,7 +2557,7 @@ export const fr = {
     fieldRecipient: "Destinataire",
     fieldPermissions: "Permissions",
     permissionsHint: "Au moins « Lecture seule » est requis. Les autres droits sont additifs.",
-    shareFooterHint: "Après vérification, le système envoie un lien unique qui ouvre directement l’application sur la fiche de demande.",
+    shareFooterHint: "Après vérification, un lien unique ouvre l'app sur la fiche de demande.",
     shareMessage: "Rejoins l’exploitation {{farm}} sur Fermier Pro : {{url}}",
     createError: "Impossible de créer l’invitation. Vérifie ta connexion.",
     recipientKinds: {
@@ -2686,7 +2686,7 @@ export const fr = {
       placeholder: "+225 07 00 00 00 00 ou email@exemple.com",
       hint: "Saisissez l'identifiant exact utilisé par la personne pour se connecter.",
       searchAction: "Rechercher",
-      notFound: "Aucun compte trouvé avec cet identifiant. Vérifiez que la personne est bien inscrite sur la plateforme et qu'elle utilise ce moyen de connexion.",
+      notFound: "Aucun compte avec cet identifiant. Vérifiez qu'elle est inscrite et utilise ce moyen de connexion.",
       selfSearch: "Vous ne pouvez pas vous ajouter vous-même.",
       alreadyMember: "Cette personne fait déjà partie de votre projet.",
       alreadyMemberBadge: "Déjà membre",
@@ -2736,7 +2736,7 @@ export const fr = {
       emailPlaceholder: "exemple@domaine.com",
       phoneLabel: "Téléphone invité (optionnel)",
       phonePlaceholder: "+221 …",
-      note: "Au moins un e-mail ou un téléphone aide à retrouver l'invitation ; le lien peut aussi être partagé après création.",
+      note: "E-mail ou téléphone aide à retrouver l'invitation. Le lien se partage aussi après création.",
       submit: "Créer l'invitation",
       submitting: "Création…"
     }
@@ -2982,14 +2982,14 @@ export const fr = {
     cancelNoProfile: "Aucun autre profil disponible. Créez un profil producteur ou acheteur pour quitter cet onboarding.",
     cancelModal: {
       title: "Quitter l’onboarding vétérinaire ?",
-      message: "Vous reviendrez à votre profil principal. Vous pourrez compléter votre profil vétérinaire plus tard en changeant de profil.",
+      message: "Retour au profil principal. Vous pourrez compléter le profil vétérinaire plus tard.",
       continue: "Continuer l’onboarding",
       confirm: "Revenir au profil principal"
     },
     submit: "Soumettre le profil",
     uploadError: "Impossible d'envoyer les fichiers.",
     completionTitle: "Profil soumis pour vérification ⏳",
-    completionBody: "Votre profil est en cours de vérification. Vous recevrez une notification une fois accepté. En attendant, accès limité à l'application.",
+    completionBody: "Profil en vérification. Vous serez notifié une fois accepté. Accès limité pour l'instant.",
     completionCta: "Accéder à l'application",
     vitrineStepLabel: "Votre vitrine (en attente de vérification)",
     vitrineTitle: "Votre vitrine",
@@ -3056,7 +3056,7 @@ export const fr = {
     },
     vetQuotes: {
       title: "Devis en attente (ancien flux)",
-      legacyNotice: "Ces devis proviennent d'anciennes visites. Les nouvelles visites passent par les rendez-vous avec paiement sécurisé.",
+      legacyNotice: "Anciens devis. Les nouvelles visites passent par les rendez-vous avec paiement sécurisé.",
       accept: "✅ Accepter",
       refuse: "❌ Refuser"
     },
@@ -3523,7 +3523,7 @@ export const fr = {
     continueToPen: "Continuer — choisir la loge",
     back: "Retour",
     penStepTitle: "Loge de la portée",
-    penStepNoEmptyHint: "Aucune loge vide n'est disponible. Choisissez où placer la truie et ses {{count}} porcelet(s). Une suggestion est mise en avant.",
+    penStepNoEmptyHint: "Aucune loge vide. Placez la truie et ses {{count}} porcelet(s). Une suggestion est mise en avant.",
     penSuggested: "suggérée",
     autoEmptyPenHint: "Une loge vide est disponible — la truie et sa portée y seront placées automatiquement.",
     sowMovesWithLitter: "La truie sera déplacée dans la même loge que sa portée.",
@@ -3778,7 +3778,7 @@ export const fr = {
         topUpSuccessTitle: "Recharge confirmée",
         topUpSuccessBody: "Votre solde a été crédité.",
         topUpPendingTitle: "Recharge en cours",
-        topUpPendingBody: "Finalisez le paiement dans le navigateur. Votre solde sera mis à jour automatiquement une fois le paiement confirmé.",
+        topUpPendingBody: "Finalisez le paiement dans le navigateur. Le solde se met à jour après confirmation.",
         topUpInvalid: "Impossible de finaliser la recharge",
         withdraw: "Retirer",
         withdrawCta: "Retirer vers mobile money",
@@ -3993,7 +3993,7 @@ export const fr = {
     refresh: "Actualiser les prévisions",
     generatedAt: "Calculé le {{datetime}}",
     insufficientTitle: "Prévisions en préparation",
-    insufficientMessage: "Les prévisions seront disponibles dans {{days}} jours. Continuez à enregistrer vos données pour activer cette fonctionnalité.",
+    insufficientMessage: "Prévisions disponibles dans {{days}} jours. Continuez à enregistrer vos données.",
     progressLabel: "Progression vers activation : {{current}}/{{total}} jours",
     missingGmq: "Ajoutez des pesées pour activer les projections de poids",
     missingPrice: "Pas assez de données de prix pour estimer les revenus",
@@ -4270,7 +4270,7 @@ export const fr = {
       disputeOpen: "Problème en cours",
       acceptReturn: "Accepter la reprise",
       acceptReturnTitle: "Reprendre l’article ?",
-      acceptReturnConfirm: "Vous reconnaissez le défaut. Votre solde sera débité du montant reçu, l’acheteur sera remboursé du total payé, et les commissions plateforme seront annulées.",
+      acceptReturnConfirm: "Vous reconnaissez le défaut. Votre solde est débité, l'acheteur remboursé, les commissions annulées.",
       acceptReturnNote: "Commerçant : reprise de l’article acceptée",
       tracking: {
         label: "N° de suivi",
@@ -4382,8 +4382,8 @@ export const fr = {
       premiumPending: "Finalise le paiement Premium (lien Wave ou SMS) pour activer ton abonnement.",
       statusPaymentPending: "Paiement en attente",
       paymentWaitingTitle: "Paiement en cours",
-      paymentWaitingBody: "Ton abonnement Premium s'activera automatiquement dès confirmation du paiement par GeniusPay. Tu peux aussi rouvrir le lien Wave si besoin.",
-      paymentWaitingBodyEmail: "Un lien de paiement t'a été envoyé par e-mail. Ton abonnement Premium s'activera automatiquement après confirmation du paiement.",
+      paymentWaitingBody: "Premium s'active dès confirmation GeniusPay. Tu peux rouvrir le lien Wave si besoin.",
+      paymentWaitingBodyEmail: "Un lien de paiement t'a été envoyé. Premium s'active après confirmation du paiement.",
       reopenPaymentCta: "Ouvrir le lien de paiement",
       retryPaymentCta: "Relancer le paiement",
       confirmPaymentCta: "J'ai payé — activer Premium",
@@ -4439,7 +4439,7 @@ export const fr = {
       notFound: "Boutique introuvable.",
       delete: "Supprimer la boutique",
       deleteTitle: "Supprimer la boutique ?",
-      deleteBody: "Ses {{count}} produit(s) seront dépubliés. Cette action archive la boutique — elle disparaîtra de votre compte et du catalogue.",
+      deleteBody: "{{count}} produit(s) seront dépubliés. La boutique sera archivée et retirée du catalogue.",
       deleteConfirm: "Supprimer",
       deleteSuccess: "Boutique archivée.",
       deleteBlocked: "Impossible de supprimer : des commandes sont encore en cours sur les produits de cette boutique."
@@ -4530,7 +4530,7 @@ export const fr = {
       graceEnds: "Fin de grâce",
       cancelSubscription: "Annuler mon abonnement Premium",
       cancelSubscriptionTitle: "Annuler l'abonnement Premium ?",
-      cancelSubscriptionMessage: "Tu repasses sur le forfait Free : 1 boutique et 5 produits actifs max. Les produits au-delà seront désactivés. Cette action est immédiate.",
+      cancelSubscriptionMessage: "Retour au Free : 1 boutique, 5 produits actifs max. Les produits en trop sont désactivés tout de suite.",
       cancelSubscriptionConfirm: "Annuler l'abonnement",
       cancelSubscriptionSuccess: "Ton abonnement Premium a été annulé.",
       cancelSubscriptionError: "Impossible d'annuler l'abonnement. Réessaie dans un instant.",
@@ -4546,7 +4546,7 @@ export const fr = {
     purchase: {
       quantity: "Quantité",
       buy: "Acheter",
-      escrowHint: "🔒 Votre argent est bloqué en sécurité par Fermier Pro. Il ne sera versé au vendeur qu'après confirmation de la réception.",
+      escrowHint: "🔒 Votre argent reste bloqué. Le vendeur est payé après confirmation de réception.",
       contact: "Contacter le vendeur",
       success: "Commande confirmée",
       trackHint: "Suivez la commande dans Mes achats → Boutique.",
