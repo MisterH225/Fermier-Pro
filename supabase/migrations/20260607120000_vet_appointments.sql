@@ -14,6 +14,8 @@ DO $$ BEGIN
     'CANCELLED_BY_VET'
   );
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
@@ -23,6 +25,8 @@ DO $$ BEGIN
     'CONFLICT_EXACT'
   );
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
@@ -33,21 +37,32 @@ DO $$ BEGIN
     'COMMISSION'
   );
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
-ALTER TABLE "VetProfile"
+DO $$ BEGIN
+  ALTER TABLE "VetProfile"
   ADD COLUMN IF NOT EXISTS "completedAppointments" INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS "cancelledAppointmentsAsVet" INTEGER NOT NULL DEFAULT 0;
-
-ALTER TABLE "PlatformRevenue"
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "PlatformRevenue"
   ALTER COLUMN "transactionId" DROP NOT NULL;
-
-ALTER TABLE "PlatformRevenue"
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "PlatformRevenue"
   ADD COLUMN IF NOT EXISTS "vetAppointmentId" TEXT;
-
-CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_vetAppointmentId_key"
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_vetAppointmentId_key"
   ON "PlatformRevenue"("vetAppointmentId");
-
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "VetAppointment" (
   "id" TEXT NOT NULL,
   "farmId" TEXT NOT NULL,
@@ -107,59 +122,106 @@ CREATE TABLE IF NOT EXISTS "VetAppointmentFundMovement" (
   CONSTRAINT "VetAppointmentFundMovement_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "VetAppointmentRating_appointmentId_key" ON "VetAppointmentRating"("appointmentId");
-CREATE INDEX IF NOT EXISTS "VetAppointment_vetUserId_status_idx" ON "VetAppointment"("vetUserId", "status");
-CREATE INDEX IF NOT EXISTS "VetAppointment_producerUserId_status_idx" ON "VetAppointment"("producerUserId", "status");
-CREATE INDEX IF NOT EXISTS "VetAppointment_farmId_status_idx" ON "VetAppointment"("farmId", "status");
-CREATE INDEX IF NOT EXISTS "VetAppointment_status_paymentDeadline_idx" ON "VetAppointment"("status", "paymentDeadline");
-CREATE INDEX IF NOT EXISTS "VetAppointment_status_confirmedAt_idx" ON "VetAppointment"("status", "confirmedAt");
-CREATE INDEX IF NOT EXISTS "VetAppointmentRating_vetProfileId_idx" ON "VetAppointmentRating"("vetProfileId");
-CREATE INDEX IF NOT EXISTS "VetAppointmentFundMovement_appointmentId_idx" ON "VetAppointmentFundMovement"("appointmentId");
-
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "VetAppointmentRating_appointmentId_key" ON "VetAppointmentRating"("appointmentId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointment_vetUserId_status_idx" ON "VetAppointment"("vetUserId", "status");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointment_producerUserId_status_idx" ON "VetAppointment"("producerUserId", "status");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointment_farmId_status_idx" ON "VetAppointment"("farmId", "status");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointment_status_paymentDeadline_idx" ON "VetAppointment"("status", "paymentDeadline");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointment_status_confirmedAt_idx" ON "VetAppointment"("status", "confirmedAt");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointmentRating_vetProfileId_idx" ON "VetAppointmentRating"("vetProfileId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "VetAppointmentFundMovement_appointmentId_idx" ON "VetAppointmentFundMovement"("appointmentId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_farmId_fkey"
     FOREIGN KEY ("farmId") REFERENCES "Farm"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_producerUserId_fkey"
     FOREIGN KEY ("producerUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_vetProfileId_fkey"
     FOREIGN KEY ("vetProfileId") REFERENCES "VetProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_vetUserId_fkey"
     FOREIGN KEY ("vetUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "VetAppointmentRating" ADD CONSTRAINT "VetAppointmentRating_appointmentId_fkey"
     FOREIGN KEY ("appointmentId") REFERENCES "VetAppointment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "VetAppointmentRating" ADD CONSTRAINT "VetAppointmentRating_vetProfileId_fkey"
     FOREIGN KEY ("vetProfileId") REFERENCES "VetProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "VetAppointmentFundMovement" ADD CONSTRAINT "VetAppointmentFundMovement_appointmentId_fkey"
     FOREIGN KEY ("appointmentId") REFERENCES "VetAppointment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   ALTER TABLE "PlatformRevenue" ADD CONSTRAINT "PlatformRevenue_vetAppointmentId_fkey"
     FOREIGN KEY ("vetAppointmentId") REFERENCES "VetAppointment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;

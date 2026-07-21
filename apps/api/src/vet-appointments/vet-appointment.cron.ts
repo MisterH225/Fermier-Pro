@@ -16,6 +16,14 @@ export class VetAppointmentCronService {
     }
   }
 
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async expireVisitProposals() {
+    const n = await this.appointments.handleExpiredProposals();
+    if (n > 0) {
+      this.log.log(`Expired ${n} vet visit proposal(s) without producer response`);
+    }
+  }
+
   @Cron(CronExpression.EVERY_HOUR)
   async sendReminders() {
     const n = await this.appointments.sendUpcomingReminders();

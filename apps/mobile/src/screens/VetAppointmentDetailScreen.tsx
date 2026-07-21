@@ -22,6 +22,7 @@ import { MobileAppShell } from "../components/layout/MobileAppShell";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { SecondaryButton } from "../components/ui/SecondaryButton";
 import { useSession } from "../context/SessionContext";
+import { VetProfileModal } from "../components/sante/VetProfileModal";
 import {
   cancelVetAppointment,
   completeVetAppointmentService,
@@ -29,6 +30,8 @@ import {
   fetchUserWallet,
   fetchVetAppointment,
   initiateVetAppointmentPayment,
+  producerAcceptAppointment,
+  producerRefuseAppointment,
   submitVetAppointmentRating,
   vetAcceptAppointment,
   vetRefuseAppointment
@@ -114,6 +117,8 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     useState<MarketplacePaymentMethodChoice>("mobile_money");
   const userPickedPaymentMethod = useRef(false);
   const [pendingProviderRef, setPendingProviderRef] = useState<string | null>(null);
+  const [vetProfileOpen, setVetProfileOpen] = useState(false);
+  const [producerRefusalReason, setProducerRefusalReason] = useState("");
 
   const q = useQuery({
     queryKey: ["vetAppointment", appointmentId, activeProfileId],
@@ -314,9 +319,46 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const completeMut = useMutation({
     mutationFn: () =>
       completeVetAppointmentService(accessToken!, appointmentId, activeProfileId),
+    onSuccess: (result) => {
+      invalidate();
+      if (result.requiresRating) {
+        setShowRating(true);
+      }
+    },
+    onError: (e: Error) => Alert.alert(t("common.error"), formatApiError(e))
+  });
+
+  const producerAcceptMut = useMutation({
+    mutationFn: () =>
+      producerAcceptAppointment(accessToken!, appointmentId, activeProfileId),
+    onSuccess: (result) => {
+      invalidate();
+      if (result.status === "AWAITING_PAYMENT") {
+        Alert.alert(
+          t("vet.appointment.producerAcceptedPaidTitle"),
+          t("vet.appointment.producerAcceptedPaidBody")
+        );
+      } else {
+        Alert.alert(
+          t("vet.appointment.producerAcceptedFreeTitle"),
+          t("vet.appointment.producerAcceptedFreeBody")
+        );
+      }
+    },
+    onError: (e: Error) => Alert.alert(t("common.error"), formatApiError(e))
+  });
+
+  const producerRefuseMut = useMutation({
+    mutationFn: () =>
+      producerRefuseAppointment(
+        accessToken!,
+        appointmentId,
+        producerRefusalReason.trim() || undefined,
+        activeProfileId
+      ),
     onSuccess: () => {
       invalidate();
-      setShowRating(true);
+      navigation.goBack();
     },
     onError: (e: Error) => Alert.alert(t("common.error"), formatApiError(e))
   });
@@ -417,7 +459,9 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           {isProducer && appt.vetName ? (
             <>
               <Text style={styles.label}>{t("vet.appointment.vet")}</Text>
-              <Text style={styles.value}>{appt.vetName}</Text>
+              <Pressable onPress={() => setVetProfileOpen(true)}>
+                <Text style={styles.vetLink}>{appt.vetName} →</Text>
+              </Pressable>
             </>
           ) : null}
 
@@ -428,7 +472,13 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             </>
           ) : null}
 
-          {appt.servicePrice != null ? (
+          {appt.isFree ? (
+            <View style={styles.freeBadge}>
+              <Text style={styles.freeBadgeTx}>
+                {t("vet.appointment.freeBadge")}
+              </Text>
+            </View>
+          ) : appt.servicePrice != null ? (
             <>
               <Text style={styles.label}>{t("vet.appointment.price")}</Text>
               <Text style={styles.price}>
@@ -503,8 +553,52 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        {isProducer && appt.status === "VISIT_PROPOSED" ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {t("vet.appointment.proposalTitle")}
+            </Text>
+            <Text style={styles.hint}>{t("vet.appointment.proposalHint")}</Text>
+            {appt.isFree ? (
+              <View style={styles.freeBadge}>
+                <Text style={styles.freeBadgeTx}>
+                  {t("vet.appointment.freeBadge")}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.price}>
+                {money(appt.servicePrice ?? 0, appt.currency)}
+              </Text>
+            )}
+            <PrimaryButton
+              label={t("vet.appointment.producerAcceptCta")}
+              onPress={() => producerAcceptMut.mutate()}
+              loading={producerAcceptMut.isPending}
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.producerRefusePlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={producerRefusalReason}
+              onChangeText={setProducerRefusalReason}
+            />
+            <SecondaryButton
+              label={t("vet.appointment.producerRefuseCta")}
+              onPress={() => producerRefuseMut.mutate()}
+              loading={producerRefuseMut.isPending}
+            />
+          </View>
+        ) : null}
+
         {isProducer && appt.status === "AWAITING_PAYMENT" ? (
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {t("vet.appointment.paymentRecapTitle")}
+            </Text>
+            <Text style={styles.price}>
+              {money(appt.servicePrice ?? payAmount, appt.currency)}
+            </Text>
             <Text style={styles.hint}>{t("vet.appointment.paymentHint")}</Text>
             {deadline ? (
               <Text style={styles.deadline}>
@@ -531,6 +625,24 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               disabled={paymentMethod === "wallet" && !canPayWithWallet}
             />
             <SecondaryButton
+              label={t("vet.appointment.refuseAmountCta")}
+              onPress={() =>
+                Alert.alert(
+                  t("vet.appointment.refuseAmountTitle"),
+                  t("vet.appointment.refuseAmountBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("vet.appointment.refuseAmountCta"),
+                      style: "destructive",
+                      onPress: () => producerRefuseMut.mutate()
+                    }
+                  ]
+                )
+              }
+              loading={producerRefuseMut.isPending}
+            />
+            <SecondaryButton
               label={t("vet.appointment.cancelCta")}
               onPress={() =>
                 Alert.alert(
@@ -548,19 +660,47 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
         {isProducer && appt.status === "APPOINTMENT_CONFIRMED" ? (
           <View style={styles.section}>
-            <Text style={styles.hint}>{t("vet.appointment.completeHint")}</Text>
+            <Text style={styles.hint}>
+              {appt.isFree
+                ? t("vet.appointment.completeFreeHint")
+                : t("vet.appointment.completeHint")}
+            </Text>
             <PrimaryButton
-              label={t("vet.appointment.completeCta")}
+              label={
+                appt.isFree
+                  ? t("vet.appointment.completeFreeCta")
+                  : t("vet.appointment.completeCta")
+              }
               onPress={() =>
                 Alert.alert(
                   t("vet.appointment.completeConfirmTitle"),
-                  t("vet.appointment.completeConfirmBody"),
+                  appt.isFree
+                    ? t("vet.appointment.completeFreeConfirmBody")
+                    : t("vet.appointment.completeConfirmBody"),
                   [
                     { text: t("common.cancel"), style: "cancel" },
-                    { text: t("vet.appointment.completeCta"), onPress: () => completeMut.mutate() }
+                    {
+                      text: appt.isFree
+                        ? t("vet.appointment.completeFreeCta")
+                        : t("vet.appointment.completeCta"),
+                      onPress: () => completeMut.mutate()
+                    }
                   ]
                 )
               }
+              loading={completeMut.isPending}
+            />
+          </View>
+        ) : null}
+
+        {isVet &&
+        appt.isFree &&
+        appt.status === "APPOINTMENT_CONFIRMED" ? (
+          <View style={styles.section}>
+            <Text style={styles.hint}>{t("vet.appointment.completeFreeHint")}</Text>
+            <PrimaryButton
+              label={t("vet.appointment.completeFreeCta")}
+              onPress={() => completeMut.mutate()}
               loading={completeMut.isPending}
             />
           </View>
@@ -621,6 +761,24 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
       </ScrollView>
+      <VetProfileModal
+        visible={vetProfileOpen}
+        vetId={appt.vetProfileId}
+        farmId={appt.farmId}
+        farmName={appt.farmName ?? "—"}
+        accessToken={accessToken!}
+        activeProfileId={activeProfileId}
+        onClose={() => setVetProfileOpen(false)}
+        onPlanVisit={() => setVetProfileOpen(false)}
+        onOpenChat={(roomId, headline, peerUserId) => {
+          setVetProfileOpen(false);
+          navigation.navigate("ChatRoom", {
+            roomId,
+            headline,
+            peerUserId
+          });
+        }}
+      />
     </MobileAppShell>
   );
 }
@@ -654,6 +812,21 @@ const styles = StyleSheet.create({
   value: { ...mobileTypography.body, fontWeight: "600" },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   price: { ...mobileTypography.title, color: mobileColors.accent },
+  vetLink: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.accent,
+    textDecorationLine: "underline"
+  },
+  freeBadge: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: mobileRadius.sm,
+    backgroundColor: "#DCFCE7"
+  },
+  freeBadgeTx: { fontSize: 13, fontWeight: "700", color: "#15803D" },
   section: { gap: mobileSpacing.sm },
   sectionTitle: { ...mobileTypography.title, fontSize: 17 },
   hint: { ...mobileTypography.body, color: mobileColors.textSecondary, lineHeight: 22 },

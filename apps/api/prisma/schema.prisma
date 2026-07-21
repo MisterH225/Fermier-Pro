@@ -909,6 +909,8 @@ model FarmExpense {
   linkedEntityType   String?
   linkedEntityId     String?
   attachmentUrl      String?
+  /// Origine : "manual" (saisie) ou "auto" (ex. clôture RDV véto plateforme).
+  source             String            @default("manual")
   /// Mouvements de stock (`FeedStockMovement`) créés avec cette dépense.
   linkedStockMovementIds String[] @default([])
   healthVetVisitLink HealthVetVisitDetail?
@@ -916,6 +918,7 @@ model FarmExpense {
 
   @@index([farmId, occurredAt])
   @@index([financeCategoryId])
+  @@index([linkedEntityType, linkedEntityId])
 }
 
 model FarmRevenue {
@@ -994,12 +997,16 @@ model VetConsultationAttachment {
 
 enum VetAppointmentStatus {
   APPOINTMENT_REQUESTED
+  /// Proposition initiée par le vétérinaire — en attente du consentement producteur.
+  VISIT_PROPOSED
   AWAITING_PAYMENT
   APPOINTMENT_CONFIRMED
   APPOINTMENT_IN_PROGRESS
   APPOINTMENT_COMPLETED
   APPOINTMENT_RATED
   APPOINTMENT_REFUSED
+  /// Producteur refuse la proposition (ou le montant en AWAITING_PAYMENT).
+  REFUSED_BY_PRODUCER
   PAYMENT_EXPIRED
   CANCELLED_BY_PRODUCER
   CANCELLED_BY_VET
@@ -1039,6 +1046,8 @@ model VetAppointment {
   refusalReason          String?
   vetResponseNotes       String?
   servicePrice           Decimal?                    @db.Decimal(14, 2)
+  /// Visite gratuite déclarée explicitement (jamais d'ambiguïté prix manquant).
+  isFree                 Boolean                     @default(false)
   commissionRate         Decimal                     @default(0.05) @db.Decimal(5, 4)
   commissionAmount       Decimal?                    @db.Decimal(14, 2)
   vetReceivedAmount      Decimal?                    @db.Decimal(14, 2)
@@ -1047,6 +1056,8 @@ model VetAppointment {
   paymentConfirmedAt     DateTime?
   paymentProviderRef     String?
   paymentMethod          MarketplacePaymentMethod?
+  /// Horodatage de la proposition vétérinaire (démarre le délai 72h VISIT_PROPOSED).
+  proposedByVetAt        DateTime?
   completedAt            DateTime?
   cancelledAt            DateTime?
   cancellationReason     String?
@@ -1066,6 +1077,7 @@ model VetAppointment {
   @@index([farmId, status])
   @@index([status, paymentDeadline])
   @@index([status, confirmedAt])
+  @@index([status, proposedByVetAt])
 }
 
 model VetAppointmentRating {

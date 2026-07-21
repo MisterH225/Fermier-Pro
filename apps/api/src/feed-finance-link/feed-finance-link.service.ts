@@ -564,6 +564,11 @@ export class FeedFinanceLinkService {
     if (!expense) {
       throw new NotFoundException("Dépense introuvable");
     }
+    if (expense.source === "auto") {
+      throw new BadRequestException(
+        "Cette dépense automatique (visite vétérinaire) ne peut pas être supprimée"
+      );
+    }
 
     await this.prisma.$transaction(async (tx) => {
       if (deleteStock && expense.linkedStockMovementIds.length > 0) {

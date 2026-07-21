@@ -1,15 +1,51 @@
 -- Platform feature flags (mirrors Prisma migration 20260530120000)
 
-CREATE TYPE "FeatureFlagHistoryAction" AS ENUM ('disabled', 'reactivated', 'scheduled');
+DO $$ BEGIN
+  CREATE TYPE "FeatureFlagHistoryAction" AS ENUM ('disabled', 'reactivated', 'scheduled');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Ensure base enum exists on preview DBs (Prisma baseline may be absent).
+DO $$ BEGIN
+  CREATE TYPE "SmartAlertModule" AS ENUM (
+    'stock',
+    'health',
+    'finance',
+    'gestation',
+    'cheptel'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TYPE "SmartAlertModule" ADD VALUE IF NOT EXISTS 'market';
 
-ALTER TABLE "FarmTask" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "MarketplaceListing" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "MarketplaceOffer" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "FarmInvitation" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "FarmMembership" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "Gestation" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+-- Optional columns on Prisma-baseline tables (absent on cold preview replay).
+DO $$ BEGIN
+  ALTER TABLE "FarmTask" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "MarketplaceListing" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "MarketplaceOffer" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "FarmInvitation" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "FarmMembership" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "Gestation" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS "PlatformFeatureFlag" (
     "moduleId" TEXT NOT NULL,
@@ -40,9 +76,12 @@ CREATE TABLE IF NOT EXISTS "FeatureFlagHistory" (
     CONSTRAINT "FeatureFlagHistory_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "FeatureFlagHistory_moduleId_createdAt_idx"
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "FeatureFlagHistory_moduleId_createdAt_idx"
   ON "FeatureFlagHistory"("moduleId", "createdAt" DESC);
-
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "ArchivedDataRegistry" (
     "id" TEXT NOT NULL,
     "moduleId" TEXT NOT NULL,
@@ -54,9 +93,12 @@ CREATE TABLE IF NOT EXISTS "ArchivedDataRegistry" (
     CONSTRAINT "ArchivedDataRegistry_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "ArchivedDataRegistry_moduleId_restoredAt_idx"
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "ArchivedDataRegistry_moduleId_restoredAt_idx"
   ON "ArchivedDataRegistry"("moduleId", "restoredAt");
-
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "ReactivationWaitlist" (
     "id" TEXT NOT NULL,
     "moduleId" TEXT NOT NULL,
@@ -65,19 +107,27 @@ CREATE TABLE IF NOT EXISTS "ReactivationWaitlist" (
     CONSTRAINT "ReactivationWaitlist_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "ReactivationWaitlist_moduleId_userId_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "ReactivationWaitlist_moduleId_userId_key"
   ON "ReactivationWaitlist"("moduleId", "userId");
-
-ALTER TABLE "ReactivationWaitlist" DROP CONSTRAINT IF EXISTS "ReactivationWaitlist_userId_fkey";
-ALTER TABLE "ReactivationWaitlist" ADD CONSTRAINT "ReactivationWaitlist_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
+DO $$ BEGIN
+  IF to_regclass('public."User"') IS NOT NULL THEN
+    ALTER TABLE "ReactivationWaitlist" DROP CONSTRAINT IF EXISTS "ReactivationWaitlist_userId_fkey";
+    ALTER TABLE "ReactivationWaitlist" ADD CONSTRAINT "ReactivationWaitlist_userId_fkey"
+      FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 DO $$ BEGIN
   ALTER TABLE "BuyerPriceAlert" ADD COLUMN IF NOT EXISTS "archived" BOOLEAN NOT NULL DEFAULT false;
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 
-INSERT INTO "PlatformFeatureFlag" ("moduleId", "moduleName", "icon", "canDisable", "isActive", "updatedAt")
+DO $$ BEGIN
+  INSERT INTO "PlatformFeatureFlag" ("moduleId", "moduleName", "icon", "canDisable", "isActive", "updatedAt")
 VALUES
   ('core_producer', 'Producteur', '🏡', false, true, CURRENT_TIMESTAMP),
   ('technician', 'Technicien / Porcher', '🔧', true, true, CURRENT_TIMESTAMP),
@@ -91,3 +141,5 @@ VALUES
   ('gestation', 'Gestation', '🐣', true, true, CURRENT_TIMESTAMP),
   ('nutrition', 'Nutrition', '🌾', true, true, CURRENT_TIMESTAMP)
 ON CONFLICT ("moduleId") DO NOTHING;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

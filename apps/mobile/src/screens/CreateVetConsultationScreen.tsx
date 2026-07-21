@@ -98,6 +98,13 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
       >
+        <Text style={styles.screenTitle}>
+          {t("vet.offPlatformVisit.title")}
+        </Text>
+        <Text style={styles.screenSubtitle}>
+          {t("vet.offPlatformVisit.subtitle")}
+        </Text>
+
         <Text style={styles.label}>Objet</Text>
         <TextInput
           style={styles.input}
@@ -185,6 +192,18 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16 },
+  screenTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: mobileColors.textPrimary,
+    marginBottom: 6
+  },
+  screenSubtitle: {
+    fontSize: 14,
+    color: mobileColors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 20
+  },
   hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
     fontSize: 13,
