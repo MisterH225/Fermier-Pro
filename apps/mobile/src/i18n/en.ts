@@ -66,7 +66,7 @@ export const en = {
   farmListScreen: {
     addFarm: "+ Farm",
     signOut: "Sign out",
-    apiHint: "Check EXPO_PUBLIC_API_URL (emulator: often http://10.0.2.2:3000).",
+    apiHint: "Check your connection, then try again.",
     welcome: "Hello {{name}}",
     emptyTitle: "No farms yet",
     emptySub: "Create a farm with “+ Farm” (producer profile), or browse the market.",
@@ -82,10 +82,10 @@ export const en = {
   loginGate: {
     logoA11y: "Fermier Pro",
     lead: "Run your farms, herd and daily operations from one place.",
-    envWarn: "Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in apps/mobile/.env to your real Supabase project URL (not the <project-ref> placeholder), then restart Expo with --clear.",
-    redirectTitle: "Redirect URL (Supabase)",
-    redirectBody: "Supabase → Authentication → URL configuration:\n1. Site URL = the exp://… URL above (not localhost).\n2. Redirect URLs = the same URL (+ button).\nGoogle: Providers → Google (Client ID / Secret).",
-    redirectLocalhostWarn: "This URL contains localhost — it will fail on iPhone. Restart Expo on LAN (same Wi‑Fi) and rescan the QR code.",
+    envWarn: "Sign-in is not ready. Try again later or contact support.",
+    redirectTitle: "Google sign-in",
+    redirectBody: "If sign-in fails, close and reopen the app, then try again.",
+    redirectLocalhostWarn: "Sign-in failed on this device. Try again on the same Wi‑Fi network.",
     or: "or"
   },
   phoneAuth: {
@@ -111,7 +111,7 @@ export const en = {
     countryEmpty: "No matching country."
   },
   moduleRoadmap: {
-    note: "Matching API routes are already protected by server-side feature flags; this screen prepares full mobile integration."
+    note: "This module is coming soon on mobile."
   },
   firstConnection: {
     title: "First sign-in",
@@ -302,7 +302,7 @@ export const en = {
     notificationsHint: "Turn on notifications to receive alerts (system permission required).",
     notificationsPermissionDenied: "Notifications are blocked in your device settings. You can enable them later in Settings.",
     notificationsTokenError: "Could not get a push token (network or device). Try again on a phone with Expo Go or a development build.",
-    notificationsTokenMissingProject: "Alerts are enabled, but the push token could not be saved: the Expo (EAS) project is not configured. In apps/mobile, run « npx eas init », copy the projectId to EXPO_PUBLIC_EAS_PROJECT_ID (.env), then restart Expo.",
+    notificationsTokenMissingProject: "Alerts are on, but push delivery is not ready on this device yet.",
     notificationsSaveError: "Could not save notification preferences.",
     notificationsA11y: "Enable or disable push notifications",
     dangerZone: {
@@ -594,7 +594,7 @@ export const en = {
       paymentPendingTitle: "Payment in progress",
       paymentPendingBody: "Complete the payment in your browser. The purchase will update automatically once payment is confirmed.",
       paymentAlreadyHeldTitle: "Payment already recorded",
-      paymentAlreadyHeldBody: "This purchase is already paid (often via balance or a payment callback). Continue to the delivery step.",
+      paymentAlreadyHeldBody: "This purchase is already paid. Continue to the delivery step.",
       paymentInvalidStatus: "This purchase is no longer awaiting payment (state: {{status}}). Refresh the screen or create a new offer.",
       paymentFailedRetryHint: "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
       checkoutUrlMissing: "GeniusPay did not return a payment link. Retry shortly or contact support.",
@@ -2283,7 +2283,7 @@ export const en = {
         photoGallery: "Gallery",
         photoCamera: "Camera",
         photoA11y: "Change photo",
-        photoUploadError: "Could not upload photo. Check Supabase bucket animal-photos.",
+        photoUploadError: "Could not upload the photo. Try again later.",
         photoUploadUnavailable: "Photo storage unavailable.",
         sex: "Sex",
         sexRequired: "Set sex before saving.",
@@ -2503,7 +2503,7 @@ export const en = {
     gpsDenied: "Location permission denied or unavailable.",
     save: "Save",
     saveError: "Could not save. Check your connection.",
-    photoUploadError: "Photo upload failed. Create the Supabase “avatars” bucket (see docs/SUPABASE_AUTH.md → Storage).",
+    photoUploadError: "Photo upload failed. Try again later.",
     changePhotoTitle: "Profile photo",
     changePhotoMessage: "Choose a source to update your photo.",
     cancelPhoto: "Cancel",
@@ -2816,8 +2816,8 @@ export const en = {
     addProofPhoto: "Add a photo",
     changeProofPhoto: "Change photo",
     removeProofPhoto: "Remove photo",
-    proofNoSupabase: "Photos: set EXPO_PUBLIC_SUPABASE_URL and the anon key, and create a public « finance-proofs » bucket.",
-    proofUploadError: "Could not upload the photo. Check your Supabase bucket.",
+    proofNoSupabase: "Proof photos are not available right now.",
+    proofUploadError: "Could not upload the photo. Try again later.",
     errorTitle: "Error",
     cancel: "Cancel",
     create: "Create",
@@ -3647,7 +3647,7 @@ export const en = {
       changePhotoMessage: "Choose a source",
       pickGallery: "Gallery",
       pickCamera: "Camera",
-      photoUploadError: "Could not upload photo. Check the Supabase “avatars” bucket."
+      photoUploadError: "Could not upload the photo. Try again later."
     }
   },
   wallet: {
@@ -3814,7 +3814,7 @@ export const en = {
       pickCamera: "Camera",
       cancelPhoto: "Cancel",
       save: "Save",
-      photoUploadError: "Could not upload the photo. Check the Supabase « avatars » bucket.",
+      photoUploadError: "Could not upload the photo. Try again later.",
       saveError: "Could not save. Try again in a moment."
     },
     kpi: {
@@ -4539,7 +4539,7 @@ export const en = {
       pickCamera: "Camera",
       cancelPhoto: "Cancel",
       save: "Save",
-      photoUploadError: "Could not upload the photo. Check the Supabase « avatars » bucket.",
+      photoUploadError: "Could not upload the photo. Try again later.",
       saveError: "Could not save. Try again in a moment."
     },
     purchase: {

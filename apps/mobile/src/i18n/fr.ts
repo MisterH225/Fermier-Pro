@@ -66,7 +66,7 @@ export const fr = {
   farmListScreen: {
     addFarm: "+ Ferme",
     signOut: "Déconnexion",
-    apiHint: "Vérifie EXPO_PUBLIC_API_URL (émulateur : souvent http://10.0.2.2:3000).",
+    apiHint: "Vérifie ta connexion, puis réessaie.",
     welcome: "Bonjour {{name}}",
     emptyTitle: "Aucune ferme",
     emptySub: "Crée une ferme avec « + Ferme » (profil producteur), ou parcours le marché.",
@@ -82,10 +82,10 @@ export const fr = {
   loginGate: {
     logoA11y: "Fermier Pro",
     lead: "Pilote tes fermes, ton cheptel et tes opérations au quotidien.",
-    envWarn: "Configure EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY dans apps/mobile/.env avec l’URL réelle du projet Supabase (pas le modèle avec <project-ref>), puis redémarre Expo avec --clear.",
-    redirectTitle: "URL de redirection (Supabase)",
-    redirectBody: "Supabase → Authentication → URL configuration :\n1. Site URL = l’URL exp://… ci-dessus (pas localhost).\n2. Redirect URLs = la même URL (bouton +).\nGoogle : Providers → Google (Client ID / Secret).",
-    redirectLocalhostWarn: "Cette URL contient localhost : sur iPhone ça échouera. Relance Expo en LAN (même Wi‑Fi) et rescanne le QR code.",
+    envWarn: "La connexion n'est pas prête. Réessaie plus tard ou contacte le support.",
+    redirectTitle: "Connexion Google",
+    redirectBody: "Si la connexion échoue, ferme l'app et rouvre-la, puis réessaie.",
+    redirectLocalhostWarn: "Connexion impossible sur cet appareil. Réessaie depuis le même réseau Wi‑Fi.",
     or: "ou"
   },
   phoneAuth: {
@@ -111,7 +111,7 @@ export const fr = {
     countryEmpty: "Aucun pays ne correspond."
   },
   moduleRoadmap: {
-    note: "Les routes API correspondantes sont déjà protégées par les feature flags côté serveur ; cette vue prépare l’intégration mobile complète."
+    note: "Ce module arrive bientôt sur mobile."
   },
   firstConnection: {
     title: "Première connexion",
@@ -302,7 +302,7 @@ export const fr = {
     notificationsHint: "Active les notifications pour recevoir des alertes (autorisation système requise).",
     notificationsPermissionDenied: "Notifications refusées sur le téléphone. Tu pourras les activer plus tard dans les réglages.",
     notificationsTokenError: "Impossible d'obtenir un jeton push. Réessaie sur un téléphone avec Expo Go ou un build de développement.",
-    notificationsTokenMissingProject: "Les alertes sont activées, mais le jeton push n’a pas pu être enregistré : le projet Expo (EAS) n’est pas configuré. Dans apps/mobile, exécute « npx eas init », copie le projectId dans EXPO_PUBLIC_EAS_PROJECT_ID (.env), puis redémarre Expo.",
+    notificationsTokenMissingProject: "Les alertes sont activées, mais l'envoi push n'est pas encore prêt sur cet appareil.",
     notificationsSaveError: "Impossible d’enregistrer les préférences.",
     notificationsA11y: "Activer ou désactiver les notifications push",
     dangerZone: {
@@ -2297,7 +2297,7 @@ export const fr = {
         photoGallery: "Galerie",
         photoCamera: "Appareil photo",
         photoA11y: "Modifier la photo",
-        photoUploadError: "Impossible d’envoyer la photo. Vérifiez le bucket Supabase animal-photos.",
+        photoUploadError: "Impossible d'envoyer la photo. Réessaie plus tard.",
         photoUploadUnavailable: "Stockage photo indisponible.",
         sex: "Sexe",
         sexRequired: "Définissez le sexe avant d’enregistrer.",
@@ -2504,7 +2504,7 @@ export const fr = {
     gpsDenied: "La géolocalisation a été refusée ou est indisponible.",
     save: "Enregistrer",
     saveError: "Impossible d’enregistrer. Vérifie la connexion.",
-    photoUploadError: "Échec envoi photo. Crée le bucket Supabase « avatars » (voir docs/SUPABASE_AUTH.md → Storage).",
+    photoUploadError: "Échec de l'envoi de la photo. Réessaie plus tard.",
     changePhotoTitle: "Photo de profil",
     changePhotoMessage: "Choisis une source pour mettre à jour ta photo.",
     cancelPhoto: "Annuler",
@@ -2817,8 +2817,8 @@ export const fr = {
     addProofPhoto: "Ajouter une photo",
     changeProofPhoto: "Changer la photo",
     removeProofPhoto: "Retirer la photo",
-    proofNoSupabase: "Photos : configure EXPO_PUBLIC_SUPABASE_URL et la clé anon, et crée le bucket « finance-proofs » (public lecture).",
-    proofUploadError: "Échec de l’envoi de la photo. Vérifie le bucket Supabase.",
+    proofNoSupabase: "Les photos de preuve ne sont pas disponibles pour le moment.",
+    proofUploadError: "Échec de l'envoi de la photo. Réessaie plus tard.",
     errorTitle: "Erreur",
     cancel: "Annuler",
     create: "Créer",
@@ -3653,7 +3653,7 @@ export const fr = {
       changePhotoMessage: "Choisir une source",
       pickGallery: "Galerie",
       pickCamera: "Appareil photo",
-      photoUploadError: "Impossible d’envoyer la photo. Vérifiez le bucket Supabase « avatars »."
+      photoUploadError: "Impossible d'envoyer la photo. Réessaie plus tard."
     }
   },
   wallet: {
@@ -3820,7 +3820,7 @@ export const fr = {
       pickCamera: "Caméra",
       cancelPhoto: "Annuler",
       save: "Enregistrer",
-      photoUploadError: "Impossible d'envoyer la photo. Vérifie le bucket Supabase « avatars ».",
+      photoUploadError: "Impossible d'envoyer la photo. Réessaie plus tard.",
       saveError: "Enregistrement impossible. Réessaie dans un instant."
     },
     kpi: {
@@ -4540,7 +4540,7 @@ export const fr = {
       pickCamera: "Caméra",
       cancelPhoto: "Annuler",
       save: "Enregistrer",
-      photoUploadError: "Impossible d'envoyer la photo. Vérifie le bucket Supabase « avatars ».",
+      photoUploadError: "Impossible d'envoyer la photo. Réessaie plus tard.",
       saveError: "Enregistrement impossible. Réessaie dans un instant."
     },
     purchase: {
