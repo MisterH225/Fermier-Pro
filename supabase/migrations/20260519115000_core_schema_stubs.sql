@@ -1,6 +1,8 @@
 -- Minimal core stubs for Supabase Preview cold replay.
--- Production already has the full Prisma schema; CREATE TABLE IF NOT EXISTS is a no-op there.
--- Preview branches replay only supabase/migrations and otherwise miss these baseline tables.
+-- Only tables that are NEVER created by later supabase/migrations (only ALTER'd).
+-- Do NOT stub tables that have a full CREATE TABLE IF NOT EXISTS later — that would
+-- skip column definitions and break subsequent indexes/constraints.
+-- Production already has the full Prisma schema; CREATE IF NOT EXISTS is a no-op there.
 
 CREATE TABLE IF NOT EXISTS "User" (
   "id" TEXT PRIMARY KEY,
@@ -44,11 +46,6 @@ CREATE TABLE IF NOT EXISTS "PlatformSettings" (
   "id" TEXT PRIMARY KEY DEFAULT 'default'
 );
 
-CREATE TABLE IF NOT EXISTS "PlatformRevenue" (
-  "id" TEXT PRIMARY KEY,
-  "transactionId" TEXT
-);
-
 CREATE TABLE IF NOT EXISTS "VetProfile" (
   "id" TEXT PRIMARY KEY,
   "userId" TEXT
@@ -59,10 +56,6 @@ CREATE TABLE IF NOT EXISTS "MarketplaceListing" (
 );
 
 CREATE TABLE IF NOT EXISTS "MarketplaceOffer" (
-  "id" TEXT PRIMARY KEY
-);
-
-CREATE TABLE IF NOT EXISTS "MarketplaceTransaction" (
   "id" TEXT PRIMARY KEY
 );
 
