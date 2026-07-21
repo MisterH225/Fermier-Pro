@@ -381,9 +381,11 @@ export type VetAppointmentDto = {
   refusalReason?: string | null;
   vetResponseNotes?: string | null;
   servicePrice?: number | null;
+  isFree?: boolean;
   blockedAmount?: number | null;
   paymentDeadline?: string | null;
   paymentConfirmedAt?: string | null;
+  proposedByVetAt?: string | null;
   completedAt?: string | null;
   conflictStatus?: string | null;
   conflictLabel?: string | null;
@@ -477,6 +479,33 @@ export function vetRefuseAppointment(
 ): Promise<VetAppointmentDto> {
   return apiPostJson(
     `/vet-appointments/${encodeURIComponent(appointmentId)}/refuse`,
+    refusalReason ? { refusalReason } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function producerAcceptAppointment(
+  accessToken: string,
+  appointmentId: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/producer-accept`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function producerRefuseAppointment(
+  accessToken: string,
+  appointmentId: string,
+  refusalReason?: string,
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/producer-refuse`,
     refusalReason ? { refusalReason } : {},
     accessToken,
     activeProfileId

@@ -15,6 +15,7 @@ import type { RootStackParamList } from "../../types/navigation";
 
 const ACTION_STATUSES = new Set([
   "APPOINTMENT_REQUESTED",
+  "VISIT_PROPOSED",
   "AWAITING_PAYMENT",
   "APPOINTMENT_CONFIRMED",
   "APPOINTMENT_IN_PROGRESS"
@@ -32,6 +33,9 @@ function statusLabel(
 ): string {
   if (status === "APPOINTMENT_REQUESTED") {
     return t("producer.vetAppointments.waitingForVet");
+  }
+  if (status === "VISIT_PROPOSED") {
+    return t("producer.vetAppointments.reviewProposal");
   }
   if (status === "AWAITING_PAYMENT") {
     return t("producer.vetAppointments.payNow");
@@ -106,11 +110,20 @@ export function VetAppointmentActionsBanner({
             {appt.farmName ?? "—"} ·{" "}
             {formatWhen(appt.confirmedAt ?? appt.requestedAt, locale)}
           </Text>
-          {appt.servicePrice != null && appt.status === "AWAITING_PAYMENT" ? (
-            <Text style={styles.price}>
-              {Math.round(appt.servicePrice).toLocaleString("fr-FR")}{" "}
-              {appt.currency}
-            </Text>
+          {appt.status === "VISIT_PROPOSED" ||
+          appt.status === "AWAITING_PAYMENT" ? (
+            appt.isFree ? (
+              <View style={styles.freeBadge}>
+                <Text style={styles.freeBadgeTx}>
+                  {t("producer.vetAppointments.freeBadge")}
+                </Text>
+              </View>
+            ) : appt.servicePrice != null ? (
+              <Text style={styles.price}>
+                {Math.round(appt.servicePrice).toLocaleString("fr-FR")}{" "}
+                {appt.currency}
+              </Text>
+            ) : null
           ) : null}
         </Pressable>
       ))}
@@ -156,8 +169,23 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   price: {
-    ...mobileTypography.meta,
+    ...mobileTypography.title,
+    fontSize: 18,
     fontWeight: "700",
-    color: vetColors.warningDeep
+    color: vetColors.warningDeep,
+    marginTop: 2
+  },
+  freeBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: mobileRadius.sm,
+    backgroundColor: "#DCFCE7"
+  },
+  freeBadgeTx: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#15803D"
   }
 });
