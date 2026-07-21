@@ -262,6 +262,28 @@ export async function seedE2eFixtures(
 
   await purgeE2eUserData(prisma, peerUser.id);
 
+  // Profil acheteur actif requis pour POST /marketplace/.../offers (garde BUYER_PROFILE_INACTIVE).
+  await prisma.profile.create({
+    data: {
+      userId: peerUser.id,
+      type: ProfileType.buyer,
+      displayName: "E2E Acheteur",
+      isDefault: true
+    }
+  });
+  await prisma.buyerProfile.upsert({
+    where: { userId: peerUser.id },
+    create: {
+      userId: peerUser.id,
+      isActive: true,
+      onboardingComplete: true
+    },
+    update: {
+      isActive: true,
+      onboardingComplete: true
+    }
+  });
+
   await prisma.farmMembership.create({
     data: {
       farmId: farm.id,
