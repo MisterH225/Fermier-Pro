@@ -135,7 +135,10 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 -- Backfill soft uniquement : ne pas supprimer les memberships ni expirer les invitations.
-UPDATE "ProducerProfile"
+DO $$ BEGIN
+  UPDATE "ProducerProfile"
 SET "subscriptionTier" = COALESCE("subscriptionTier", 'free'),
     "subscriptionChosenAt" = COALESCE("subscriptionChosenAt", NOW())
 WHERE "subscriptionTier" IS NULL;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

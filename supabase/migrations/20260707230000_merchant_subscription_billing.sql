@@ -71,10 +71,13 @@ EXCEPTION WHEN duplicate_object THEN NULL;
   WHEN undefined_object THEN NULL;
 END $$;
 
-UPDATE "MerchantProfile"
+DO $$ BEGIN
+  UPDATE "MerchantProfile"
 SET
   "nextBillingAt" = "premiumPaidAt" + interval '1 month',
   "subscriptionStatus" = 'active'
 WHERE "subscriptionTier" = 'premium'
   AND "premiumPaidAt" IS NOT NULL
   AND "nextBillingAt" IS NULL;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

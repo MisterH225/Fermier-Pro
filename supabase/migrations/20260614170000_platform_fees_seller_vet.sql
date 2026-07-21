@@ -19,9 +19,12 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 -- Initialiser les valeurs par défaut si la ligne existe déjà
-UPDATE "PlatformSettings"
+DO $$ BEGIN
+  UPDATE "PlatformSettings"
 SET
   "sellerMarketplaceCommissionRate" = 0.05,
   "vetCommissionRate" = 0.05
 WHERE id = 'default'
   AND ("sellerMarketplaceCommissionRate" IS NULL OR "vetCommissionRate" IS NULL);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

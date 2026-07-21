@@ -121,7 +121,8 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 
-INSERT INTO "PlatformFeatureFlag" ("moduleId", "moduleName", "icon", "canDisable", "isActive", "updatedAt")
+DO $$ BEGIN
+  INSERT INTO "PlatformFeatureFlag" ("moduleId", "moduleName", "icon", "canDisable", "isActive", "updatedAt")
 VALUES
   ('core_producer', 'Producteur', '🏡', false, true, CURRENT_TIMESTAMP),
   ('technician', 'Technicien / Porcher', '🔧', true, true, CURRENT_TIMESTAMP),
@@ -135,3 +136,5 @@ VALUES
   ('gestation', 'Gestation', '🐣', true, true, CURRENT_TIMESTAMP),
   ('nutrition', 'Nutrition', '🌾', true, true, CURRENT_TIMESTAMP)
 ON CONFLICT ("moduleId") DO NOTHING;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
