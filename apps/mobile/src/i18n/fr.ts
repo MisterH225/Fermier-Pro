@@ -17,6 +17,9 @@ export const fr = {
   },
   common: {
     error: "Erreur",
+    accessDeniedTitle: "Accès refusé",
+    successTitle: "Succès",
+    infoTitle: "Information",
     cancel: "Annuler",
     save: "Enregistrer",
     delete: "Supprimer",
@@ -3593,7 +3596,10 @@ export const fr = {
       stock: "Stock critique"
     },
     tasks: {
-      noFarm: "Aucune ferme assignée pour le moment."
+      noFarm: "Aucune ferme assignée pour le moment.",
+      noAssigned: "Aucune tâche assignée.",
+      sectionMine: "Mes tâches",
+      viewAllFarm: "Toutes les tâches de la ferme"
     },
     farm: {
       tabs: {
@@ -3604,7 +3610,11 @@ export const fr = {
       },
       openModule: "Ouvrir le module",
       sectionModules: "Modules disponibles",
-      sectionAction: "Accès"
+      sectionAction: "Accès",
+      selectorPlaceholder: "Choisir une ferme",
+      selectorChange: "Changer",
+      selectorTitle: "Mes fermes",
+      selectorA11y: "Changer de ferme"
     },
     tracking: {
       sectionLog: "Journal d'activité"
