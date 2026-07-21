@@ -150,4 +150,5 @@ SET "subscriptionTier" = COALESCE("subscriptionTier", 'free'),
     "subscriptionChosenAt" = COALESCE("subscriptionChosenAt", NOW())
 WHERE "subscriptionTier" IS NULL;
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

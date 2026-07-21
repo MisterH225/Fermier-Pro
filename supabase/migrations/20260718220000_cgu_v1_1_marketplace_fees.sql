@@ -10,4 +10,5 @@ SET
 WHERE "id" = 'current'
   AND "currentVersion" IS DISTINCT FROM '1.1';
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

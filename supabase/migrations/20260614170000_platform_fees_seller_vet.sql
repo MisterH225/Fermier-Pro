@@ -27,4 +27,5 @@ SET
 WHERE id = 'default'
   AND ("sellerMarketplaceCommissionRate" IS NULL OR "vetCommissionRate" IS NULL);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

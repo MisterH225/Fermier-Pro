@@ -87,4 +87,5 @@ WHERE "subscriptionTier" = 'premium'
   AND "premiumPaidAt" IS NOT NULL
   AND "nextBillingAt" IS NULL;
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

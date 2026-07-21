@@ -14,4 +14,5 @@ WHERE t."offerId" = o.id
     'PAYMENT_FAILED'
   );
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
