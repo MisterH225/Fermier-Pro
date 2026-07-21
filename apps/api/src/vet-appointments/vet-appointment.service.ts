@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -10,6 +11,8 @@ import { ConfigService } from "@nestjs/config";
 import { PlatformSettingsService } from "../platform-settings/platform-settings.service";
 import type { User } from "@prisma/client";
 import {
+  FarmHealthEntityType,
+  FarmHealthRecordKind,
   MembershipRole,
   MarketplacePaymentMethod,
   Prisma,
@@ -159,6 +162,12 @@ export class VetAppointmentService {
       completedAt: row.completedAt?.toISOString() ?? null,
       cancelledAt: row.cancelledAt?.toISOString() ?? null,
       cancellationReason: row.cancellationReason,
+      visitReportSubmittedAt:
+        row.visitReportSubmittedAt?.toISOString() ?? null,
+      visitSubjectsTreated: row.visitSubjectsTreated,
+      visitDiagnosis: row.visitDiagnosis,
+      visitPrescription: row.visitPrescription,
+      farmHealthRecordId: row.farmHealthRecordId,
       conflictStatus: row.conflictStatus,
       conflictLabel: this.conflictLabel(row.conflictStatus, conflictDetails),
       conflictDetails,
@@ -1058,6 +1067,12 @@ export class VetAppointmentService {
       );
     }
 
+    if (!row.visitReportSubmittedAt) {
+      throw new BadRequestException(
+        "Le vétérinaire doit d'abord déposer le rapport de visite (sujets traités, diagnostic, ordonnance)"
+      );
+    }
+
     const treatAsFree =
       row.isFree || this.isOrphanConfirmedWithoutPrice(row);
 
@@ -1331,6 +1346,109 @@ export class VetAppointmentService {
       row.paymentConfirmedAt != null &&
       Number(row.blockedAmount ?? 0) > 0
     );
+  }
+
+  /**
+   * Rapport de visite obligatoire après prestation.
+   * Crée le dossier Santé (visites vétérinaires) côté producteur.
+   */
+  async submitVisitReport(
+    vet: User,
+    appointmentId: string,
+    input: {
+      subjectsTreated: string;
+      diagnosis: string;
+      prescription: string;
+    }
+  ) {
+    const subjects = input.subjectsTreated.trim();
+    const diagnosis = input.diagnosis.trim();
+    const prescription = input.prescription.trim();
+    if (!subjects || !diagnosis || !prescription) {
+      throw new BadRequestException(
+        "Sujets traités, diagnostic et ordonnance sont obligatoires"
+      );
+    }
+
+    const row = await this.requireVetAppointment(vet.id, appointmentId, [
+      VetAppointmentStatus.APPOINTMENT_CONFIRMED,
+      VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
+    ]);
+
+    if (row.visitReportSubmittedAt) {
+      throw new ConflictException("Un rapport a déjà été déposé pour cette visite");
+    }
+
+    const vetName =
+      row.vetProfile?.fullName?.trim() ||
+      vet.fullName?.trim() ||
+      "Vétérinaire";
+    const now = new Date();
+    const reportBody = [
+      `Sujets traités : ${subjects}`,
+      `Diagnostic : ${diagnosis}`,
+      `Ordonnance : ${prescription}`
+    ].join("\n\n");
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const healthRec = await tx.farmHealthRecord.create({
+        data: {
+          farmId: row.farmId,
+          kind: FarmHealthRecordKind.vet_visit,
+          entityType: FarmHealthEntityType.farm,
+          entityId: row.farmId,
+          occurredAt: row.confirmedAt ?? row.requestedAt,
+          status: "completed",
+          notes: `Rapport RDV plateforme — ${row.reason}`,
+          recordedByUserId: vet.id
+        }
+      });
+
+      await tx.healthVetVisitDetail.create({
+        data: {
+          healthRecordId: healthRec.id,
+          vetName,
+          reason: row.reason,
+          subjectsTreated: subjects,
+          diagnosis,
+          prescription,
+          report: reportBody,
+          cost:
+            row.servicePrice != null && Number(row.servicePrice) > 0
+              ? row.servicePrice
+              : null,
+          vetAppointmentId: appointmentId
+        }
+      });
+
+      return tx.vetAppointment.update({
+        where: { id: appointmentId },
+        data: {
+          visitReportSubmittedAt: now,
+          visitSubjectsTreated: subjects,
+          visitDiagnosis: diagnosis,
+          visitPrescription: prescription,
+          farmHealthRecordId: healthRec.id
+        },
+        include: VET_APPOINTMENT_INCLUDE
+      });
+    });
+
+    await this.notifyUser(
+      row.producerUserId,
+      "Rapport de visite disponible",
+      `Dr ${vetName} a déposé le rapport de la visite du ${this.formatWhen(
+        row.confirmedAt ?? row.requestedAt
+      )}. Consultez Santé > Visites vétérinaires.`,
+      {
+        type: "vet_appointment_report_submitted",
+        appointmentId,
+        farmId: row.farmId,
+        healthRecordId: updated.farmHealthRecordId ?? ""
+      }
+    );
+
+    return this.mapRow(updated);
   }
 
   /**

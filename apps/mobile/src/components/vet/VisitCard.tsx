@@ -50,9 +50,11 @@ export function VisitCard({
   conflictLabel,
   statusLabel
 }: VisitCardProps) {
-  const { t } = useTranslation();
-  const locale = "fr-FR";
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const phone = callPhone ?? producerPhone;
+  const reasonKey = `vet.schedule.reasons.${subject}`;
+  const subjectLabel = t(reasonKey) === reasonKey ? subject : t(reasonKey);
 
   const handleCall = () => {
     if (phone) {
@@ -98,7 +100,7 @@ export function VisitCard({
             </Text>
           ) : null}
           <Text style={styles.subject} numberOfLines={2}>
-            {subject}
+            {subjectLabel}
           </Text>
           {location ? (
             <Text style={styles.location} numberOfLines={1}>

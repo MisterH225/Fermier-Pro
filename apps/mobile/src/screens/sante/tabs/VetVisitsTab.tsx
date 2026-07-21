@@ -51,7 +51,9 @@ function appointmentStatusLabel(
   ) {
     return t("producer.vetAppointments.confirmService");
   }
-  return status.replace(/_/g, " ");
+  const key = `vet.appointment.status.${status}`;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
 }
 
 export function VetVisitsTab({

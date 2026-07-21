@@ -1179,6 +1179,7 @@ export const fr = {
     dashboard: {
       welcome: "Bienvenue",
       defaultName: "Vétérinaire",
+      doctorName: "Dr {{name}}",
       pendingBanner: "Profil en attente de validation",
       upcomingTitle: "Prochains rendez-vous",
       seeAll: "Voir tous →",
@@ -1257,6 +1258,49 @@ export const fr = {
       orphanConfirmedHint:
         "Ce rendez-vous a été confirmé sans tarif. Vous pouvez l’annuler ou le marquer terminé sans paiement.",
       closeOrphanCta: "Marquer terminé (sans paiement)",
+      reportTitle: "Rapport de visite",
+      reportHint:
+        "Après la visite, déposez le rapport (sujets traités, diagnostic, ordonnance). Il sera visible pour le producteur dans Santé.",
+      reportSubjects: "Sujets traités",
+      reportSubjectsPlaceholder: "Ex. vaccination, contrôle gestation…",
+      reportDiagnosis: "Diagnostic",
+      reportDiagnosisPlaceholder: "Diagnostic clinique",
+      reportPrescription: "Ordonnance / prescription",
+      reportPrescriptionPlaceholder: "Traitements, posologie, recommandations…",
+      reportSubmitCta: "Déposer le rapport",
+      reportRequiredFields: "Renseignez les sujets traités, le diagnostic et l’ordonnance.",
+      reportSubmitted: "Rapport déposé",
+      reportWaitingProducer:
+        "En attente du rapport du vétérinaire avant de clôturer la visite.",
+      reportReadyHint:
+        "Le rapport est disponible. Vous pouvez confirmer la fin de prestation.",
+      reportRequiredBeforeConfirm:
+        "Déposez d’abord le rapport de visite (sujets traités, diagnostic, ordonnance) avant de clôturer.",
+      ratingTags: {
+        punctual: "Ponctuel",
+        professional: "Professionnel",
+        goodDiagnosis: "Bon diagnostic",
+        fairPrice: "Prix raisonnable"
+      },
+      status: {
+        APPOINTMENT_REQUESTED: "Demande envoyée",
+        VISIT_PROPOSED: "Proposition reçue",
+        AWAITING_PAYMENT: "En attente de paiement",
+        APPOINTMENT_CONFIRMED: "Confirmé",
+        APPOINTMENT_IN_PROGRESS: "En cours",
+        APPOINTMENT_COMPLETED: "Terminé",
+        APPOINTMENT_RATED: "Noté",
+        APPOINTMENT_REFUSED: "Refusé par le vétérinaire",
+        REFUSED_BY_PRODUCER: "Refusé par le producteur",
+        PAYMENT_EXPIRED: "Paiement expiré",
+        CANCELLED_BY_PRODUCER: "Annulé par le producteur",
+        CANCELLED_BY_VET: "Annulé par le vétérinaire"
+      },
+      conflict: {
+        AVAILABLE: "Créneau disponible",
+        CONFLICT_NEARBY: "RDV proche sur ce créneau",
+        CONFLICT_EXACT: "Conflit exact sur ce créneau"
+      },
       producerAcceptedPaidTitle: "Proposition acceptée",
       producerAcceptedPaidBody: "Payez dans les 48 h pour confirmer le rendez-vous.",
       producerAcceptedFreeTitle: "Visite confirmée",
@@ -1301,7 +1345,13 @@ export const fr = {
         alerts: "Alertes actives",
         visit: "Visite planifiée",
         recent: "Récentes"
-      }
+      },
+      badge: {
+        alert: "Alerte",
+        visit: "RDV",
+        ok: "À jour"
+      },
+      verifiedA11y: "Vérifié"
     },
     farmDetail: {
       tabs: {
@@ -3058,6 +3108,11 @@ export const fr = {
     detailKind: "Type",
     detailEntity: "Sujet",
     detailNotes: "Notes",
+    detailVetName: "Vétérinaire",
+    detailVetReason: "Motif",
+    detailSubjectsTreated: "Sujets traités",
+    detailDiagnosis: "Diagnostic",
+    detailPrescription: "Ordonnance",
     formTitles: {
       vaccination: "Nouvelle vaccination",
       disease: "Nouveau cas / suivi maladie",

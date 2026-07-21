@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -15,13 +16,6 @@ type FarmCardProps = {
   onCall?: () => void;
 };
 
-function badgeLabel(badge: FarmCardBadge): string | null {
-  if (badge === "alert") return "🔴 Alerte";
-  if (badge === "visit") return "🗓️ RDV";
-  if (badge === "ok") return "✅ À jour";
-  return null;
-}
-
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
@@ -36,40 +30,57 @@ export function FarmCard({
   onMessage,
   onCall
 }: FarmCardProps) {
-  const badgeTx = badgeLabel(badge ?? null);
+  const { t } = useTranslation();
+  const badgeTx =
+    badge === "alert"
+      ? `🔴 ${t("vet.farms.badge.alert")}`
+      : badge === "visit"
+        ? `🗓️ ${t("vet.farms.badge.visit")}`
+        : badge === "ok"
+          ? `✅ ${t("vet.farms.badge.ok")}`
+          : null;
   return (
     <Pressable
+      style={[styles.card, vetShadow.card]}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, vetShadow.card, pressed && { opacity: 0.92 }]}
+      accessibilityRole="button"
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarTx}>{initials(farmName)}</Text>
-      </View>
-      <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <Text style={styles.farm} numberOfLines={1}>
+      <View style={styles.row}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarTx}>{initials(farmName)}</Text>
+        </View>
+        <View style={styles.body}>
+          <Text style={styles.name} numberOfLines={1}>
             {farmName}
           </Text>
-          {badgeTx ? <Text style={styles.badge}>{badgeTx}</Text> : null}
+          {producerName ? (
+            <Text style={styles.meta} numberOfLines={1}>
+              {producerName}
+            </Text>
+          ) : null}
+          {location ? (
+            <Text style={styles.meta} numberOfLines={1}>
+              {location}
+            </Text>
+          ) : null}
         </View>
-        {producerName ? (
-          <Text style={styles.sub} numberOfLines={1}>
-            {producerName}
-          </Text>
-        ) : null}
-        {location ? (
-          <Text style={styles.sub} numberOfLines={1}>
-            📍 {location}
-          </Text>
+        {badgeTx ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeTx}>{badgeTx}</Text>
+          </View>
         ) : null}
       </View>
       <View style={styles.actions}>
-        <Pressable style={styles.actionBtn} onPress={onMessage}>
-          <Ionicons name="chatbubble-outline" size={18} color={vetColors.primary} />
-        </Pressable>
-        <Pressable style={styles.actionBtn} onPress={onCall}>
-          <Ionicons name="call-outline" size={18} color={vetColors.primary} />
-        </Pressable>
+        {onMessage ? (
+          <Pressable onPress={onMessage} hitSlop={8} accessibilityRole="button">
+            <Ionicons name="chatbubble-outline" size={20} color={vetColors.primary} />
+          </Pressable>
+        ) : null}
+        {onCall ? (
+          <Pressable onPress={onCall} hitSlop={8} accessibilityRole="button">
+            <Ionicons name="call-outline" size={20} color={vetColors.primary} />
+          </Pressable>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -77,55 +88,43 @@ export function FarmCard({
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: vetColors.cardBg,
     borderRadius: vetRadius.card,
     padding: mobileSpacing.md,
-    gap: mobileSpacing.md,
-    borderWidth: 1,
-    borderColor: vetColors.border
+    marginBottom: mobileSpacing.sm,
+    gap: mobileSpacing.sm
   },
+  row: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: vetColors.primaryLight,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarTx: {
-    fontWeight: "800",
-    fontSize: 16,
-    color: vetColors.primary
+    ...mobileTypography.cardTitle,
+    color: vetColors.primary,
+    fontWeight: "700"
   },
-  body: { flex: 1, minWidth: 0, gap: 2 },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8
-  },
-  farm: {
-    ...mobileTypography.body,
-    fontWeight: "700",
+  body: { flex: 1, minWidth: 0 },
+  name: {
+    ...mobileTypography.cardTitle,
     color: vetColors.textPrimary,
-    flex: 1
+    fontWeight: "700"
   },
-  badge: { fontSize: 11, color: vetColors.textSecondary },
-  sub: {
+  meta: {
     ...mobileTypography.meta,
-    color: vetColors.textSecondary
+    color: vetColors.textSecondary,
+    marginTop: 2
   },
-  actions: { flexDirection: "row", gap: 8 },
-  actionBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  badge: {
     backgroundColor: vetColors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border
-  }
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999
+  },
+  badgeTx: { fontSize: 11, fontWeight: "700", color: vetColors.primary },
+  actions: { flexDirection: "row", gap: 16, paddingLeft: 56 }
 });

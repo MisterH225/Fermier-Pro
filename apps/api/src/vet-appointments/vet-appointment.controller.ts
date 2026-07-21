@@ -17,6 +17,7 @@ import { RequestVetAppointmentDto } from "./dto/request-vet-appointment.dto";
 import { ScheduleFromVetAppointmentDto } from "./dto/schedule-from-vet-appointment.dto";
 import { CancelVetAppointmentDto } from "./dto/cancel-vet-appointment.dto";
 import { SubmitAppointmentRatingDto } from "./dto/submit-appointment-rating.dto";
+import { SubmitVisitReportDto } from "./dto/submit-visit-report.dto";
 import { VetPaymentConfirmDto, VetPaymentInitiateDto } from "./dto/vet-payment.dto";
 import { VetAppointmentService } from "./vet-appointment.service";
 
@@ -137,6 +138,19 @@ export class VetAppointmentController {
     @Body() body: VetPaymentConfirmDto
   ) {
     return this.appointments.confirmPayment(user, id, body.providerRef);
+  }
+
+  @Post("vet-appointments/:id/visit-report")
+  submitVisitReport(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: SubmitVisitReportDto
+  ) {
+    return this.appointments.submitVisitReport(user, id, {
+      subjectsTreated: dto.subjectsTreated,
+      diagnosis: dto.diagnosis,
+      prescription: dto.prescription
+    });
   }
 
   @Post("vet-appointments/:id/complete")

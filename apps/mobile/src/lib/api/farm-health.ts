@@ -8,7 +8,7 @@ export type FarmHealthRecordKind =
   | "treatment"
   | "mortality";
 
-export type FarmHealthEntityType = "animal" | "group";
+export type FarmHealthEntityType = "animal" | "group" | "farm";
 
 export type FarmHealthGlobalStatus = "good" | "warning" | "critical";
 
@@ -116,7 +116,12 @@ export type FarmHealthRecordRowDto = {
     vetName: string;
     reason: string;
     cost: string | number | null;
+    subjectsTreated?: string | null;
+    diagnosis?: string | null;
+    prescription?: string | null;
+    report?: string | null;
     prescriptionUrl?: string | null;
+    vetAppointmentId?: string | null;
   } | null;
   treatment?: {
     drugName: string;

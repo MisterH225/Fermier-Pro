@@ -417,6 +417,32 @@ export function SanteScreen({ route, navigation }: Props) {
               {t("health.detailNotes")} : {r.notes}
             </Text>
           ) : null}
+          {r.kind === "vet_visit" && r.vetVisit ? (
+            <View style={{ gap: 4 }}>
+              <Text style={styles.meta}>
+                {t("health.detailVetName")} : {r.vetVisit.vetName}
+              </Text>
+              <Text style={styles.meta}>
+                {t("health.detailVetReason")} : {r.vetVisit.reason}
+              </Text>
+              {r.vetVisit.subjectsTreated ? (
+                <Text style={styles.meta}>
+                  {t("health.detailSubjectsTreated")} :{" "}
+                  {r.vetVisit.subjectsTreated}
+                </Text>
+              ) : null}
+              {r.vetVisit.diagnosis ? (
+                <Text style={styles.meta}>
+                  {t("health.detailDiagnosis")} : {r.vetVisit.diagnosis}
+                </Text>
+              ) : null}
+              {r.vetVisit.prescription ? (
+                <Text style={styles.meta}>
+                  {t("health.detailPrescription")} : {r.vetVisit.prescription}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           {isProducer && (r.kind === "vet_visit" || r.kind === "treatment") ? (
             <Pressable
               onPress={() => {
