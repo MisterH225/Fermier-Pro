@@ -42,6 +42,14 @@ EXCEPTION WHEN duplicate_object THEN NULL;
   WHEN undefined_object THEN NULL;
 END $$;
 
+-- Prisma 20260623120000_buyer_wallet (non mirroir sous supabase/) — requis par MerchantOrder.
+DO $$ BEGIN
+  CREATE TYPE "MarketplacePaymentMethod" AS ENUM ('mobile_money', 'wallet');
+EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
 DO $$ BEGIN
   ALTER TABLE "PlatformSettings"
   ADD COLUMN IF NOT EXISTS "merchantPremiumPriceXof" DECIMAL(14,2) NOT NULL DEFAULT 5000,
