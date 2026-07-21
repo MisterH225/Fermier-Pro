@@ -33,9 +33,13 @@ export class ProfilesController {
     return this.profiles.update(user, id, dto);
   }
 
+  /**
+   * Ancien hard delete — désactivé (410 Gone).
+   * Utiliser POST /profiles/:id/deactivate.
+   */
   @Delete(":id")
   async remove(@CurrentUser() user: User, @Param("id") id: string) {
     await this.profiles.remove(user, id);
-    return { ok: true };
   }
 }
+

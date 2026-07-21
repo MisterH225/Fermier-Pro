@@ -1,6 +1,6 @@
 import {
   ConflictException,
-  ForbiddenException,
+  GoneException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -115,19 +115,26 @@ export class ProfilesService {
     });
   }
 
-  async remove(user: User, profileId: string): Promise<void> {
+  /**
+   * Ancien DELETE destructif — neutralisé.
+   * Ne fait plus jamais de hard delete (données orphelines VetProfile, historique).
+   * Utiliser POST /profiles/:id/deactivate (désactivation).
+   * @deprecated Prefer ProfilesService.deactivate
+   */
+  async remove(user: User, profileId: string): Promise<never> {
     const profile = await this.prisma.profile.findFirst({
-      where: { id: profileId, userId: user.id }
+      where: { id: profileId, userId: user.id },
+      select: { id: true }
     });
     if (!profile) {
       throw new NotFoundException("Profil introuvable");
     }
-    if (profile.type === "buyer" && profile.isDefault) {
-      throw new ForbiddenException(
-        "Impossible de supprimer le profil acheteur par defaut"
-      );
-    }
-    await this.prisma.profile.delete({ where: { id: profileId } });
+    throw new GoneException({
+      code: "PROFILE_DELETE_GONE",
+      message:
+        "La suppression de profil n'est plus disponible. Utilisez la désactivation (POST /profiles/:id/deactivate).",
+      deactivatePath: `/profiles/${profileId}/deactivate`
+    });
   }
 
   /**
