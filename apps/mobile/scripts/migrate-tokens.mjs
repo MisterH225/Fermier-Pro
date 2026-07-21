@@ -133,6 +133,13 @@ const COLOR_MAP = {
   "#FFF8F3": { theme: "merchantTheme", expr: "merchantColors.canvas" },
   "#E07A3D": { theme: "merchantTheme", expr: "merchantColors.accent" },
   "#9A4218": { theme: "merchantTheme", expr: "merchantColors.primaryDark" },
+  "#92400E": { theme: "merchantTheme", expr: "merchantColors.amberText" },
+  "#78350F": { theme: "merchantTheme", expr: "merchantColors.amberTextDeep" },
+  "#FCE4EC": { theme: "merchantTheme", expr: "merchantColors.roseSoftBg" },
+  "#DBEAFE": { theme: "merchantTheme", expr: "merchantColors.blueSoftBg" },
+  "#1E40AF": { theme: "merchantTheme", expr: "merchantColors.blueText" },
+  "#1E3A8A": { theme: "merchantTheme", expr: "merchantColors.blueTextDeep" },
+  "#047857": { theme: "merchantTheme", expr: "merchantColors.greenText" },
   // tech
   "#FF6B35": { theme: "technicianTheme", expr: "techColors.primary" },
   "#FFF0EB": { theme: "technicianTheme", expr: "techColors.primaryLight" },

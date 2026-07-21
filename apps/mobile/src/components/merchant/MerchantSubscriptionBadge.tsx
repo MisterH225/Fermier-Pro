@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileKpiPalette, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
+import { vetColors } from "../../theme/vetTheme";
 
 type SubscriptionStatus =
   | "active"
@@ -114,18 +116,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: merchantColors.border
   },
-  badgePremium: { backgroundColor: "#FFF8E1", borderColor: "#F59E0B" },
-  badgeTrial: { backgroundColor: "#ECFDF5", borderColor: "#10B981" },
-  badgePastDue: { backgroundColor: "#FEE2E2", borderColor: "#EF4444" },
-  badgeTx: { fontWeight: "700", color: merchantColors.primary, fontSize: 13 },
-  badgeTxPremium: { color: "#B45309" },
-  badgeTxTrial: { color: "#047857" },
-  badgeTxPastDue: { color: "#B91C1C" },
+  badgePremium: { backgroundColor: mobileKpiPalette.dueMonth.bg, borderColor: producerColors.warning },
+  badgeTrial: { backgroundColor: producerColors.successMintBg, borderColor: vetColors.success },
+  badgePastDue: { backgroundColor: mobileStatusSurfaces.errorBg, borderColor: vetColors.danger },
+  badgeTx: { fontWeight: "700", color: merchantColors.primary, fontSize: mobileFontSize.sm },
+  badgeTxPremium: { color: producerColors.warningDeep },
+  badgeTxTrial: { color: merchantColors.greenText },
+  badgeTxPastDue: { color: producerColors.dangerStrong },
   cta: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: merchantRadius.button,
     backgroundColor: merchantColors.primary
   },
-  ctaTx: { color: merchantColors.onPrimary, fontWeight: "700", fontSize: 13 }
+  ctaTx: { color: merchantColors.onPrimary, fontWeight: "700", fontSize: mobileFontSize.sm }
 });

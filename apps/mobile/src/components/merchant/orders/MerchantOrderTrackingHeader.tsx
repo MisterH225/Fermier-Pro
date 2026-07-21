@@ -13,6 +13,7 @@ import {
   shortOrderTrackingId
 } from "../../../lib/merchantOrderTracking";
 import { merchantColors } from "../../../theme/merchantTheme";
+import { mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   orderId: string;
@@ -94,20 +95,20 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: merchantColors.primaryLight,
     alignItems: "center",
     justifyContent: "center"
   },
   idBlock: { flex: 1, gap: 2 },
   label: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
   idRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   id: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
     color: merchantColors.textPrimary,
     flexShrink: 1

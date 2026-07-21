@@ -34,7 +34,7 @@ import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const AVATAR = 108;
@@ -337,7 +337,7 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
                 accessibilityRole="button"
                 accessibilityLabel={t("merchant.profile.changePhotoTitle")}
               >
-                <Ionicons name="pencil" size={18} color="#fff" />
+                <Ionicons name="pencil" size={18} color={mobileColors.background} />
               </Pressable>
             </View>
             <Text style={styles.heroName} numberOfLines={2}>
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: merchantColors.primary,
     fontWeight: "600",
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   closeHit: {
     minWidth: 72,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: merchantColors.primary,
     fontWeight: "600",
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: merchantColors.canvas,
-    shadowColor: "#000",
+    shadowColor: mobileColors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
     shadowRadius: 4,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   },
   heroName: {
     marginTop: mobileSpacing.lg,
-    fontSize: 26,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "700",
     color: merchantColors.textPrimary,
     textAlign: "center",
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   upgradeBtnTx: {
     color: merchantColors.onPrimary,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   renewBtn: {
     backgroundColor: merchantColors.warning,
@@ -553,9 +553,9 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   renewBtnTx: {
-    color: "#fff",
+    color: mobileColors.background,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   sectionHeader: {
     ...mobileTypography.meta,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   value: {
     color: merchantColors.textPrimary,
     fontWeight: "500",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   statsRow: {
     flexDirection: "row",
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs
   },
   stat: { alignItems: "center", flex: 1 },
-  statVal: { fontSize: 20, fontWeight: "800", color: merchantColors.primary },
+  statVal: { fontSize: mobileFontSize.xl, fontWeight: "800", color: merchantColors.primary },
   statLbl: {
     ...mobileTypography.meta,
     color: merchantColors.textSecondary,
@@ -614,6 +614,6 @@ const styles = StyleSheet.create({
   cancelSubBtnTx: {
     color: merchantColors.danger,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   }
 });

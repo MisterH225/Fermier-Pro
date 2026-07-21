@@ -9,6 +9,7 @@ import {
 import type { MerchantOrderDto } from "../../../lib/api";
 import { formatMarketMoney } from "../../../lib/formatMoney";
 import { merchantColors } from "../../../theme/merchantTheme";
+import { mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   order: MerchantOrderDto;
@@ -91,7 +92,7 @@ export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
 
 const styles = StyleSheet.create({
   label: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 16,
     fontWeight: "500",
     color: merchantColors.textSecondary,
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "right",
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: merchantColors.danger
   }
 });

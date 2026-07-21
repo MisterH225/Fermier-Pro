@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { merchantColors } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   welcomeLabel: string;
@@ -59,5 +59,5 @@ const styles = StyleSheet.create({
   },
   textCol: { flex: 1, minWidth: 0 },
   welcome: { ...mobileTypography.meta, color: merchantColors.textSecondary },
-  name: { fontSize: 20, fontWeight: "800", color: merchantColors.textPrimary }
+  name: { fontSize: mobileFontSize.xl, fontWeight: "800", color: merchantColors.textPrimary }
 });

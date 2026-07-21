@@ -11,7 +11,7 @@ import {
   type RestockRecommendation
 } from "../../lib/merchantProductInsights";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   products: RestockProductLike[] | undefined;
@@ -145,17 +145,17 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   badge: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     color: merchantColors.primary
   },
   priority: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "700",
     textTransform: "uppercase"
   },
   title: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "800",
     color: merchantColors.textPrimary,
     marginBottom: 4
@@ -172,13 +172,13 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm
   },
   meta: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: merchantColors.primaryDark
   },
   cta: { flexDirection: "row", alignItems: "center", gap: 2 },
   ctaTx: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: merchantColors.primary
   },
