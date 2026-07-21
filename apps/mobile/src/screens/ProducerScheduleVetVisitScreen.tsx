@@ -24,12 +24,7 @@ import {
 import { formatApiError } from "../lib/apiErrors";
 import { openPhoneCall } from "../lib/phone";
 import { combineDayAndSlot } from "../lib/visitSlots";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
 
@@ -293,7 +288,7 @@ const styles = StyleSheet.create({
   },
   vetName: {
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   vetMeta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
@@ -303,7 +298,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between"
   },
-  navBtn: { fontSize: 22, color: mobileColors.accent, padding: 8 },
+  navBtn: { fontSize: mobileFontSize.xl, color: mobileColors.accent, padding: 8 },
   monthLabel: {
     ...mobileTypography.title,
     fontWeight: "700",
@@ -313,13 +308,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 10,
     marginRight: 8,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     minWidth: 48
   },
   dayCellActive: { backgroundColor: mobileColors.accent },
-  dayName: { fontSize: 11, color: mobileColors.textSecondary },
+  dayName: { fontSize: mobileFontSize.xs, color: mobileColors.textSecondary },
   dayNameActive: { color: "rgba(255,255,255,0.9)" },
-  dayNum: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
+  dayNum: { fontSize: mobileFontSize.lg, fontWeight: "700", color: mobileColors.textPrimary },
   dayNumActive: { color: mobileColors.onAccent },
   label: {
     fontWeight: "700",
@@ -330,7 +325,7 @@ const styles = StyleSheet.create({
   reasonChip: {
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     borderWidth: 1,
     borderColor: mobileColors.border
   },
@@ -338,7 +333,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${mobileColors.accent}18`,
     borderColor: mobileColors.accent
   },
-  reasonTx: { fontSize: 13, color: mobileColors.textSecondary, fontWeight: "600" },
+  reasonTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, fontWeight: "600" },
   reasonTxOn: { color: mobileColors.accent },
   input: {
     borderWidth: 1,
@@ -356,6 +351,6 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.md
   },
   submitDisabled: { opacity: 0.5 },
-  submitTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  submitTx: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   error: { color: mobileColors.error }
 });

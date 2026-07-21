@@ -2,7 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useBottomInset } from "../hooks/useBottomInset";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ModuleRoadmap">;
@@ -35,26 +35,26 @@ const styles = StyleSheet.create({
     padding: 20
   },
   title: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginBottom: 14
   },
   body: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textSecondary,
     lineHeight: 24
   },
   note: {
     marginTop: 28,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted,
     borderWidth: 1,
     borderColor: mobileColors.border
   },
   noteText: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     lineHeight: 20
   }

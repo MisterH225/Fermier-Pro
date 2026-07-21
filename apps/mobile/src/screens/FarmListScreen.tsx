@@ -29,7 +29,7 @@ import {
 import type { FarmDto } from "../lib/api";
 import { fetchFarms } from "../lib/api";
 import { farmDetailMenuVisibility } from "../lib/menuVisibility";
-import { mobileColors, mobileRadius, mobileSpacing } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 const PRODUCER = "producer";
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.canvas
   },
   listWelcome: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     marginBottom: 10
   },
@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
   },
   marketInlineText: {
     color: mobileColors.textPrimary,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   marketInlineSub: {
     marginTop: 4,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   inlineCta: {
@@ -375,14 +375,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: mobileColors.accentSoft,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: mobileColors.accent
   },
   inlineCtaText: {
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   inviteLink: {
     alignSelf: "flex-start",
@@ -394,14 +394,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   inviteLinkText: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.accent,
     fontWeight: "600",
     textDecorationLine: "underline"
   },
   welcome: {
     marginTop: 16,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
   card: {
@@ -413,18 +413,18 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
   cardAddr: {
     marginTop: 8,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textTertiary
   },
   centered: {
@@ -436,22 +436,22 @@ const styles = StyleSheet.create({
   errorText: {
     color: mobileColors.error,
     textAlign: "center",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   hint: {
     marginTop: 12,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   emptySub: {
     marginTop: 10,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     textAlign: "center",
     lineHeight: 20
@@ -462,13 +462,13 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.accent,
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     alignSelf: "stretch"
   },
   ctaOutlineText: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     textAlign: "center"
   },
   cta: {
@@ -476,13 +476,13 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.accent,
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     alignSelf: "stretch"
   },
   ctaText: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   headerRight: {
     flexDirection: "row",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   headerSecondaryText: {
     color: mobileColors.accent,
     fontWeight: "600",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   headerBtn: {
     paddingHorizontal: 4
@@ -503,6 +503,6 @@ const styles = StyleSheet.create({
   headerBtnText: {
     color: mobileColors.textSecondary,
     fontWeight: "600",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   }
 });

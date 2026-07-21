@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useState } from "react";
 import {
@@ -24,6 +24,7 @@ import {
 import { buildListingShareMessage } from "../lib/shareMarketplaceListing";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatSearchUser">;
 
@@ -118,7 +119,7 @@ export function ChatSearchUserScreen({ navigation, route }: Props) {
           value={rawQuery}
           onChangeText={setRawQuery}
           placeholder="Nom ou e-mail — cercle de tes fermes"
-          placeholderTextColor="#9aa088"
+          placeholderTextColor={producerColors.olivePlaceholder}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -173,16 +174,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     borderWidth: 1,
-    borderColor: "#d4dac8",
+    borderColor: producerColors.oliveBorder,
     backgroundColor: mobileColors.background,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   hint: {
     paddingHorizontal: 20,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     lineHeight: 18
   },
@@ -195,28 +196,28 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e0e4d4"
+    borderColor: producerColors.oliveBorder
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
-  error: { color: "#b00020", textAlign: "center" },
-  empty: { fontSize: 15, color: mobileColors.textSecondary },
+  error: { color: producerColors.dangerDeep, textAlign: "center" },
+  empty: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary },
   mutationErr: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-    color: "#b00020",
-    fontSize: 13
+    color: producerColors.dangerDeep,
+    fontSize: mobileFontSize.sm
   }
 });

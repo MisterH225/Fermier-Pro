@@ -22,12 +22,7 @@ import {
   type InvitationRecipientKind
 } from "../lib/api";
 import { defaultPermissionsForRecipientKind } from "../lib/memberPermissions";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
 
@@ -159,7 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm + 2,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     backgroundColor: mobileColors.surfaceMuted,
     color: mobileColors.textPrimary
   },
@@ -180,6 +175,6 @@ const styles = StyleSheet.create({
   ctaTxt: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   }
 });

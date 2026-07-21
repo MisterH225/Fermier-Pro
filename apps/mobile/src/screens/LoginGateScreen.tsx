@@ -17,6 +17,7 @@ import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
 import { isAuthEnvConfigured } from "../env";
 import { getGoogleOAuthRedirectUri } from "../lib/googleAuth";
 import { authColors, authRadii } from "../theme/authTheme";
+import { mobileFontSize } from "../theme/mobileTheme";
 
 const LOGO = require("../../assets/images/fermier-pro-logo-nobg.png");
 const AUTH_BACKGROUND = require("../../assets/images/auth-background.jpg");
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
     alignSelf: "center"
   },
   lead: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: authColors.forestMuted,
     textAlign: "center",
     lineHeight: 22,
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   },
   warnText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: authColors.error,
     lineHeight: 20
   },
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   },
   authOrText: {
     marginHorizontal: 14,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: authColors.forestMuted
   },
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.92)"
   },
   redirectHintTitle: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: authColors.forestMuted,
     textTransform: "uppercase",
@@ -212,19 +213,19 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   redirectHintUrl: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: authColors.forest,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     marginBottom: 8
   },
   redirectHintBody: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: authColors.body
   },
   redirectWarn: {
     marginTop: 10,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     lineHeight: 17,
     color: authColors.error,
     fontWeight: "600"

@@ -21,13 +21,7 @@ import {
 } from "../lib/api";
 import { clearPendingInviteToken } from "../lib/pendingInviteToken";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileStatusSurfaces,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileStatusSurfaces, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
 
@@ -254,7 +248,7 @@ const styles = StyleSheet.create({
   errorText: {
     ...mobileTypography.body,
     flex: 1,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.error,
     lineHeight: 20
   },
@@ -271,7 +265,7 @@ const styles = StyleSheet.create({
   previewIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center",
@@ -284,7 +278,7 @@ const styles = StyleSheet.create({
   },
   previewSub: {
     ...mobileTypography.body,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     textAlign: "center"
   },
@@ -303,11 +297,11 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   intro: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20
   },
@@ -323,7 +317,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.md,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     backgroundColor: mobileColors.background,
     minHeight: 88,
     textAlignVertical: "top",
@@ -331,7 +325,7 @@ const styles = StyleSheet.create({
   },
   scanNote: {
     ...mobileTypography.body,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20,
     paddingHorizontal: mobileSpacing.sm,
@@ -345,5 +339,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   ctaDisabled: { opacity: 0.55 },
-  ctaTxt: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  ctaTxt: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -21,6 +21,8 @@ import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
 import { buildFarmDetailMenu } from "../lib/menuVisibility";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { marketplaceColors } from "../theme/marketplaceTheme";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmDetail">;
 
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
   },
   cheptelCta: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
@@ -221,181 +223,181 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: mobileColors.accent,
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   marketCta: {
     borderWidth: 2,
-    borderColor: "#c4a574",
-    backgroundColor: "#fdfaf3",
-    borderRadius: 16,
+    borderColor: marketplaceColors.handover,
+    backgroundColor: producerColors.oliveCard,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 20
   },
   marketCtaText: {
-    color: "#6b5420",
-    fontSize: 17,
+    color: producerColors.oliveClosedText,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   marketCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   tasksCtaText: {
     color: mobileColors.accent,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   tasksCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   cheptelCtaText: {
     color: mobileColors.onAccent,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   cheptelCtaSub: {
-    color: "#dfe8c8",
-    fontSize: 13,
+    color: producerColors.primaryMuted,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   chatCta: {
     borderWidth: 2,
-    borderColor: "#7a9a3a",
-    backgroundColor: "#f0f5e4",
-    borderRadius: 16,
+    borderColor: producerColors.primarySoft,
+    backgroundColor: producerColors.oliveWash,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   chatCtaText: {
-    color: "#3d5218",
-    fontSize: 17,
+    color: producerColors.primaryDark,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   chatCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   chatErr: {
-    color: "#b00020",
-    fontSize: 13,
+    color: producerColors.dangerDeep,
+    fontSize: mobileFontSize.sm,
     marginBottom: 12,
     lineHeight: 18
   },
   vetCta: {
     borderWidth: 2,
-    borderColor: "#4a90a4",
-    backgroundColor: "#eef6f8",
-    borderRadius: 16,
+    borderColor: producerColors.moduleTealBorder,
+    backgroundColor: producerColors.moduleTealBg,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   vetCtaText: {
-    color: "#2d5a6e",
-    fontSize: 17,
+    color: marketplaceColors.reservedText,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   vetCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   financeCta: {
     borderWidth: 2,
-    borderColor: "#6b7cb8",
-    backgroundColor: "#f2f4fb",
-    borderRadius: 16,
+    borderColor: producerColors.moduleIndigoBorder,
+    backgroundColor: producerColors.moduleIndigoBg,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   financeCtaText: {
-    color: "#3d4d78",
-    fontSize: 17,
+    color: producerColors.moduleIndigoText,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   financeCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   housingCta: {
     borderWidth: 2,
-    borderColor: "#a67c52",
-    backgroundColor: "#faf6f0",
-    borderRadius: 16,
+    borderColor: producerColors.moduleBrownBorder,
+    backgroundColor: producerColors.oliveCard,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   housingCtaText: {
-    color: "#5c4428",
-    fontSize: 17,
+    color: producerColors.moduleBrownText,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   housingCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   teamCta: {
     borderWidth: 2,
-    borderColor: "#6b6e9c",
-    backgroundColor: "#f4f4fb",
-    borderRadius: 16,
+    borderColor: producerColors.moduleSlateBorder,
+    backgroundColor: producerColors.moduleSlateBg,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   teamCtaText: {
-    color: "#3a3d6b",
-    fontSize: 17,
+    color: producerColors.moduleSlateText,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   teamCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   feedCta: {
     borderWidth: 2,
-    borderColor: "#8faa3c",
-    backgroundColor: "#f6f9e8",
-    borderRadius: 16,
+    borderColor: producerColors.moduleLimeBorder,
+    backgroundColor: producerColors.oliveCanvas,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12
   },
   feedCtaText: {
-    color: "#4d6318",
-    fontSize: 17,
+    color: producerColors.moduleLimeText,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700"
   },
   feedCtaSub: {
     color: mobileColors.textSecondary,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   block: {
     marginBottom: 18
   },
   label: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 4
   },
   value: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     lineHeight: 22
   },
   meta: {
     marginTop: 8,
-    fontSize: 11,
-    color: "#999"
+    fontSize: mobileFontSize.xs,
+    color: marketplaceColors.placeholder
   },
   centered: {
     flex: 1,
@@ -405,7 +407,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.canvas
   },
   errorText: {
-    color: "#b00020",
+    color: producerColors.dangerDeep,
     textAlign: "center"
   }
 });

@@ -19,7 +19,8 @@ import { fetchFarmBarn } from "../lib/api";
 import { resolvePenOccupancy } from "../lib/penOccupancy";
 import { getQueryErrorMessage } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "BarnDetail">;
 
@@ -196,8 +197,8 @@ const styles = StyleSheet.create({
   notes: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    fontSize: 14,
-    color: "#4a5238",
+    fontSize: mobileFontSize.md,
+    color: producerColors.oliveInk,
     lineHeight: 20
   },
   list: { padding: 16, paddingBottom: 32 },
@@ -209,26 +210,26 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: mobileColors.canvas
   },
-  error: { color: "#a34c24", textAlign: "center" },
+  error: { color: producerColors.accent, textAlign: "center" },
   emptyBox: { padding: 32 },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
-    color: "#1f2910",
+    color: producerColors.oliveDark,
     marginBottom: 8
   },
-  emptySub: { fontSize: 14, color: "#6d745b", lineHeight: 20 },
+  emptySub: { fontSize: mobileFontSize.md, color: producerColors.oliveMuted, lineHeight: 20 },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
-  cardTitle: { fontSize: 17, fontWeight: "700", color: "#1f2910" },
-  cardMeta: { fontSize: 14, color: "#6d745b", marginTop: 6 },
-  cardStatus: { fontSize: 13, color: mobileColors.accent, marginTop: 8 },
+  cardTitle: { fontSize: mobileFontSize.lg, fontWeight: "700", color: producerColors.oliveDark },
+  cardMeta: { fontSize: mobileFontSize.md, color: producerColors.oliveMuted, marginTop: 6 },
+  cardStatus: { fontSize: mobileFontSize.sm, color: mobileColors.accent, marginTop: 8 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: mobileFontSize.md }
 });

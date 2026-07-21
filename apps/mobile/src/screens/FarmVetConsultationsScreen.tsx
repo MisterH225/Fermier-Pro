@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
@@ -21,6 +21,7 @@ import type { VetConsultationStatusDto } from "../lib/api";
 import { fetchVetConsultations } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmVetConsultations">;
 
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 4,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
   filterScroll: { maxHeight: 48, marginBottom: 4 },
@@ -218,19 +219,19 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     borderWidth: 1,
-    borderColor: "#e0e4d4",
+    borderColor: producerColors.oliveBorder,
     backgroundColor: mobileColors.background,
     marginRight: 8
   },
   filterChipOn: {
     borderColor: mobileColors.accent,
-    backgroundColor: "#e8efd9"
+    backgroundColor: producerColors.oliveChipBg
   },
   filterChipText: {
-    fontSize: 13,
-    color: "#4b513d"
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textTertiary
   },
   filterChipTextOn: {
     color: mobileColors.textPrimary,
@@ -245,28 +246,28 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: mobileColors.canvas
   },
-  error: { color: "#a34c24", textAlign: "center", marginBottom: 8 },
-  hint: { fontSize: 13, color: mobileColors.textSecondary, textAlign: "center" },
+  error: { color: producerColors.accent, textAlign: "center", marginBottom: 8 },
+  hint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, textAlign: "center" },
   emptyBox: { padding: 32 },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     marginBottom: 8
   },
-  emptySub: { fontSize: 14, color: mobileColors.textSecondary, lineHeight: 20 },
+  emptySub: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, lineHeight: 20 },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e8e4d4"
+    borderColor: producerColors.oliveBorderWarm
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: mobileColors.textPrimary },
-  cardMeta: { fontSize: 13, color: mobileColors.textSecondary, marginTop: 6 },
-  cardAnimal: { fontSize: 13, color: mobileColors.accent, marginTop: 4 },
-  cardPreview: { fontSize: 14, color: "#4a5238", marginTop: 8 },
+  cardTitle: { fontSize: mobileFontSize.lg, fontWeight: "700", color: mobileColors.textPrimary },
+  cardMeta: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginTop: 6 },
+  cardAnimal: { fontSize: mobileFontSize.sm, color: mobileColors.accent, marginTop: 4 },
+  cardPreview: { fontSize: mobileFontSize.md, color: producerColors.oliveInk, marginTop: 8 },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: mobileFontSize.md }
 });

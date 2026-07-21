@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getUserFacingError } from "../lib/userFacingError";
@@ -22,6 +22,7 @@ import type { AnimalListItem } from "../lib/api";
 import { createVetConsultation, fetchFarmAnimals } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CreateVetConsultation">;
 
@@ -111,7 +112,7 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
           value={subject}
           onChangeText={setSubject}
           placeholder="Ex. Boiterie truie 12"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
         />
 
         <Text style={styles.label}>Résumé (optionnel)</Text>
@@ -120,7 +121,7 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
           value={summary}
           onChangeText={setSummary}
           placeholder="Symptômes, contexte…"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
           multiline
         />
 
@@ -141,7 +142,7 @@ export function CreateVetConsultationScreen({ route, navigation }: Props) {
 
         {animalsQuery.isPending ? (
           <View style={styles.animalsLoading}>
-            <ActivityIndicator color="#5d7a1f" />
+            <ActivityIndicator color={producerColors.olive} />
           </View>
         ) : animals.length === 0 ? (
           <Text style={styles.muted}>
@@ -193,32 +194,32 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16 },
   screenTitle: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     marginBottom: 6
   },
   screenSubtitle: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20,
     marginBottom: 20
   },
-  hint: { fontSize: 13, color: mobileColors.textSecondary, marginBottom: 16 },
+  hint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginBottom: 16 },
   label: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: "#4a5238",
+    color: producerColors.oliveInk,
     marginBottom: 8
   },
   input: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary,
     marginBottom: 16
   },
@@ -232,34 +233,34 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     backgroundColor: mobileColors.background,
     marginRight: 8,
     marginBottom: 8,
     maxWidth: "100%"
   },
   chipOn: {
-    borderColor: "#5d7a1f",
-    backgroundColor: "#eef4dc"
+    borderColor: producerColors.olive,
+    backgroundColor: producerColors.oliveWashSoft
   },
-  chipText: { fontSize: 13, color: "#4a5238" },
+  chipText: { fontSize: mobileFontSize.sm, color: producerColors.oliveInk },
   chipTextOn: { fontWeight: "700", color: mobileColors.textPrimary },
   muted: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     marginBottom: 16,
     lineHeight: 20
   },
   animalsLoading: { paddingVertical: 12, marginBottom: 8 },
   cta: {
-    backgroundColor: "#5d7a1f",
-    borderRadius: 12,
+    backgroundColor: producerColors.olive,
+    borderRadius: mobileRadius.md,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

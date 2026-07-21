@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 import { useQuery } from "@tanstack/react-query";
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import { useSession } from "../context/SessionContext";
 import { fetchFarms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatPickFarm">;
 
@@ -95,8 +96,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
-    fontSize: 14,
-    color: "#4b513d",
+    fontSize: mobileFontSize.md,
+    color: mobileColors.textTertiary,
     lineHeight: 20
   },
   searchCta: {
@@ -104,19 +105,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     borderWidth: 2,
-    borderColor: "#7a9a3a",
-    backgroundColor: "#f0f5e4"
+    borderColor: producerColors.primarySoft,
+    backgroundColor: producerColors.oliveWash
   },
   searchCtaText: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
-    color: "#3d5218"
+    color: producerColors.primaryDark
   },
   searchCtaSub: {
     marginTop: 6,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     lineHeight: 18
   },
@@ -129,22 +130,22 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: mobileColors.background,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e0e4d4"
+    borderColor: producerColors.oliveBorder
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   cardSub: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
-  error: { color: "#b00020", textAlign: "center" },
-  empty: { fontSize: 15, color: mobileColors.textSecondary, textAlign: "center" }
+  error: { color: producerColors.dangerDeep, textAlign: "center" },
+  empty: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, textAlign: "center" }
 });

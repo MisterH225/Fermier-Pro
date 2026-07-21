@@ -77,14 +77,7 @@ import {
 import { getUserFacingError } from "../lib/userFacingError";
 import { presentListingShareOptions } from "../lib/shareMarketplaceListing";
 import { marketplaceColors } from "../theme/marketplaceTheme";
-import {
-  mobileColors,
-  mobileStatusSurfaces,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileStatusSurfaces, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { ListingDurationDays } from "../lib/marketplaceListingForm";
 import { formatListingWeightWithBasis } from "../lib/marketplaceListingForm";
 import type { RootStackParamList } from "../types/navigation";
@@ -976,7 +969,7 @@ const styles = StyleSheet.create({
   sellerAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
@@ -984,7 +977,7 @@ const styles = StyleSheet.create({
   sellerAvatarTx: {
     fontWeight: "800",
     color: mobileColors.accent,
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   sellerMeta: { flex: 1, gap: 2 },
   sellerName: {
@@ -994,7 +987,7 @@ const styles = StyleSheet.create({
   sellerFarm: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   sellerLoc: {
     ...mobileTypography.meta,
@@ -1006,7 +999,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm
   },
   pricePerKg: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: mobileColors.textSecondary
   },
@@ -1032,7 +1025,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   status: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.muted,
     marginBottom: 8
   },
@@ -1074,17 +1067,17 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   closedBanner: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: marketplaceColors.closedText,
     backgroundColor: marketplaceColors.closedBg,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     marginBottom: 12,
     lineHeight: 20
   },
   offersBadge: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: marketplaceColors.offers,
     marginTop: 4,
@@ -1096,23 +1089,23 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs
   },
   reservedBanner: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: marketplaceColors.reservedText,
     backgroundColor: marketplaceColors.reservedBg,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     marginBottom: 12,
     lineHeight: 20
   },
   hintSmall: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.muted,
     marginBottom: 8,
     lineHeight: 17
   },
   labelSmall: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: marketplaceColors.muted,
     marginBottom: 4,
@@ -1122,10 +1115,10 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: marketplaceColors.border,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: marketplaceColors.primaryDark
   },
   pickupNote: {
@@ -1138,40 +1131,40 @@ const styles = StyleSheet.create({
     backgroundColor: marketplaceColors.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12
+    borderRadius: mobileRadius.md
   },
   pickupSaveTxt: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   handoverBtn: {
     marginTop: 8,
     backgroundColor: marketplaceColors.handover,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   handoverBtnTxt: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   price: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "700",
     color: marketplaceColors.primary,
     marginBottom: 12
   },
   desc: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: marketplaceColors.primaryDark,
     lineHeight: 24,
     marginBottom: 16
   },
   muted: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: marketplaceColors.placeholder,
     fontStyle: "italic",
     marginBottom: 16
@@ -1183,7 +1176,7 @@ const styles = StyleSheet.create({
     borderTopColor: marketplaceColors.border
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: marketplaceColors.muted,
     textTransform: "uppercase",
@@ -1191,7 +1184,7 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   hint: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.muted,
     marginBottom: 6,
     marginTop: 8
@@ -1200,10 +1193,10 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: marketplaceColors.border,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     color: marketplaceColors.primaryDark
   },
   inputMulti: {
@@ -1214,7 +1207,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     backgroundColor: marketplaceColors.primary,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center"
   },
   submitDisabled: {
@@ -1223,34 +1216,34 @@ const styles = StyleSheet.create({
   submitText: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   note: {
     marginTop: 16,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.note,
     lineHeight: 18
   },
   block: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: marketplaceColors.textMuted,
     lineHeight: 22
   },
   offerCard: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: 12,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: marketplaceColors.border
   },
   offerBuyer: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.muted,
     marginTop: 6
   },
   offerMsg: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.textMuted,
     marginTop: 6,
     fontStyle: "italic"
@@ -1272,7 +1265,7 @@ const styles = StyleSheet.create({
   btnAcceptTxt: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   btnCounter: {
     flex: 1,
@@ -1287,7 +1280,7 @@ const styles = StyleSheet.create({
   btnCounterTxt: {
     color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   btnReject: {
     flex: 1,
@@ -1301,7 +1294,7 @@ const styles = StyleSheet.create({
   btnRejectTxt: {
     color: mobileColors.error,
     fontWeight: "700",
-    fontSize: 13
+    fontSize: mobileFontSize.sm
   },
   gallery: { marginBottom: mobileSpacing.md },
   gallerySingle: { marginBottom: mobileSpacing.md },
@@ -1334,7 +1327,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   sellerHint: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: marketplaceColors.note,
     marginBottom: 12,
     lineHeight: 18
@@ -1342,20 +1335,20 @@ const styles = StyleSheet.create({
   sellerBtnPrimary: {
     backgroundColor: marketplaceColors.primary,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     marginBottom: 10
   },
   sellerBtnPrimaryTxt: {
     color: mobileColors.onAccent,
     fontWeight: "700",
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   sellerBtnSecondary: {
     borderWidth: 2,
     borderColor: marketplaceColors.primary,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     marginBottom: 10,
     backgroundColor: mobileColors.background
@@ -1363,20 +1356,20 @@ const styles = StyleSheet.create({
   sellerBtnSecondaryTxt: {
     color: marketplaceColors.primary,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   sellerBtnDanger: {
     borderWidth: 2,
     borderColor: mobileColors.error,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     alignItems: "center",
     backgroundColor: mobileColors.background
   },
   sellerBtnDangerTxt: {
     color: mobileColors.error,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   sellerBtnDisabled: {
     opacity: 0.55

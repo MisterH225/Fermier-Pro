@@ -18,12 +18,7 @@ import { HousingModuleGate } from "../components/HousingModuleGate";
 import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
 import { fetchFarmBarns } from "../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FarmBarns">;
@@ -232,5 +227,5 @@ const styles = StyleSheet.create({
     marginTop: 6
   },
   headerBtn: { marginRight: 4 },
-  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: 15 }
+  headerBtnText: { color: mobileColors.accent, fontWeight: "600", fontSize: mobileFontSize.md }
 });

@@ -19,7 +19,8 @@ import { useSession } from "../context/SessionContext";
 import { addVetConsultationAttachment } from "../lib/api";
 import { getUserFacingError } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
-import { mobileColors } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
+import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -101,7 +102,7 @@ export function AddVetConsultationAttachmentScreen({
           value={url}
           onChangeText={setUrl}
           placeholder="https://…"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
           multiline
@@ -113,7 +114,7 @@ export function AddVetConsultationAttachmentScreen({
           value={label}
           onChangeText={setLabel}
           placeholder="Ex. Radiographie jarret"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
         />
 
         <Text style={styles.label}>Type MIME (optionnel)</Text>
@@ -122,7 +123,7 @@ export function AddVetConsultationAttachmentScreen({
           value={mimeType}
           onChangeText={setMimeType}
           placeholder="application/pdf ou image/jpeg"
-          placeholderTextColor="#a8a99a"
+          placeholderTextColor={producerColors.textMuted}
           autoCapitalize="none"
         />
 
@@ -145,38 +146,38 @@ export function AddVetConsultationAttachmentScreen({
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: 16, paddingBottom: 40 },
-  hint: { fontSize: 13, color: "#6d745b", marginBottom: 8 },
+  hint: { fontSize: mobileFontSize.sm, color: producerColors.oliveMuted, marginBottom: 8 },
   info: {
-    fontSize: 14,
-    color: "#4a5238",
+    fontSize: mobileFontSize.md,
+    color: producerColors.oliveInk,
     lineHeight: 20,
     marginBottom: 16
   },
   label: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: "#4a5238",
+    color: producerColors.oliveInk,
     marginBottom: 8
   },
   input: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
-    borderColor: "#e8e4d4",
+    borderColor: producerColors.oliveBorderWarm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
-    color: "#1f2910",
+    fontSize: mobileFontSize.lg,
+    color: producerColors.oliveDark,
     marginBottom: 16
   },
   multiline: { minHeight: 72, textAlignVertical: "top" },
   cta: {
-    backgroundColor: "#5d7a1f",
-    borderRadius: 12,
+    backgroundColor: producerColors.olive,
+    borderRadius: mobileRadius.md,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8
   },
   ctaDisabled: { opacity: 0.7 },
-  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 }
+  ctaText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

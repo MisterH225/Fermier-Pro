@@ -13,7 +13,8 @@ import { MobileAppShell } from "../components/layout";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import { openPhoneCall } from "../lib/phone";
-import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../theme/mobileTheme";
+import { producerColors } from "../theme/producerTheme";
 
 export function SupportScreen() {
   const { t } = useTranslation();
@@ -109,7 +110,7 @@ export function SupportScreen() {
               <Ionicons
                 name="paper-plane-outline"
                 size={26}
-                color="#229ED9"
+                color={producerColors.telegram}
               />
             </View>
             <View style={styles.cardBody}>
@@ -146,13 +147,13 @@ const styles = StyleSheet.create({
   },
   emptyBox: {
     padding: mobileSpacing.md,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.surfaceMuted,
     borderWidth: 1,
     borderColor: mobileColors.border
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     lineHeight: 20
   },
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: mobileSpacing.md,
     padding: mobileSpacing.lg,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     backgroundColor: mobileColors.background,
     borderWidth: 1,
     borderColor: mobileColors.border
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 52,
     height: 52,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -186,19 +187,19 @@ const styles = StyleSheet.create({
     backgroundColor: `${mobileColors.accent}18`
   },
   iconTelegram: {
-    backgroundColor: "#229ED918"
+    backgroundColor: producerColors.telegramSoft
   },
   cardBody: {
     flex: 1,
     gap: 4
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
   cardHint: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
     lineHeight: 18
   }
