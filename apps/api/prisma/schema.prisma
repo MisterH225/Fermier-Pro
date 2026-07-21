@@ -909,6 +909,8 @@ model FarmExpense {
   linkedEntityType   String?
   linkedEntityId     String?
   attachmentUrl      String?
+  /// Origine : "manual" (saisie) ou "auto" (ex. clôture RDV véto plateforme).
+  source             String            @default("manual")
   /// Mouvements de stock (`FeedStockMovement`) créés avec cette dépense.
   linkedStockMovementIds String[] @default([])
   healthVetVisitLink HealthVetVisitDetail?
@@ -916,6 +918,7 @@ model FarmExpense {
 
   @@index([farmId, occurredAt])
   @@index([financeCategoryId])
+  @@index([linkedEntityType, linkedEntityId])
 }
 
 model FarmRevenue {

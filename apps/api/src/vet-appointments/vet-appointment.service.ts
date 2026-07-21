@@ -972,7 +972,7 @@ export class VetAppointmentService {
         confirmedAt,
         duration
       );
-      const appt = await tx.vetAppointment.update({
+      return tx.vetAppointment.update({
         where: { id: appointmentId },
         data: {
           status: VetAppointmentStatus.APPOINTMENT_CONFIRMED,
@@ -982,24 +982,6 @@ export class VetAppointmentService {
         },
         include: VET_APPOINTMENT_INCLUDE
       });
-      // Enregistrer le paiement comme dépense dans les finances de la ferme
-      if (amount > 0) {
-        const vetName = appt.vetProfile?.fullName?.trim() || "Vétérinaire";
-        await tx.farmExpense.create({
-          data: {
-            farmId: row.farmId,
-            amount: new Prisma.Decimal(amount),
-            currency: row.currency,
-            label: `Consultation vétérinaire — ${vetName}`,
-            category: "veterinaire",
-            linkedEntityType: "vet_appointment",
-            linkedEntityId: appointmentId,
-            createdByUserId: row.producerUserId,
-            occurredAt: new Date()
-          }
-        });
-      }
-      return appt;
     });
 
     const when = this.formatWhen(confirmedAt);
@@ -1159,6 +1141,16 @@ export class VetAppointmentService {
         data: { completedAppointments: { increment: 1 } }
       });
 
+      // Dépense ferme automatique au règlement (montant verrouillé, non éditable).
+      await this.ensureAutoVetAppointmentExpense(tx, {
+        appointmentId,
+        farmId: row.farmId,
+        producerUserId: row.producerUserId,
+        amount: servicePrice,
+        currency: row.currency,
+        vetName: appt.vetProfile?.fullName?.trim() || "Vétérinaire"
+      });
+
       return appt;
     });
 
@@ -1182,6 +1174,50 @@ export class VetAppointmentService {
     );
 
     return { ...this.mapRow(updated), requiresRating: true };
+  }
+
+  /**
+   * Crée la dépense ferme liée au RDV si absente (idempotent via linkedEntity).
+   * Fusionne l'ancien concept d'écriture à confirmPayment.
+   */
+  private async ensureAutoVetAppointmentExpense(
+    tx: Prisma.TransactionClient,
+    input: {
+      appointmentId: string;
+      farmId: string;
+      producerUserId: string;
+      amount: number;
+      currency: string;
+      vetName: string;
+    }
+  ): Promise<void> {
+    if (!(input.amount > 0)) {
+      return;
+    }
+    const existing = await tx.farmExpense.findFirst({
+      where: {
+        linkedEntityType: "vet_appointment",
+        linkedEntityId: input.appointmentId
+      },
+      select: { id: true }
+    });
+    if (existing) {
+      return;
+    }
+    await tx.farmExpense.create({
+      data: {
+        farmId: input.farmId,
+        amount: new Prisma.Decimal(input.amount),
+        currency: input.currency,
+        label: `Consultation vétérinaire — ${input.vetName}`,
+        category: "veterinaire",
+        linkedEntityType: "vet_appointment",
+        linkedEntityId: input.appointmentId,
+        createdByUserId: input.producerUserId,
+        source: "auto",
+        occurredAt: new Date()
+      }
+    });
   }
 
   async submitRating(

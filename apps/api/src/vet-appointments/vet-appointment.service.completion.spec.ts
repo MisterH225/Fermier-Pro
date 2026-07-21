@@ -77,6 +77,10 @@ describe("VetAppointmentService.confirmServiceCompletion", () => {
           platformRevenue: { create: platformRevenueCreate },
           vetProfile: {
             update: jest.fn().mockResolvedValue({})
+          },
+          farmExpense: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({ id: "exp-1" })
           }
         };
         return fn(tx);
