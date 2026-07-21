@@ -1,5 +1,7 @@
 {
-  "message": "feat(mobile): fond photo cochon sur l’écran d’authentification",
-  "updatedAt": "2026-07-19T10:54Z",
-  "channels": ["preview"]
+  "message": "OTA preview (f2f0e6b) — dossier véto enrichi #251",
+  "updatedAt": "2026-07-21T01:56Z",
+  "channels": ["preview"],
+  "updateGroupId": "33dbc0b1-b630-4e99-ba9d-945ff4391b8b",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/33dbc0b1-b630-4e99-ba9d-945ff4391b8b"
 }
