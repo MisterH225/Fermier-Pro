@@ -1176,6 +1176,7 @@ export const fr = {
         livestock: "Cheptel",
         visits: "Visites",
         prescriptions: "Ordonnances",
+        repro: "Repro & biosécurité",
         history: "Historique",
         tasks: "Tâches"
       },
@@ -1186,6 +1187,36 @@ export const fr = {
       declareCase: "Déclarer un cas",
       activeAlertTitle: "{{count}} alerte(s) santé active(s)",
       activeAlertBody: "Des cas sont en cours sur cet élevage.",
+      healthStatus: {
+        ok: "Sain",
+        watch: "Vigilance",
+        alert: "Alerte",
+        meta: "{{count}} cas actif(s)"
+      },
+      mortality: {
+        title: "Mortalité — 6 mois",
+        empty: "Pas encore de données de mortalité",
+        peakHint: "Pic en {{month}} ({{count}})"
+      },
+      timeline: {
+        title: "Chronologie sanitaire",
+        empty: "Aucun événement sanitaire récent",
+        seeMore: "Voir plus",
+        severity: {
+          info: "Info",
+          watch: "Vigilance",
+          alert: "Alerte"
+        },
+        type: {
+          disease: "Déclaration",
+          vet_visit: "Visite",
+          treatment_open: "Traitement ouvert",
+          treatment_closed: "Traitement clôturé",
+          batch_entry: "Entrée de lot",
+          vaccination: "Vaccination",
+          mortality: "Mortalité"
+        }
+      },
       vaccineCoverage: "Couverture vaccinale",
       vaccineCoverageHint: "{{name}} · {{overdue}} en retard",
       lastVisit: "Dernière visite",
@@ -1203,6 +1234,69 @@ export const fr = {
       avgGmqValue: "{{g}} g/j",
       avgGmqNone: "— (aucun animal pesé)",
       livestockReadonly: "Lecture seule — données du cheptel producteur.",
+      livestockKpis: {
+        headcount: "Effectif",
+        batches: "Lots",
+        gmq30d: "GMQ 30 j",
+        feedConversion: "Indice conso."
+      },
+      gmqChart: {
+        title: "GMQ — 8 semaines",
+        empty: "Pas encore de courbe GMQ",
+        target: "Objectif"
+      },
+      batchPerf: {
+        title: "Performance par lot",
+        empty: "Aucun lot actif à analyser",
+        gmq: "{{g}} g/j",
+        vsTarget: "{{pct}} % de l'objectif",
+        status: {
+          ok: "OK",
+          watch: "Vigilance",
+          alert: "Alerte"
+        },
+        cases: "{{count}} cas",
+        openDetail: "Voir le lot"
+      },
+      repro: {
+        activeSows: "Truies actives",
+        gestations: "Gestations",
+        avgBornAlive: "Nés vivants (moy.)",
+        sucklingMortality: "Mortalité allaitement",
+        upcomingTitle: "Mises bas — 21 jours",
+        upcomingEmpty: "Aucune mise bas prévue sous 21 jours",
+        imminent: "Imminent",
+        days: "J-{{n}}",
+        biosecurityTitle: "Biosécurité par bâtiment",
+        biosecurityEmpty: "Aucun bâtiment renseigné",
+        densityUnknown: "Densité non mesurable (surface absente)",
+        densityValue: "{{v}} m²/porc",
+        threshold: "Seuil {{v}} m²",
+        barnStatus: {
+          ok: "Conforme",
+          watch: "Vigilance",
+          alert: "Alerte"
+        },
+        quarantineTitle: "Conformité quarantaine",
+        quarantineEmpty: "Aucune entrée en quarantaine",
+        quarantineMeta: "{{pen}} · {{days}}/{{min}} j",
+        quarantineStatus: {
+          compliant: "Conforme",
+          pending: "En cours",
+          non_compliant: "Non conforme"
+        }
+      },
+      readings: {
+        tripleSignal:
+          "Trois signaux sur le même lot : GMQ sous l'objectif, cas actif et/ou pic de mortalité.",
+        densityGmq:
+          "Corrélation surpeuplement / GMQ : le bâtiment « {{barn}} » est en alerte densité et héberge un lot sous-performant.",
+        vaccinePriority:
+          "Priorité rappel vaccinal : couverture sous 90 % avec des cas actifs.",
+        openBatch: "Ouvrir le lot",
+        scheduleVisit: "Planifier une visite",
+        title: "Lecture vétérinaire"
+      },
       appointments: "Rendez-vous",
       consultations: "Consultations",
       visitFallback: "Visite",

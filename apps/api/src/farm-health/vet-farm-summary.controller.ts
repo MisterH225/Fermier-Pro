@@ -12,7 +12,10 @@ import { VetFarmSummaryService } from "./vet-farm-summary.service";
 export class VetFarmSummaryController {
   constructor(private readonly summary: VetFarmSummaryService) {}
 
-  /** Agrégat dossier élevage (santé + effectif + GMQ + dernière visite). */
+  /**
+   * Agrégat dossier élevage vétérinaire — un seul appel :
+   * santé, timeline, mortalité 6 mois, GMQ 8 sem., lots, repro, biosécurité, lectures.
+   */
   @Get("vet-summary")
   @RequireFarmScopes(
     FARM_SCOPE.healthRead,

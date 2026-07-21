@@ -11,9 +11,10 @@ import {
   View
 } from "react-native";
 import { SectionHeader, vetPalette } from "../../common";
+import { VetEmptyState } from "./VetEmptyState";
 import { useSession } from "../../../context/SessionContext";
 import { fetchVetAppointments, fetchVetConsultations } from "../../../lib/api";
-import { vetColors, vetRadius } from "../../../theme/vetTheme";
+import { vetColors, vetRadius, vetShadow } from "../../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
 import type { RootStackParamList } from "../../../types/navigation";
 
@@ -151,7 +152,10 @@ export function VetFarmVisitsTab({ farmId, farmName, locale }: Props) {
       ))}
 
       {(consultsQ.data ?? []).length === 0 && farmAppointments.length === 0 ? (
-        <Text style={styles.empty}>{t("vet.farmDetail.noVisits")}</Text>
+        <VetEmptyState
+          icon="calendar-outline"
+          message={t("vet.farmDetail.noVisits")}
+        />
       ) : null}
     </View>
   );
@@ -161,11 +165,10 @@ const styles = StyleSheet.create({
   block: { gap: mobileSpacing.sm },
   listCard: {
     backgroundColor: vetColors.cardBg,
-    borderRadius: vetRadius.button,
+    borderRadius: vetRadius.card,
     padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border,
-    gap: 2
+    gap: 2,
+    ...vetShadow.soft
   },
   pendingCard: {
     borderLeftWidth: 4,
@@ -185,6 +188,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: vetColors.warning,
     fontSize: 11
-  },
-  empty: { color: vetColors.textSecondary }
+  }
 });

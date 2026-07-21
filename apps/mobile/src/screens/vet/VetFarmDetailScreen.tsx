@@ -8,24 +8,30 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  View
+  Text
 } from "react-native";
 import { FarmSelector } from "../../components/vet/FarmSelector";
 import { VetFarmHealthTab } from "../../components/vet/farmDetail/VetFarmHealthTab";
 import { VetFarmLivestockTab } from "../../components/vet/farmDetail/VetFarmLivestockTab";
 import { VetFarmPrescriptionsTab } from "../../components/vet/farmDetail/VetFarmPrescriptionsTab";
+import { VetFarmReproTab } from "../../components/vet/farmDetail/VetFarmReproTab";
 import { VetFarmVisitsTab } from "../../components/vet/farmDetail/VetFarmVisitsTab";
 import { VetMobileShell } from "../../components/layout";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useVetFarms } from "../../hooks/useVetFarms";
 import { fetchVetFarmSummary } from "../../lib/api";
-import { vetColors } from "../../theme/vetTheme";
+import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
-const TABS = ["health", "livestock", "visits", "prescriptions"] as const;
+const TABS = [
+  "health",
+  "livestock",
+  "repro",
+  "visits",
+  "prescriptions"
+] as const;
 type TabId = (typeof TABS)[number];
 
 export function VetFarmDetailScreen() {
@@ -57,10 +63,12 @@ export function VetFarmDetailScreen() {
   }, [routeFarmId]);
 
   const farmId = selectedFarmId ?? routeFarmId;
-  const farmName = selectedFarm?.name ?? routeFarmName;
+  const farmName = selectedFarm?.name ?? routeFarmName ?? "";
 
   const [tab, setTab] = useState<TabId>(
-    initialTab && TABS.includes(initialTab) ? initialTab : "health"
+    initialTab && (TABS as readonly string[]).includes(initialTab)
+      ? (initialTab as TabId)
+      : "health"
   );
 
   const summaryQ = useQuery({
@@ -102,6 +110,8 @@ export function VetFarmDetailScreen() {
               key={id}
               style={[styles.tab, tab === id && styles.tabOn]}
               onPress={() => setTab(id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === id }}
             >
               <Text style={[styles.tabTx, tab === id && styles.tabTxOn]}>
                 {t(`vet.farmDetail.tabs.${id}`)}
@@ -110,6 +120,7 @@ export function VetFarmDetailScreen() {
           ))}
         </ScrollView>
 
+        {/* Un seul onglet monté — évite de re-render tout le dossier au changement. */}
         {tab === "health" ? (
           <VetFarmHealthTab
             farmId={farmId}
@@ -120,7 +131,22 @@ export function VetFarmDetailScreen() {
         ) : null}
 
         {tab === "livestock" ? (
-          <VetFarmLivestockTab farmId={farmId} summary={summaryQ.data} />
+          <VetFarmLivestockTab
+            farmId={farmId}
+            farmName={farmName}
+            summary={summaryQ.data}
+            summaryLoading={summaryQ.isLoading}
+          />
+        ) : null}
+
+        {tab === "repro" ? (
+          <VetFarmReproTab
+            farmId={farmId}
+            farmName={farmName}
+            summary={summaryQ.data}
+            summaryLoading={summaryQ.isLoading}
+            locale={locale}
+          />
         ) : null}
 
         {tab === "visits" ? (
@@ -149,14 +175,12 @@ const styles = StyleSheet.create({
   tab: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: vetRadius.pill,
     backgroundColor: vetColors.cardBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border
+    ...vetShadow.soft
   },
   tabOn: {
-    backgroundColor: vetColors.primary,
-    borderColor: vetColors.primary
+    backgroundColor: vetColors.primary
   },
   tabTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: 12 },
   tabTxOn: { color: vetColors.onPrimary, fontWeight: "700" }

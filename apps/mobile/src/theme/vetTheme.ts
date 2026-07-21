@@ -37,13 +37,71 @@ export const vetColors = {
   kpiRose: "#FCE8F0"
 } as const;
 
+/** Tokens sémantiques ok / watch / alert — dossier vétérinaire uniquement. */
+export const vetStatus = {
+  ok: {
+    key: "ok" as const,
+    fg: vetColors.success,
+    bg: vetColors.kpiGreen,
+    icon: "checkmark-circle" as const
+  },
+  watch: {
+    key: "watch" as const,
+    fg: vetColors.warning,
+    bg: vetColors.kpiAmber,
+    icon: "alert-circle" as const
+  },
+  alert: {
+    key: "alert" as const,
+    fg: vetColors.danger,
+    bg: vetColors.kpiRose,
+    icon: "warning" as const
+  }
+} as const;
+
+export type VetStatusKey = keyof typeof vetStatus;
+
 export const vetRadius = {
-  card: 22,
+  card: 20,
   button: 16,
   search: 20,
   pill: 999,
   day: 14,
   iconBtn: 18
+} as const;
+
+/**
+ * Typo dossier véto.
+ * Chiffres : graisse 800 (équivalent Outfit 800).
+ * Libellés : 500 (équivalent Inter Medium).
+ * Pas de dépendance font ajoutée — fallback système natif.
+ */
+export const vetType = {
+  figure: {
+    fontWeight: "800" as const,
+    fontSize: 22,
+    color: vetColors.textPrimary
+  },
+  figureSm: {
+    fontWeight: "800" as const,
+    fontSize: 16,
+    color: vetColors.textPrimary
+  },
+  label: {
+    fontWeight: "500" as const,
+    fontSize: 12,
+    color: vetColors.textSecondary
+  },
+  body: {
+    fontWeight: "400" as const,
+    fontSize: 14,
+    color: vetColors.textPrimary
+  },
+  title: {
+    fontWeight: "700" as const,
+    fontSize: 15,
+    color: vetColors.textPrimary
+  }
 } as const;
 
 export const vetShadow = {
