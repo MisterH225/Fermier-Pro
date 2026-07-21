@@ -18,6 +18,7 @@ import { MerchantPersistentTabBar } from "./MerchantPersistentTabBar";
 import { techBottomChromeHeight } from "./navigation/technician/techNavMetrics";
 import { buyerBottomChromeHeight } from "./navigation/buyer/buyerNavMetrics";
 import { merchantBottomChromeHeight } from "./navigation/merchant/merchantNavMetrics";
+import { TechActiveFarmProvider } from "../context/TechActiveFarmContext";
 import { TechBottomChromeProvider } from "../context/TechBottomChromeContext";
 import { BuyerBottomChromeProvider } from "../context/BuyerBottomChromeContext";
 import { MerchantBottomChromeProvider } from "../context/MerchantBottomChromeContext";
@@ -703,14 +704,16 @@ function MainNavigationWithChrome() {
             <MerchantBottomChromeProvider value={merchantPad}>
               <AccountModerationGate>
                 <View key={activeProfileId ?? "none"} style={styles.flex}>
-                  <View style={styles.flex}>
-                    <MainStack />
-                  </View>
-                  <ProducerPersistentTabBar />
-                  <VetPersistentTabBar />
-                  <BuyerPersistentTabBar />
-                  <TechPersistentTabBar />
-                  <MerchantPersistentTabBar />
+                  <TechActiveFarmProvider>
+                    <View style={styles.flex}>
+                      <MainStack />
+                    </View>
+                    <ProducerPersistentTabBar />
+                    <VetPersistentTabBar />
+                    <BuyerPersistentTabBar />
+                    <TechPersistentTabBar />
+                    <MerchantPersistentTabBar />
+                  </TechActiveFarmProvider>
                 </View>
               </AccountModerationGate>
             </MerchantBottomChromeProvider>

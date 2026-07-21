@@ -15,16 +15,24 @@ type Props = {
   mode: TaskViewMode;
   onPress: () => void;
   onToggleDone: () => void;
+  /** Masque la case à cocher (lecture seule). Défaut : true. */
+  canToggle?: boolean;
 };
 
-export function TaskCard({ task, mode, onPress, onToggleDone }: Props) {
+export function TaskCard({
+  task,
+  mode,
+  onPress,
+  onToggleDone,
+  canToggle = true
+}: Props) {
   const cat = taskCategoryMeta(task.category);
   const due = taskDueMeta(task.dueAt, task.status);
   const prio = priorityBadge(task.priority);
   const assignee = assigneeLabel(task);
   const done = task.status === "done";
 
-  const checkbox = (
+  const checkbox = canToggle ? (
     <Pressable
       onPress={(e) => {
         e.stopPropagation?.();
@@ -37,7 +45,7 @@ export function TaskCard({ task, mode, onPress, onToggleDone }: Props) {
     >
       {done ? <Text style={styles.checkMark}>✓</Text> : null}
     </Pressable>
-  );
+  ) : null;
 
   if (mode === "list") {
     return (

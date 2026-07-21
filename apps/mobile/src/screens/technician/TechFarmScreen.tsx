@@ -18,7 +18,12 @@ import {
   ScreenSection
 } from "../../components/layout";
 import { TechMobileShell } from "../../components/layout/TechMobileShell";
+import { TechFarmSelector } from "../../components/technician/TechFarmSelector";
 import { useBottomInset } from "../../hooks/useBottomInset";
+import {
+  resolveTechActiveFarm,
+  useTechActiveFarm
+} from "../../context/TechActiveFarmContext";
 import { useSession } from "../../context/SessionContext";
 import { fetchTechnicianDashboard } from "../../lib/api";
 import {
@@ -38,15 +43,26 @@ export function TechFarmScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
+  const { activeFarmId, setActiveFarmId } = useTechActiveFarm();
   const [tab, setTab] = useState<(typeof TABS)[number]>("loges");
 
   const dashQ = useQuery({
-    queryKey: ["techDashboard", activeProfileId, "farm"],
-    queryFn: () => fetchTechnicianDashboard(accessToken!, activeProfileId),
+    queryKey: ["techDashboard", activeProfileId, activeFarmId, "farm"],
+    queryFn: () =>
+      fetchTechnicianDashboard(
+        accessToken!,
+        activeProfileId,
+        activeFarmId ?? undefined
+      ),
     enabled: Boolean(accessToken)
   });
 
-  const farm = dashQ.data?.farms[0];
+  const farms = dashQ.data?.farms ?? [];
+  const farm = resolveTechActiveFarm(
+    farms,
+    activeFarmId,
+    dashQ.data?.activeFarmId
+  );
   const moduleKey = tab as TechFarmModuleKey;
   const canView = farm ? canTechViewFarmModule(farm.scopes, moduleKey) : false;
   const canWrite = farm ? canTechWriteFarmModule(farm.scopes, moduleKey) : false;
@@ -56,7 +72,7 @@ export function TechFarmScreen() {
       return;
     }
     if (!canView) {
-      Alert.alert("", t("tech.permissionDenied"));
+      Alert.alert(t("common.accessDeniedTitle"), t("tech.permissionDenied"));
       return;
     }
     const params = { farmId: farm.farmId, farmName: farm.farmName };
@@ -92,6 +108,12 @@ export function TechFarmScreen() {
 
         {farm ? (
           <>
+            <TechFarmSelector
+              farms={farms}
+              selectedFarmId={farm.farmId}
+              onSelect={setActiveFarmId}
+            />
+
             <ScreenSection title={farm.farmName}>
               <Text style={styles.farmMeta}>{farm.role}</Text>
             </ScreenSection>

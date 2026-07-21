@@ -12,13 +12,15 @@ type Props = {
    * (évite le scroll bloqué sur dashboard tech / véto).
    */
   embedded?: boolean;
+  canToggle?: boolean;
 };
 
 export function TaskListView({
   tasks,
   onPressTask,
   onToggleDone,
-  embedded = false
+  embedded = false,
+  canToggle = true
 }: Props) {
   if (embedded) {
     return (
@@ -28,6 +30,7 @@ export function TaskListView({
             key={item.id}
             task={item}
             mode="list"
+            canToggle={canToggle}
             onPress={() => onPressTask(item)}
             onToggleDone={() => onToggleDone(item)}
           />
@@ -46,6 +49,7 @@ export function TaskListView({
         <TaskCard
           task={item}
           mode="list"
+          canToggle={canToggle}
           onPress={() => onPressTask(item)}
           onToggleDone={() => onToggleDone(item)}
         />

@@ -13,6 +13,10 @@ import { TECH_NAV_FLOAT_BOTTOM } from "./navigation/technician/techNavMetrics";
 import type { ExtendedNavMenuId } from "./navigation/types";
 import type { TechMainTab } from "./navigation/technician/types";
 import { useSession } from "../context/SessionContext";
+import {
+  resolveTechActiveFarm,
+  useTechActiveFarm
+} from "../context/TechActiveFarmContext";
 import { fetchTechnicianDashboard } from "../lib/api";
 import { mobileSpacing } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
@@ -43,6 +47,7 @@ export function TechPersistentTabBar() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { authMe, activeProfileId, accessToken, clientFeatures } = useSession();
+  const { activeFarmId } = useTechActiveFarm();
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
@@ -67,10 +72,13 @@ export function TechPersistentTabBar() {
       return { farmId: fromRouteId, farmName: fromRouteName ?? "—" };
     }
     const farms = dashQ.data?.farms ?? [];
-    const activeId = dashQ.data?.activeFarmId ?? farms[0]?.farmId;
-    const farm = farms.find((f) => f.farmId === activeId) ?? farms[0];
+    const farm = resolveTechActiveFarm(
+      farms,
+      activeFarmId,
+      dashQ.data?.activeFarmId
+    );
     return farm ? { farmId: farm.farmId, farmName: farm.farmName } : null;
-  }, [dashQ.data?.activeFarmId, dashQ.data?.farms, focused?.params]);
+  }, [activeFarmId, dashQ.data?.activeFarmId, dashQ.data?.farms, focused?.params]);
 
   const activeTab = useMemo(
     () => techMainTabFromRoute(focused?.name, focused?.params),

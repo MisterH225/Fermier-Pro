@@ -17,6 +17,9 @@ export const en = {
   },
   common: {
     error: "Error",
+    accessDeniedTitle: "Access denied",
+    successTitle: "Success",
+    infoTitle: "Information",
     cancel: "Cancel",
     save: "Save",
     delete: "Delete",
@@ -3587,7 +3590,10 @@ export const en = {
       stock: "Critical stock"
     },
     tasks: {
-      noFarm: "No farm assigned yet."
+      noFarm: "No farm assigned yet.",
+      noAssigned: "No tasks assigned to you.",
+      sectionMine: "My tasks",
+      viewAllFarm: "All farm tasks"
     },
     farm: {
       tabs: {
@@ -3598,7 +3604,11 @@ export const en = {
       },
       openModule: "Open module",
       sectionModules: "Available modules",
-      sectionAction: "Access"
+      sectionAction: "Access",
+      selectorPlaceholder: "Choose a farm",
+      selectorChange: "Change",
+      selectorTitle: "My farms",
+      selectorA11y: "Switch farm"
     },
     tracking: {
       sectionLog: "Activity log"
