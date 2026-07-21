@@ -218,6 +218,95 @@ export function fetchVetProfileMe(
   return apiGetJson("/vet-profiles/me", accessToken, activeProfileId);
 }
 
+/** Statut sémantique dossier vétérinaire. */
+export type VetStatusLevel = "ok" | "watch" | "alert";
+
+export type VetHealthTimelineItemDto = {
+  date: string;
+  type:
+    | "disease"
+    | "vet_visit"
+    | "treatment_open"
+    | "treatment_closed"
+    | "batch_entry"
+    | "vaccination"
+    | "mortality";
+  label: string;
+  severity: "info" | "watch" | "alert";
+  batchId?: string | null;
+};
+
+export type VetMortalityMonthDto = {
+  month: string;
+  count: number;
+  ratePercent: number | null;
+};
+
+export type VetGmqWeekDto = {
+  week: string;
+  avgGmq: number | null;
+};
+
+export type VetBatchSummaryDto = {
+  id: string;
+  name: string;
+  stage: string | null;
+  headcount: number;
+  ageWeeks: number | null;
+  avgGmq: number | null;
+  targetGmq: number | null;
+  activeCases: number;
+  status: VetStatusLevel;
+};
+
+export type VetUpcomingFarrowingDto = {
+  gestationId: string;
+  sowLabel: string;
+  expectedBirthDate: string;
+  daysRemaining: number;
+};
+
+export type VetReproductionSummaryDto = {
+  activeSows: number | null;
+  ongoingGestations: number | null;
+  avgBornAlive: number | null;
+  sucklingMortalityPercent: number | null;
+  upcomingFarrowings: VetUpcomingFarrowingDto[] | null;
+};
+
+export type VetBiosecurityBarnDto = {
+  name: string;
+  densitySqmPerPig: number | null;
+  thresholdSqm: number | null;
+  status: VetStatusLevel;
+};
+
+export type VetQuarantineComplianceDto = {
+  lastEntryAt: string;
+  penName: string;
+  daysElapsed: number;
+  minDaysRequired: number;
+  status: "compliant" | "pending" | "non_compliant";
+};
+
+export type VetBiosecuritySummaryDto = {
+  barns: VetBiosecurityBarnDto[] | null;
+  quarantineCompliance: VetQuarantineComplianceDto | null;
+};
+
+export type VetReadingDto = {
+  kind: "triple_signal" | "density_gmq" | "vaccine_priority";
+  messageKey: string;
+  batchId?: string | null;
+  barnName?: string | null;
+  action: "open_batch" | "schedule_visit";
+};
+
+export type VetReadingsDto = {
+  livestock: VetReadingDto | null;
+  repro: VetReadingDto | null;
+};
+
 /** GET /farms/:farmId/vet-summary — agrégat dossier élevage. */
 export type VetFarmSummaryDto = {
   farmId: string;
@@ -233,6 +322,8 @@ export type VetFarmSummaryDto = {
     activeHeadcount: number;
     activeBatchesCount: number;
     avgGmqGPerDay: number | null;
+    avgGmq30d: number | null;
+    feedConversionIndex: number | null;
   };
   lastVisit: {
     id: string;
@@ -240,6 +331,16 @@ export type VetFarmSummaryDto = {
     label: string;
     source: "appointment" | "consultation" | "health_record";
   } | null;
+  healthTimeline: VetHealthTimelineItemDto[] | null;
+  mortalityMonthly: VetMortalityMonthDto[] | null;
+  gmqWeekly: {
+    weeks: VetGmqWeekDto[] | null;
+    targetGmq: number | null;
+  } | null;
+  batches: VetBatchSummaryDto[] | null;
+  reproduction: VetReproductionSummaryDto | null;
+  biosecurity: VetBiosecuritySummaryDto | null;
+  readings: VetReadingsDto;
 };
 
 export function fetchVetFarmSummary(
