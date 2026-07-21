@@ -19,12 +19,7 @@ import { useSession } from "../../../context/SessionContext";
 import { patchAuthProfile, upsertTechnicianProfile } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
 import { pickNonTechnicianFallbackProfileId } from "../../../lib/techOnboardingState";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { techColors } from "../../../theme/technicianTheme";
 
 const EXPERIENCE = ["<1", "1-3", "3-5", "5-10", "10+"] as const;
@@ -217,7 +212,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: techColors.canvas },
   skip: { alignSelf: "flex-end" },
   skipText: { color: techColors.primary, fontWeight: "600" },
-  heroTitle: { ...mobileTypography.cardTitle, fontSize: 22, color: techColors.textPrimary },
+  heroTitle: { ...mobileTypography.cardTitle, fontSize: mobileFontSize.xl, color: techColors.textPrimary },
   heroBody: { ...mobileTypography.body, color: techColors.textSecondary, lineHeight: 22 },
   input: {
     backgroundColor: techColors.canvas,
@@ -248,6 +243,6 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryDisabled: { opacity: 0.5 },
-  primaryLabel: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  primaryLabel: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   error: { color: mobileColors.error }
 });

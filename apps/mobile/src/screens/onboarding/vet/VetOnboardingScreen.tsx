@@ -32,12 +32,7 @@ import {
   vetProfileCompletionPercent,
   vetProfileNextEmptyField
 } from "../../../lib/vetProfileCompletion";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { vetColors, vetRadius } from "../../../theme/vetTheme";
 
 const SPECIALTIES = [
@@ -630,7 +625,7 @@ const styles = StyleSheet.create({
     borderColor: vetColors.primary,
     backgroundColor: vetColors.primaryLight
   },
-  pillTx: { fontSize: 13, color: vetColors.textPrimary },
+  pillTx: { fontSize: mobileFontSize.sm, color: vetColors.textPrimary },
   diplomaBtn: {
     marginTop: mobileSpacing.md,
     padding: mobileSpacing.md,

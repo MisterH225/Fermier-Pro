@@ -29,12 +29,7 @@ import {
   buyerProfileCompletionPercent,
   buyerProfileNextEmptyField
 } from "../../../lib/buyerProfileCompletion";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../../theme/buyerTheme";
 
 const BUYER_TYPES = [
@@ -501,7 +496,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     color: buyerColors.textPrimary
   },
   heroBody: {
@@ -549,7 +544,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: mobileSpacing.md
   },
-  primaryLabel: { color: mobileColors.onAccent, fontWeight: "700", fontSize: 16 },
+  primaryLabel: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
   secondary: {
     alignItems: "center",
     paddingVertical: mobileSpacing.md

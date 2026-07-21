@@ -22,6 +22,7 @@ export const marketplaceColors = {
   warnAmberBg: "#FFF4E0",
   warnAmberBorder: "#F0D9A8",
   successTeal: "#1D9E75",
+  successSoftBg: "#E8F8F0",
   surfaceGray: "#F5F5F5",
   meteoGrayBg: "#F3F4F6",
   meteoGrayBorder: "#D1D5DB",

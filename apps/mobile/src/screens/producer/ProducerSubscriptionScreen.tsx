@@ -260,7 +260,7 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
               onPress={() => void handleConfirmPayment()}
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.background} />
               ) : (
                 <Text style={styles.primaryBtnTxt}>
                   {t("producer.subscription.confirmPaymentCta")}
@@ -349,7 +349,7 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
             onPress={() => void handleChoose()}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.background} />
             ) : (
               <Text style={styles.primaryBtnTxt}>
                 {selectedTier === "free"
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
-  primaryBtnTxt: { ...mobileTypography.body, fontWeight: "700", color: "#fff" },
+  primaryBtnTxt: { ...mobileTypography.body, fontWeight: "700", color: mobileColors.background },
   secondaryBtn: {
     borderWidth: 1,
     borderColor: mobileColors.accent,

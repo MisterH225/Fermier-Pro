@@ -18,11 +18,9 @@ import type {
   FarmHealthUpcomingDto
 } from "../../../lib/api";
 import { getUserFacingError } from "../../../lib/userFacingError";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileKpiPalette, mobileFontSize } from "../../../theme/mobileTheme";
+import { merchantColors } from "../../../theme/merchantTheme";
+import { producerColors } from "../../../theme/producerTheme";
 
 type Props = {
   farmId: string;
@@ -109,8 +107,8 @@ export function HealthOverviewTab({
           <View style={cheptelKpiGridStyles.half}>
             <CheptelStyleKpiCard
               icon="💀"
-              bg="#FFF3E0"
-              accent="#F57F17"
+              bg={mobileStatusSurfaces.warningBg}
+              accent={mobileStatusSurfaces.warningText}
               label={t("health.kpiMortality30")}
               value={
                 mortalityPct30 != null
@@ -124,8 +122,8 @@ export function HealthOverviewTab({
           <View style={cheptelKpiGridStyles.half}>
             <CheptelStyleKpiCard
               icon="🤒"
-              bg="#FCE4EC"
-              accent="#E91E8C"
+              bg={merchantColors.roseSoftBg}
+              accent={producerColors.healthPink}
               label={t("health.kpiActiveCases")}
               value={String(overview?.activeDiseaseCount ?? 0)}
             />
@@ -133,8 +131,8 @@ export function HealthOverviewTab({
           <View style={cheptelKpiGridStyles.half}>
             <CheptelStyleKpiCard
               icon="💉"
-              bg="#E8F5E9"
-              accent="#2E7D32"
+              bg={mobileStatusSurfaces.positiveBg}
+              accent={mobileStatusSurfaces.positiveText}
               label={t("health.kpiOverdueVaccines")}
               value={String(overview?.overdueVaccineCount ?? 0)}
             />
@@ -142,8 +140,8 @@ export function HealthOverviewTab({
           <View style={cheptelKpiGridStyles.half}>
             <CheptelStyleKpiCard
               icon="🩺"
-              bg="#E3F2FD"
-              accent="#1565C0"
+              bg={mobileStatusSurfaces.infoBg}
+              accent={mobileStatusSurfaces.infoText}
               label={t("health.kpiNextVet")}
               value={nextVetLabel}
             />
@@ -151,8 +149,8 @@ export function HealthOverviewTab({
           <View style={cheptelKpiGridStyles.half}>
             <CheptelStyleKpiCard
               icon="💊"
-              bg="#EDE7F6"
-              accent="#6A1B9A"
+              bg={producerColors.healthPurpleBg}
+              accent={producerColors.healthPurple}
               label={t("health.kpiActiveTreatments")}
               value={String(overview?.activeTreatmentCount ?? 0)}
             />
@@ -160,8 +158,8 @@ export function HealthOverviewTab({
           <View style={cheptelKpiGridStyles.half}>
             <CheptelStyleKpiCard
               icon="🏥"
-              bg="#FFF8E1"
-              accent="#FF8C00"
+              bg={mobileKpiPalette.dueMonth.bg}
+              accent={mobileKpiPalette.gestation.accent}
               label={t("health.kpiGlobalStatus")}
               value={globalStatusLabel}
             />
@@ -227,7 +225,7 @@ const styles = StyleSheet.create({
   meta: {
     ...mobileTypography.body,
     color: mobileColors.textPrimary,
-    fontSize: 14
+    fontSize: mobileFontSize.md
   },
   err: { color: mobileColors.error }
 });

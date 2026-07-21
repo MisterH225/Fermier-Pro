@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { authColors } from "../../theme/authTheme";
+import { mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   content: string;
@@ -47,20 +48,20 @@ const styles = StyleSheet.create({
     borderBottomColor: authColors.border
   },
   back: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: authColors.forest,
     fontWeight: "600",
     marginBottom: 8
   },
   title: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "700",
     color: authColors.forest
   },
   scroll: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 32 },
   body: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 22,
     color: authColors.body
   }

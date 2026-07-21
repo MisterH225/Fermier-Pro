@@ -25,7 +25,7 @@ import {
 import { formatApiError } from "../../../lib/apiErrors";
 import { resolveMerchantOnboardingStep } from "../../../lib/merchantOnboardingState";
 import { MerchantSubscriptionScreen } from "../../merchant/MerchantSubscriptionScreen";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   onFinished: () => void;
@@ -231,7 +231,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
             testID="merchant-onboarding-create-shop"
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={mobileColors.background} />
             ) : (
               <Text style={styles.primaryTx}>{t("merchant.onboarding.createShop")}</Text>
             )}
@@ -255,13 +255,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
   flex: { flex: 1 },
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
-  title: { fontSize: 22, fontWeight: "700", color: mobileColors.textPrimary },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "700", color: mobileColors.textPrimary },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
-    backgroundColor: "#fff"
+    backgroundColor: mobileColors.background
   },
   primary: {
     backgroundColor: mobileColors.accent,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  primaryTx: { color: "#fff", fontWeight: "700" },
+  primaryTx: { color: mobileColors.background, fontWeight: "700" },
   secondary: { padding: mobileSpacing.md, alignItems: "center" },
   secondaryTx: { color: mobileColors.accent, fontWeight: "600" },
   err: { color: mobileColors.error }

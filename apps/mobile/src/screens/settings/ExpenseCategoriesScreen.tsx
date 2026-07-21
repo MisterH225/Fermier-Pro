@@ -21,7 +21,7 @@ import {
   fetchFinanceCategories,
   type FinanceCategoryDto
 } from "../../lib/api";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../../lib/userFacingError";
 
@@ -126,11 +126,11 @@ export function ExpenseCategoriesScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f2f2f7" },
+  root: { flex: 1, backgroundColor: mobileColors.canvas },
   content: { padding: mobileSpacing.md, gap: mobileSpacing.sm },
   row: {
     backgroundColor: mobileColors.background,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     flexDirection: "row",
     alignItems: "center",
@@ -146,13 +146,13 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: mobileColors.background,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     ...mobileTypography.body
   },
   addBtn: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     alignItems: "center"
   },

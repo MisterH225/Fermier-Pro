@@ -25,6 +25,8 @@ import { acceptCgu, fetchCguCurrent } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
 import { authColors, authRadii } from "../../theme/authTheme";
 import { PrivacyPolicyScreen } from "./PrivacyPolicyScreen";
+import { mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
 
 const LOGO = require("../../../assets/images/fermier-pro-logo-nobg.png");
 
@@ -191,14 +193,14 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 12,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "700",
     color: authColors.forest,
     textAlign: "center"
   },
   subtitle: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     color: authColors.body,
     textAlign: "center"
@@ -209,12 +211,12 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 22, paddingVertical: 12 },
   cguBody: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 22,
     color: authColors.body
   },
   scrollHint: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: authColors.placeholder,
     textAlign: "center",
     paddingBottom: 4,
@@ -237,7 +239,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     borderWidth: 2,
     borderColor: authColors.border,
     alignItems: "center",
@@ -246,18 +248,18 @@ const styles = StyleSheet.create({
   },
   checkboxOn: {
     borderColor: authColors.forest,
-    backgroundColor: "#e2f0e8"
+    backgroundColor: producerColors.cguSoftBg
   },
   checkLabel: {
     flex: 1,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     lineHeight: 20,
     color: authColors.forest,
     fontWeight: "600"
   },
   privacyLink: { alignSelf: "center", marginBottom: 12, paddingVertical: 4 },
   privacyLinkText: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: authColors.forest,
     textDecorationLine: "underline",
     fontWeight: "600"
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   ctaDisabled: { opacity: 0.4 },
-  ctaLabel: { fontSize: 17, fontWeight: "700", color: authColors.forest },
+  ctaLabel: { fontSize: mobileFontSize.lg, fontWeight: "700", color: authColors.forest },
   refuseBtn: { marginTop: 12, alignItems: "center", paddingVertical: 8 },
-  refuseText: { fontSize: 14, color: authColors.error, fontWeight: "600" }
+  refuseText: { fontSize: mobileFontSize.md, color: authColors.error, fontWeight: "600" }
 });

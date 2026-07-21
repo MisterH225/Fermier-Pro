@@ -36,9 +36,10 @@ import {
 } from "../../lib/api";
 import { fetchCguCurrent } from "../../lib/api/auth";
 import { getUserFacingError } from "../../lib/userFacingError";
-import { mobileColors, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { ProducerSettingsSections } from "./ProducerSettingsSections";
+import { producerColors } from "../../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ProducerFarmSettings">;
 
@@ -405,20 +406,20 @@ export function SettingsScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f2f2f7" },
+  root: { flex: 1, backgroundColor: mobileColors.canvas },
   scroll: { flex: 1 },
   content: { paddingTop: mobileSpacing.md, paddingHorizontal: mobileSpacing.md },
   loading: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f2f2f7"
+    backgroundColor: mobileColors.canvas
   },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f2f2f7",
+    backgroundColor: mobileColors.canvas,
     padding: mobileSpacing.xl,
     gap: mobileSpacing.md
   },
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.lg,
     paddingVertical: mobileSpacing.md,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     backgroundColor: mobileColors.accent
   },
   retryBtnTx: {
@@ -449,15 +450,15 @@ const styles = StyleSheet.create({
     left: mobileSpacing.md,
     right: mobileSpacing.md,
     zIndex: 10,
-    backgroundColor: "#1a7f37",
-    borderRadius: 10,
+    backgroundColor: producerColors.settingsGreen,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     alignItems: "center"
   },
   toastTx: { color: mobileColors.onAccent, fontWeight: "600" },
   saveBtn: {
     backgroundColor: mobileColors.accent,
-    borderRadius: 10,
+    borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
   nameInput: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: 8,
+    borderRadius: mobileRadius.sm,
     padding: mobileSpacing.md,
     ...mobileTypography.body
   },

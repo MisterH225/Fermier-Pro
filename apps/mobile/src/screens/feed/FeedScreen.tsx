@@ -30,7 +30,7 @@ import {
 } from "../../lib/api/community-feed";
 import { checkFeedContentBeforeSend } from "../../services/ai/FeedModerationAgent";
 import { appealFeedSanction, getMyFeedStatus } from "../../services/ai/SanctionService";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import { useScreenTitle } from "../../hooks/useScreenTitle";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -305,7 +305,7 @@ export function FeedScreen() {
                 disabled={createPostM.isPending || !body.trim()}
               >
                 {createPostM.isPending ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={mobileColors.background} />
                 ) : (
                   <Text style={styles.postBtnTx}>Publier</Text>
                 )}
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   list: { paddingBottom: 120, gap: mobileSpacing.md },
   loader: { marginTop: 24 },
   errorBanner: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: mobileStatusSurfaces.errorBg,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     marginBottom: mobileSpacing.sm
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   typeChipActive: { backgroundColor: mobileColors.accent, borderColor: mobileColors.accent },
-  typeChipTx: { ...mobileTypography.meta, fontSize: 11 },
+  typeChipTx: { ...mobileTypography.meta, fontSize: mobileFontSize.xs },
   typeChipTxActive: { color: mobileColors.onAccent },
   composerInput: {
     minHeight: 100,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: "center"
   },
-  postBtnTx: { color: "#fff", fontWeight: "600" },
+  postBtnTx: { color: mobileColors.background, fontWeight: "600" },
   disabledBtn: { opacity: 0.5 },
   newPostBtn: {
     backgroundColor: mobileColors.accent,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: mobileSpacing.md
   },
-  newPostTx: { color: "#fff", fontWeight: "700" },
+  newPostTx: { color: mobileColors.background, fontWeight: "700" },
   disabledHint: {
     ...mobileTypography.meta,
     color: mobileColors.error,

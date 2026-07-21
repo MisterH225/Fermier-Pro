@@ -9,16 +9,11 @@ import {
 import { VetVisitQuotesPanel } from "../../../components/sante/VetVisitQuotesPanel";
 import { VetAppointmentActionsBanner } from "../../../components/vet/VetAppointmentActionsBanner";
 import type { FarmHealthUpcomingDto } from "../../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileShadows,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import type { RootStackParamList } from "../../../types/navigation";
 import { HealthKindListTab } from "./HealthKindListTab";
 import type { ComponentProps } from "react";
+import { producerColors } from "../../../theme/producerTheme";
 
 type ListProps = Omit<
   ComponentProps<typeof HealthKindListTab>,
@@ -175,7 +170,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...mobileTypography.title,
-    fontSize: 16
+    fontSize: mobileFontSize.lg
   },
   apptCard: {
     backgroundColor: mobileColors.background,
@@ -199,12 +194,12 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   highlight: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: producerColors.visitHighlightBg,
     borderRadius: mobileRadius.lg,
     padding: mobileSpacing.md,
     marginBottom: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: producerColors.visitHighlightBorder,
     ...mobileShadows.card
   },
   highlightLabel: {
@@ -228,7 +223,7 @@ const styles = StyleSheet.create({
   },
   deleteBtnText: {
     ...mobileTypography.meta,
-    color: "#D64545",
+    color: mobileColors.error,
     fontWeight: "700"
   }
 });
