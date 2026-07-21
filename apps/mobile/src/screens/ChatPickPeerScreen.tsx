@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { SurfaceCard } from "../components/common/SurfaceCard";
+import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
 import {
   directConversationTitle,
@@ -84,10 +86,17 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() => openDirect.mutate(item.userId)}
-                disabled={openDirect.isPending}
+              <SurfaceCard
+                palette={producerPalette}
+                style={{
+                  borderColor: producerColors.oliveBorder,
+                  opacity: openDirect.isPending ? 0.6 : 1
+                }}
+                onPress={
+                  openDirect.isPending
+                    ? undefined
+                    : () => openDirect.mutate(item.userId)
+                }
               >
                 <Text style={styles.cardTitle}>
                   {item.user.fullName?.trim() || item.user.email || "Membre"}
@@ -95,7 +104,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
                 {item.user.email ? (
                   <Text style={styles.cardSub}>{item.user.email}</Text>
                 ) : null}
-              </TouchableOpacity>
+              </SurfaceCard>
             )}
           />
         )}
@@ -127,14 +136,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24
-  },
-  card: {
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: producerColors.oliveBorder
   },
   cardTitle: {
     fontSize: mobileFontSize.lg,

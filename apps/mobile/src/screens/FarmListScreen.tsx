@@ -14,6 +14,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { SurfaceCard } from "../components/common/SurfaceCard";
+import { producerPalette } from "../components/common/rolePalette";
 import { ProducerPendingMarketplaceBanner } from "../components/producer/ProducerPendingMarketplaceBanner";
 import {
   ProfilePickerModal,
@@ -310,8 +312,8 @@ export function FarmListScreen({ navigation }: Props) {
           </>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
+          <SurfaceCard
+            palette={producerPalette}
             onPress={() =>
               navigation.navigate("FarmDetail", {
                 farmId: item.id,
@@ -331,7 +333,7 @@ export function FarmListScreen({ navigation }: Props) {
                 {item.address}
               </Text>
             ) : null}
-          </TouchableOpacity>
+          </SurfaceCard>
         )}
       />
     </>
@@ -403,14 +405,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
-  },
-  card: {
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: mobileColors.border
   },
   cardTitle: {
     fontSize: mobileFontSize.lg,

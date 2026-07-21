@@ -1,5 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import {
+  mobileFontSize,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 import type { RolePalette } from "./rolePalette";
 
 type Props = {
@@ -70,7 +74,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     gap: 2
   },
-  emoji: { fontSize: 18, marginBottom: 2 },
-  value: { fontSize: 22, fontWeight: "700" },
+  emoji: { fontSize: mobileFontSize.lg, marginBottom: 2 },
+  value: { fontSize: mobileFontSize.xl, fontWeight: "700" },
   label: { ...mobileTypography.meta, marginTop: 4 }
 });

@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
+import { SurfaceCard } from "../components/common/SurfaceCard";
+import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
 import { fetchFarms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
@@ -68,8 +70,9 @@ export function ChatPickFarmScreen({ navigation }: Props) {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.card}
+              <SurfaceCard
+                palette={producerPalette}
+                style={{ borderColor: producerColors.oliveBorder }}
                 onPress={() =>
                   navigation.navigate("ChatPickPeer", {
                     farmId: item.id,
@@ -81,7 +84,7 @@ export function ChatPickFarmScreen({ navigation }: Props) {
                 <Text style={styles.cardSub}>
                   {item.speciesFocus} · {item.livestockMode}
                 </Text>
-              </TouchableOpacity>
+              </SurfaceCard>
             )}
           />
         )}
@@ -127,14 +130,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24
-  },
-  card: {
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: producerColors.oliveBorder
   },
   cardTitle: {
     fontSize: mobileFontSize.lg,

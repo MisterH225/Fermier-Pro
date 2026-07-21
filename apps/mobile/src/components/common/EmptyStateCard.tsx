@@ -1,38 +1,67 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  mobileColors,
+  mobileFontSize,
   mobileRadius,
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { producerPalette, type RolePalette } from "./rolePalette";
+
+type IconName = ComponentProps<typeof Ionicons>["name"];
 
 type Props = {
   onConfigure?: () => void;
   title?: string;
   subtitle?: string;
+  icon?: IconName;
+  palette?: RolePalette;
 };
 
-export function EmptyStateCard({ onConfigure, title, subtitle }: Props) {
+export function EmptyStateCard({
+  onConfigure,
+  title,
+  subtitle,
+  icon = "folder-open-outline",
+  palette = producerPalette
+}: Props) {
   const { t } = useTranslation();
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: palette.cardBg,
+          borderColor: palette.border,
+          borderRadius: palette.radiusCard
+        }
+      ]}
+    >
       <Ionicons
-        name="folder-open-outline"
+        name={icon}
         size={40}
-        color={mobileColors.textSecondary}
+        color={palette.textSecondary}
         style={styles.icon}
       />
-      <Text style={styles.title}>
+      <Text style={[styles.title, { color: palette.textPrimary }]}>
         {title ?? t("onboarding.emptyState.title")}
       </Text>
-      <Text style={styles.sub}>
-        {subtitle ?? t("onboarding.emptyState.subtitle")}
-      </Text>
+      {subtitle === undefined && !title ? (
+        <Text style={[styles.sub, { color: palette.textSecondary }]}>
+          {t("onboarding.emptyState.subtitle")}
+        </Text>
+      ) : subtitle ? (
+        <Text style={[styles.sub, { color: palette.textSecondary }]}>
+          {subtitle}
+        </Text>
+      ) : null}
       {onConfigure ? (
         <Pressable style={styles.cta} onPress={onConfigure}>
-          <Text style={styles.ctaText}>{t("onboarding.emptyState.cta")}</Text>
+          <Text style={[styles.ctaText, { color: palette.primary }]}>
+            {t("onboarding.emptyState.cta")}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -41,31 +70,25 @@ export function EmptyStateCard({ onConfigure, title, subtitle }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: mobileColors.background,
-    borderRadius: mobileRadius.lg,
     padding: mobileSpacing.lg,
     alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.border
+    borderWidth: StyleSheet.hairlineWidth
   },
   icon: { marginBottom: mobileSpacing.sm },
   title: {
     ...mobileTypography.body,
     fontWeight: "700",
-    textAlign: "center",
-    color: mobileColors.textPrimary
+    textAlign: "center"
   },
   sub: {
     ...mobileTypography.meta,
     textAlign: "center",
-    color: mobileColors.textSecondary,
     marginTop: 6,
     lineHeight: 18
   },
   cta: { marginTop: mobileSpacing.md },
   ctaText: {
-    color: mobileColors.accent,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   }
 });
