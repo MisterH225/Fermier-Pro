@@ -509,10 +509,28 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     [appt?.paymentDeadline]
   );
 
-  if (q.isPending || !appt) {
+  if (q.isPending) {
     return (
-      <MobileAppShell title={t("vet.appointment.title")}>
+      <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
         <ActivityIndicator color={mobileColors.accent} style={{ marginTop: 32 }} />
+      </MobileAppShell>
+    );
+  }
+
+  if (q.isError || !appt) {
+    return (
+      <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
+        <View style={styles.wrap}>
+          <Text style={styles.errorText}>
+            {q.error instanceof Error
+              ? formatApiError(q.error)
+              : t("common.error")}
+          </Text>
+          <SecondaryButton
+            label={t("common.close")}
+            onPress={() => navigation.goBack()}
+          />
+        </View>
       </MobileAppShell>
     );
   }
@@ -523,7 +541,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     (isProducer && appt.status === "APPOINTMENT_COMPLETED" && !appt.rating);
 
   return (
-    <MobileAppShell title={t("vet.appointment.title")}>
+    <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         <Text style={styles.status}>
           {appt.status === "VISIT_PROPOSED" && isVet
@@ -1080,6 +1098,11 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
+  errorText: {
+    ...mobileTypography.body,
+    color: mobileColors.error,
+    marginBottom: mobileSpacing.md
+  },
   status: {
     ...mobileTypography.meta,
     fontWeight: "700",

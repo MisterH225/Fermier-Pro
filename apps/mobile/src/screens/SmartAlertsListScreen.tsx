@@ -162,7 +162,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
         navigation.navigate("MerchantOrderDetail", { orderId });
         return;
       }
-      navigateFromGenericPushData(navigation as never, {
+      navigateFromGenericPushData(navigation, {
         type: notification.type,
         ...Object.fromEntries(
           Object.entries(notification.data ?? {}).map(([k, v]) => [
