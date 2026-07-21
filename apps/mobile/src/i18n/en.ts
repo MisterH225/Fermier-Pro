@@ -1149,9 +1149,23 @@ export const en = {
       completeConfirmTitle: "Confirm service",
       completeConfirmBody: "This triggers payment to the vet. Make sure the service was actually delivered.",
       completeFreeConfirmBody: "Confirm that the free visit is completed? No payment will be triggered.",
-      cancelCta: "Cancel request",
-      cancelConfirmTitle: "Cancel appointment?",
-      cancelConfirmBody: "No charge if you have not paid yet.",
+      cancelCta: "Cancel appointment",
+      cancelSectionTitle: "Cancel appointment",
+      cancelHintUnpaid:
+        "The other party will be notified. No payment will be charged.",
+      cancelHintPaid:
+        "The held amount will be fully refunded to the producer’s wallet. The other party will see your note.",
+      cancelReasonLabel: "Note for the other party",
+      cancelReasonPlaceholder: "Briefly explain why you are cancelling…",
+      cancelReasonRequired: "Please enter a note for the other party.",
+      cancelConfirmTitle: "Confirm cancellation?",
+      cancelConfirmBody:
+        "This cannot be undone. Your note will be sent to the other party.",
+      cancelConfirmBodyPaid:
+        "This cannot be undone. The payment will be fully refunded and your note will be shared.",
+      cancelledByProducer: "Cancelled by producer",
+      cancelledByVet: "Cancelled by veterinarian",
+      cancellationReasonLabel: "Cancellation note",
       waitingVetHint: "Your request was sent to the veterinarian. You can cancel it while waiting for their response.",
       ratingTitle: "Rate the veterinarian",
       ratingRequired: "Choose a rating from 1 to 5",

@@ -488,6 +488,8 @@ export type VetAppointmentDto = {
   paymentConfirmedAt?: string | null;
   proposedByVetAt?: string | null;
   completedAt?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
   conflictStatus?: string | null;
   conflictLabel?: string | null;
   currency: string;
@@ -677,12 +679,12 @@ export function submitVetAppointmentRating(
 export function cancelVetAppointment(
   accessToken: string,
   appointmentId: string,
-  reason?: string,
+  reason: string,
   activeProfileId?: string | null
 ): Promise<VetAppointmentDto> {
   return apiPostJson(
     `/vet-appointments/${encodeURIComponent(appointmentId)}/cancel`,
-    reason ? { reason } : {},
+    { reason },
     accessToken,
     activeProfileId
   );

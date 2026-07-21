@@ -29,6 +29,7 @@ export const AUDIT_ACTION = {
   vetConsultationCreated: "vet.consultation.created",
   vetConsultationUpdated: "vet.consultation.updated",
   vetConsultationAttachmentAdded: "vet.consultation.attachment_added",
+  vetAppointmentCancelled: "vet.appointment.cancelled",
   farmHealthRecordCreated: "farm.health_record.created",
   farmHealthRecordLinkedFinance: "farm.health_record.linked_finance",
   farmHealthRecordDeleted: "farm.health_record.deleted",

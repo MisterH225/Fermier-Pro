@@ -60,6 +60,13 @@ const RATING_TAGS = [
   "Prix raisonnable"
 ] as const;
 
+const CANCELLABLE_STATUSES = new Set([
+  "APPOINTMENT_REQUESTED",
+  "VISIT_PROPOSED",
+  "AWAITING_PAYMENT",
+  "APPOINTMENT_CONFIRMED"
+]);
+
 function money(n: number, currency: string): string {
   return `${Math.round(n).toLocaleString("fr-FR")} ${currency}`;
 }
@@ -109,6 +116,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const [servicePrice, setServicePrice] = useState("");
   const [vetNotes, setVetNotes] = useState("");
   const [refusalReason, setRefusalReason] = useState("");
+  const [cancellationReason, setCancellationReason] = useState("");
   const [rating, setRating] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -388,8 +396,14 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
   const cancelMut = useMutation({
     mutationFn: () =>
-      cancelVetAppointment(accessToken!, appointmentId, undefined, activeProfileId),
+      cancelVetAppointment(
+        accessToken!,
+        appointmentId,
+        cancellationReason.trim(),
+        activeProfileId
+      ),
     onSuccess: () => {
+      setCancellationReason("");
       invalidate();
       navigation.goBack();
     },
@@ -399,6 +413,13 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const appt = q.data;
   const isVet = Boolean(appt && myId === appt.vetUserId);
   const isProducer = Boolean(appt && myId === appt.producerUserId);
+  const canCancel =
+    Boolean(appt) &&
+    (isProducer || isVet) &&
+    CANCELLABLE_STATUSES.has(appt!.status);
+  const isPaidConfirmed = Boolean(
+    appt?.paymentConfirmedAt && (appt.blockedAmount ?? 0) > 0
+  );
 
   const whenLabel = useMemo(
     () => formatWhen(appt?.confirmedAt ?? appt?.requestedAt, locale),
@@ -426,7 +447,25 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   return (
     <MobileAppShell title={t("vet.appointment.title")}>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
-        <Text style={styles.status}>{appt.status.replace(/_/g, " ")}</Text>
+        <Text style={styles.status}>
+          {appt.status === "CANCELLED_BY_PRODUCER"
+            ? t("vet.appointment.cancelledByProducer")
+            : appt.status === "CANCELLED_BY_VET"
+              ? t("vet.appointment.cancelledByVet")
+              : appt.status.replace(/_/g, " ")}
+        </Text>
+
+        {appt.cancellationReason ? (
+          <View style={styles.card}>
+            <Text style={styles.label}>
+              {t("vet.appointment.cancellationReasonLabel")}
+            </Text>
+            <Text style={styles.value}>{appt.cancellationReason}</Text>
+            {appt.cancelledAt ? (
+              <Text style={styles.meta}>{formatWhen(appt.cancelledAt, locale)}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {isVet && appt.conflictStatus ? (
           <View style={[styles.badge, { backgroundColor: conflictStyle.bg }]}>
@@ -536,20 +575,6 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
         {isProducer && appt.status === "APPOINTMENT_REQUESTED" ? (
           <View style={styles.section}>
             <Text style={styles.hint}>{t("vet.appointment.waitingVetHint")}</Text>
-            <SecondaryButton
-              label={t("vet.appointment.cancelCta")}
-              onPress={() =>
-                Alert.alert(
-                  t("vet.appointment.cancelConfirmTitle"),
-                  t("vet.appointment.cancelConfirmBody"),
-                  [
-                    { text: t("common.cancel"), style: "cancel" },
-                    { text: t("vet.appointment.cancelCta"), onPress: () => cancelMut.mutate() }
-                  ]
-                )
-              }
-              loading={cancelMut.isPending}
-            />
           </View>
         ) : null}
 
@@ -642,19 +667,6 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               }
               loading={producerRefuseMut.isPending}
             />
-            <SecondaryButton
-              label={t("vet.appointment.cancelCta")}
-              onPress={() =>
-                Alert.alert(
-                  t("vet.appointment.cancelConfirmTitle"),
-                  t("vet.appointment.cancelConfirmBody"),
-                  [
-                    { text: t("common.cancel"), style: "cancel" },
-                    { text: t("vet.appointment.cancelCta"), onPress: () => cancelMut.mutate() }
-                  ]
-                )
-              }
-            />
           </View>
         ) : null}
 
@@ -702,6 +714,59 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               label={t("vet.appointment.completeFreeCta")}
               onPress={() => completeMut.mutate()}
               loading={completeMut.isPending}
+            />
+          </View>
+        ) : null}
+
+        {canCancel ? (
+          <View style={styles.section} testID="vet-appointment-cancel-section">
+            <Text style={styles.sectionTitle}>
+              {t("vet.appointment.cancelSectionTitle")}
+            </Text>
+            <Text style={styles.hint}>
+              {isPaidConfirmed
+                ? t("vet.appointment.cancelHintPaid")
+                : t("vet.appointment.cancelHintUnpaid")}
+            </Text>
+            <Text style={styles.label}>
+              {t("vet.appointment.cancelReasonLabel")}
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.cancelReasonPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={cancellationReason}
+              onChangeText={setCancellationReason}
+              testID="vet-appointment-cancel-reason"
+              accessibilityLabel={t("vet.appointment.cancelReasonLabel")}
+            />
+            <SecondaryButton
+              label={t("vet.appointment.cancelCta")}
+              onPress={() => {
+                if (!cancellationReason.trim()) {
+                  Alert.alert(
+                    t("common.error"),
+                    t("vet.appointment.cancelReasonRequired")
+                  );
+                  return;
+                }
+                Alert.alert(
+                  t("vet.appointment.cancelConfirmTitle"),
+                  isPaidConfirmed
+                    ? t("vet.appointment.cancelConfirmBodyPaid")
+                    : t("vet.appointment.cancelConfirmBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("vet.appointment.cancelCta"),
+                      style: "destructive",
+                      onPress: () => cancelMut.mutate()
+                    }
+                  ]
+                );
+              }}
+              loading={cancelMut.isPending}
             />
           </View>
         ) : null}
