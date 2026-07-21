@@ -77,13 +77,22 @@ export function VetFarmVisitsTab({ farmId, farmName, locale }: Props) {
   };
 
   const statusLabel = (status: string) => {
+    const key = `vet.appointment.status.${status}`;
+    const label = t(key);
+    if (label !== key) return label;
     if (status === "AWAITING_PAYMENT") {
       return t("vet.farmDetail.statusAwaitingPayment");
     }
     if (status === "APPOINTMENT_REQUESTED") {
       return t("vet.farmDetail.statusRequested");
     }
-    return status;
+    return status.replace(/_/g, " ");
+  };
+
+  const reasonLabel = (reason: string) => {
+    const key = `vet.schedule.reasons.${reason}`;
+    const label = t(key);
+    return label === key ? reason : label;
   };
 
   if (consultsQ.isLoading || appointmentsQ.isLoading) {
@@ -110,7 +119,9 @@ export function VetFarmVisitsTab({ farmId, farmName, locale }: Props) {
           >
             <View style={styles.row}>
               <Text style={styles.listTitle} numberOfLines={2}>
-                {a.reason || t("vet.farmDetail.visitFallback")}
+                {a.reason
+                  ? reasonLabel(a.reason)
+                  : t("vet.farmDetail.visitFallback")}
               </Text>
               {pending ? (
                 <Text style={styles.pendingTag}>

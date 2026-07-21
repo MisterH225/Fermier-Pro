@@ -33,6 +33,11 @@ describe("VetAppointmentService.confirmServiceCompletion", () => {
       paymentConfirmedAt: null,
       proposedByVetAt: new Date("2026-07-20T10:00:00.000Z"),
       completedAt: null,
+      visitReportSubmittedAt: new Date("2026-08-01T11:00:00.000Z"),
+      visitSubjectsTreated: "Contrôle routine",
+      visitDiagnosis: "RAS",
+      visitPrescription: "Aucun traitement",
+      farmHealthRecordId: "hr-1",
       conflictStatus: null,
       conflictDetails: null,
       calendarBlocked: true,
@@ -176,6 +181,16 @@ describe("VetAppointmentService.confirmServiceCompletion", () => {
     await expect(service.confirmServiceCompletion(vet, "appt-1")).rejects.toBeInstanceOf(
       ForbiddenException
     );
+  });
+
+  it("refuse la clôture sans rapport de visite", async () => {
+    const { BadRequestException: BRE } = await import("@nestjs/common");
+    const { service } = buildService(
+      baseRow({ visitReportSubmittedAt: null })
+    );
+    await expect(
+      service.confirmServiceCompletion(producer, "appt-1")
+    ).rejects.toBeInstanceOf(BRE);
   });
 
   it("RDV confirmé orphelin (sans tarif ni paiement) clôturable sans fonds", async () => {

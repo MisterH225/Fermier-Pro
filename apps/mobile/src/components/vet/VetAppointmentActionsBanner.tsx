@@ -46,7 +46,9 @@ function statusLabel(
   ) {
     return t("producer.vetAppointments.confirmService");
   }
-  return status.replace(/_/g, " ");
+  const key = `vet.appointment.status.${status}`;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
 }
 
 function formatWhen(iso: string | null | undefined, locale: string): string {

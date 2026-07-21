@@ -490,6 +490,11 @@ export type VetAppointmentDto = {
   completedAt?: string | null;
   cancelledAt?: string | null;
   cancellationReason?: string | null;
+  visitReportSubmittedAt?: string | null;
+  visitSubjectsTreated?: string | null;
+  visitDiagnosis?: string | null;
+  visitPrescription?: string | null;
+  farmHealthRecordId?: string | null;
   conflictStatus?: string | null;
   conflictLabel?: string | null;
   currency: string;
@@ -644,6 +649,24 @@ export function confirmVetAppointmentPayment(
   return apiPostJson(
     `/vet-appointments/${encodeURIComponent(appointmentId)}/payment/confirm`,
     providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function submitVetVisitReport(
+  accessToken: string,
+  appointmentId: string,
+  payload: {
+    subjectsTreated: string;
+    diagnosis: string;
+    prescription: string;
+  },
+  activeProfileId?: string | null
+): Promise<VetAppointmentDto> {
+  return apiPostJson(
+    `/vet-appointments/${encodeURIComponent(appointmentId)}/visit-report`,
+    payload,
     accessToken,
     activeProfileId
   );

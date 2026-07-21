@@ -182,7 +182,13 @@ export function recordToEventItem(
 ): EventItem {
   const date = formatHealthDay(r.occurredAt, locale);
   const title = healthPrimaryTitle(r);
-  let subtitle = `${kindLabel} · ${r.entityType} ${r.entityId.slice(0, 8)}…`;
+  let subtitle =
+    r.entityType === "farm"
+      ? kindLabel
+      : `${kindLabel} · ${r.entityType} ${r.entityId.slice(0, 8)}…`;
+  if (r.kind === "vet_visit" && r.vetVisit?.diagnosis) {
+    subtitle = `${r.vetVisit.diagnosis} · ${subtitle}`;
+  }
   if (r.kind === "disease" && r.disease) {
     subtitle = `${r.disease.caseStatus} · ${subtitle}`;
   }

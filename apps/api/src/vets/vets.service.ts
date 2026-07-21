@@ -1143,15 +1143,40 @@ export class VetsService {
       recentConsultations,
       recentHealth
     ] = await Promise.all([
-      healthFarmIds.length === 0
-        ? 0
-        : this.prisma.farmHealthRecord.count({
+      (async () => {
+        // Visites plateforme confirmées / clôturées ce mois + dossiers Santé manuels
+        // (sans RDV lié) pour éviter le double-compte après dépôt du rapport.
+        const [manualHealthVisits, platformVisits] = await Promise.all([
+          healthFarmIds.length === 0
+            ? 0
+            : this.prisma.farmHealthRecord.count({
+                where: {
+                  farmId: { in: healthFarmIds },
+                  kind: FarmHealthRecordKind.vet_visit,
+                  occurredAt: { gte: monthStart },
+                  vetVisit: { is: { vetAppointmentId: null } }
+                }
+              }),
+          this.prisma.vetAppointment.count({
             where: {
-              farmId: { in: healthFarmIds },
-              kind: FarmHealthRecordKind.vet_visit,
-              occurredAt: { gte: monthStart }
+              vetUserId: user.id,
+              status: {
+                in: [
+                  VetAppointmentStatus.APPOINTMENT_CONFIRMED,
+                  VetAppointmentStatus.APPOINTMENT_IN_PROGRESS,
+                  VetAppointmentStatus.APPOINTMENT_COMPLETED,
+                  VetAppointmentStatus.APPOINTMENT_RATED
+                ]
+              },
+              OR: [
+                { confirmedAt: { gte: monthStart } },
+                { completedAt: { gte: monthStart } }
+              ]
             }
-          }),
+          })
+        ]);
+        return manualHealthVisits + platformVisits;
+      })(),
       healthFarmIds.length === 0
         ? 0
         : this.prisma.smartAlert.count({

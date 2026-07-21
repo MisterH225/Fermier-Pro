@@ -33,6 +33,7 @@ import {
   producerAcceptAppointment,
   producerRefuseAppointment,
   submitVetAppointmentRating,
+  submitVetVisitReport,
   vetAcceptAppointment,
   vetRefuseAppointment
 } from "../lib/api";
@@ -53,22 +54,40 @@ import { useBottomInset } from "../hooks/useBottomInset";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VetAppointmentDetail">;
 
-const RATING_TAGS = [
-  "Ponctuel",
-  "Professionnel",
-  "Bon diagnostic",
-  "Prix raisonnable"
+const RATING_TAG_KEYS = [
+  "punctual",
+  "professional",
+  "goodDiagnosis",
+  "fairPrice"
 ] as const;
 
-const CANCELLABLE_STATUSES = new Set([
-  "APPOINTMENT_REQUESTED",
-  "VISIT_PROPOSED",
-  "AWAITING_PAYMENT",
-  "APPOINTMENT_CONFIRMED"
-]);
+function money(n: number, currency: string, locale: string): string {
+  return `${Math.round(n).toLocaleString(locale)} ${currency}`;
+}
 
-function money(n: number, currency: string): string {
-  return `${Math.round(n).toLocaleString("fr-FR")} ${currency}`;
+function appointmentStatusLabel(
+  status: string,
+  t: (key: string) => string
+): string {
+  const key = `vet.appointment.status.${status}`;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
+}
+
+function reasonLabel(reason: string, t: (key: string) => string): string {
+  const key = `vet.schedule.reasons.${reason}`;
+  const label = t(key);
+  return label === key ? reason : label;
+}
+
+function conflictStatusLabel(
+  status: string | null | undefined,
+  t: (key: string) => string
+): string | null {
+  if (!status) return null;
+  const key = `vet.appointment.conflict.${status}`;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
 }
 
 function conflictBadgeStyle(status?: string | null) {
@@ -127,6 +146,9 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const [pendingProviderRef, setPendingProviderRef] = useState<string | null>(null);
   const [vetProfileOpen, setVetProfileOpen] = useState(false);
   const [producerRefusalReason, setProducerRefusalReason] = useState("");
+  const [reportSubjects, setReportSubjects] = useState("");
+  const [reportDiagnosis, setReportDiagnosis] = useState("");
+  const [reportPrescription, setReportPrescription] = useState("");
 
   const q = useQuery({
     queryKey: ["vetAppointment", appointmentId, activeProfileId],
@@ -138,6 +160,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["vetAppointment", appointmentId] });
     void qc.invalidateQueries({ queryKey: ["vetAppointments"] });
     void qc.invalidateQueries({ queryKey: ["vetDashboard"] });
+    void qc.invalidateQueries({ queryKey: ["farmHealth"] });
     void qc.invalidateQueries({ queryKey: ["user-wallet"] });
   }, [qc, appointmentId]);
 
@@ -415,13 +438,60 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     onError: (e: Error) => Alert.alert(t("common.error"), formatApiError(e))
   });
 
+  const reportMut = useMutation({
+    mutationFn: () => {
+      if (
+        !reportSubjects.trim() ||
+        !reportDiagnosis.trim() ||
+        !reportPrescription.trim()
+      ) {
+        throw new Error(t("vet.appointment.reportRequiredFields"));
+      }
+      return submitVetVisitReport(
+        accessToken!,
+        appointmentId,
+        {
+          subjectsTreated: reportSubjects.trim(),
+          diagnosis: reportDiagnosis.trim(),
+          prescription: reportPrescription.trim()
+        },
+        activeProfileId
+      );
+    },
+    onSuccess: () => {
+      setReportSubjects("");
+      setReportDiagnosis("");
+      setReportPrescription("");
+      invalidate();
+      Alert.alert(
+        t("vet.appointment.reportSubmitted"),
+        t("vet.appointment.reportReadyHint")
+      );
+    },
+    onError: (e: Error) => Alert.alert(t("common.error"), formatApiError(e))
+  });
+
   const appt = q.data;
   const isVet = Boolean(appt && myId === appt.vetUserId);
   const isProducer = Boolean(appt && myId === appt.producerUserId);
-  const canCancel =
+  // Annuler seulement après acceptation, ou pour retirer sa propre proposition/demande.
+  const canCancel = Boolean(
+    appt &&
+      (isProducer || isVet) &&
+      !appt.cancelledAt &&
+      (["APPOINTMENT_CONFIRMED", "AWAITING_PAYMENT"].includes(appt.status) ||
+        (isVet && appt.status === "VISIT_PROPOSED") ||
+        (isProducer && appt.status === "APPOINTMENT_REQUESTED"))
+  );
+  const hasVisitReport = Boolean(appt?.visitReportSubmittedAt);
+  const canSubmitReport =
     Boolean(appt) &&
-    (isProducer || isVet) &&
-    CANCELLABLE_STATUSES.has(appt!.status);
+    isVet &&
+    ["APPOINTMENT_CONFIRMED", "APPOINTMENT_IN_PROGRESS"].includes(
+      appt!.status
+    ) &&
+    !hasVisitReport &&
+    !appt!.cancelledAt;
   const isPaidConfirmed = Boolean(
     appt?.paymentConfirmedAt && (appt.blockedAmount ?? 0) > 0
   );
@@ -460,15 +530,9 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     <MobileAppShell title={t("vet.appointment.title")}>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
         <Text style={styles.status}>
-          {appt.status === "CANCELLED_BY_PRODUCER"
-            ? t("vet.appointment.cancelledByProducer")
-            : appt.status === "CANCELLED_BY_VET"
-              ? t("vet.appointment.cancelledByVet")
-              : appt.status === "REFUSED_BY_PRODUCER"
-                ? t("vet.appointment.refusedByProducer")
-                : appt.status === "VISIT_PROPOSED" && isVet
-                  ? t("vet.appointment.awaitingProducerResponse")
-                  : appt.status.replace(/_/g, " ")}
+          {appt.status === "VISIT_PROPOSED" && isVet
+            ? t("vet.appointment.awaitingProducerResponse")
+            : appointmentStatusLabel(appt.status, t)}
         </Text>
 
         {appt.cancellationReason ? (
@@ -492,56 +556,10 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        {isVet &&
-        (appt.status === "VISIT_PROPOSED" ||
-          appt.status === "AWAITING_PAYMENT") ? (
-          <View style={styles.section} testID="vet-cancel-proposal-banner">
-            <Text style={styles.hint}>
-              {t("vet.appointment.awaitingProducerResponse")}
-            </Text>
-            <Text style={styles.label}>
-              {t("vet.appointment.cancelReasonLabel")}
-            </Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder={t("vet.appointment.cancelReasonPlaceholder")}
-              placeholderTextColor={mobileColors.textSecondary}
-              multiline
-              value={cancellationReason}
-              onChangeText={setCancellationReason}
-            />
-            <SecondaryButton
-              label={t("vet.appointment.cancelCta")}
-              onPress={() => {
-                if (!cancellationReason.trim()) {
-                  Alert.alert(
-                    t("common.error"),
-                    t("vet.appointment.cancelReasonRequired")
-                  );
-                  return;
-                }
-                Alert.alert(
-                  t("vet.appointment.cancelConfirmTitle"),
-                  t("vet.appointment.cancelConfirmBody"),
-                  [
-                    { text: t("common.cancel"), style: "cancel" },
-                    {
-                      text: t("vet.appointment.cancelCta"),
-                      style: "destructive",
-                      onPress: () => cancelMut.mutate()
-                    }
-                  ]
-                );
-              }}
-              loading={cancelMut.isPending}
-            />
-          </View>
-        ) : null}
-
         {isVet && appt.conflictStatus ? (
           <View style={[styles.badge, { backgroundColor: conflictStyle.bg }]}>
             <Text style={[styles.badgeTx, { color: conflictStyle.color }]}>
-              {appt.conflictLabel ?? appt.conflictStatus}
+              {conflictStatusLabel(appt.conflictStatus, t)}
             </Text>
           </View>
         ) : null}
@@ -557,7 +575,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           <Text style={styles.value}>{whenLabel}</Text>
 
           <Text style={styles.label}>{t("vet.appointment.reason")}</Text>
-          <Text style={styles.value}>{appt.reason}</Text>
+          <Text style={styles.value}>{reasonLabel(appt.reason, t)}</Text>
 
           {appt.notes ? (
             <>
@@ -592,11 +610,101 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             <>
               <Text style={styles.label}>{t("vet.appointment.price")}</Text>
               <Text style={styles.price}>
-                {money(appt.servicePrice, appt.currency)}
+                {money(appt.servicePrice, appt.currency, locale)}
               </Text>
             </>
           ) : null}
         </View>
+
+        {hasVisitReport ? (
+          <View style={styles.card} testID="vet-appointment-visit-report">
+            <Text style={styles.sectionTitle}>
+              {t("vet.appointment.reportTitle")}
+            </Text>
+            {appt.visitSubjectsTreated ? (
+              <>
+                <Text style={styles.label}>
+                  {t("vet.appointment.reportSubjects")}
+                </Text>
+                <Text style={styles.value}>{appt.visitSubjectsTreated}</Text>
+              </>
+            ) : null}
+            {appt.visitDiagnosis ? (
+              <>
+                <Text style={styles.label}>
+                  {t("vet.appointment.reportDiagnosis")}
+                </Text>
+                <Text style={styles.value}>{appt.visitDiagnosis}</Text>
+              </>
+            ) : null}
+            {appt.visitPrescription ? (
+              <>
+                <Text style={styles.label}>
+                  {t("vet.appointment.reportPrescription")}
+                </Text>
+                <Text style={styles.value}>{appt.visitPrescription}</Text>
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
+        {canSubmitReport ? (
+          <View style={styles.section} testID="vet-appointment-report-form">
+            <Text style={styles.sectionTitle}>
+              {t("vet.appointment.reportTitle")}
+            </Text>
+            <Text style={styles.hint}>{t("vet.appointment.reportHint")}</Text>
+            <Text style={styles.label}>
+              {t("vet.appointment.reportSubjects")} *
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.reportSubjectsPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={reportSubjects}
+              onChangeText={setReportSubjects}
+            />
+            <Text style={styles.label}>
+              {t("vet.appointment.reportDiagnosis")} *
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.reportDiagnosisPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={reportDiagnosis}
+              onChangeText={setReportDiagnosis}
+            />
+            <Text style={styles.label}>
+              {t("vet.appointment.reportPrescription")} *
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.reportPrescriptionPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={reportPrescription}
+              onChangeText={setReportPrescription}
+            />
+            <PrimaryButton
+              label={t("vet.appointment.reportSubmitCta")}
+              onPress={() => reportMut.mutate()}
+              loading={reportMut.isPending}
+            />
+          </View>
+        ) : null}
+
+        {isProducer &&
+        ["APPOINTMENT_CONFIRMED", "APPOINTMENT_IN_PROGRESS"].includes(
+          appt.status
+        ) &&
+        !hasVisitReport &&
+        !isOrphanConfirmed ? (
+          <Text style={styles.hint}>
+            {t("vet.appointment.reportWaitingProducer")}
+          </Text>
+        ) : null}
 
         {isVet && appt.status === "APPOINTMENT_REQUESTED" ? (
           <View style={styles.section}>
@@ -663,7 +771,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               </View>
             ) : (
               <Text style={styles.price}>
-                {money(appt.servicePrice ?? 0, appt.currency)}
+                {money(appt.servicePrice ?? 0, appt.currency, locale)}
               </Text>
             )}
             <PrimaryButton
@@ -702,7 +810,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               {t("vet.appointment.paymentRecapTitle")}
             </Text>
             <Text style={styles.price}>
-              {money(appt.servicePrice ?? payAmount, appt.currency)}
+              {money(appt.servicePrice ?? payAmount, appt.currency, locale)}
             </Text>
             <Text style={styles.hint}>{t("vet.appointment.paymentHint")}</Text>
             {deadline ? (
@@ -723,7 +831,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             />
             <PrimaryButton
               label={t("vet.appointment.payCta", {
-                amount: money(appt.servicePrice ?? 0, appt.currency)
+                amount: money(appt.servicePrice ?? 0, appt.currency, locale)
               })}
               onPress={() => payMut.mutate()}
               loading={payMut.isPending}
@@ -765,7 +873,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        {isOrphanConfirmed ? (
+        {isOrphanConfirmed && hasVisitReport ? (
           <View style={styles.section} testID="vet-appointment-orphan-section">
             <Text style={styles.hint}>
               {t("vet.appointment.orphanConfirmedHint")}
@@ -778,14 +886,21 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        {isOrphanConfirmed && !hasVisitReport && isVet ? (
+          <Text style={styles.hint}>
+            {t("vet.appointment.reportRequiredBeforeConfirm")}
+          </Text>
+        ) : null}
+
         {isProducer &&
         appt.status === "APPOINTMENT_CONFIRMED" &&
-        !isOrphanConfirmed ? (
+        !isOrphanConfirmed &&
+        hasVisitReport ? (
           <View style={styles.section}>
             <Text style={styles.hint}>
               {appt.isFree
                 ? t("vet.appointment.completeFreeHint")
-                : t("vet.appointment.completeHint")}
+                : t("vet.appointment.reportReadyHint")}
             </Text>
             <PrimaryButton
               label={
@@ -817,7 +932,8 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
         {isVet &&
         appt.isFree &&
-        appt.status === "APPOINTMENT_CONFIRMED" ? (
+        appt.status === "APPOINTMENT_CONFIRMED" &&
+        hasVisitReport ? (
           <View style={styles.section}>
             <Text style={styles.hint}>{t("vet.appointment.completeFreeHint")}</Text>
             <PrimaryButton
@@ -828,20 +944,19 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        {canCancel &&
-        !(
-          isVet &&
-          (appt.status === "VISIT_PROPOSED" ||
-            appt.status === "AWAITING_PAYMENT")
-        ) ? (
+        {canCancel ? (
           <View style={styles.section} testID="vet-appointment-cancel-section">
             <Text style={styles.sectionTitle}>
               {t("vet.appointment.cancelSectionTitle")}
             </Text>
             <Text style={styles.hint}>
-              {isPaidConfirmed
-                ? t("vet.appointment.cancelHintPaid")
-                : t("vet.appointment.cancelHintUnpaid")}
+              {appt.status === "VISIT_PROPOSED"
+                ? t("vet.appointment.awaitingProducerResponse")
+                : appt.status === "APPOINTMENT_REQUESTED"
+                  ? t("vet.appointment.waitingVetHint")
+                  : isPaidConfirmed
+                    ? t("vet.appointment.cancelHintPaid")
+                    : t("vet.appointment.cancelHintUnpaid")}
             </Text>
             <Text style={styles.label}>
               {t("vet.appointment.cancelReasonLabel")}
@@ -899,19 +1014,23 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               ))}
             </View>
             <View style={styles.tags}>
-              {RATING_TAGS.map((tag) => {
-                const on = selectedTags.includes(tag);
+              {RATING_TAG_KEYS.map((tagKey) => {
+                const on = selectedTags.includes(tagKey);
                 return (
                   <Pressable
-                    key={tag}
+                    key={tagKey}
                     style={[styles.tag, on && styles.tagOn]}
                     onPress={() =>
                       setSelectedTags((prev) =>
-                        on ? prev.filter((x) => x !== tag) : [...prev, tag]
+                        on
+                          ? prev.filter((x) => x !== tagKey)
+                          : [...prev, tagKey]
                       )
                     }
                   >
-                    <Text style={[styles.tagTx, on && styles.tagTxOn]}>{tag}</Text>
+                    <Text style={[styles.tagTx, on && styles.tagTxOn]}>
+                      {t(`vet.appointment.ratingTags.${tagKey}`)}
+                    </Text>
                   </Pressable>
                 );
               })}

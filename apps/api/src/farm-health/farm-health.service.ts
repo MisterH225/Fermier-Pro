@@ -75,6 +75,7 @@ function emptyMonthSeries(keys: string[]): Record<string, number> {
 
 const ACTIVE_VET_APPOINTMENT_STATUSES: VetAppointmentStatus[] = [
   VetAppointmentStatus.APPOINTMENT_REQUESTED,
+  VetAppointmentStatus.VISIT_PROPOSED,
   VetAppointmentStatus.AWAITING_PAYMENT,
   VetAppointmentStatus.APPOINTMENT_CONFIRMED,
   VetAppointmentStatus.APPOINTMENT_IN_PROGRESS
@@ -211,6 +212,14 @@ export class FarmHealthService {
     entityType: FarmHealthEntityType,
     entityId: string
   ) {
+    if (entityType === FarmHealthEntityType.farm) {
+      if (entityId !== farmId) {
+        throw new BadRequestException(
+          "Événement niveau ferme : entityId doit être l'id de la ferme"
+        );
+      }
+      return;
+    }
     if (mode === "individual") {
       if (entityType !== FarmHealthEntityType.animal) {
         throw new BadRequestException(
@@ -662,12 +671,16 @@ export class FarmHealthService {
             vetName,
             vetContact: str(d.vetContact, 200) ?? undefined,
             reason,
+            subjectsTreated: str(d.subjectsTreated, 4000) ?? undefined,
+            diagnosis: str(d.diagnosis, 4000) ?? undefined,
+            prescription: str(d.prescription, 8000) ?? undefined,
             report: str(d.report, 8000) ?? undefined,
             prescriptionUrl: str(d.prescriptionUrl, 2000) ?? undefined,
             cost:
               num(d.cost) != null
                 ? new Prisma.Decimal(num(d.cost)!)
-                : undefined
+                : undefined,
+            vetAppointmentId: str(d.vetAppointmentId, 64) ?? undefined
           }
         });
       } else if (dto.kind === FarmHealthRecordKind.treatment) {

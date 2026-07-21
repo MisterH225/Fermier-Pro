@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { vetColors } from "../../theme/vetTheme";
 import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
@@ -18,6 +19,7 @@ export function VetWelcomeHeader({
   verified,
   onPressAvatar
 }: VetWelcomeHeaderProps) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity
       style={styles.cluster}
@@ -40,7 +42,10 @@ export function VetWelcomeHeader({
             {displayName}
           </Text>
           {verified ? (
-            <Text style={styles.verifiedBadge} accessibilityLabel="Vérifié">
+            <Text
+              style={styles.verifiedBadge}
+              accessibilityLabel={t("vet.farms.verifiedA11y")}
+            >
               ✅
             </Text>
           ) : null}

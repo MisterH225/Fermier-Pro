@@ -129,7 +129,9 @@ export function VetDashboardScreen() {
 
   const displayName = useMemo(() => {
     const fn = welcomeFirstName(authMe?.user ?? null);
-    return fn ? `Dr. ${fn}` : t("vet.dashboard.defaultName");
+    return fn
+      ? t("vet.dashboard.doctorName", { name: fn })
+      : t("vet.dashboard.defaultName");
   }, [authMe, t]);
 
   const events = useMemo(
@@ -229,13 +231,29 @@ export function VetDashboardScreen() {
                     scheduledAt={v.scheduledAt}
                     subject={v.subject}
                     location={v.location}
-                    conflictLabel={v.conflictLabel}
+                    conflictLabel={
+                      v.conflictStatus
+                        ? (() => {
+                            const key = `vet.appointment.conflict.${v.conflictStatus}`;
+                            const label = t(key);
+                            return label === key ? v.conflictLabel : label;
+                          })()
+                        : v.conflictLabel
+                    }
                     statusLabel={
-                      v.kind === "appointment" && v.status === "APPOINTMENT_REQUESTED"
-                        ? t("vet.appointment.requestPending")
-                        : v.kind === "appointment" && v.status === "VISIT_PROPOSED"
-                          ? t("vet.appointment.awaitingProducerResponse")
-                          : undefined
+                      v.kind === "appointment" && v.status
+                        ? (() => {
+                            if (v.status === "APPOINTMENT_REQUESTED") {
+                              return t("vet.appointment.requestPending");
+                            }
+                            if (v.status === "VISIT_PROPOSED") {
+                              return t("vet.appointment.awaitingProducerResponse");
+                            }
+                            const key = `vet.appointment.status.${v.status}`;
+                            const label = t(key);
+                            return label === key ? undefined : label;
+                          })()
+                        : undefined
                     }
                     onPress={() => {
                       if (v.kind === "appointment") {
