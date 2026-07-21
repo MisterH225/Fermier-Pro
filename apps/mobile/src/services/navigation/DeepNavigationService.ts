@@ -23,7 +23,9 @@ type AppNavigation =
  * Appeler `isReady` à l’aveugle plante (`is not a function`) → crash / écran blanc
  * depuis l’inbox (proposition RDV producteur, refus producteur → détail RDV, etc.).
  */
-export function isNavigationReady(nav: AppNavigation | null | undefined): boolean {
+export function isNavigationReady(
+  nav: AppNavigation | null | undefined
+): nav is AppNavigation {
   if (!nav) {
     return false;
   }
