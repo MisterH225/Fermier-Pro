@@ -14,6 +14,26 @@ function str(v: unknown): string | undefined {
   return s.length ? s : undefined;
 }
 
+type AppNavigation =
+  | NativeStackNavigationProp<RootStackParamList>
+  | NavigationContainerRef<RootStackParamList>;
+
+/**
+ * `NavigationContainerRef` expose `isReady()` ; le prop `navigation` d’un écran non.
+ * Appeler `isReady` à l’aveugle plante (`is not a function`) → écran blanc depuis
+ * la liste des notifications (ex. refus producteur → détail RDV).
+ */
+export function isNavigationReady(nav: AppNavigation | null | undefined): boolean {
+  if (!nav) {
+    return false;
+  }
+  const maybeReady = (nav as NavigationContainerRef<RootStackParamList>).isReady;
+  if (typeof maybeReady === "function") {
+    return maybeReady.call(nav);
+  }
+  return true;
+}
+
 function farmContext(
   params?: Record<string, unknown>
 ): { farmId: string; farmName: string } | null {
@@ -375,9 +395,7 @@ function parsePushParams(raw: unknown): Record<string, unknown> | undefined {
 }
 
 export function navigateToAlert(
-  navigation:
-    | NativeStackNavigationProp<RootStackParamList>
-    | NavigationContainerRef<RootStackParamList>,
+  navigation: AppNavigation,
   alert: SmartAlertNavInput,
   profile: DeepNavProfile = "producer"
 ): boolean {
@@ -389,13 +407,13 @@ export function navigateToAlert(
 }
 
 export function navigateFromPushData(
-  navigationRef: NavigationContainerRef<RootStackParamList>,
+  navigationRef: AppNavigation,
   data: PushSmartAlertData | undefined,
   profile: DeepNavProfile = "producer"
 ): boolean {
   if (!data || data.type !== "smart_alert") return false;
   const nav = navigationRef;
-  if (!nav?.isReady()) return false;
+  if (!isNavigationReady(nav)) return false;
 
   const params = parsePushParams(data.params);
   const alert: SmartAlertNavInput = {
@@ -423,16 +441,16 @@ export function navigateFromPushData(
   return navigateToAlert(nav, alert, profile);
 }
 
-/** Navigation depuis une notification push (RDV véto, marketplace, alertes). */
+/** Navigation depuis une notification push ou l’inbox (RDV véto, marketplace, alertes). */
 export function navigateFromGenericPushData(
-  navigationRef: NavigationContainerRef<RootStackParamList>,
+  navigationRef: AppNavigation,
   data: Record<string, unknown> | undefined
 ): boolean {
   if (!data?.type || typeof data.type !== "string") {
     return false;
   }
   const nav = navigationRef;
-  if (!nav?.isReady()) {
+  if (!isNavigationReady(nav)) {
     return false;
   }
 
@@ -544,9 +562,7 @@ export function navigateFromGenericPushData(
 
 /** Parse action_route IA (ex. FarmHealth:tab=vet_visit) et navigue si possible. */
 export function navigateFromInsightRoute(
-  navigation:
-    | NativeStackNavigationProp<RootStackParamList>
-    | NavigationContainerRef<RootStackParamList>,
+  navigation: AppNavigation,
   actionRoute: string | null | undefined
 ): boolean {
   if (!actionRoute?.trim()) {
