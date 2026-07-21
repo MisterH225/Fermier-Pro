@@ -9,7 +9,7 @@ import {
   vetStatus,
   vetType
 } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 import { VetEmptyState } from "./VetEmptyState";
 
 type Props = {
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: mobileRadius.sm,
     marginTop: 4
   },
   line: {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   date: { ...vetType.label },
   label: { ...vetType.body, fontWeight: "600" },
   badgeRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  badge: { ...vetType.label, fontSize: 11 },
+  badge: { ...vetType.label, fontSize: mobileFontSize.xs },
   moreBtn: {
     alignSelf: "flex-start",
     paddingVertical: 8,
@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   moreTx: {
     color: vetColors.primary,
     fontWeight: "700",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   }
 });

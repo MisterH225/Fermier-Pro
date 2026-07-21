@@ -19,7 +19,7 @@ import {
 } from "../../lib/api";
 import { getUserFacingError } from "../../lib/userFacingError";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   showFab?: boolean;
@@ -150,14 +150,14 @@ const styles = StyleSheet.create({
     right: 0,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: mobileRadius.xl,
     backgroundColor: buyerColors.primary,
     alignItems: "center",
     justifyContent: "center"
   },
   fabTx: {
     color: buyerColors.onPrimary,
-    fontSize: 28,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "300",
     marginTop: -2
   },

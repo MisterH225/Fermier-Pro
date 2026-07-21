@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 export type FarmCardBadge = "alert" | "visit" | "ok" | null;
 
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: vetColors.primaryLight,
     alignItems: "center",
     justifyContent: "center"
@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 999
+    borderRadius: mobileRadius.pill
   },
-  badgeTx: { fontSize: 11, fontWeight: "700", color: vetColors.primary },
+  badgeTx: { fontSize: mobileFontSize.xs, fontWeight: "700", color: vetColors.primary },
   actions: { flexDirection: "row", gap: 16, paddingLeft: 56 }
 });

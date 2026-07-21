@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { openPhoneCall } from "../../lib/phone";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 type VisitCardProps = {
   farmName: string;
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: mobileRadius.xl,
     backgroundColor: "rgba(255,255,255,0.08)",
     top: -36,
     right: -24
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: mobileRadius.xl,
     backgroundColor: "rgba(255,255,255,0.06)",
     bottom: 24,
     left: -20
@@ -154,9 +154,9 @@ const styles = StyleSheet.create({
   content: { padding: mobileSpacing.lg, gap: 4, zIndex: 1 },
   farm: {
     ...mobileTypography.title,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
-    color: "#fff"
+    color: mobileColors.background
   },
   producer: {
     ...mobileTypography.meta,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   conflictBadge: {
     ...mobileTypography.meta,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: vetColors.kpiAmberSoft,
     fontWeight: "600",
     marginTop: 2
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   actionBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: mobileRadius.xl,
     backgroundColor: vetColors.cardBg,
     alignItems: "center",
     justifyContent: "center"

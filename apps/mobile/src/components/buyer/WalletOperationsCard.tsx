@@ -23,7 +23,7 @@ import {
 } from "../../lib/api";
 import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 
 type WalletSection = "topup" | "withdraw" | "transfer" | "all";
 
@@ -353,10 +353,10 @@ function ActionButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={mobileColors.background} />
       ) : (
         <>
-          <Ionicons name={icon} size={18} color="#fff" />
+          <Ionicons name={icon} size={18} color={mobileColors.background} />
           <Text style={styles.btnLabel}>{label}</Text>
         </>
       )}
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   blockTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: buyerColors.textPrimary
   },
   blockHint: {
@@ -415,8 +415,8 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.55 },
   btnLabel: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
-    color: "#fff"
+    fontSize: mobileFontSize.md,
+    color: mobileColors.background
   },
   recipientCard: {
     padding: mobileSpacing.sm,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   recipientName: {
     ...mobileTypography.cardTitle,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: buyerColors.textPrimary
   },
   recipientPhone: {

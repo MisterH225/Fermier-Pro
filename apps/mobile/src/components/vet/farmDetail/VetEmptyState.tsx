@@ -6,7 +6,7 @@ import {
   vetRadius,
   vetType
 } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius } from "../../../theme/mobileTheme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   illo: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: mobileRadius.xl,
     backgroundColor: vetColors.cardBg,
     alignItems: "center",
     justifyContent: "center"

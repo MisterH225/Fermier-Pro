@@ -14,7 +14,7 @@ import {
   createBuyerPriceAlert,
   type CreateBuyerPriceAlertBody
 } from "../../lib/api";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import { BaseModal } from "../modals/BaseModal";
 import { ModalSection } from "../modals/ModalSection";
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     borderColor: buyerColors.primary,
     backgroundColor: `${buyerColors.primary}14`
   },
-  chipTx: { fontSize: 12, color: buyerColors.textPrimary },
+  chipTx: { fontSize: mobileFontSize.sm, color: buyerColors.textPrimary },
   saveBtn: {
     backgroundColor: buyerColors.primary,
     padding: mobileSpacing.md,
@@ -216,5 +216,5 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   saveDisabled: { opacity: 0.5 },
-  saveTx: { color: "#fff", fontWeight: "700" }
+  saveTx: { color: mobileColors.background, fontWeight: "700" }
 });

@@ -14,7 +14,7 @@ import {
 import { fetchMyMarketplaceOffers } from "../../lib/api";
 import { offerStatusLabel } from "../../lib/marketplaceLabels";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function BuyerActiveProposalsSection() {
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, minWidth: 0 },
   rowTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: buyerColors.textPrimary
   },
   rowMeta: {

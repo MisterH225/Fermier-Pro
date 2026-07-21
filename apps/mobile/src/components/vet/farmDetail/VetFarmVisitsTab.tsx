@@ -15,7 +15,7 @@ import { VetEmptyState } from "./VetEmptyState";
 import { useSession } from "../../../context/SessionContext";
 import { fetchVetAppointments, fetchVetConsultations } from "../../../lib/api";
 import { vetColors, vetRadius, vetShadow } from "../../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import type { RootStackParamList } from "../../../types/navigation";
 
 const PENDING_STATUSES = new Set([
@@ -198,6 +198,6 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     fontWeight: "700",
     color: vetColors.warning,
-    fontSize: 11
+    fontSize: mobileFontSize.xs
   }
 });

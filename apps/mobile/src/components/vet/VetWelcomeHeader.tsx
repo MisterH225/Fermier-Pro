@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { vetColors } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type VetWelcomeHeaderProps = {
   welcomeLabel: string;
@@ -82,16 +82,16 @@ const styles = StyleSheet.create({
   textCol: { marginLeft: mobileSpacing.md, flexShrink: 1 },
   welcome: {
     ...mobileTypography.meta,
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: vetColors.textSecondary
   },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   name: {
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.textPrimary,
     flexShrink: 1
   },
-  verifiedBadge: { fontSize: 14 }
+  verifiedBadge: { fontSize: mobileFontSize.md }
 });

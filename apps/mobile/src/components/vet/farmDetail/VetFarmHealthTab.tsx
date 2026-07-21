@@ -23,7 +23,7 @@ import {
   type VetFarmSummaryDto
 } from "../../../lib/api";
 import { vetColors, vetRadius, vetShadow, vetType } from "../../../theme/vetTheme";
-import { mobileSpacing } from "../../../theme/mobileTheme";
+import { mobileSpacing, mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   farmId: string;
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: vetColors.textPrimary
   },
   alertMeta: { ...vetType.label },
@@ -310,13 +310,13 @@ const styles = StyleSheet.create({
   gaugePct: { ...vetType.figureSm, color: vetColors.success },
   track: {
     height: 8,
-    borderRadius: 99,
+    borderRadius: mobileRadius.pill,
     backgroundColor: vetColors.primaryLight,
     overflow: "hidden"
   },
   fill: {
     height: "100%",
-    borderRadius: 99,
+    borderRadius: mobileRadius.pill,
     backgroundColor: vetColors.primary
   },
   hint: { ...vetType.label, color: vetColors.textMuted },
@@ -331,10 +331,10 @@ const styles = StyleSheet.create({
   listMeta: { ...vetType.label },
   btn: {
     backgroundColor: vetColors.primary,
-    borderRadius: 14,
+    borderRadius: mobileRadius.lg,
     paddingVertical: 12,
     alignItems: "center",
     marginTop: mobileSpacing.sm
   },
-  btnTx: { color: vetColors.onPrimary, fontWeight: "700", fontSize: 13 }
+  btnTx: { color: vetColors.onPrimary, fontWeight: "700", fontSize: mobileFontSize.sm }
 });

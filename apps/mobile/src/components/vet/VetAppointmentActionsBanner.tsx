@@ -4,14 +4,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { fetchVetAppointments, type VetAppointmentDto } from "../../lib/api";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import { vetColors } from "../../theme/vetTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
 
 const ACTION_STATUSES = new Set([
   "APPOINTMENT_REQUESTED",
@@ -140,7 +136,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...mobileTypography.title,
-    fontSize: 17
+    fontSize: mobileFontSize.lg
   },
   card: {
     backgroundColor: mobileColors.background,
@@ -172,7 +168,7 @@ const styles = StyleSheet.create({
   },
   price: {
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.warningDeep,
     marginTop: 2
@@ -183,11 +179,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: mobileRadius.sm,
-    backgroundColor: "#DCFCE7"
+    backgroundColor: mobileStatusSurfaces.successBg
   },
   freeBadgeTx: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: "#15803D"
+    color: producerColors.successDeep
   }
 });

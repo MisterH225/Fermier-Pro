@@ -15,7 +15,7 @@ import {
 } from "../../lib/api";
 import { offerStatusLabel } from "../../lib/marketplaceLabels";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileRadius } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function BuyerPendingMarketplaceBanner() {
@@ -68,7 +68,7 @@ export function BuyerPendingMarketplaceBanner() {
       })}
     >
       <View style={styles.iconBox}>
-        <Ionicons name="cart" size={20} color="#fff" />
+        <Ionicons name="cart" size={20} color={mobileColors.background} />
       </View>
       <View style={styles.txCol}>
         <Text style={styles.title} numberOfLines={1}>
@@ -80,7 +80,7 @@ export function BuyerPendingMarketplaceBanner() {
           {subtitle}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#fff" />
+      <Ionicons name="chevron-forward" size={20} color={mobileColors.background} />
     </Pressable>
   );
 }
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center"
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   txCol: { flex: 1, minWidth: 0 },
   title: {
     ...mobileTypography.body,
-    color: "#fff",
+    color: mobileColors.background,
     fontWeight: "700"
   },
   body: {

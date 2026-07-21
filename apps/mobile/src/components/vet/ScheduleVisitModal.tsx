@@ -25,11 +25,7 @@ import {
   parsePriceInput
 } from "../../lib/platformFees";
 import { vetColors, vetRadius } from "../../theme/vetTheme";
-import {
-  mobileColors,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 const REASONS: VetVisitReason[] = [
   "routine",
@@ -167,7 +163,7 @@ export function ScheduleVisitModal({
           }}
         >
           {scheduleMut.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={mobileColors.background} />
           ) : (
             <Text style={styles.submitTx}>{t("vet.schedule.confirm")}</Text>
           )}
@@ -349,12 +345,12 @@ const styles = StyleSheet.create({
     borderColor: vetColors.primary
   },
   farmChipTx: { fontWeight: "600", color: vetColors.textPrimary },
-  farmChipTxOn: { color: "#fff" },
+  farmChipTxOn: { color: mobileColors.background },
   reasonRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   reasonChip: {
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     borderWidth: 1,
     borderColor: vetColors.border
   },
@@ -362,7 +358,7 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.primaryLight,
     borderColor: vetColors.primary
   },
-  reasonTx: { fontSize: 13, color: vetColors.textSecondary, fontWeight: "600" },
+  reasonTx: { fontSize: mobileFontSize.sm, color: vetColors.textSecondary, fontWeight: "600" },
   reasonTxOn: { color: vetColors.primary },
   input: {
     borderWidth: 1,
@@ -387,7 +383,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.md,
     minHeight: 52,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "600",
     color: vetColors.textPrimary,
     backgroundColor: vetColors.primaryLight
@@ -400,6 +396,6 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   submitDisabled: { opacity: 0.5 },
-  submitTx: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  submitTx: { color: mobileColors.background, fontWeight: "700", fontSize: mobileFontSize.lg },
   error: { color: vetColors.danger, marginTop: mobileSpacing.md }
 });

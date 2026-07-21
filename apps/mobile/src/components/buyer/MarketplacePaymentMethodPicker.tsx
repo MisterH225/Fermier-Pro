@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 export type MarketplacePaymentMethodChoice = "wallet" | "mobile_money";
 
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   radio: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: mobileRadius.sm,
     borderWidth: 2,
     borderColor: buyerColors.border,
     marginTop: 2
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   optionText: { flex: 1, gap: 2 },
   optionTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     color: buyerColors.textPrimary
   },
   optionSub: {
