@@ -80,7 +80,12 @@ export type RootStackParamList = {
   VetFarmDetail: {
     farmId: string;
     farmName: string;
-    initialTab?: "health" | "livestock" | "visits" | "prescriptions";
+    initialTab?:
+      | "health"
+      | "livestock"
+      | "repro"
+      | "visits"
+      | "prescriptions";
   };
   VetMessages: undefined;
   TechnicianDashboard: undefined;
