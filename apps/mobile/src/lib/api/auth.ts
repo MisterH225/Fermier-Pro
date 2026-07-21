@@ -336,3 +336,84 @@ export function createProfile(
   );
 }
 
+/** Codes machine des blocages de désactivation de profil. */
+export type ProfileDeactivationBlockCode =
+  | "LAST_ACTIVE_PROFILE"
+  | "PRODUCER_FARM_ACTIVE"
+  | "BUYER_OPEN_TRANSACTION"
+  | "VET_OPEN_APPOINTMENT"
+  | "VET_PENDING_WITHDRAWAL"
+  | "MERCHANT_ACTIVE_SUBSCRIPTION"
+  | "MERCHANT_OPEN_ORDER"
+  | "TECHNICIAN_OPEN_TASK"
+  | "MODERATION_SANCTION"
+  | "ALREADY_DEACTIVATED"
+  | "NOT_DEACTIVATED";
+
+export type ProfileDeactivationBlockDto = {
+  code: ProfileDeactivationBlockCode;
+  message: string;
+  count?: number;
+  resolveHint?: string | null;
+};
+
+export type ProfileDeactivationPreviewDto = {
+  profileId: string;
+  profileType: ProfileTypeChoice;
+  canDeactivate: boolean;
+  blocks: ProfileDeactivationBlockDto[];
+  effects: {
+    willHide: string[];
+    willKeep: string[];
+  };
+};
+
+export type ProfileDeactivateResultDto = {
+  profileId: string;
+  profileStatus: "deactivated";
+  deactivatedAt: string;
+  suggestedActiveProfileId: string | null;
+};
+
+/** GET /api/v1/profiles/:id/deactivation-preview */
+export function fetchDeactivationPreview(
+  accessToken: string,
+  profileId: string,
+  activeProfileId?: string | null
+): Promise<ProfileDeactivationPreviewDto> {
+  return apiGetJson<ProfileDeactivationPreviewDto>(
+    `/profiles/${profileId}/deactivation-preview`,
+    accessToken,
+    activeProfileId ?? null
+  );
+}
+
+/** POST /api/v1/profiles/:id/deactivate */
+export function deactivateProfile(
+  accessToken: string,
+  profileId: string,
+  body?: { reason?: string },
+  activeProfileId?: string | null
+): Promise<ProfileDeactivateResultDto> {
+  return apiPostJson<ProfileDeactivateResultDto>(
+    `/profiles/${profileId}/deactivate`,
+    body ?? {},
+    accessToken,
+    activeProfileId ?? null
+  );
+}
+
+/** POST /api/v1/profiles/:id/reactivate */
+export function reactivateProfile(
+  accessToken: string,
+  profileId: string,
+  activeProfileId?: string | null
+): Promise<CreatedProfileDto> {
+  return apiPostJson<CreatedProfileDto>(
+    `/profiles/${profileId}/reactivate`,
+    {},
+    accessToken,
+    activeProfileId ?? null
+  );
+}
+

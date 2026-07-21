@@ -309,6 +309,117 @@ export const fr = {
       label: "Danger",
       deleteAccount: "Supprimer mon compte"
     },
+    sensitiveZone: {
+      label: "Zone sensible",
+      hint: "La désactivation masque ce profil sans effacer l’historique.",
+      deactivate: "Désactiver ce profil",
+      lastProfileHint:
+        "C’est votre dernier profil actif. Pour quitter Fermier Pro, utilisez « Supprimer mon compte ».",
+      deactivatedTitle: "Profils désactivés",
+      reactivate: "Réactiver",
+      sheetTitle: "Désactiver ce profil ?",
+      loadingPreview: "Vérification en cours…",
+      blocksTitle: "À résoudre avant de continuer",
+      willHideTitle: "Ce qui sera masqué",
+      willKeepTitle: "Ce qui sera conservé",
+      confirmMessage:
+        "Pour confirmer, saisissez « {{profileType}} » ci-dessous.",
+      confirmPlaceholder: "Saisissez {{profileType}}",
+      confirmAction: "Désactiver le profil",
+      cancel: "Annuler",
+      successTitle: "Profil désactivé",
+      successMessage:
+        "Le profil a été désactivé. Vous pouvez le réactiver plus tard depuis cette page.",
+      reactivateSuccessTitle: "Profil réactivé",
+      reactivateSuccessMessage: "Le profil est de nouveau disponible.",
+      reactivateErrorTitle: "Réactivation impossible",
+      resolveGeneric: "Voir l’élément concerné",
+      resolveHints: {
+        farms: "Gérer mes fermes",
+        marketplace: { orders: "Voir mes commandes" },
+        vet: { agenda: "Ouvrir l’agenda" },
+        wallet: { withdrawals: "Voir mon portefeuille" },
+        merchant: {
+          subscription: "Gérer l’abonnement",
+          orders: "Voir les commandes boutique"
+        },
+        tech: { tasks: "Voir mes tâches" }
+      },
+      blocks: {
+        LAST_ACTIVE_PROFILE:
+          "Dernier profil actif — désactivez-le uniquement via la suppression de compte.",
+        PRODUCER_FARM_ACTIVE:
+          "Ferme avec animaux actifs ou membres — archivez ou transférez d’abord.",
+        BUYER_OPEN_TRANSACTION:
+          "{{count}} transaction(s) marketplace en cours — clôturez-les d’abord.",
+        VET_OPEN_APPOINTMENT:
+          "{{count}} rendez-vous en cours — clôturez-les d’abord.",
+        VET_PENDING_WITHDRAWAL:
+          "{{count}} retrait(s) en attente — attendez le traitement.",
+        MERCHANT_ACTIVE_SUBSCRIPTION:
+          "Abonnement premium actif — résiliez-le d’abord.",
+        MERCHANT_OPEN_ORDER:
+          "{{count}} commande(s) en cours — clôturez-les d’abord.",
+        TECHNICIAN_OPEN_TASK:
+          "{{count}} tâche(s) assignée(s) en cours — terminez-les d’abord.",
+        MODERATION_SANCTION:
+          "Profil sous sanction de modération — action impossible.",
+        ALREADY_DEACTIVATED: "Ce profil est déjà désactivé.",
+        NOT_DEACTIVATED: "Ce profil n’est pas désactivé."
+      },
+      effects: {
+        producer: {
+          willHide: [
+            "Le profil producteur disparaît du sélecteur",
+            "Les invitations en attente seront annulées"
+          ],
+          willKeep: [
+            "Les fermes et l’historique sanitaire / financier",
+            "Les animaux et lots déjà enregistrés"
+          ]
+        },
+        buyer: {
+          willHide: [
+            "Impossible de faire de nouvelles offres marketplace",
+            "Le profil acheteur disparaît du sélecteur"
+          ],
+          willKeep: [
+            "Les commandes et transactions passées",
+            "La Météo acheteur et l’historique"
+          ]
+        },
+        merchant: {
+          willHide: [
+            "Boutique et produits masqués du marketplace",
+            "Le profil commerçant disparaît du sélecteur"
+          ],
+          willKeep: [
+            "Boutique et catalogue non effacés",
+            "L’historique des commandes"
+          ]
+        },
+        veterinarian: {
+          willHide: [
+            "Retrait des annuaires et de la recherche vétérinaire",
+            "Disponibilité forcée à indisponible"
+          ],
+          willKeep: [
+            "Consultations et avis passés",
+            "Badges Santé vérifiée déjà émis"
+          ]
+        },
+        technician: {
+          willHide: [
+            "Retrait des annuaires technicien",
+            "Le profil technicien disparaît du sélecteur"
+          ],
+          willKeep: [
+            "L’historique des tâches déjà réalisées",
+            "Les données de profil enregistrées"
+          ]
+        }
+      }
+    },
     deleteAccount: {
       warningTitle: "Supprimer votre compte ?",
       warningMessage: "Cette action est irréversible. Toutes vos données seront définitivement supprimées : ferme, cheptel, finances, santé, stock, gestations, rapports. Les personnes ayant accès à votre projet perdront immédiatement cet accès.",

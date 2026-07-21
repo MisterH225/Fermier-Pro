@@ -309,6 +309,116 @@ export const en = {
       label: "Danger",
       deleteAccount: "Delete my account"
     },
+    sensitiveZone: {
+      label: "Sensitive area",
+      hint: "Deactivating hides this profile without erasing history.",
+      deactivate: "Deactivate this profile",
+      lastProfileHint:
+        "This is your last active profile. To leave Fermier Pro, use “Delete my account”.",
+      deactivatedTitle: "Deactivated profiles",
+      reactivate: "Reactivate",
+      sheetTitle: "Deactivate this profile?",
+      loadingPreview: "Checking…",
+      blocksTitle: "Resolve these first",
+      willHideTitle: "What will be hidden",
+      willKeepTitle: "What will be kept",
+      confirmMessage: "To confirm, type “{{profileType}}” below.",
+      confirmPlaceholder: "Type {{profileType}}",
+      confirmAction: "Deactivate profile",
+      cancel: "Cancel",
+      successTitle: "Profile deactivated",
+      successMessage:
+        "The profile has been deactivated. You can reactivate it later from this page.",
+      reactivateSuccessTitle: "Profile reactivated",
+      reactivateSuccessMessage: "The profile is available again.",
+      reactivateErrorTitle: "Reactivation failed",
+      resolveGeneric: "Open related item",
+      resolveHints: {
+        farms: "Manage my farms",
+        marketplace: { orders: "View my orders" },
+        vet: { agenda: "Open agenda" },
+        wallet: { withdrawals: "Open wallet" },
+        merchant: {
+          subscription: "Manage subscription",
+          orders: "View shop orders"
+        },
+        tech: { tasks: "View my tasks" }
+      },
+      blocks: {
+        LAST_ACTIVE_PROFILE:
+          "Last active profile — deactivate it only via account deletion.",
+        PRODUCER_FARM_ACTIVE:
+          "Farm with active animals or members — archive or transfer first.",
+        BUYER_OPEN_TRANSACTION:
+          "{{count}} open marketplace transaction(s) — close them first.",
+        VET_OPEN_APPOINTMENT:
+          "{{count}} open appointment(s) — close them first.",
+        VET_PENDING_WITHDRAWAL:
+          "{{count}} pending withdrawal(s) — wait for processing.",
+        MERCHANT_ACTIVE_SUBSCRIPTION:
+          "Active premium subscription — cancel it first.",
+        MERCHANT_OPEN_ORDER:
+          "{{count}} open order(s) — close them first.",
+        TECHNICIAN_OPEN_TASK:
+          "{{count}} assigned open task(s) — finish them first.",
+        MODERATION_SANCTION:
+          "Profile under moderation sanction — action not allowed.",
+        ALREADY_DEACTIVATED: "This profile is already deactivated.",
+        NOT_DEACTIVATED: "This profile is not deactivated."
+      },
+      effects: {
+        producer: {
+          willHide: [
+            "Producer profile leaves the switcher",
+            "Pending invitations will be cancelled"
+          ],
+          willKeep: [
+            "Farms and health / financial history",
+            "Animals and batches already recorded"
+          ]
+        },
+        buyer: {
+          willHide: [
+            "No new marketplace offers",
+            "Buyer profile leaves the switcher"
+          ],
+          willKeep: [
+            "Past orders and transactions",
+            "Buyer Météo and history"
+          ]
+        },
+        merchant: {
+          willHide: [
+            "Shop and products hidden from the marketplace",
+            "Merchant profile leaves the switcher"
+          ],
+          willKeep: [
+            "Shop and catalogue are not erased",
+            "Order history"
+          ]
+        },
+        veterinarian: {
+          willHide: [
+            "Removed from directories and vet search",
+            "Availability forced to unavailable"
+          ],
+          willKeep: [
+            "Past consultations and reviews",
+            "Verified Health badges already issued"
+          ]
+        },
+        technician: {
+          willHide: [
+            "Removed from technician directories",
+            "Technician profile leaves the switcher"
+          ],
+          willKeep: [
+            "History of completed tasks",
+            "Saved profile data"
+          ]
+        }
+      }
+    },
     deleteAccount: {
       warningTitle: "Delete your account?",
       warningMessage: "This action cannot be undone. All your data will be permanently deleted: farm, livestock, finances, health, feed stock, gestations, and reports. People with access to your project will immediately lose that access.",
