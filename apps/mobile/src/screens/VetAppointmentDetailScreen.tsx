@@ -120,7 +120,7 @@ function deadlineLabel(deadline: string | null | undefined): string | null {
 
 export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const bottomInset = useBottomInset();
-  const { appointmentId } = route.params;
+  const appointmentId = route.params?.appointmentId ?? "";
   const { t, i18n } = useTranslation();
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const { accessToken, activeProfileId, authMe, clientFeatures, platformFees } =
@@ -149,7 +149,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const q = useQuery({
     queryKey: ["vetAppointment", appointmentId, activeProfileId],
     queryFn: () => fetchVetAppointment(accessToken!, appointmentId, activeProfileId),
-    enabled: Boolean(accessToken)
+    enabled: Boolean(accessToken && appointmentId)
   });
 
   const invalidate = useCallback(() => {
@@ -509,7 +509,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     [appt?.paymentDeadline]
   );
 
-  if (q.isPending) {
+  if (q.isPending && appointmentId) {
     return (
       <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
         <ActivityIndicator color={mobileColors.accent} style={{ marginTop: 32 }} />
@@ -517,14 +517,14 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  if (q.isError || !appt) {
+  if (!appointmentId || q.isError || !appt) {
     return (
       <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
         <View style={styles.wrap}>
           <Text style={styles.errorText}>
             {q.error instanceof Error
               ? formatApiError(q.error)
-              : t("common.error")}
+              : t("common.errors.notFound")}
           </Text>
           <SecondaryButton
             label={t("common.close")}

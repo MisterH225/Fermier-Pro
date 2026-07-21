@@ -20,8 +20,8 @@ type AppNavigation =
 
 /**
  * `NavigationContainerRef` expose `isReady()` ; le prop `navigation` d’un écran non.
- * Appeler `isReady` à l’aveugle plante (`is not a function`) → écran blanc depuis
- * la liste des notifications (ex. refus producteur → détail RDV).
+ * Appeler `isReady` à l’aveugle plante (`is not a function`) → crash / écran blanc
+ * depuis l’inbox (proposition RDV producteur, refus producteur → détail RDV, etc.).
  */
 export function isNavigationReady(nav: AppNavigation | null | undefined): boolean {
   if (!nav) {
@@ -485,8 +485,12 @@ export function navigateFromGenericPushData(
     if (!appointmentId) {
       return false;
     }
-    nav.navigate("VetAppointmentDetail", { appointmentId });
-    return true;
+    try {
+      nav.navigate("VetAppointmentDetail", { appointmentId });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   if (type === "vet_visit_scheduled" || type === "vet_visit_quote") {
