@@ -314,7 +314,7 @@ export const en = {
       hint: "Deactivating hides this profile without erasing history.",
       deactivate: "Deactivate this profile",
       lastProfileHint:
-        "This is your last active profile. To leave Fermier Pro, use “Delete my account”.",
+      "This is your last active profile. To leave Fermier Pro, use “Delete my account”.",
       deactivatedTitle: "Deactivated profiles",
       reactivate: "Reactivate",
       sheetTitle: "Deactivate this profile?",
@@ -328,7 +328,7 @@ export const en = {
       cancel: "Cancel",
       successTitle: "Profile deactivated",
       successMessage:
-        "The profile has been deactivated. You can reactivate it later from this page.",
+      "The profile has been deactivated. You can reactivate it later from this page.",
       reactivateSuccessTitle: "Profile reactivated",
       reactivateSuccessMessage: "The profile is available again.",
       reactivateErrorTitle: "Reactivation failed",
@@ -337,7 +337,7 @@ export const en = {
         farms: "Manage my farms",
         marketplace: { orders: "View my orders" },
         vet: { agenda: "Open agenda" },
-        wallet: { withdrawals: "Open wallet" },
+        wallet: { withdrawals: "Open my balance" },
         merchant: {
           subscription: "Manage subscription",
           orders: "View shop orders"
@@ -346,76 +346,76 @@ export const en = {
       },
       blocks: {
         LAST_ACTIVE_PROFILE:
-          "Last active profile — deactivate it only via account deletion.",
+        "Last active profile — deactivate it only via account deletion.",
         PRODUCER_FARM_ACTIVE:
-          "Farm with active animals or members — archive or transfer first.",
-        BUYER_OPEN_TRANSACTION:
-          "{{count}} open marketplace transaction(s) — close them first.",
+        "Farm with active animals or members — archive or transfer first.",
+        BUYER_OPEN_TRANSACTION: "{{count}} open marketplace purchase(s) — close them first.",
+
         VET_OPEN_APPOINTMENT:
-          "{{count}} open appointment(s) — close them first.",
+        "{{count}} open appointment(s) — close them first.",
         VET_PENDING_WITHDRAWAL:
-          "{{count}} pending withdrawal(s) — wait for processing.",
+        "{{count}} pending withdrawal(s) — wait for processing.",
         MERCHANT_ACTIVE_SUBSCRIPTION:
-          "Active premium subscription — cancel it first.",
+        "Active premium subscription — cancel it first.",
         MERCHANT_OPEN_ORDER:
-          "{{count}} open order(s) — close them first.",
+        "{{count}} open order(s) — close them first.",
         TECHNICIAN_OPEN_TASK:
-          "{{count}} assigned open task(s) — finish them first.",
+        "{{count}} assigned open task(s) — finish them first.",
         MODERATION_SANCTION:
-          "Profile under moderation sanction — action not allowed.",
+        "Profile under moderation sanction — action not allowed.",
         ALREADY_DEACTIVATED: "This profile is already deactivated.",
         NOT_DEACTIVATED: "This profile is not deactivated."
       },
       effects: {
         producer: {
           willHide: [
-            "Producer profile leaves the switcher",
-            "Pending invitations will be cancelled"
-          ],
+          "Producer profile leaves the switcher",
+          "Pending invitations will be cancelled"],
+
           willKeep: [
-            "Farms and health / financial history",
-            "Animals and batches already recorded"
-          ]
+          "Farms and health / financial history",
+          "Animals and batches already recorded"]
+
         },
         buyer: {
           willHide: [
-            "No new marketplace offers",
-            "Buyer profile leaves the switcher"
-          ],
+          "No new marketplace offers",
+          "Buyer profile leaves the switcher"],
+
           willKeep: [
-            "Past orders and transactions",
-            "Buyer Météo and history"
-          ]
+          "Past orders and transactions",
+          "Buyer Météo and history"]
+
         },
         merchant: {
           willHide: [
-            "Shop and products hidden from the marketplace",
-            "Merchant profile leaves the switcher"
-          ],
+          "Shop and products hidden from the marketplace",
+          "Merchant profile leaves the switcher"],
+
           willKeep: [
-            "Shop and catalogue are not erased",
-            "Order history"
-          ]
+          "Shop and catalogue are not erased",
+          "Order history"]
+
         },
         veterinarian: {
           willHide: [
-            "Removed from directories and vet search",
-            "Availability forced to unavailable"
-          ],
+          "Removed from directories and vet search",
+          "Availability forced to unavailable"],
+
           willKeep: [
-            "Past consultations and reviews",
-            "Verified Health badges already issued"
-          ]
+          "Past consultations and reviews",
+          "Verified Health badges already issued"]
+
         },
         technician: {
           willHide: [
-            "Removed from technician directories",
-            "Technician profile leaves the switcher"
-          ],
+          "Removed from technician directories",
+          "Technician profile leaves the switcher"],
+
           willKeep: [
-            "History of completed tasks",
-            "Saved profile data"
-          ]
+          "History of completed tasks",
+          "Saved profile data"]
+
         }
       }
     },
@@ -425,7 +425,7 @@ export const en = {
       consequences: {
         farm: "✗ Your farm and all its settings",
         animals: "✗ All your animals and their history",
-        finance: "✗ All your financial transactions",
+        finance: "✗ All your financial movements",
         reports: "✗ All generated reports",
         collaborators: "✗ All collaborator access (vet, technician, partner)",
         health: "✗ Your gestation and health history"
@@ -453,7 +453,7 @@ export const en = {
     tabClients: "Clients",
     tabSuppliers: "Suppliers",
     partners: {
-      transactionCount: "{{count}} transaction(s)",
+      transactionCount: "{{count}} purchase(s)",
       closedCount: "{{count}} completed",
       message: "Send a message",
       directSale: "Direct livestock sale",
@@ -496,7 +496,7 @@ export const en = {
       sheetIntro: "Reliability indicator based on credit payment history. Clearer skies mean a more reliable buyer.",
       levelIndex: "Level {{n}}/{{total}}",
       current: "Current",
-      stats: "{{total}} transactions, {{onTime}} on time"
+      stats: "{{total}} purchases, {{onTime}} on time"
     },
     badgeExpired: "Expired",
     badgeActiveOffers: "{{count}} active offer(s)",
@@ -530,7 +530,7 @@ export const en = {
     acceptSuccessBody: "Proceed to payment to secure your purchase.",
     acceptSuccessBodySeller: "The buyer can now pay. Track delivery and closing here.",
     transaction: {
-      reference: "Transaction no.",
+      reference: "Purchase no.",
       copyReference: "Copy reference",
       referenceCopied: "Reference copied",
       saleDetails: "Sale details",
@@ -545,7 +545,7 @@ export const en = {
       agreedAmount: "Agreed price",
       currentAmount: "Amount",
       paymentMethod: "Payment method",
-      escrowStatus: "Escrow status",
+      escrowStatus: "Held payment state",
       notAvailable: "Not available",
       notDeclared: "Not declared",
       buyerShort: "Buyer",
@@ -562,18 +562,18 @@ export const en = {
         PICKUP_SCHEDULED: "Pickup confirmed",
         SELLER_SHIPPED: "Handover confirmed",
         BUYER_RECEIVED: "Receipt confirmed",
-        DELIVERY_DISPUTED: "Delivery dispute",
+        DELIVERY_DISPUTED: "Delivery problem",
         WEIGHT_DECLARED: "Weight declared",
         WEIGHT_COUNTER_DECLARED: "Weight difference",
-        WEIGHT_DISPUTED: "Weight dispute",
-        WEIGHT_VALIDATED: "Weight validated",
+        WEIGHT_DISPUTED: "Weight problem",
+        WEIGHT_VALIDATED: "Weight confirmed",
         TRANSACTION_CLOSED: "Sale completed",
         CANCELLED_BY_BUYER: "Cancelled",
         CANCELLED_BY_SELLER: "Cancelled",
         CANCELLED_SOLD_TO_OTHER: "Sold elsewhere",
         PAYMENT_FAILED: "Payment failed",
         OFFER_EXPIRED: "Offer expired",
-        unknown: "Unknown status"
+        unknown: "Unknown state"
       },
       payCta: "Pay {{amount}}",
       paymentSummaryTitle: "Payment breakdown",
@@ -592,14 +592,14 @@ export const en = {
       paymentSuccessTitle: "Payment confirmed",
       paymentSuccessBody: "Your payment is recorded. Coordinate delivery with the seller.",
       paymentPendingTitle: "Payment in progress",
-      paymentPendingBody: "Complete the payment in your browser. The transaction will update automatically once payment is validated.",
+      paymentPendingBody: "Complete the payment in your browser. The purchase will update automatically once payment is confirmed.",
       paymentAlreadyHeldTitle: "Payment already recorded",
-      paymentAlreadyHeldBody: "This transaction is already paid (often via wallet or a GeniusPay webhook). Continue to the delivery step.",
-      paymentInvalidStatus: "This transaction is no longer awaiting payment (status: {{status}}). Refresh the screen or create a new offer.",
+      paymentAlreadyHeldBody: "This purchase is already paid (often via balance or a payment callback). Continue to the delivery step.",
+      paymentInvalidStatus: "This purchase is no longer awaiting payment (state: {{status}}). Refresh the screen or create a new offer.",
       paymentFailedRetryHint: "The last attempt timed out before GeniusPay confirmation. Tap Pay to reopen checkout.",
       checkoutUrlMissing: "GeniusPay did not return a payment link. Retry shortly or contact support.",
       checkoutUrlInvalid: "The GeniusPay link is invalid. Try again or contact support.",
-      transactionNotFound: "Transaction not found. Refresh the screen or reopen it from your proposals.",
+      transactionNotFound: "Purchase not found. Refresh the screen or reopen it from your proposals.",
       paymentApiUnavailable: "Payment service unavailable (outdated API or offline). Try again later.",
       providerError: "The payment provider rejected the request. Retry or contact support.",
       paymentErrorTitle: "Payment failed",
@@ -626,25 +626,25 @@ export const en = {
       weightDeclaredBody: "The seller can accept your weight or declare their own.",
       sellerWeightReview: "Weight declared by buyer",
       sellerDeclareWeightTitle: "Your weigh-in",
-      sellerDeclareWeightHint: "Enter the weight you measured at handover. If the gap is small, the sale continues; otherwise arbitration may be requested.",
-      autoToleranceHint: "If your weigh-in differs by less than {{percent}}% (or {{minKg}} kg minimum) from the buyer's, the transaction will be validated automatically at the average weight.",
+      sellerDeclareWeightHint: "Enter the weight you measured at handover. If the gap is small, the sale continues; otherwise a decision may be requested.",
+      autoToleranceHint: "If your weigh-in differs by less than {{percent}}% (or {{minKg}} kg minimum) from the buyer's, the purchase will be confirmed automatically at the average weight.",
       sellerDeclareWeightCta: "Enter my weight",
       sellerWeightLabel: "Your weight (kg)",
       buyerDeclaredWeight: "Buyer weight: {{kg}} kg",
       sellerDeclaredWeightLine: "Seller weight: {{kg}} kg",
       sellerWeightDeclaredTitle: "Weight recorded",
-      sellerWeightDeclaredBody: "The gap with the buyer is shown. Accept or request arbitration if thresholds are met.",
+      sellerWeightDeclaredBody: "The gap with the buyer is shown. Accept or request a decision if thresholds are met.",
       weightDiffSection: "Weight difference",
       weightDiffLine: "Difference: {{kg}} kg",
-      arbitrationThresholdsHint: "Arbitration thresholds: {{min}} kg per animal · {{cumulative}} kg cumulative",
-      requestArbitration: "Request arbitration",
-      belowArbitrationThreshold: "Gap below arbitration threshold — negotiate or accept with the other party.",
-      arbitrationRequestedTitle: "Arbitration requested",
-      arbitrationRequestedBody: "A platform admin will review this transaction.",
-      validateWeight: "Validate weight",
-      cancel: "Cancel transaction",
-      closed: "Transaction completed.",
-      receiptTitle: "Transaction receipt",
+      arbitrationThresholdsHint: "Decision thresholds: {{min}} kg per animal · {{cumulative}} kg cumulative",
+      requestArbitration: "Request a decision",
+      belowArbitrationThreshold: "Gap below decision threshold — negotiate or accept with the other party.",
+      arbitrationRequestedTitle: "Decision requested",
+      arbitrationRequestedBody: "A platform admin will review this purchase.",
+      validateWeight: "Confirm weight",
+      cancel: "Cancel purchase",
+      closed: "Purchase completed.",
+      receiptTitle: "Purchase receipt",
       receiptNumber: "No. {{number}}",
       receiptGeneratedAt: "Generated on {{date}}",
       receiptDownload: "Download receipt (PDF)",
@@ -660,13 +660,13 @@ export const en = {
         PAYMENT_HELD: "Payment secured — propose pickup",
         PICKUP_PROPOSED: "Appointment proposed — awaiting seller",
         PICKUP_SCHEDULED: "Appointment confirmed — enter weight",
-        WEIGHT_DECLARED: "Weight declared — seller validation",
+        WEIGHT_DECLARED: "Weight declared — seller confirmation",
         WEIGHT_COUNTER_DECLARED: "Weight gap — negotiate or arbitrate",
-        WEIGHT_DISPUTED: "Weight dispute — arbitration",
+        WEIGHT_DISPUTED: "Weight problem — decision pending",
         WEIGHT_VALIDATED: "Weight confirmed — confirm handover",
         SELLER_SHIPPED: "Handover confirmed — confirm receipt",
         BUYER_RECEIVED: "Receipt confirmed — payout in progress",
-        DELIVERY_DISPUTED: "Delivery dispute",
+        DELIVERY_DISPUTED: "Delivery problem",
         TRANSACTION_CLOSED: "Sale completed",
         CANCELLED_BY_BUYER: "Cancelled by buyer",
         CANCELLED_BY_SELLER: "Cancelled by seller",
@@ -685,11 +685,11 @@ export const en = {
       buyerProposePickup: "Propose a date and location to pick up the animal.",
       buyerWaitPickupConfirm: "Appointment proposed. The seller must confirm the date.",
       buyerDeclareWeight: "Appointment confirmed. Enter the actual weight measured at pickup.",
-      buyerWaitHandover: "Weight confirmed. The seller will validate handover.",
+      buyerWaitHandover: "Weight confirmed. The seller will confirm handover.",
       buyerWaitReceipt: "The seller confirmed handover. Confirm receipt to finalize and release payment.",
-      deliveryDisputed: "A delivery dispute is open. Funds remain secured pending resolution.",
-      finalizing: "Receipt confirmed — paying the seller and closing the transaction.",
-      weightDisputed: "Weight is disputed. Arbitration is in progress — you will be notified."
+      deliveryDisputed: "A delivery problem is open. Funds remain secured pending resolution.",
+      finalizing: "Receipt confirmed — paying the seller and closing the purchase.",
+      weightDisputed: "Weight is contested. A decision is in progress — you will be notified."
     },
     shipmentModal: {
       open: "Confirm shipment",
@@ -739,14 +739,14 @@ export const en = {
       acceptCounter: "Accept counter-offer",
       agreedSuccess: "Credit deal agreed — secure the advance on the platform to start delivery.",
       escrow: {
-        transactionMissing: "Escrow transaction not found — try again shortly."
+        transactionMissing: "Held-payment entry not found — try again shortly."
       },
       termsAdvance: "Advance: {{pct}}% = {{amount}}",
       termsBalance: "Balance: {{amount}} in {{days}} days",
       advance: {
         confirm: "✅ I paid the advance",
-        payEscrow: "💳 Pay advance (escrow)",
-        viewTransaction: "View transaction",
+        payEscrow: "💳 Pay advance (held)",
+        viewTransaction: "View purchase",
         confirmReceived: "✅ Confirm advance received",
         notReceived: "❌ I did not receive the advance"
       },
@@ -754,22 +754,22 @@ export const en = {
         title: "Confirm balance payment",
         confirm: "✅ I paid the balance",
         declare: "💰 I paid the balance",
-        payEscrow: "💳 Pay balance (escrow)",
+        payEscrow: "💳 Pay balance (held)",
         remaining: "Remaining balance",
         statusPending: "Awaiting payment",
         statusDeclared: "Payment declared",
         statusPaid: "Settled",
-        statusArbitration: "Arbitration in progress",
+        statusArbitration: "Decision in progress",
         declaredSuccess: "Balance declared — the seller will confirm receipt.",
         confirmReceived: "✅ Confirm balance received",
         notReceived: "❌ I did not receive the balance",
-        confirmedSuccess: "Credit transaction settled."
+        confirmedSuccess: "Credit purchase settled."
       },
       dashboard: {
         scoreTitle: "My credit score",
         pendingTitle: "Pending balances",
         empty: "No credit balance in progress.",
-        transactions: "{{count}} credit transaction(s)",
+        transactions: "{{count}} credit purchase(s)",
         onTime: "{{count}} on-time payment(s)",
         late: "{{count}} late payment(s)"
       }
@@ -808,7 +808,7 @@ export const en = {
       confirm: "Confirm receipt",
       reportProblem: "Report a problem",
       successTitle: "Receipt recorded",
-      successBody: "The transaction is moving toward closing."
+      successBody: "The purchase is moving toward closing."
     },
     categories: {
       all: "All",
@@ -863,7 +863,7 @@ export const en = {
       contactErrorTitle: "Messaging",
       noHealthData: "No health data available.",
       health: {
-        globalStatus: "Vaccination status",
+        globalStatus: "Vaccination state",
         globalVaccinesOk: "Up to date ✅",
         globalVaccinesOverdue: "Overdue 🔴",
         globalVaccinesNone: "No vaccines recorded",
@@ -1041,13 +1041,13 @@ export const en = {
     statToday: "Today",
     statHigh: "High",
     statLow: "Low",
-    statVolume: "Transactions",
+    statVolume: "Purchases",
     variationFlat: "0.0% ➡️",
     priceOnRequest: "—"
   },
   pigPriceIndexCard: {
     title: "Pork price index",
-    basedOn: "Based on {{count}} transactions"
+    basedOn: "Based on {{count}} purchases"
   },
   ordersTracking: {
     sectionTitle: "Current tracking",
@@ -1063,7 +1063,7 @@ export const en = {
       pickedUp: "Picked up",
       inTransit: "In transit",
       delivered: "Delivered",
-      disputed: "Dispute"
+      disputed: "Problem"
     }
   },
   smartAlerts: {
@@ -1144,7 +1144,7 @@ export const en = {
     detailAnimal: "Linked animal",
     detailCategory: "Category",
     detailDescription: "Description",
-    detailStatus: "Status",
+    detailStatus: "State",
     myTasks: "My tasks",
     filterToday: "Today",
     filterWeek: "This week",
@@ -1214,7 +1214,7 @@ export const en = {
     offPlatformVisit: {
       title: "Log an off-platform visit",
       subtitle:
-        "For a consultation done outside the platform (no FermierPro appointment or payment). Platform visits are managed under Vet appointments."
+      "For a consultation done outside the platform (no FermierPro appointment or payment). Platform visits are managed under Vet appointments."
     },
     appointment: {
       title: "Vet appointment",
@@ -1250,16 +1250,16 @@ export const en = {
       producerRefuseCta: "Decline",
       producerRefusePlaceholder: "Reason for declining (required)",
       producerRefuseReasonRequired:
-        "Enter a reason — the veterinarian will be notified.",
+      "Enter a reason — the veterinarian will be notified.",
       refusedByProducer: "Declined by producer",
       refusalReasonLabel: "Decline reason",
       awaitingProducerResponse: "Waiting for the producer’s response",
       orphanConfirmedHint:
-        "This appointment was confirmed without a fee. You can cancel it or mark it completed with no payment.",
+      "This appointment was confirmed without a fee. You can cancel it or mark it completed with no payment.",
       closeOrphanCta: "Mark completed (no payment)",
       reportTitle: "Visit report",
       reportHint:
-        "After the visit, submit the report (topics covered, diagnosis, prescription). The producer will see it under Health.",
+      "After the visit, submit the report (topics covered, diagnosis, prescription). The producer will see it under Health.",
       reportSubjects: "Topics covered",
       reportSubjectsPlaceholder: "E.g. vaccination, pregnancy check…",
       reportDiagnosis: "Diagnosis",
@@ -1270,11 +1270,11 @@ export const en = {
       reportRequiredFields: "Enter topics covered, diagnosis and prescription.",
       reportSubmitted: "Report submitted",
       reportWaitingProducer:
-        "Waiting for the veterinarian’s report before closing the visit.",
+      "Waiting for the veterinarian’s report before closing the visit.",
       reportReadyHint:
-        "The report is available. You can confirm the service is completed.",
+      "The report is available. You can confirm the service is completed.",
       reportRequiredBeforeConfirm:
-        "Submit the visit report first (topics covered, diagnosis, prescription) before closing.",
+      "Submit the visit report first (topics covered, diagnosis, prescription) before closing.",
       ratingTags: {
         punctual: "Punctual",
         professional: "Professional",
@@ -1314,17 +1314,17 @@ export const en = {
       cancelCta: "Cancel appointment",
       cancelSectionTitle: "Cancel appointment",
       cancelHintUnpaid:
-        "The other party will be notified. No payment will be charged.",
-      cancelHintPaid:
-        "The held amount will be fully refunded to the producer’s wallet. The other party will see your note.",
+      "The other party will be notified. No payment will be charged.",
+      cancelHintPaid: "The held amount will be fully refunded to the producer’s balance. The other party will see your note.",
+
       cancelReasonLabel: "Note for the other party",
       cancelReasonPlaceholder: "Briefly explain why you are cancelling…",
       cancelReasonRequired: "Please enter a note for the other party.",
       cancelConfirmTitle: "Confirm cancellation?",
       cancelConfirmBody:
-        "This cannot be undone. Your note will be sent to the other party.",
+      "This cannot be undone. Your note will be sent to the other party.",
       cancelConfirmBodyPaid:
-        "This cannot be undone. The payment will be fully refunded and your note will be shared.",
+      "This cannot be undone. The payment will be fully refunded and your note will be shared.",
       cancelledByProducer: "Cancelled by producer",
       cancelledByVet: "Cancelled by veterinarian",
       cancellationReasonLabel: "Cancellation note",
@@ -1470,11 +1470,11 @@ export const en = {
       },
       readings: {
         tripleSignal:
-          "Three signals on the same batch: ADG below target, active case and/or mortality peak.",
+        "Three signals on the same batch: ADG below target, active case and/or mortality peak.",
         densityGmq:
-          "Overcrowding / ADG correlation: barn “{{barn}}” is in density alert and hosts an underperforming batch.",
+        "Overcrowding / ADG correlation: barn “{{barn}}” is in density alert and hosts an underperforming batch.",
         vaccinePriority:
-          "Vaccine booster priority: coverage under 90% with active cases.",
+        "Vaccine booster priority: coverage under 90% with active cases.",
         openBatch: "Open batch",
         scheduleVisit: "Schedule a visit",
         title: "Veterinary reading"
@@ -1645,7 +1645,7 @@ export const en = {
       tasks: "Tasks",
       reports: "Reports",
       messages: "Messages",
-      wallet: "Wallet",
+      wallet: "My balance",
       walletDescription: "Balance, top-up, withdrawal and free transfers",
       closeBackdropA11y: "Close menu",
       closeA11y: "Close"
@@ -1664,10 +1664,10 @@ export const en = {
       merchantProduct: "Product",
       merchantOrder: "Order",
       merchantOrderDetails: "Details",
-      merchantDispute: "Dispute",
+      merchantDispute: "Problem",
       merchantSubscription: "Subscription",
       producerSubscription: "Team Premium",
-      userWallet: "Wallet",
+      userWallet: "My balance",
       walletTopUp: "Top up",
       walletWithdraw: "Withdraw",
       walletTransfer: "Transfer",
@@ -1704,7 +1704,7 @@ export const en = {
       batch: "Batch",
       market: "Market",
       listing: "Listing",
-      transaction: "Transaction",
+      transaction: "Purchase",
       creditScore: "Credit score",
       producerScoreTitle: "Producer score",
       myOffers: "My offers",
@@ -1743,7 +1743,7 @@ export const en = {
       general: "General",
       assignment: "Assignment",
       scheduling: "Due date",
-      status: "Status",
+      status: "State",
       destination: "Destination",
       animal: "Animal",
       measurement: "Weight",
@@ -1857,7 +1857,7 @@ export const en = {
     edit: {
       title: "Edit stock entry",
       checkTitle: "Edit stock check",
-      linkedWarning: "This entry is linked to a Finance expense. Editing the cost here also updates the Finance transaction.",
+      linkedWarning: "This entry is linked to a Finance expense. Editing the cost here also updates the Finance movement.",
       costSection: "Cost",
       costHelper: "Leave empty if unknown",
       totalCostPh: "Total cost",
@@ -2151,7 +2151,7 @@ export const en = {
         errorTitle: "Could not create"
       },
       status: {
-        title: "Status — {{tag}}",
+        title: "State — {{tag}}",
         active: "Active",
         sick: "Sick",
         dead: "Dead",
@@ -2163,7 +2163,7 @@ export const en = {
         deathCause: "Cause",
         note: "Note",
         submit: "Save",
-        success: "Status updated",
+        success: "State updated",
         errorTitle: "Could not update",
         financeLinked: "A revenue entry is created in Finance when a sale price is set.",
         healthLinked: "A mortality exit is recorded (Health module).",
@@ -2315,7 +2315,7 @@ export const en = {
     modeBatch: "Batch",
     modeMixed: "Mixed",
     emptyBatches: "No batches recorded.",
-    noLogs: "No status changes recorded.",
+    noLogs: "No state changes recorded.",
     loadMore: "Load more",
     hybridHint: "Mixed mode: individual tracking for breeders, batches for growth / nursery.",
     batchOnlyHint: "Batch mode: group entries, no per-animal detail.",
@@ -2474,7 +2474,7 @@ export const en = {
       periodMonth: "/month",
       periodMonthN: "/{{count}} months",
       payMobileMoney: "Wave / Mobile money",
-      payWallet: "Wallet",
+      payWallet: "Balance",
       paymentWaitingTitle: "Payment in progress",
       paymentWaitingBody: "Your Team Premium will activate automatically after payment confirmation.",
       reopenPaymentCta: "Open payment link",
@@ -2614,7 +2614,7 @@ export const en = {
       metaFormation: "Training",
       metaSalary: "Salary",
       metaReviews: "Reviews",
-      metaStatus: "Status",
+      metaStatus: "State",
       metaSpecialty: "Specialty",
       metaVisits: "Visits",
       metaRadius: "Radius",
@@ -2763,7 +2763,7 @@ export const en = {
     tabRevenues: "Revenue",
     tabExpenses: "Expenses",
     tabBudget: "Budget",
-    tabWallet: "Wallet",
+    tabWallet: "Balance",
     trend6Months: "6-month trend",
     expensesVsBudget: "Expenses vs budget",
     legendExpenses: "Expenses",
@@ -2777,10 +2777,10 @@ export const en = {
     trendExpenses: "Expense trend",
     sourcesRevenues: "Revenue sources",
     sourcesExpenses: "Expense breakdown",
-    recentTx: "Recent transactions",
+    recentTx: "Recent movements",
     viewAll: "View all",
     viewLess: "Show less",
-    noTx: "No transactions yet.",
+    noTx: "No movements yet.",
     marginByBand: "Margin by batch",
     selectBand: "Select a batch.",
     projections: "Projections",
@@ -2788,8 +2788,8 @@ export const en = {
     projRevExpSplit: "Revenue / expenses breakdown",
     projectedRevenues: "Projected revenues",
     projectedExpenses: "Projected expenses",
-    newTx: "+ Transaction",
-    modalTitle: "New transaction",
+    newTx: "+ Movement",
+    modalTitle: "New movement",
     expense: "Expense",
     income: "Income",
     autoGenerated: "Automatic",
@@ -2797,9 +2797,9 @@ export const en = {
     lowBalanceBanner: "Low balance: below your configured threshold.",
     deficitBanner: "Heads-up: negative net trend based on the last 6 months.",
     editShort: "Edit",
-    editModalTitle: "Edit transaction",
+    editModalTitle: "Edit movement",
     save: "Save",
-    editSuccessMessage: "Transaction updated.",
+    editSuccessMessage: "Movement updated.",
     invalidAmount: "Invalid amount.",
     fieldNote: "Note (optional)",
     fieldNotePh: "Details…",
@@ -2809,9 +2809,9 @@ export const en = {
     fieldAmount: "Amount",
     fieldDescription: "Description",
     fieldDate: "Date",
-    transactionRef: "Transaction reference",
+    transactionRef: "Movement reference",
     transactionRefHint: "Generated automatically for this entry.",
-    noteRef: "Transaction ref: {{ref}}",
+    noteRef: "Movement ref: {{ref}}",
     proofHint: "Proof (optional photo)",
     addProofPhoto: "Add a photo",
     changeProofPhoto: "Change photo",
@@ -2823,7 +2823,7 @@ export const en = {
     create: "Create",
     requiredTitle: "Required fields",
     requiredBody: "Amount and description.",
-    txSuccessMessage: "Transaction saved successfully.",
+    txSuccessMessage: "Movement saved.",
     marginRev: "Revenue:",
     marginExpAlloc: "Allocated expenses:",
     marginGross: "Margin:",
@@ -2855,7 +2855,7 @@ export const en = {
     financeBadge: "Linked Finance",
     linkedFinanceTitle: "Linked finance expense",
     deleteLinkedTitle: "Linked deletion",
-    deleteLinkedBody: "This transaction is linked to a stock entry. Delete the stock entry too?",
+    deleteLinkedBody: "This movement is linked to a stock entry. Delete the stock entry too?",
     deleteBoth: "Delete both",
     deleteFinanceOnly: "Finance only"
   },
@@ -2865,7 +2865,7 @@ export const en = {
     totalIncome: "Prior revenue",
     totalExpense: "Prior expenses",
     netResult: "Pre-app net result",
-    walletHint: "These amounts feed project profitability and P&L. They do not affect the wallet balance.",
+    walletHint: "These amounts feed project profitability and P&L. They do not affect your balance.",
     addData: "Add data",
     quickTotalTitle: "Quick total by category",
     quickTotalBody: "One aggregated total per category, no line-by-line detail.",
@@ -2990,19 +2990,19 @@ export const en = {
     completionTitle: "Profile submitted for review ⏳",
     completionBody: "Your profile is being reviewed. You will be notified once approved. Limited app access until then.",
     completionCta: "Open the app",
-    vitrineStepLabel: "Your showcase (pending validation)",
+    vitrineStepLabel: "Your showcase (pending review)",
     vitrineTitle: "Your showcase",
-    vitrineLead:
-      "Your showcase will be visible to producers once your account is validated.",
+    vitrineLead: "Your showcase will be visible to producers once your account is reviewed.",
+
     bioPlaceholder:
-      "E.g.: Swine vet for 8 years, farm visits and prevention…",
+    "E.g.: Swine vet for 8 years, farm visits and prevention…",
     otherSpecialties: "Secondary specialties",
     radiusKm: "{{km}} km",
     skipVitrine: "Skip",
     saveVitrine: "Save showcase",
     finalTitle: "Profile ready ⏳",
     finalBody:
-      "Complete your showcase to be found faster. Here’s how Fermier Pro works for you.",
+    "Complete your showcase to be found faster. Here’s how Fermier Pro works for you.",
     howtoTitle: "How it works",
     howtoSearch: "• Producers find you via vet search.",
     howtoAppointments: "• You receive and manage appointment requests.",
@@ -3073,7 +3073,7 @@ export const en = {
     fieldVaccineType: "Type / lab",
     fieldNextReminder: "Next reminder (date)",
     fieldPractitioner: "Practitioner",
-    fieldVetStatus: "Visit status",
+    fieldVetStatus: "Visit state",
     vetStatus: {
       completed: "Done",
       planned: "Planned"
@@ -3087,7 +3087,7 @@ export const en = {
     fieldMortCause: "Cause",
     fieldHeadcount: "Headcount",
     fieldExpenseId: "Expense id",
-    mortalityHint: "After saving, animal status / exit is updated on the server — pull to refresh.",
+    mortalityHint: "After saving, animal state / exit is updated — pull to refresh.",
     linkShort: "Link expense",
     deleteVisitTitle: "Delete planned visit?",
     deleteVisitBody: "This planned visit will be permanently removed.",
@@ -3131,7 +3131,7 @@ export const en = {
     kpiOverdueVaccines: "Overdue vaccines",
     kpiNextVet: "Next vet appointment",
     kpiActiveTreatments: "Ongoing treatments",
-    kpiGlobalStatus: "Overall health status",
+    kpiGlobalStatus: "Overall health state",
     globalStatus: {
       good: "Good",
       warning: "Attention",
@@ -3320,7 +3320,7 @@ export const en = {
     tokenLabel: "Invitation token",
     tokenPlaceholder: "Hex token from the link or message",
     joinCta: "Join the farm",
-    validating: "Validating…",
+    validating: "Checking…",
     welcomeTitle: "Welcome to the farm",
     welcomeBody: "You are now {{role}} on this farm.",
     alreadyMemberTitle: "Already a member",
@@ -3330,7 +3330,7 @@ export const en = {
     refusedTitle: "Invitation refused",
     previewOwner: "You are the owner of this farm.",
     previewAlreadyMember: "You are already {{role}} on this farm.",
-    previewScanRequest: "Request sent: the owner will validate your access and assign your role.",
+    previewScanRequest: "Request sent: the owner will review your access and assign your role.",
     previewShareLink: "Invitation pre-configured for the {{role}} role.",
     scanRequestNote: "Your request is pending. You will be notified once the owner reviews it.",
     ownerNote: "You already own this farm: no further action needed.",
@@ -3392,7 +3392,7 @@ export const en = {
     vaccinesPlanned: "planned reminders",
     vetVisits: "Vet visits",
     healthCost: "Health cost (est.)",
-    healthStatus: "Overall health status",
+    healthStatus: "Overall health state",
     topDiseases: "Most frequent diseases",
     feedTitle: "Feed stock summary",
     feedInKg: "Stock entries (kg)",
@@ -3565,7 +3565,7 @@ export const en = {
       noTasks: "No tasks for today ✅",
       allTasks: "View all tasks →",
       quickActions: "Quick actions",
-      farmStatus: "Farm status",
+      farmStatus: "Farm state",
       recentActivity: "Recent activity",
       noActivity: "No recent activity",
       activityExpand: "Show {{count}} more",
@@ -3657,7 +3657,7 @@ export const en = {
       withdraw: "Withdraw",
       hideBalance: "Hide balance",
       showBalance: "Show balance",
-      openWallet: "Open wallet"
+      openWallet: "Open my balance"
     }
   },
   buyer: {
@@ -3684,7 +3684,7 @@ export const en = {
       sectionPrefs: "Buying preferences",
       businessName: "Business",
       meteoLevelOf: "Your Buyer Weather · level {{n}}/{{total}}",
-      meteoStats: "{{total}} transactions · {{onTime}} on-time payments · Visible to producers on your offers.",
+      meteoStats: "{{total}} purchases · {{onTime}} on-time payments · Visible to producers on your offers.",
       meteoLevel: {
         debutant: "Grey cloud",
         eclaircie: "Clearing",
@@ -3708,7 +3708,7 @@ export const en = {
       edit: "Edit",
       add: "Add",
       openShort: "Open",
-      walletRow: "Wallet",
+      walletRow: "My balance",
       nextField: {
         buyerType: "Set your buyer type to personalize the market →",
         businessName: "Add your business name →",
@@ -3758,21 +3758,21 @@ export const en = {
         withdraw: "Mobile money withdrawal",
         transferIn: "Transfer received",
         transferOut: "Transfer sent",
-        escrowRelease: "Escrow payout",
-        refund: "Escrow refund",
+        escrowRelease: "Held payment payout",
+        refund: "Held payment refund",
         creditAdjustment: "Credit",
         purchase: "Marketplace purchase",
         debitAdjustment: "Debit"
       },
       ops: {
-        title: "Manage wallet",
+        title: "Manage balance",
         hint: "Top up via mobile money, withdraw to your operator, or transfer for free to another user.",
         topUp: "Top up",
         topUpCta: "Top up via mobile money",
         topUpSuccessTitle: "Top-up confirmed",
         topUpSuccessBody: "Your balance has been credited.",
         topUpPendingTitle: "Top-up in progress",
-        topUpPendingBody: "Complete the payment in your browser. Your balance will update automatically once payment is validated.",
+        topUpPendingBody: "Complete the payment in your browser. Your balance will update automatically once payment is confirmed.",
         topUpInvalid: "Could not complete top-up",
         withdraw: "Withdraw",
         withdrawCta: "Withdraw to mobile money",
@@ -3782,10 +3782,10 @@ export const en = {
         withdrawPendingBody: "Your request will be reviewed by the Fermier Pro team shortly.",
         withdrawInvalid: "Could not complete withdrawal",
         transfer: "Transfer",
-        transferHint: "Transfers between Fermier Pro wallets. Any fees are shown before you confirm.",
+        transferHint: "Transfers between Fermier Pro balances. Any fees are shown before you confirm.",
         transferCta: "Send",
         transferSuccessTitle: "Transfer complete",
-        transferSuccessBody: "The recipient received the funds in their wallet.",
+        transferSuccessBody: "The recipient received the funds in their balance.",
         amountPlaceholder: "Amount (XOF)",
         phonePlaceholder: "Mobile money number (optional)",
         recipientPhonePlaceholder: "Recipient phone number",
@@ -3801,7 +3801,7 @@ export const en = {
       history: "History",
       historyHint: "Top-ups, withdrawals, transfers, purchases and refunds.",
       emptyTitle: "No activity yet",
-      emptyBody: "Escrow refunds and payments will appear here."
+      emptyBody: "Held payment refunds and payments will appear here."
     },
     profile: {
       sectionAccount: "Account",
@@ -3935,10 +3935,10 @@ export const en = {
     stepPrefsBody: "Type, categories and volume — to personalize the Market.",
     stepSeekTitle: "What you're looking for",
     stepSeekBody:
-      "Price, radius and location for relevant listings near you.",
+    "Price, radius and location for relevant listings near you.",
     recapTitle: "Your buyer profile",
     recapBody:
-      "You can refine later in Account. Goal: a solid gauge from day one.",
+    "You can refine later in Account. Goal: a solid gauge from day one.",
     fullName: "Name / business",
     location: "Location",
     locationPh: "City or neighborhood",
@@ -4114,7 +4114,7 @@ export const en = {
     overdue: "Deadline passed",
     outcome: {
       offerPaymentExpire: "Without payment before the deadline, the offer will be cancelled and the listing put back on sale.",
-      weightAutoValidate: "Without a reply from the seller before the deadline, the weight will be validated automatically.",
+      weightAutoValidate: "Without a reply from the seller before the deadline, the weight will be confirmed automatically.",
       deliveryAutoDispute: "Without receipt confirmation before the deadline, an issue will be opened and Fermier Pro will review it.",
       shopConfirmRefund: "Without the seller's agreement before the deadline, the order will be cancelled and your money refunded.",
       shopAutoComplete: "Without an issue reported before the deadline, the order will be closed and the seller paid.",
@@ -4147,7 +4147,7 @@ export const en = {
       segments: {
         action_required: "Action needed",
         active: "In progress",
-        disputed: "Disputes",
+        disputed: "Problems",
         closed: "Completed"
       },
       escrowStatus: {
@@ -4219,7 +4219,7 @@ export const en = {
         resubmission_review: "Under review"
       },
       status: {
-        resubmission_review: "Awaiting validation"
+        resubmission_review: "Awaiting review"
       },
       sales: {
         title: "Sales over time",
@@ -4264,12 +4264,12 @@ export const en = {
       markDelivered: "Mark as delivered",
       confirmReceipt: "Confirm receipt",
       markComplete: "Mark completed",
-      openDispute: "Open dispute",
-      disputeManage: "Manage dispute",
-      disputeOpen: "Dispute in progress",
+      openDispute: "Report a problem",
+      disputeManage: "Manage problem",
+      disputeOpen: "Problem in progress",
       acceptReturn: "Accept return",
       acceptReturnTitle: "Take the item back?",
-      acceptReturnConfirm: "You acknowledge the defect. Your wallet will be debited for the amount received, the buyer will be refunded the full amount paid, and platform commissions will be reversed.",
+      acceptReturnConfirm: "You acknowledge the defect. Your balance will be debited for the amount received, the buyer will be refunded the full amount paid, and platform commissions will be reversed.",
       acceptReturnNote: "Merchant: item return accepted",
       tracking: {
         label: "Tracking ID",
@@ -4292,7 +4292,7 @@ export const en = {
       activity: {
         title: "Activity",
         empty: "No activity yet.",
-        generic: "Status updated: {{status}}"
+        generic: "State updated: {{status}}"
       },
       filter: {
         all: "All",
@@ -4301,7 +4301,7 @@ export const en = {
         confirmed: "Confirmed",
         shipping: "Shipping",
         delivered: "Delivered",
-        disputed: "Dispute",
+        disputed: "Problem",
         completed: "Completed"
       },
       status: {
@@ -4321,13 +4321,13 @@ export const en = {
       }
     },
     dispute: {
-      title: "Order dispute",
-      subtitle: "Describe the issue (delivery, quality, etc.). No weight arbitration.",
+      title: "Order problem",
+      subtitle: "Describe the issue (delivery, quality, etc.). No weight decision here.",
       reasonLabel: "Reason",
       reasonPh: "Explain the problem…",
-      submit: "Open dispute",
-      opened: "Dispute opened",
-      current: "Active dispute",
+      submit: "Report a problem",
+      opened: "Problem reported",
+      current: "Active problem",
       sellerReply: "Your reply (seller)",
       buyerReply: "Your reply (buyer)",
       notePh: "Reply or details…",
@@ -4391,8 +4391,8 @@ export const en = {
       paymentLinkMissing: "Payment link unavailable. Try again shortly.",
       paymentMethodLabel: "Payment method",
       payMobileMoney: "Wave / Mobile money",
-      payWallet: "Wallet",
-      ctaPremiumWallet: "Pay with wallet — {{price}} XOF{{period}}",
+      payWallet: "Balance",
+      ctaPremiumWallet: "Pay with balance — {{price}} XOF{{period}}",
       walletBalanceHint: "Balance: {{balance}} XOF · Premium: {{price}} XOF{{period}}",
       statusPastDue: "Payment overdue",
       statusTrialing: "Free trial",
@@ -4472,9 +4472,9 @@ export const en = {
       moderation: {
         title: "Product removed by moderation",
         reason: "Reason: {{reason}}",
-        hint: "Fix the product, then submit it again for validation.",
-        pendingHint: "Your product is awaiting re-validation. It is not visible on the marketplace.",
-        resubmit: "Fix and submit for validation",
+        hint: "Fix the product, then submit it again for review.",
+        pendingHint: "Your product is awaiting another review. It is not visible on the marketplace.",
+        resubmit: "Fix and submit for review",
         limitReached: "Resubmission limit reached. Contact support for another review."
       },
       photos: {
@@ -4551,7 +4551,7 @@ export const en = {
       trackHint: "Track it under My purchases → Shop.",
       trackCta: "Track order",
       paymentWaitingTitle: "Payment in progress",
-      paymentWaitingBody: "Complete the GeniusPay checkout to confirm your order. It will activate automatically once payment is validated.",
+      paymentWaitingBody: "Complete the GeniusPay checkout to confirm your order. It will activate automatically once payment is confirmed.",
       reopenPaymentCta: "Open payment link",
       paymentLinkMissing: "Payment link unavailable. Try again shortly."
     }
