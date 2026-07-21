@@ -97,6 +97,18 @@ describeOrSkip("RDV vétérinaire escrow (e2e)", () => {
     });
     expect(afterPay.calendarBlocked).toBe(true);
 
+    const reportRes = await request(app.getHttpServer())
+      .post(`/api/v1/vet-appointments/${appointmentId}/visit-report`)
+      .set("Authorization", `Bearer ${ctx.vetToken}`)
+      .set("X-Profile-Id", ctx.veterinarianProfileId)
+      .send({
+        subjectsTreated: "Tous les sujets du bâtiment A",
+        diagnosis: "Contrôle sanitaire sans anomalie",
+        prescription: "Aucune ordonnance"
+      });
+    expect(reportRes.status).toBe(201);
+    expect(reportRes.body.visitReportSubmittedAt).toBeTruthy();
+
     const completeRes = await request(app.getHttpServer())
       .post(`/api/v1/vet-appointments/${appointmentId}/complete`)
       .set("Authorization", `Bearer ${ctx.producerToken}`);
