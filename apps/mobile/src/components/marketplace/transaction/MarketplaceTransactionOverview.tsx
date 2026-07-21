@@ -15,12 +15,7 @@ import {
   OrderStatusBadge,
   OrderTrackingStepper
 } from "../../orders";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   transaction: MarketplaceTransactionDto;
@@ -299,7 +294,7 @@ const styles = StyleSheet.create({
   },
   referenceRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   reference: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     flexShrink: 1

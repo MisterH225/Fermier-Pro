@@ -14,6 +14,8 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { BuyerMeteoSheet } from "./BuyerMeteoSheet";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type Props = {
   meteo: BuyerMeteoDto | null | undefined;
@@ -21,9 +23,9 @@ type Props = {
 };
 
 const NEUTRAL = {
-  color: "#6B7280",
-  bg: "#F3F4F6",
-  border: "#D1D5DB"
+  color: marketplaceColors.meteoGrayText,
+  bg: marketplaceColors.meteoGrayBg,
+  border: marketplaceColors.meteoGrayBorder
 };
 
 /**
@@ -52,7 +54,7 @@ export function BuyerMeteoBadge({ meteo, compact = true }: Props) {
   if (blocked) {
     label = t("marketScreen.meteoBuyer.suspended");
     color = mobileColors.error;
-    bg = "#FFEBEE";
+    bg = producerColors.kpiRose;
     border = mobileColors.error + "55";
     icon = "⛔";
   } else if (isNew) {
@@ -65,7 +67,7 @@ export function BuyerMeteoBadge({ meteo, compact = true }: Props) {
     label = t(`buyer.account.meteoLevel.${level.id}`, {
       defaultValue: level.label
     });
-    color = level.card_text === "#FFFFFF" ? level.card_bg : level.card_text;
+    color = level.card_text === mobileColors.background ? level.card_bg : level.card_text;
     bg = level.card_bg + "22";
     border = level.card_bg + "66";
     icon = level.icon;

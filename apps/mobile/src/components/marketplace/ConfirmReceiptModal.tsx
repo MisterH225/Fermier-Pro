@@ -7,12 +7,7 @@ import { projectMarketplaceFinalAmount } from "../../lib/marketplaceLabels";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import { SecondaryButton } from "../ui/SecondaryButton";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type ReceiptCondition = "conform" | "minor_issue" | "major_issue";
 
@@ -277,7 +272,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm,
     paddingVertical: mobileSpacing.xs
   },
-  checkMark: { fontSize: 18 },
+  checkMark: { fontSize: mobileFontSize.lg },
   checkLabel: { ...mobileTypography.body, color: mobileColors.textPrimary },
   weightInput: {
     borderWidth: 1,

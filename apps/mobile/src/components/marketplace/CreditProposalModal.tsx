@@ -12,6 +12,8 @@ import {
   mobileSpacing,
   mobileTypography
 } from "../../theme/mobileTheme";
+import { producerColors } from "../../theme/producerTheme";
+import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type InitialValues = {
   offeredPrice?: number;
@@ -193,12 +195,12 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md
   },
   warn: {
-    backgroundColor: "#FFF8E6",
+    backgroundColor: producerColors.kpiAmber,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.sm,
     marginBottom: mobileSpacing.md
   },
-  warnTx: { ...mobileTypography.meta, color: "#BA7517" },
+  warnTx: { ...mobileTypography.meta, color: marketplaceColors.warnAmber },
   label: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary,
@@ -220,8 +222,8 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.sm,
     borderRadius: mobileRadius.md
   },
-  pillGreen: { backgroundColor: "#E8F8F0", color: "#1D9E75" },
-  pillAmber: { backgroundColor: "#FFF4E0", color: "#BA7517" },
+  pillGreen: { backgroundColor: marketplaceColors.successSoftBg, color: marketplaceColors.successTeal },
+  pillAmber: { backgroundColor: marketplaceColors.warnAmberBg, color: marketplaceColors.warnAmber },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.xs },
   chip: {
     borderWidth: 1,

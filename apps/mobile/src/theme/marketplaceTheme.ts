@@ -16,5 +16,14 @@ export const marketplaceColors = {
   note: "#8B4513",
   placeholder: "#999999",
   textMuted: mobileColors.textTertiary,
-  onPrimary: mobileColors.onAccent
+  onPrimary: mobileColors.onAccent,
+  /** Tokens déjà en dur (non-régression). */
+  warnAmber: "#BA7517",
+  warnAmberBg: "#FFF4E0",
+  warnAmberBorder: "#F0D9A8",
+  successTeal: "#1D9E75",
+  surfaceGray: "#F5F5F5",
+  meteoGrayBg: "#F3F4F6",
+  meteoGrayBorder: "#D1D5DB",
+  meteoGrayText: "#6B7280"
 } as const;
