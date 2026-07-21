@@ -1,7 +1,12 @@
 -- Indice hybride PigPrice (aligné Prisma 20260606140000)
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "indexWeight" DECIMAL(3,2) NOT NULL DEFAULT 0.1;
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "completedTransactions" INTEGER NOT NULL DEFAULT 0;
-
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "indexWeight" DECIMAL(3,2) NOT NULL DEFAULT 0.1;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "completedTransactions" INTEGER NOT NULL DEFAULT 0;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "pig_price_index_snapshots" (
     "id" TEXT NOT NULL,
     "calculatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -14,9 +19,11 @@ CREATE TABLE IF NOT EXISTS "pig_price_index_snapshots" (
     CONSTRAINT "pig_price_index_snapshots_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "pig_price_index_snapshots_calculatedAt_idx"
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "pig_price_index_snapshots_calculatedAt_idx"
   ON "pig_price_index_snapshots"("calculatedAt" DESC);
-
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "PigPriceIndexFlaggedListing" (
     "id" TEXT NOT NULL,
     "listingId" TEXT NOT NULL,
@@ -27,7 +34,13 @@ CREATE TABLE IF NOT EXISTS "PigPriceIndexFlaggedListing" (
     CONSTRAINT "PigPriceIndexFlaggedListing_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "PigPriceIndexFlaggedListing_flaggedAt_idx"
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "PigPriceIndexFlaggedListing_flaggedAt_idx"
   ON "PigPriceIndexFlaggedListing"("flaggedAt" DESC);
-CREATE INDEX IF NOT EXISTS "PigPriceIndexFlaggedListing_listingId_idx"
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "PigPriceIndexFlaggedListing_listingId_idx"
   ON "PigPriceIndexFlaggedListing"("listingId");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

@@ -18,16 +18,22 @@ DO $$ BEGIN
     'OFFER_EXPIRED'
   );
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   CREATE TYPE "MarketplacePriceType" AS ENUM ('per_kg', 'flat');
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
   CREATE TYPE "WeightValidatedBy" AS ENUM ('auto', 'seller', 'superadmin');
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
@@ -39,13 +45,22 @@ DO $$ BEGIN
     'COMMISSION'
   );
 EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
 END $$;
 
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "reputationScore" INTEGER NOT NULL DEFAULT 100;
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "cancelledAsSellerCount" INTEGER NOT NULL DEFAULT 0;
-
-ALTER TABLE "MarketplaceListing" ADD COLUMN IF NOT EXISTS "activeOfferCount" INTEGER NOT NULL DEFAULT 0;
-
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "reputationScore" INTEGER NOT NULL DEFAULT 100;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "cancelledAsSellerCount" INTEGER NOT NULL DEFAULT 0;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "MarketplaceListing" ADD COLUMN IF NOT EXISTS "activeOfferCount" INTEGER NOT NULL DEFAULT 0;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "MarketplaceTransaction" (
     "id" TEXT NOT NULL,
     "offerId" TEXT NOT NULL,
@@ -86,12 +101,26 @@ CREATE TABLE IF NOT EXISTS "MarketplaceTransaction" (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "MarketplaceTransaction_offerId_key" ON "MarketplaceTransaction"("offerId");
-CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_listingId_status_idx" ON "MarketplaceTransaction"("listingId", "status");
-CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_buyerUserId_status_idx" ON "MarketplaceTransaction"("buyerUserId", "status");
-CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_sellerUserId_status_idx" ON "MarketplaceTransaction"("sellerUserId", "status");
-CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_status_idx" ON "MarketplaceTransaction"("status");
-CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_offerExpiresAt_idx" ON "MarketplaceTransaction"("offerExpiresAt");
-
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_listingId_status_idx" ON "MarketplaceTransaction"("listingId", "status");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_buyerUserId_status_idx" ON "MarketplaceTransaction"("buyerUserId", "status");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_sellerUserId_status_idx" ON "MarketplaceTransaction"("sellerUserId", "status");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_status_idx" ON "MarketplaceTransaction"("status");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "MarketplaceTransaction_offerExpiresAt_idx" ON "MarketplaceTransaction"("offerExpiresAt");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "MarketplaceFundMovement" (
     "id" TEXT NOT NULL,
     "transactionId" TEXT NOT NULL,
@@ -104,8 +133,10 @@ CREATE TABLE IF NOT EXISTS "MarketplaceFundMovement" (
     CONSTRAINT "MarketplaceFundMovement_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "MarketplaceFundMovement_transactionId_idx" ON "MarketplaceFundMovement"("transactionId");
-
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "MarketplaceFundMovement_transactionId_idx" ON "MarketplaceFundMovement"("transactionId");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "PlatformRevenue" (
     "id" TEXT NOT NULL,
     "transactionId" TEXT NOT NULL,
@@ -120,4 +151,7 @@ CREATE TABLE IF NOT EXISTS "PlatformRevenue" (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_transactionId_key" ON "PlatformRevenue"("transactionId");
-CREATE INDEX IF NOT EXISTS "PlatformRevenue_collectedAt_idx" ON "PlatformRevenue"("collectedAt" DESC);
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "PlatformRevenue_collectedAt_idx" ON "PlatformRevenue"("collectedAt" DESC);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

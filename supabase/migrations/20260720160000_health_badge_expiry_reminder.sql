@@ -12,4 +12,7 @@ CREATE UNIQUE INDEX "HealthBadgeExpiryReminder_farmId_windowKey_key" ON "HealthB
 
 CREATE INDEX "HealthBadgeExpiryReminder_createdAt_idx" ON "HealthBadgeExpiryReminder"("createdAt");
 
-ALTER TABLE "HealthBadgeExpiryReminder" ADD CONSTRAINT "HealthBadgeExpiryReminder_farmId_fkey" FOREIGN KEY ("farmId") REFERENCES "Farm"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "HealthBadgeExpiryReminder" ADD CONSTRAINT "HealthBadgeExpiryReminder_farmId_fkey" FOREIGN KEY ("farmId") REFERENCES "Farm"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;

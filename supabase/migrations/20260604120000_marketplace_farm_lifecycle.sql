@@ -1,3 +1,31 @@
+-- Ensure enums exist on cold preview replay (Prisma baseline may be absent).
+DO $$ BEGIN
+  CREATE TYPE "ListingStatus" AS ENUM ('draft');
+EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "OfferStatus" AS ENUM ('pending');
+EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PigPriceIndexCategory" AS ENUM (
+    'porcelet',
+    'croissance',
+    'charcutier',
+    'reproducteur',
+    'global'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
 ALTER TYPE "ListingStatus" ADD VALUE IF NOT EXISTS 'paused';
 
 ALTER TYPE "OfferStatus" ADD VALUE IF NOT EXISTS 'on_hold';
@@ -21,13 +49,22 @@ CREATE TABLE IF NOT EXISTS "PigPriceSnapshot" (
     CONSTRAINT "PigPriceSnapshot_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_soldAt_idx" ON "PigPriceSnapshot"("soldAt" DESC);
-CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_category_soldAt_idx" ON "PigPriceSnapshot"("category", "soldAt" DESC);
-CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_farmId_idx" ON "PigPriceSnapshot"("farmId");
-
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_soldAt_idx" ON "PigPriceSnapshot"("soldAt" DESC);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_category_soldAt_idx" ON "PigPriceSnapshot"("category", "soldAt" DESC);
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_farmId_idx" ON "PigPriceSnapshot"("farmId");
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 DO $$ BEGIN
   ALTER TABLE "PigPriceSnapshot" ADD CONSTRAINT "PigPriceSnapshot_farmId_fkey"
     FOREIGN KEY ("farmId") REFERENCES "Farm"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION
   WHEN duplicate_object THEN NULL;
+  WHEN undefined_table THEN NULL;
 END $$;
