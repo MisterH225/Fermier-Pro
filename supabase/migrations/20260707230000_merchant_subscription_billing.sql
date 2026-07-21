@@ -46,22 +46,29 @@ CREATE TABLE IF NOT EXISTS "MerchantSubscriptionInvoice" (
   CONSTRAINT "MerchantSubscriptionInvoice_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "MerchantSubscriptionInvoice_merchantProfileId_billingPeriodStart_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "MerchantSubscriptionInvoice_merchantProfileId_billingPeriodStart_key"
   ON "MerchantSubscriptionInvoice"("merchantProfileId", "billingPeriodStart");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantSubscriptionInvoice_status_dueDate_idx"
   ON "MerchantSubscriptionInvoice"("status", "dueDate");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantSubscriptionInvoice_merchantProfileId_status_idx"
   ON "MerchantSubscriptionInvoice"("merchantProfileId", "status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProfile_subscriptionTier_nextBillingAt_idx"
   ON "MerchantProfile"("subscriptionTier", "nextBillingAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantSubscriptionInvoice" ADD CONSTRAINT "MerchantSubscriptionInvoice_merchantProfileId_fkey"

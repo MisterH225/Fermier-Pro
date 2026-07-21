@@ -24,17 +24,23 @@ CREATE TABLE IF NOT EXISTS "MerchantSubscriptionPromoCode" (
   CONSTRAINT "MerchantSubscriptionPromoCode_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "MerchantSubscriptionPromoCode_code_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "MerchantSubscriptionPromoCode_code_key"
   ON "MerchantSubscriptionPromoCode"("code");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantSubscriptionPromoCode_isActive_expiresAt_idx"
   ON "MerchantSubscriptionPromoCode"("isActive", "expiresAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantSubscriptionPromoCode_type_idx"
   ON "MerchantSubscriptionPromoCode"("type");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 CREATE TABLE IF NOT EXISTS "MerchantSubscriptionPromoRedemption" (
   "id" TEXT NOT NULL,
@@ -44,12 +50,17 @@ CREATE TABLE IF NOT EXISTS "MerchantSubscriptionPromoRedemption" (
   CONSTRAINT "MerchantSubscriptionPromoRedemption_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "MerchantSubscriptionPromoRedemption_promoCodeId_merchantProfileId_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "MerchantSubscriptionPromoRedemption_promoCodeId_merchantProfileId_key"
   ON "MerchantSubscriptionPromoRedemption"("promoCodeId", "merchantProfileId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantSubscriptionPromoRedemption_merchantProfileId_idx"
   ON "MerchantSubscriptionPromoRedemption"("merchantProfileId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantSubscriptionPromoRedemption" ADD CONSTRAINT "MerchantSubscriptionPromoRedemption_promoCodeId_fkey"

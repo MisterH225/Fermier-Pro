@@ -52,14 +52,17 @@ CREATE TABLE IF NOT EXISTS "PigPriceSnapshot" (
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_soldAt_idx" ON "PigPriceSnapshot"("soldAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_category_soldAt_idx" ON "PigPriceSnapshot"("category", "soldAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "PigPriceSnapshot_farmId_idx" ON "PigPriceSnapshot"("farmId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "PigPriceSnapshot" ADD CONSTRAINT "PigPriceSnapshot_farmId_fkey"

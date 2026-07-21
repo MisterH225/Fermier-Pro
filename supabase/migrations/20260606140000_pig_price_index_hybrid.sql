@@ -23,6 +23,7 @@ DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "pig_price_index_snapshots_calculatedAt_idx"
   ON "pig_price_index_snapshots"("calculatedAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 CREATE TABLE IF NOT EXISTS "PigPriceIndexFlaggedListing" (
     "id" TEXT NOT NULL,
@@ -38,9 +39,11 @@ DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "PigPriceIndexFlaggedListing_flaggedAt_idx"
   ON "PigPriceIndexFlaggedListing"("flaggedAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "PigPriceIndexFlaggedListing_listingId_idx"
   ON "PigPriceIndexFlaggedListing"("listingId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

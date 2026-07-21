@@ -31,4 +31,5 @@ DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointment_status_proposedByVetAt_idx"
     ON "VetAppointment"("status", "proposedByVetAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

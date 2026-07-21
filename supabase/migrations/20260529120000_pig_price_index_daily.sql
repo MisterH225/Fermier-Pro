@@ -17,11 +17,15 @@ CREATE TABLE IF NOT EXISTS "PigPriceIndexDaily" (
     CONSTRAINT "PigPriceIndexDaily_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "PigPriceIndexDaily_date_category_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "PigPriceIndexDaily_date_category_key"
   ON "PigPriceIndexDaily"("date", "category");
-
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "PigPriceIndexDaily_date_idx"
   ON "PigPriceIndexDaily"("date" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;

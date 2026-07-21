@@ -80,6 +80,7 @@ DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "FeatureFlagHistory_moduleId_createdAt_idx"
   ON "FeatureFlagHistory"("moduleId", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 CREATE TABLE IF NOT EXISTS "ArchivedDataRegistry" (
     "id" TEXT NOT NULL,
@@ -96,6 +97,7 @@ DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ArchivedDataRegistry_moduleId_restoredAt_idx"
   ON "ArchivedDataRegistry"("moduleId", "restoredAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 CREATE TABLE IF NOT EXISTS "ReactivationWaitlist" (
     "id" TEXT NOT NULL,
@@ -105,9 +107,12 @@ CREATE TABLE IF NOT EXISTS "ReactivationWaitlist" (
     CONSTRAINT "ReactivationWaitlist_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "ReactivationWaitlist_moduleId_userId_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "ReactivationWaitlist_moduleId_userId_key"
   ON "ReactivationWaitlist"("moduleId", "userId");
-
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   IF to_regclass('public."User"') IS NOT NULL THEN
     ALTER TABLE "ReactivationWaitlist" DROP CONSTRAINT IF EXISTS "ReactivationWaitlist_userId_fkey";

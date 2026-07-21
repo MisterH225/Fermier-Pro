@@ -57,9 +57,12 @@ DO $$ BEGIN
   ADD COLUMN IF NOT EXISTS "vetAppointmentId" TEXT;
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
-CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_vetAppointmentId_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_vetAppointmentId_key"
   ON "PlatformRevenue"("vetAppointmentId");
-
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 CREATE TABLE IF NOT EXISTS "VetAppointment" (
   "id" TEXT NOT NULL,
   "farmId" TEXT NOT NULL,
@@ -119,34 +122,45 @@ CREATE TABLE IF NOT EXISTS "VetAppointmentFundMovement" (
   CONSTRAINT "VetAppointmentFundMovement_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "VetAppointmentRating_appointmentId_key" ON "VetAppointmentRating"("appointmentId");
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "VetAppointmentRating_appointmentId_key" ON "VetAppointmentRating"("appointmentId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointment_vetUserId_status_idx" ON "VetAppointment"("vetUserId", "status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointment_producerUserId_status_idx" ON "VetAppointment"("producerUserId", "status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointment_farmId_status_idx" ON "VetAppointment"("farmId", "status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointment_status_paymentDeadline_idx" ON "VetAppointment"("status", "paymentDeadline");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointment_status_confirmedAt_idx" ON "VetAppointment"("status", "confirmedAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointmentRating_vetProfileId_idx" ON "VetAppointmentRating"("vetProfileId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "VetAppointmentFundMovement_appointmentId_idx" ON "VetAppointmentFundMovement"("appointmentId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "VetAppointment" ADD CONSTRAINT "VetAppointment_farmId_fkey"

@@ -51,14 +51,17 @@ END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ProducerProfile_subscriptionTier_idx" ON "ProducerProfile"("subscriptionTier");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ProducerProfile_subscriptionTier_nextBillingAt_idx" ON "ProducerProfile"("subscriptionTier", "nextBillingAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ProducerProfile_subscriptionStatus_idx" ON "ProducerProfile"("subscriptionStatus");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "PlatformSettings" ADD COLUMN IF NOT EXISTS "producerPremiumPriceXof" DECIMAL(14,2) NOT NULL DEFAULT 5000;
@@ -114,17 +117,23 @@ CREATE TABLE IF NOT EXISTS "ProducerSubscriptionInvoice" (
   CONSTRAINT "ProducerSubscriptionInvoice_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "ProducerSubscriptionInvoice_producerProfileId_billingPeriodStart_key"
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "ProducerSubscriptionInvoice_producerProfileId_billingPeriodStart_key"
   ON "ProducerSubscriptionInvoice"("producerProfileId", "billingPeriodStart");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ProducerSubscriptionInvoice_status_dueDate_idx"
   ON "ProducerSubscriptionInvoice"("status", "dueDate");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ProducerSubscriptionInvoice_producerProfileId_status_idx"
   ON "ProducerSubscriptionInvoice"("producerProfileId", "status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "ProducerSubscriptionInvoice" ADD CONSTRAINT "ProducerSubscriptionInvoice_producerProfileId_fkey"

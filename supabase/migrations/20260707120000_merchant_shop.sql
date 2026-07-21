@@ -63,10 +63,15 @@ CREATE TABLE IF NOT EXISTS "MerchantProfile" (
   CONSTRAINT "MerchantProfile_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "MerchantProfile_userId_key" ON "MerchantProfile"("userId");
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "MerchantProfile_userId_key" ON "MerchantProfile"("userId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProfile_subscriptionTier_idx" ON "MerchantProfile"("subscriptionTier");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantProfile" ADD CONSTRAINT "MerchantProfile_userId_fkey"
@@ -90,6 +95,7 @@ CREATE TABLE IF NOT EXISTS "MerchantShop" (
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantShop_merchantProfileId_idx" ON "MerchantShop"("merchantProfileId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantShop" ADD CONSTRAINT "MerchantShop_merchantProfileId_fkey"
@@ -110,10 +116,15 @@ CREATE TABLE IF NOT EXISTS "MerchantProductCategory" (
   CONSTRAINT "MerchantProductCategory_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "MerchantProductCategory_slug_key" ON "MerchantProductCategory"("slug");
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "MerchantProductCategory_slug_key" ON "MerchantProductCategory"("slug");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProductCategory_isActive_sortOrder_idx" ON "MerchantProductCategory"("isActive", "sortOrder");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 CREATE TABLE IF NOT EXISTS "MerchantProduct" (
   "id" TEXT NOT NULL,
@@ -137,14 +148,17 @@ CREATE TABLE IF NOT EXISTS "MerchantProduct" (
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProduct_shopId_status_createdAt_idx" ON "MerchantProduct"("shopId", "status", "createdAt");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProduct_categoryId_idx" ON "MerchantProduct"("categoryId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProduct_status_publishedAt_idx" ON "MerchantProduct"("status", "publishedAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantProduct" ADD CONSTRAINT "MerchantProduct_shopId_fkey"
@@ -184,18 +198,22 @@ CREATE TABLE IF NOT EXISTS "MerchantOrder" (
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantOrder_buyerUserId_createdAt_idx" ON "MerchantOrder"("buyerUserId", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantOrder_sellerUserId_createdAt_idx" ON "MerchantOrder"("sellerUserId", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantOrder_productId_idx" ON "MerchantOrder"("productId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantOrder_status_idx" ON "MerchantOrder"("status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantOrder" ADD CONSTRAINT "MerchantOrder_productId_fkey"
@@ -234,10 +252,12 @@ CREATE TABLE IF NOT EXISTS "MerchantProductModerationLog" (
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProductModerationLog_productId_deletedAt_idx" ON "MerchantProductModerationLog"("productId", "deletedAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantProductModerationLog_adminUserId_idx" ON "MerchantProductModerationLog"("adminUserId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantProductModerationLog" ADD CONSTRAINT "MerchantProductModerationLog_productId_fkey"
@@ -262,6 +282,7 @@ END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ChatRoom_merchantProductId_idx" ON "ChatRoom"("merchantProductId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "ChatRoom" ADD CONSTRAINT "ChatRoom_merchantProductId_fkey"
@@ -275,8 +296,11 @@ DO $$ BEGIN
   ALTER TABLE "PlatformRevenue" ADD COLUMN IF NOT EXISTS "merchantOrderId" TEXT;
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
-CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_merchantOrderId_key" ON "PlatformRevenue"("merchantOrderId");
-
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "PlatformRevenue_merchantOrderId_key" ON "PlatformRevenue"("merchantOrderId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   ALTER TABLE "PlatformRevenue" ADD CONSTRAINT "PlatformRevenue_merchantOrderId_fkey"
     FOREIGN KEY ("merchantOrderId") REFERENCES "MerchantOrder"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

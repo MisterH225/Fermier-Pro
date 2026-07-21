@@ -48,6 +48,7 @@ END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "User_feedStatus_idx" ON "User"("feedStatus");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 CREATE TABLE IF NOT EXISTS "CommunityFeedPost" (
     "id" TEXT NOT NULL,
@@ -121,43 +122,57 @@ CREATE TABLE IF NOT EXISTS "SanctionAppeal" (
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "CommunityFeedPost_authorUserId_createdAt_idx" ON "CommunityFeedPost"("authorUserId", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "CommunityFeedPost_createdAt_idx" ON "CommunityFeedPost"("createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "CommunityFeedPost_isRemoved_idx" ON "CommunityFeedPost"("isRemoved");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "CommunityFeedComment_postId_createdAt_idx" ON "CommunityFeedComment"("postId", "createdAt" ASC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "CommunityFeedComment_authorUserId_idx" ON "CommunityFeedComment"("authorUserId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
-CREATE UNIQUE INDEX IF NOT EXISTS "CommunityFeedRead_userId_postId_key" ON "CommunityFeedRead"("userId", "postId");
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "CommunityFeedRead_userId_postId_key" ON "CommunityFeedRead"("userId", "postId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "CommunityFeedRead_userId_idx" ON "CommunityFeedRead"("userId");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ModerationEvent_userId_createdAt_idx" ON "ModerationEvent"("userId", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "ModerationEvent_reviewedByAdmin_createdAt_idx" ON "ModerationEvent"("reviewedByAdmin", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "SanctionAppeal_userId_status_idx" ON "SanctionAppeal"("userId", "status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "SanctionAppeal_status_createdAt_idx" ON "SanctionAppeal"("status", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "CommunityFeedPost" ADD CONSTRAINT "CommunityFeedPost_authorUserId_fkey" FOREIGN KEY ("authorUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

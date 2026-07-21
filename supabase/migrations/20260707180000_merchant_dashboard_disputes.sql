@@ -39,14 +39,20 @@ CREATE TABLE IF NOT EXISTS "MerchantOrderDispute" (
     CONSTRAINT "MerchantOrderDispute_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "MerchantOrderDispute_orderId_key" ON "MerchantOrderDispute"("orderId");
+DO $$ BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS "MerchantOrderDispute_orderId_key" ON "MerchantOrderDispute"("orderId");
+EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
+END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantOrderDispute_openedByUserId_createdAt_idx" ON "MerchantOrderDispute"("openedByUserId", "createdAt" DESC);
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   CREATE INDEX IF NOT EXISTS "MerchantOrderDispute_status_idx" ON "MerchantOrderDispute"("status");
 EXCEPTION WHEN undefined_table THEN NULL;
+  WHEN undefined_column THEN NULL;
 END $$;
 DO $$ BEGIN
   ALTER TABLE "MerchantOrderDispute" DROP CONSTRAINT IF EXISTS "MerchantOrderDispute_orderId_fkey";
