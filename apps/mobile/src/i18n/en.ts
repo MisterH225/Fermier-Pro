@@ -1247,7 +1247,15 @@ export const en = {
       proposalHint: "Accept or decline this proposal. The fee below is declared before your acceptance.",
       producerAcceptCta: "Accept",
       producerRefuseCta: "Decline",
-      producerRefusePlaceholder: "Reason for declining (optional)",
+      producerRefusePlaceholder: "Reason for declining (required)",
+      producerRefuseReasonRequired:
+        "Enter a reason — the veterinarian will be notified.",
+      refusedByProducer: "Declined by producer",
+      refusalReasonLabel: "Decline reason",
+      awaitingProducerResponse: "Waiting for the producer’s response",
+      orphanConfirmedHint:
+        "This appointment was confirmed without a fee. You can cancel it or mark it completed with no payment.",
+      closeOrphanCta: "Mark completed (no payment)",
       producerAcceptedPaidTitle: "Proposal accepted",
       producerAcceptedPaidBody: "Pay within 48 hours to confirm the appointment.",
       producerAcceptedFreeTitle: "Visit confirmed",

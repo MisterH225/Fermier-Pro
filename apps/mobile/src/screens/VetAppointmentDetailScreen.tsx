@@ -357,13 +357,18 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   });
 
   const producerRefuseMut = useMutation({
-    mutationFn: () =>
-      producerRefuseAppointment(
+    mutationFn: () => {
+      const reason = producerRefusalReason.trim();
+      if (!reason) {
+        throw new Error(t("vet.appointment.producerRefuseReasonRequired"));
+      }
+      return producerRefuseAppointment(
         accessToken!,
         appointmentId,
-        producerRefusalReason.trim() || undefined,
+        reason,
         activeProfileId
-      ),
+      );
+    },
     onSuccess: () => {
       invalidate();
       navigation.goBack();
@@ -420,6 +425,13 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const isPaidConfirmed = Boolean(
     appt?.paymentConfirmedAt && (appt.blockedAmount ?? 0) > 0
   );
+  const isOrphanConfirmed = Boolean(
+    appt &&
+      appt.status === "APPOINTMENT_CONFIRMED" &&
+      !appt.isFree &&
+      !isPaidConfirmed &&
+      !(typeof appt.servicePrice === "number" && appt.servicePrice > 0)
+  );
 
   const whenLabel = useMemo(
     () => formatWhen(appt?.confirmedAt ?? appt?.requestedAt, locale),
@@ -452,7 +464,11 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             ? t("vet.appointment.cancelledByProducer")
             : appt.status === "CANCELLED_BY_VET"
               ? t("vet.appointment.cancelledByVet")
-              : appt.status.replace(/_/g, " ")}
+              : appt.status === "REFUSED_BY_PRODUCER"
+                ? t("vet.appointment.refusedByProducer")
+                : appt.status === "VISIT_PROPOSED" && isVet
+                  ? t("vet.appointment.awaitingProducerResponse")
+                  : appt.status.replace(/_/g, " ")}
         </Text>
 
         {appt.cancellationReason ? (
@@ -464,6 +480,61 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             {appt.cancelledAt ? (
               <Text style={styles.meta}>{formatWhen(appt.cancelledAt, locale)}</Text>
             ) : null}
+          </View>
+        ) : null}
+
+        {appt.refusalReason ? (
+          <View style={styles.card} testID="vet-appointment-refusal-reason">
+            <Text style={styles.label}>
+              {t("vet.appointment.refusalReasonLabel")}
+            </Text>
+            <Text style={styles.value}>{appt.refusalReason}</Text>
+          </View>
+        ) : null}
+
+        {isVet &&
+        (appt.status === "VISIT_PROPOSED" ||
+          appt.status === "AWAITING_PAYMENT") ? (
+          <View style={styles.section} testID="vet-cancel-proposal-banner">
+            <Text style={styles.hint}>
+              {t("vet.appointment.awaitingProducerResponse")}
+            </Text>
+            <Text style={styles.label}>
+              {t("vet.appointment.cancelReasonLabel")}
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.cancelReasonPlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={cancellationReason}
+              onChangeText={setCancellationReason}
+            />
+            <SecondaryButton
+              label={t("vet.appointment.cancelCta")}
+              onPress={() => {
+                if (!cancellationReason.trim()) {
+                  Alert.alert(
+                    t("common.error"),
+                    t("vet.appointment.cancelReasonRequired")
+                  );
+                  return;
+                }
+                Alert.alert(
+                  t("vet.appointment.cancelConfirmTitle"),
+                  t("vet.appointment.cancelConfirmBody"),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("vet.appointment.cancelCta"),
+                      style: "destructive",
+                      onPress: () => cancelMut.mutate()
+                    }
+                  ]
+                );
+              }}
+              loading={cancelMut.isPending}
+            />
           </View>
         ) : null}
 
@@ -610,7 +681,16 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             />
             <SecondaryButton
               label={t("vet.appointment.producerRefuseCta")}
-              onPress={() => producerRefuseMut.mutate()}
+              onPress={() => {
+                if (!producerRefusalReason.trim()) {
+                  Alert.alert(
+                    t("common.error"),
+                    t("vet.appointment.producerRefuseReasonRequired")
+                  );
+                  return;
+                }
+                producerRefuseMut.mutate();
+              }}
               loading={producerRefuseMut.isPending}
             />
           </View>
@@ -649,9 +729,24 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
               loading={payMut.isPending}
               disabled={paymentMethod === "wallet" && !canPayWithWallet}
             />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t("vet.appointment.producerRefusePlaceholder")}
+              placeholderTextColor={mobileColors.textSecondary}
+              multiline
+              value={producerRefusalReason}
+              onChangeText={setProducerRefusalReason}
+            />
             <SecondaryButton
               label={t("vet.appointment.refuseAmountCta")}
-              onPress={() =>
+              onPress={() => {
+                if (!producerRefusalReason.trim()) {
+                  Alert.alert(
+                    t("common.error"),
+                    t("vet.appointment.producerRefuseReasonRequired")
+                  );
+                  return;
+                }
                 Alert.alert(
                   t("vet.appointment.refuseAmountTitle"),
                   t("vet.appointment.refuseAmountBody"),
@@ -663,14 +758,29 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
                       onPress: () => producerRefuseMut.mutate()
                     }
                   ]
-                )
-              }
+                );
+              }}
               loading={producerRefuseMut.isPending}
             />
           </View>
         ) : null}
 
-        {isProducer && appt.status === "APPOINTMENT_CONFIRMED" ? (
+        {isOrphanConfirmed ? (
+          <View style={styles.section} testID="vet-appointment-orphan-section">
+            <Text style={styles.hint}>
+              {t("vet.appointment.orphanConfirmedHint")}
+            </Text>
+            <PrimaryButton
+              label={t("vet.appointment.closeOrphanCta")}
+              onPress={() => completeMut.mutate()}
+              loading={completeMut.isPending}
+            />
+          </View>
+        ) : null}
+
+        {isProducer &&
+        appt.status === "APPOINTMENT_CONFIRMED" &&
+        !isOrphanConfirmed ? (
           <View style={styles.section}>
             <Text style={styles.hint}>
               {appt.isFree
@@ -718,7 +828,12 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        {canCancel ? (
+        {canCancel &&
+        !(
+          isVet &&
+          (appt.status === "VISIT_PROPOSED" ||
+            appt.status === "AWAITING_PAYMENT")
+        ) ? (
           <View style={styles.section} testID="vet-appointment-cancel-section">
             <Text style={styles.sectionTitle}>
               {t("vet.appointment.cancelSectionTitle")}

@@ -1,11 +1,13 @@
 import React from "react";
-import {
-  act,
-  create,
-  type ReactTestInstance,
-  type ReactTestRenderer
-} from "react-test-renderer";
+import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { ScheduleVisitModal } from "../ScheduleVisitModal";
+
+type TestNode = {
+  children: Array<string | TestNode>;
+  props: { onPress?: () => void; [key: string]: unknown };
+  findByProps: (props: Record<string, unknown>) => TestNode;
+  findAll: (predicate: (node: TestNode) => boolean) => TestNode[];
+};
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -87,10 +89,7 @@ function render(element: React.ReactElement): ReactTestRenderer {
   return renderer;
 }
 
-function findByTestId(
-  root: ReactTestInstance,
-  testID: string
-): ReactTestInstance | null {
+function findByTestId(root: TestNode, testID: string): TestNode | null {
   try {
     return root.findByProps({ testID });
   } catch {
@@ -110,20 +109,20 @@ describe("ScheduleVisitModal", () => {
     );
 
     expect(
-      findByTestId(renderer.root, "schedule-visit-price-input")
+      findByTestId(renderer.root as unknown as TestNode, "schedule-visit-price-input")
     ).toBeNull();
 
-    function nodeHasText(node: ReactTestInstance, text: string): boolean {
+    function nodeHasText(node: TestNode, text: string): boolean {
       if (node.children.includes(text)) {
         return true;
       }
       return node.children.some(
-        (child) =>
-          typeof child !== "string" && nodeHasText(child, text)
+        (child) => typeof child !== "string" && nodeHasText(child, text)
       );
     }
 
-    const paidPressable = renderer.root.findAll(
+    const root = renderer.root as unknown as TestNode;
+    const paidPressable = root.findAll(
       (node) =>
         typeof node.props?.onPress === "function" &&
         nodeHasText(node, "vet.schedule.pricingPaid")
@@ -131,21 +130,16 @@ describe("ScheduleVisitModal", () => {
     expect(paidPressable).toBeTruthy();
 
     act(() => {
-      paidPressable.props.onPress();
+      paidPressable.props.onPress?.();
     });
 
-    const priceInput = findByTestId(
-      renderer.root,
-      "schedule-visit-price-input"
-    );
+    const priceInput = findByTestId(root, "schedule-visit-price-input");
     expect(priceInput).not.toBeNull();
     expect(priceInput!.props.placeholder).toBe(
       "vet.schedule.pricePlaceholder"
     );
     expect(priceInput!.props.keyboardType).toBe("decimal-pad");
-    expect(
-      findByTestId(renderer.root, "schedule-visit-price-block")
-    ).not.toBeNull();
+    expect(findByTestId(root, "schedule-visit-price-block")).not.toBeNull();
 
     act(() => {
       renderer.unmount();

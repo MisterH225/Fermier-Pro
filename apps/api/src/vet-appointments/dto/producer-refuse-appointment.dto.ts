@@ -1,8 +1,9 @@
-import { IsOptional, IsString, MaxLength } from "class-validator";
+import { IsString, MaxLength, MinLength } from "class-validator";
 
+/** Motif obligatoire — notifié au vétérinaire (inbox + push). */
 export class ProducerRefuseAppointmentDto {
-  @IsOptional()
   @IsString()
+  @MinLength(1)
   @MaxLength(2000)
-  refusalReason?: string;
+  refusalReason!: string;
 }
