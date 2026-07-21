@@ -69,7 +69,7 @@ export const en = {
     apiHint: "Check EXPO_PUBLIC_API_URL (emulator: often http://10.0.2.2:3000).",
     welcome: "Hello {{name}}",
     emptyTitle: "No farms yet",
-    emptySub: "Create a farm with the “+ Farm” button (producer profile), or via API POST /farms. You can also browse the market.",
+    emptySub: "Create a farm with “+ Farm” (producer profile), or browse the market.",
     cardMode: "{{species}} · {{mode}} mode",
     headerMessages: "Messages",
     headerMarket: "Market",
@@ -102,7 +102,7 @@ export const en = {
     changeNumber: "Change number",
     codeSent: "Code sent by SMS. Check spam filters if you don’t receive it.",
     loginSuccess: "Signed in…",
-    invalidPhone: "Choose your country, then enter your mobile number (without the country code). Check the full number is correct.",
+    invalidPhone: "Choose your country, then enter your mobile number (without country code).",
     invalidOtp: "Enter the code received by SMS.",
     otpPlaceholder: "SMS code",
     footerNote: "No account yet? Your first SMS sign-in automatically creates your Fermier Pro access.",
@@ -204,7 +204,7 @@ export const en = {
     },
     step4: {
       title: "Pen setup",
-      subtitle: "Left column = Building A, right column = Building B (editable later). Animals are assigned automatically from your headcounts.",
+      subtitle: "Left = Building A, right = Building B (editable later). Animals follow your headcounts.",
       buildings: "Number of buildings (columns)",
       pensPerBuilding: "Pens per column (numbered top to bottom)",
       capacity: "Max capacity per pen",
@@ -421,7 +421,7 @@ export const en = {
     },
     deleteAccount: {
       warningTitle: "Delete your account?",
-      warningMessage: "This action cannot be undone. All your data will be permanently deleted: farm, livestock, finances, health, feed stock, gestations, and reports. People with access to your project will immediately lose that access.",
+      warningMessage: "Permanent action. All farm data will be erased. Shared access will be cut.",
       consequences: {
         farm: "✗ Your farm and all its settings",
         animals: "✗ All your animals and their history",
@@ -586,7 +586,7 @@ export const en = {
       totalPaymentLabel: "Total to pay",
       feePerKgNote: "Estimated amount. The total will be adjusted to the actual weight measured at delivery.",
       feeConsentTitle: "Confirm payment",
-      feeConsentBody: "Purchase amount: {{dealAmount}}\nPlatform fee ({{pct}} %): {{feeAmount}}\n\n💳 Total to pay: {{totalAmount}}\n\n🔒 Your money is safely held by Fermier Pro. It will only be released to the seller once you confirm receipt and weight.\n\nBy tapping \"Confirm\", you agree to pay this amount.",
+      feeConsentBody: "Purchase: {{dealAmount}} · Fee ({{pct}} %): {{feeAmount}}\n💳 Total: {{totalAmount}}\n🔒 Money held until receipt and weight are confirmed.\n\"Confirm\" = you agree to pay.",
       feeConsentConfirm: "Confirm and pay",
       feeConsentCancel: "Cancel",
       paymentSuccessTitle: "Payment confirmed",
@@ -626,8 +626,8 @@ export const en = {
       weightDeclaredBody: "The seller can accept your weight or declare their own.",
       sellerWeightReview: "Weight declared by buyer",
       sellerDeclareWeightTitle: "Your weigh-in",
-      sellerDeclareWeightHint: "Enter the weight you measured at handover. If the gap is small, the sale continues; otherwise a decision may be requested.",
-      autoToleranceHint: "If your weigh-in differs by less than {{percent}}% (or {{minKg}} kg minimum) from the buyer's, the purchase will be confirmed automatically at the average weight.",
+      sellerDeclareWeightHint: "Enter the handover weight. Small gap: sale continues. Otherwise, request a decision.",
+      autoToleranceHint: "Gap < {{percent}}% (or {{minKg}} kg): purchase confirmed at the average weight.",
       sellerDeclareWeightCta: "Enter my weight",
       sellerWeightLabel: "Your weight (kg)",
       buyerDeclaredWeight: "Buyer weight: {{kg}} kg",
@@ -963,12 +963,12 @@ export const en = {
       noFarm: "No farm",
       farmHint: "Link a farm to attach livestock and complete sales (Finance + herd).",
       sectionCategory: "Category",
-      categoryHint: "Piglet: auto-classified from average weight (< 15 kg). Breeder, butcher, or culled sow: your sale intent is kept.",
+      categoryHint: "Piglet: auto-class if average weight < 15 kg. Other categories: your sale intent is kept.",
       sectionAnimal: "Lot animals",
       animalMultiHint: "Select one or more active animals (required).",
       animalIndividualListedHint: "Animals marked « solo » already have an individual listing — add more animals to create a lot.",
       animalIndividualBlockedTitle: "Individual listing already exists",
-      animalIndividualBlockedBody: "This animal already has an individual marketplace listing. Remove the other listing or select multiple animals for a lot.",
+      animalIndividualBlockedBody: "This animal already has an individual listing. Remove the other or select several animals.",
       noActiveAnimals: "No active animals on this farm.",
       sectionListing: "Listing",
       title: "Title",
@@ -979,7 +979,7 @@ export const en = {
       breedPlaceholder: "E.g. Large White",
       sectionPricingPork: "Weight and price",
       sectionPricingFlat: "Flat price",
-      flatPriceHint: "Flat price per head (e.g. 28,000 XOF per piglet). The lot total is calculated automatically from the number of animals selected.",
+      flatPriceHint: "Flat price per head (e.g. 28,000 XOF). Lot total follows the number of animals.",
       pricePerHead: "Price per head (flat rate)",
       lotTotalPrice: "Total lot price",
       flatLotAuto: "{{count}} head(s) × {{perHead}} = {{amount}}",
@@ -1032,7 +1032,7 @@ export const en = {
     period12m: "12M",
     unit: "FCFA/kg",
     emptyData: "Insufficient data",
-    emptyDataHint: "The chart appears once the platform has enough sales or listings recorded (at least 3 data points in the period). This is normal in test or early launch environments.",
+    emptyDataHint: "The chart appears from 3 sales or listings in the period. Normal at launch or in test.",
     categoryAll: "All",
     categoryPorcelet: "Piglets 🐣",
     categoryCroissance: "Growth 📈",
@@ -1213,8 +1213,8 @@ export const en = {
     },
     offPlatformVisit: {
       title: "Log an off-platform visit",
-      subtitle:
-      "For a consultation done outside the platform (no FermierPro appointment or payment). Platform visits are managed under Vet appointments."
+      subtitle: "Off-platform consultation. Planned visits are under Vet appointments."
+
     },
     appointment: {
       title: "Vet appointment",
@@ -1258,8 +1258,8 @@ export const en = {
       "This appointment was confirmed without a fee. You can cancel it or mark it completed with no payment.",
       closeOrphanCta: "Mark completed (no payment)",
       reportTitle: "Visit report",
-      reportHint:
-      "After the visit, submit the report (topics covered, diagnosis, prescription). The producer will see it under Health.",
+      reportHint: "After the visit, submit the report (topics, diagnosis, prescription). Visible under Health.",
+
       reportSubjects: "Topics covered",
       reportSubjectsPlaceholder: "E.g. vaccination, pregnancy check…",
       reportDiagnosis: "Diagnosis",
@@ -1835,7 +1835,7 @@ export const en = {
     lastCheckAgo: "Last check: {{count}} d ago",
     unknownFeedType: "Feed",
     phaseReviewTitle: "Specify feed phase",
-    phaseReviewBody: "Set each feed type's production phase to allocate costs to the right batches (under sow, transition, starter…).",
+    phaseReviewBody: "Set each feed type’s phase to allocate costs to the right batches.",
     phaseSuggestion: "Suggested: {{phase}}",
     phases: {
       sous_mere: "Under sow",
@@ -1951,7 +1951,7 @@ export const en = {
       confirmAction: "Confirm",
       editAction: "Edit",
       editTitle: "Compose batch",
-      editBody: "Review the grouping before confirming. Remove animals from another generation, or split them into several batches.",
+      editBody: "Check the grouping. Remove animals from another generation, or split into batches.",
       editNeedAnimals: "Select at least one animal.",
       generation: "Generation",
       selectAll: "All",
@@ -2167,7 +2167,7 @@ export const en = {
         errorTitle: "Could not update",
         financeLinked: "A revenue entry is created in Finance when a sale price is set.",
         healthLinked: "A mortality exit is recorded (Health module).",
-        exitedHint: "The animal leaves the active herd (headcount, pens, listings). You can still find it under the « Exited from herd » filter."
+        exitedHint: "The animal leaves the active herd. Find it under « Exited from herd »."
       },
       sale: {
         title: "Record sale",
@@ -2542,9 +2542,9 @@ export const en = {
   collab: {
     scanHint: "Scan or share this QR with a vet, technician or partner — they can request to join the farm.",
     defaultQrInfoTitle: "Project QR — access request",
-    defaultQrInfoBody: "They scan this QR and send a request. You pick their role (partner, vet, technician) under “Scan requests” before they get farm access.",
+    defaultQrInfoBody: "They scan this QR and send a request. Pick their role under “Scan requests” before access.",
     scopedInviteInfoTitle: "Direct link — role pre-set",
-    scopedInviteInfoBody: "Use “Invite someone” to generate a link with role and permissions already set: they join directly without manual approval.",
+    scopedInviteInfoBody: "“Invite someone” creates a link with role and rights already set. They join with no extra step.",
     noFarm: "Create or pick your home farm to generate a collaborative access link.",
     loadError: "Could not load the collaborative link.",
     retry: "Retry",
@@ -3522,7 +3522,7 @@ export const en = {
     continueToPen: "Continue — choose pen",
     back: "Back",
     penStepTitle: "Litter pen",
-    penStepNoEmptyHint: "No empty pen is available. Choose where to place the sow and her {{count}} piglet(s). A suggestion is highlighted.",
+    penStepNoEmptyHint: "No empty pen. Place the sow and her {{count}} piglet(s). A suggestion is highlighted.",
     penSuggested: "suggested",
     autoEmptyPenHint: "An empty pen is available — the sow and her litter will be placed there automatically.",
     sowMovesWithLitter: "The sow will be moved to the same pen as her litter.",
@@ -4269,7 +4269,7 @@ export const en = {
       disputeOpen: "Problem in progress",
       acceptReturn: "Accept return",
       acceptReturnTitle: "Take the item back?",
-      acceptReturnConfirm: "You acknowledge the defect. Your balance will be debited for the amount received, the buyer will be refunded the full amount paid, and platform commissions will be reversed.",
+      acceptReturnConfirm: "You acknowledge the defect. Your balance is debited, the buyer refunded, commissions cancelled.",
       acceptReturnNote: "Merchant: item return accepted",
       tracking: {
         label: "Tracking ID",
@@ -4381,8 +4381,8 @@ export const en = {
       premiumPending: "Complete Premium payment (Wave link or SMS) to activate your subscription.",
       statusPaymentPending: "Payment pending",
       paymentWaitingTitle: "Payment in progress",
-      paymentWaitingBody: "Your Premium subscription will activate automatically once GeniusPay confirms payment. You can reopen the Wave link if needed.",
-      paymentWaitingBodyEmail: "A payment link was sent to your email. Your Premium subscription will activate automatically after payment is confirmed.",
+      paymentWaitingBody: "Premium activates once GeniusPay confirms payment. You can reopen the Wave link if needed.",
+      paymentWaitingBodyEmail: "A payment link was emailed. Premium activates after payment is confirmed.",
       reopenPaymentCta: "Open payment link",
       retryPaymentCta: "Retry payment",
       confirmPaymentCta: "I paid — activate Premium",
@@ -4438,7 +4438,7 @@ export const en = {
       notFound: "Shop not found.",
       delete: "Delete shop",
       deleteTitle: "Delete this shop?",
-      deleteBody: "Its {{count}} product(s) will be unpublished. This archives the shop — it will disappear from your account and the catalog.",
+      deleteBody: "{{count}} product(s) will be unpublished. The shop will be archived and removed from the catalog.",
       deleteConfirm: "Delete",
       deleteSuccess: "Shop archived.",
       deleteBlocked: "Cannot delete: orders are still in progress on this shop’s products."
@@ -4529,7 +4529,7 @@ export const en = {
       graceEnds: "Grace period ends",
       cancelSubscription: "Cancel Premium subscription",
       cancelSubscriptionTitle: "Cancel Premium subscription?",
-      cancelSubscriptionMessage: "You will switch to the Free plan: 1 shop and up to 5 active products. Extra products will be disabled. This takes effect immediately.",
+      cancelSubscriptionMessage: "Back to Free: 1 shop, 5 active products max. Extra products are disabled right away.",
       cancelSubscriptionConfirm: "Cancel subscription",
       cancelSubscriptionSuccess: "Your Premium subscription has been cancelled.",
       cancelSubscriptionError: "Could not cancel the subscription. Try again shortly.",
@@ -4551,7 +4551,7 @@ export const en = {
       trackHint: "Track it under My purchases → Shop.",
       trackCta: "Track order",
       paymentWaitingTitle: "Payment in progress",
-      paymentWaitingBody: "Complete the GeniusPay checkout to confirm your order. It will activate automatically once payment is confirmed.",
+      paymentWaitingBody: "Complete GeniusPay checkout. The order activates once payment is confirmed.",
       reopenPaymentCta: "Open payment link",
       paymentLinkMissing: "Payment link unavailable. Try again shortly."
     }
