@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -26,7 +25,11 @@ import {
   parsePriceInput
 } from "../../lib/platformFees";
 import { vetColors, vetRadius } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import {
+  mobileColors,
+  mobileSpacing,
+  mobileTypography
+} from "../../theme/mobileTheme";
 
 const REASONS: VetVisitReason[] = [
   "routine",
@@ -171,7 +174,9 @@ export function ScheduleVisitModal({
         </Pressable>
       }
     >
-      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+      {/* Contenu sans scroll interne : BaseModal gère déjà scroll + clavier.
+          Un scroll imbriqué (maxHeight 420) coupait le champ montant sous le label. */}
+      <View>
         <Text style={styles.meta}>
           {dayLabel}
           {selectedSlot ? ` · ${selectedSlot}` : ""}
@@ -221,7 +226,7 @@ export function ScheduleVisitModal({
 
         <Text style={styles.label}>{t("vet.schedule.notes")}</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.notesInput]}
           multiline
           placeholder={t("vet.schedule.notesPlaceholder")}
           placeholderTextColor={vetColors.textSecondary}
@@ -237,6 +242,8 @@ export function ScheduleVisitModal({
               pricingChoice === "paid" && styles.reasonChipOn
             ]}
             onPress={() => setPricingChoice("paid")}
+            accessibilityRole="button"
+            accessibilityState={{ selected: pricingChoice === "paid" }}
           >
             <Text
               style={[
@@ -256,6 +263,8 @@ export function ScheduleVisitModal({
               setPricingChoice("free");
               setPrice("");
             }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: pricingChoice === "free" }}
           >
             <Text
               style={[
@@ -269,15 +278,17 @@ export function ScheduleVisitModal({
         </View>
 
         {pricingChoice === "paid" ? (
-          <>
+          <View style={styles.priceBlock} testID="schedule-visit-price-block">
             <Text style={styles.label}>{t("vet.schedule.price")}</Text>
             <TextInput
-              style={styles.input}
+              style={styles.priceInput}
               keyboardType="decimal-pad"
               placeholder={t("vet.schedule.pricePlaceholder")}
               placeholderTextColor={vetColors.textSecondary}
               value={price}
               onChangeText={setPrice}
+              accessibilityLabel={t("vet.schedule.price")}
+              testID="schedule-visit-price-input"
             />
             <PlatformFeePreview
               breakdown={vetFeeBreakdown}
@@ -285,7 +296,7 @@ export function ScheduleVisitModal({
               unitLabelKey="platformFees.unitPerService"
               compact
             />
-          </>
+          </View>
         ) : null}
 
         {pricingChoice === "free" ? (
@@ -297,13 +308,12 @@ export function ScheduleVisitModal({
         ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-      </ScrollView>
+      </View>
     </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { maxHeight: 420 },
   meta: {
     ...mobileTypography.body,
     color: vetColors.textSecondary,
@@ -356,12 +366,31 @@ const styles = StyleSheet.create({
   reasonTxOn: { color: vetColors.primary },
   input: {
     borderWidth: 1,
-    borderColor: vetColors.border,
+    borderColor: mobileColors.border,
     borderRadius: vetRadius.button,
     padding: mobileSpacing.md,
     minHeight: 44,
     color: vetColors.textPrimary,
     backgroundColor: vetColors.cardBg
+  },
+  notesInput: {
+    minHeight: 72,
+    textAlignVertical: "top"
+  },
+  priceBlock: {
+    marginBottom: mobileSpacing.sm
+  },
+  priceInput: {
+    borderWidth: 1.5,
+    borderColor: vetColors.primaryMuted,
+    borderRadius: vetRadius.button,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.md,
+    minHeight: 52,
+    fontSize: 18,
+    fontWeight: "600",
+    color: vetColors.textPrimary,
+    backgroundColor: vetColors.primaryLight
   },
   submit: {
     backgroundColor: vetColors.primary,
