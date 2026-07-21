@@ -329,7 +329,6 @@ const styles = StyleSheet.create({
   },
   listTitle: { fontWeight: "600", color: vetColors.textPrimary },
   listMeta: { ...vetType.label },
-  empty: { color: vetColors.textSecondary },
   btn: {
     backgroundColor: vetColors.primary,
     borderRadius: 14,
