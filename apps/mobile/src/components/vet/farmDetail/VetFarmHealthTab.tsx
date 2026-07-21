@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -10,6 +10,9 @@ import {
 } from "react-native";
 import { DiseaseModal } from "../../shared/DiseaseModal";
 import { InfoRow, SectionHeader, vetPalette } from "../../common";
+import { BarTrend } from "../charts";
+import { HealthStatusBanner } from "./HealthStatusBanner";
+import { HealthTimeline } from "./HealthTimeline";
 import { useSession } from "../../../context/SessionContext";
 import {
   fetchFarmActiveDiseaseCases,
@@ -18,8 +21,8 @@ import {
   fetchFarmVaccineCoverage,
   type VetFarmSummaryDto
 } from "../../../lib/api";
-import { vetColors, vetRadius } from "../../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../../theme/mobileTheme";
+import { vetColors, vetRadius, vetShadow, vetType } from "../../../theme/vetTheme";
+import { mobileSpacing } from "../../../theme/mobileTheme";
 
 type Props = {
   farmId: string;
@@ -27,6 +30,16 @@ type Props = {
   summaryLoading: boolean;
   locale: string;
 };
+
+function monthShort(monthKey: string, locale: string): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  if (!y || !m) {
+    return monthKey;
+  }
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(locale, {
+    month: "short"
+  });
+}
 
 export function VetFarmHealthTab({
   farmId,
@@ -82,6 +95,31 @@ export function VetFarmHealthTab({
       month: "short"
     });
 
+  const mortalityPoints = useMemo(() => {
+    const series = summary?.mortalityMonthly;
+    if (!series || series.length === 0) {
+      return [];
+    }
+    const peak = Math.max(...series.map((m) => m.count));
+    return series.map((m) => ({
+      key: m.month,
+      label: monthShort(m.month, locale),
+      value: m.count,
+      highlight: peak > 0 && m.count === peak
+    }));
+  }, [summary?.mortalityMonthly, locale]);
+
+  const peakHint = useMemo(() => {
+    const peak = mortalityPoints.find((p) => p.highlight);
+    if (!peak || peak.value <= 0) {
+      return null;
+    }
+    return t("vet.farmDetail.mortality.peakHint", {
+      month: peak.label,
+      count: peak.value
+    });
+  }, [mortalityPoints, t]);
+
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["vetFarmActiveDiseases", farmId] });
     void qc.invalidateQueries({ queryKey: ["vetFarmSummary", farmId] });
@@ -97,6 +135,11 @@ export function VetFarmHealthTab({
 
   return (
     <View style={styles.block}>
+      <HealthStatusBanner
+        globalHealthStatus={health?.globalHealthStatus}
+        activeDiseaseCount={health?.activeDiseaseCount ?? 0}
+      />
+
       {(health?.activeDiseaseCount ?? 0) > 0 ? (
         <View style={styles.alertCard}>
           <Text style={styles.alertTitle}>
@@ -109,6 +152,17 @@ export function VetFarmHealthTab({
           </Text>
         </View>
       ) : null}
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>
+          {t("vet.farmDetail.mortality.title")}
+        </Text>
+        <BarTrend
+          points={mortalityPoints}
+          emptyLabel={t("vet.farmDetail.mortality.empty")}
+          peakHint={peakHint}
+        />
+      </View>
 
       <View style={styles.card}>
         <View style={styles.gaugeRow}>
@@ -149,13 +203,27 @@ export function VetFarmHealthTab({
         />
         <InfoRow
           label={t("vet.farmDetail.overdueVaccines")}
-          value={String(health?.overdueVaccineCount ?? 0)}
+          value={String(health?.overdueVaccineCount ?? "—")}
           palette={vetPalette}
         />
         <InfoRow
           label={t("vet.farmDetail.mortality30d")}
-          value={`${health?.mortalityRate30d ?? "0"} %`}
+          value={
+            health?.mortalityRate30d != null
+              ? `${(Number(health.mortalityRate30d) * 100).toFixed(1)} %`
+              : "—"
+          }
           palette={vetPalette}
+        />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>
+          {t("vet.farmDetail.timeline.title")}
+        </Text>
+        <HealthTimeline
+          items={summary?.healthTimeline}
+          locale={locale}
         />
       </View>
 
@@ -212,33 +280,30 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg,
     borderLeftWidth: 4,
     borderLeftColor: vetColors.danger,
-    gap: 4
+    gap: 4,
+    ...vetShadow.soft
   },
   alertTitle: {
     fontWeight: "700",
     fontSize: 13,
     color: vetColors.textPrimary
   },
-  alertMeta: { ...mobileTypography.meta, color: vetColors.textSecondary },
+  alertMeta: { ...vetType.label },
   card: {
     backgroundColor: vetColors.cardBg,
     borderRadius: vetRadius.card,
     padding: mobileSpacing.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border,
-    gap: mobileSpacing.sm
+    gap: mobileSpacing.sm,
+    ...vetShadow.card
   },
+  sectionTitle: { ...vetType.title },
   gaugeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
   },
-  gaugeLabel: { fontWeight: "700", fontSize: 13, color: vetColors.textPrimary },
-  gaugePct: {
-    fontWeight: "800",
-    fontSize: 16,
-    color: vetColors.success
-  },
+  gaugeLabel: { ...vetType.title },
+  gaugePct: { ...vetType.figureSm, color: vetColors.success },
   track: {
     height: 8,
     borderRadius: 99,
@@ -250,17 +315,16 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     backgroundColor: vetColors.primary
   },
-  hint: { ...mobileTypography.meta, color: vetColors.textMuted },
+  hint: { ...vetType.label, color: vetColors.textMuted },
   listCard: {
     backgroundColor: vetColors.cardBg,
     borderRadius: vetRadius.button,
     padding: mobileSpacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: vetColors.border,
-    gap: 2
+    gap: 2,
+    ...vetShadow.soft
   },
   listTitle: { fontWeight: "600", color: vetColors.textPrimary },
-  listMeta: { ...mobileTypography.meta, color: vetColors.textSecondary },
+  listMeta: { ...vetType.label },
   empty: { color: vetColors.textSecondary },
   btn: {
     backgroundColor: vetColors.primary,

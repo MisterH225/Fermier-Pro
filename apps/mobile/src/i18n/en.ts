@@ -1176,6 +1176,7 @@ export const en = {
         livestock: "Herd",
         visits: "Visits",
         prescriptions: "Prescriptions",
+        repro: "Repro & biosecurity",
         history: "History",
         tasks: "Tasks"
       },
@@ -1186,6 +1187,36 @@ export const en = {
       declareCase: "Report a case",
       activeAlertTitle: "{{count}} active health alert(s)",
       activeAlertBody: "Cases are currently open on this farm.",
+      healthStatus: {
+        ok: "Healthy",
+        watch: "Watch",
+        alert: "Alert",
+        meta: "{{count}} active case(s)"
+      },
+      mortality: {
+        title: "Mortality — 6 months",
+        empty: "No mortality data yet",
+        peakHint: "Peak in {{month}} ({{count}})"
+      },
+      timeline: {
+        title: "Health timeline",
+        empty: "No recent health events",
+        seeMore: "See more",
+        severity: {
+          info: "Info",
+          watch: "Watch",
+          alert: "Alert"
+        },
+        type: {
+          disease: "Report",
+          vet_visit: "Visit",
+          treatment_open: "Open treatment",
+          treatment_closed: "Closed treatment",
+          batch_entry: "Batch entry",
+          vaccination: "Vaccination",
+          mortality: "Mortality"
+        }
+      },
       vaccineCoverage: "Vaccine coverage",
       vaccineCoverageHint: "{{name}} · {{overdue}} overdue",
       lastVisit: "Last visit",
@@ -1203,6 +1234,69 @@ export const en = {
       avgGmqValue: "{{g}} g/day",
       avgGmqNone: "— (no animals weighed)",
       livestockReadonly: "Read-only — producer herd data.",
+      livestockKpis: {
+        headcount: "Headcount",
+        batches: "Batches",
+        gmq30d: "ADG 30d",
+        feedConversion: "FCR"
+      },
+      gmqChart: {
+        title: "ADG — 8 weeks",
+        empty: "No ADG curve yet",
+        target: "Target"
+      },
+      batchPerf: {
+        title: "Batch performance",
+        empty: "No active batches to review",
+        gmq: "{{g}} g/day",
+        vsTarget: "{{pct}}% of target",
+        status: {
+          ok: "OK",
+          watch: "Watch",
+          alert: "Alert"
+        },
+        cases: "{{count}} cases",
+        openDetail: "Open batch"
+      },
+      repro: {
+        activeSows: "Active sows",
+        gestations: "Gestations",
+        avgBornAlive: "Avg. born alive",
+        sucklingMortality: "Suckling mortality",
+        upcomingTitle: "Farrowings — 21 days",
+        upcomingEmpty: "No farrowings due in the next 21 days",
+        imminent: "Imminent",
+        days: "D-{{n}}",
+        biosecurityTitle: "Biosecurity by barn",
+        biosecurityEmpty: "No barns recorded",
+        densityUnknown: "Density not measurable (no floor area)",
+        densityValue: "{{v}} m²/pig",
+        threshold: "Threshold {{v}} m²",
+        barnStatus: {
+          ok: "Compliant",
+          watch: "Watch",
+          alert: "Alert"
+        },
+        quarantineTitle: "Quarantine compliance",
+        quarantineEmpty: "No quarantine entries",
+        quarantineMeta: "{{pen}} · {{days}}/{{min}} days",
+        quarantineStatus: {
+          compliant: "Compliant",
+          pending: "In progress",
+          non_compliant: "Non-compliant"
+        }
+      },
+      readings: {
+        tripleSignal:
+          "Three signals on the same batch: ADG below target, active case and/or mortality peak.",
+        densityGmq:
+          "Overcrowding / ADG correlation: barn “{{barn}}” is in density alert and hosts an underperforming batch.",
+        vaccinePriority:
+          "Vaccine booster priority: coverage under 90% with active cases.",
+        openBatch: "Open batch",
+        scheduleVisit: "Schedule a visit",
+        title: "Veterinary reading"
+      },
       appointments: "Appointments",
       consultations: "Consultations",
       visitFallback: "Visit",
