@@ -87,15 +87,22 @@ type SessionContextValue = {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+function isSelectableProfile(p: {
+  profileStatus?: string | null;
+}): boolean {
+  return (p.profileStatus ?? "active") === "active";
+}
+
 function pickDefaultProfileId(me: AuthMeResponse): string | null {
-  if (me.activeProfile) {
+  const selectable = me.profiles.filter(isSelectableProfile);
+  if (me.activeProfile && isSelectableProfile(me.activeProfile)) {
     return me.activeProfile.id;
   }
-  const def = me.profiles.find((p) => p.isDefault);
+  const def = selectable.find((p) => p.isDefault);
   if (def) {
     return def.id;
   }
-  return me.profiles[0]?.id ?? null;
+  return selectable[0]?.id ?? null;
 }
 
 export function SessionProvider({
@@ -157,19 +164,21 @@ export function SessionProvider({
     try {
       const stored = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
       const initial = await fetchAuthMeResilient(accessToken);
-      const ids = new Set(initial.profiles.map((p) => p.id));
-      /** Dernier profil choisi (AsyncStorage), puis défaut serveur. */
+      const selectableIds = new Set(
+        initial.profiles.filter(isSelectableProfile).map((p) => p.id)
+      );
+      /** Dernier profil choisi (AsyncStorage), puis défaut serveur — actifs seulement. */
       const fromServer = pickDefaultProfileId(initial);
       let chosen: string | null = null;
-      if (stored && ids.has(stored)) {
+      if (stored && selectableIds.has(stored)) {
         chosen = stored;
       } else if (fromServer) {
         chosen = fromServer;
       } else {
-        chosen = initial.profiles[0]?.id ?? null;
+        chosen = pickDefaultProfileId(initial);
       }
-      if (chosen && !ids.has(chosen)) {
-        chosen = pickDefaultProfileId(initial) ?? initial.profiles[0]?.id ?? null;
+      if (chosen && !selectableIds.has(chosen)) {
+        chosen = pickDefaultProfileId(initial);
       }
       if (chosen) {
         await AsyncStorage.setItem(STORAGE_PROFILE_KEY, chosen);

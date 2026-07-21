@@ -442,7 +442,16 @@ export class VetsService {
           ? {
               primarySpecialty: { equals: specialty, mode: "insensitive" }
             }
-          : {})
+          : {}),
+        // Profil app vétérinaire actif requis (désactivé = hors annuaire).
+        user: {
+          profiles: {
+            some: {
+              type: "veterinarian",
+              profileStatus: "active"
+            }
+          }
+        }
       },
       include: {
         user: {

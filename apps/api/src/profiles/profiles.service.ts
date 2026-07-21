@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -9,10 +8,14 @@ import { Prisma, ProfileType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateProfileDto } from "./dto/create-profile.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { ProfileDeactivationService } from "./profile-deactivation.service";
 
 @Injectable()
 export class ProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deactivation: ProfileDeactivationService
+  ) {}
 
   async create(user: User, dto: CreateProfileDto): Promise<Profile> {
     try {
@@ -115,19 +118,12 @@ export class ProfilesService {
     });
   }
 
-  async remove(user: User, profileId: string): Promise<void> {
-    const profile = await this.prisma.profile.findFirst({
-      where: { id: profileId, userId: user.id }
-    });
-    if (!profile) {
-      throw new NotFoundException("Profil introuvable");
-    }
-    if (profile.type === "buyer" && profile.isDefault) {
-      throw new ForbiddenException(
-        "Impossible de supprimer le profil acheteur par defaut"
-      );
-    }
-    await this.prisma.profile.delete({ where: { id: profileId } });
+  /**
+   * Ancien DELETE — délègue à la désactivation (jamais de hard delete).
+   * @deprecated Prefer POST /profiles/:id/deactivate
+   */
+  remove(user: User, profileId: string, reason?: string | null) {
+    return this.deactivation.deactivate(user, profileId, { reason });
   }
 
   /**

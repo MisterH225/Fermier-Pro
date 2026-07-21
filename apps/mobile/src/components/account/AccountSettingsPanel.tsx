@@ -22,6 +22,7 @@ import type { RootStackParamList } from "../../types/navigation";
 import { Card } from "../ui/Card";
 import { ActiveProfileSwitcherControl } from "./ActiveProfileSwitcherControl";
 import { DangerZone } from "../profile/DangerZone";
+import { ProfileSensitiveZone } from "../profile/ProfileSensitiveZone";
 import { NotificationSettingsRow } from "./NotificationSettingsRow";
 
 const LOCALE_CODES: AppLocaleCode[] = ["fr", "en"];
@@ -167,9 +168,12 @@ export function AccountSettingsPanel({
             )}
           </Pressable>
 
+          <ProfileSensitiveZone />
           <DangerZone />
         </>
       )}
+
+      {accountOnly ? <ProfileSensitiveZone /> : null}
     </View>
   );
 }
