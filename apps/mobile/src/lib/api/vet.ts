@@ -267,6 +267,8 @@ export type ScheduleVetVisitPayload = {
   reason: VetVisitReason;
   notes?: string;
   consultationPrice?: number;
+  /** Déclaration explicite de gratuité (requis si pas de montant). */
+  isFree?: boolean;
 };
 
 export type ScheduleVetVisitResult = {

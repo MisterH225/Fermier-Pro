@@ -36,6 +36,8 @@ const REASONS: VetVisitReason[] = [
   "other"
 ];
 
+type PricingChoice = "paid" | "free" | null;
+
 type ScheduleVisitModalProps = {
   visible: boolean;
   onClose: () => void;
@@ -57,15 +59,19 @@ export function ScheduleVisitModal({
   const [reason, setReason] = useState<VetVisitReason>("routine");
   const [notes, setNotes] = useState("");
   const [price, setPrice] = useState("");
+  const [pricingChoice, setPricingChoice] = useState<PricingChoice>(null);
   const [error, setError] = useState<string | null>(null);
 
   const vetFeeBreakdown = useMemo(() => {
+    if (pricingChoice !== "paid") {
+      return null;
+    }
     const parsed = parsePriceInput(price);
     if (parsed == null) {
       return null;
     }
     return computeVetFeeBreakdown(parsed, platformFees.vetCommissionRate);
-  }, [price, platformFees.vetCommissionRate]);
+  }, [price, pricingChoice, platformFees.vetCommissionRate]);
 
   const farmsQ = useQuery({
     queryKey: ["farms", activeProfileId, "scheduleVisit"],
@@ -77,42 +83,61 @@ export function ScheduleVisitModal({
 
   const scheduleMut = useMutation({
     mutationFn: async () => {
-      if (!farmId || !selectedSlot) {
+      if (!farmId || !selectedSlot || pricingChoice == null) {
         throw new Error(t("vet.schedule.missingFields"));
+      }
+      if (pricingChoice === "paid") {
+        const amount = parsePriceInput(price);
+        if (amount == null || amount <= 0) {
+          throw new Error(t("vet.schedule.priceRequired"));
+        }
+        return scheduleVetVisit(accessToken!, activeProfileId, {
+          farmId,
+          scheduledAt: combineDayAndSlot(selectedDay, selectedSlot),
+          reason,
+          notes: notes.trim() || undefined,
+          consultationPrice: amount,
+          isFree: false
+        });
       }
       return scheduleVetVisit(accessToken!, activeProfileId, {
         farmId,
         scheduledAt: combineDayAndSlot(selectedDay, selectedSlot),
         reason,
         notes: notes.trim() || undefined,
-        consultationPrice: price.trim()
-          ? Number.parseFloat(price.replace(",", "."))
-          : undefined
+        isFree: true
       });
     },
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: ["vetDashboard"] });
       await qc.invalidateQueries({ queryKey: ["vetAppointments"] });
       onClose();
-      const needsPayment = res.status === "AWAITING_PAYMENT";
+      setPricingChoice(null);
+      setPrice("");
       modal.open("success", {
         title: t("vet.schedule.successTitle"),
-        message: needsPayment
-          ? t("vet.schedule.successBodyPayment", {
-              farm: res.farmName ?? "—",
-              date: new Date(res.scheduledAt).toLocaleString()
-            })
-          : t("vet.schedule.successBody", {
-              farm: res.farmName ?? "—",
-              date: new Date(res.scheduledAt).toLocaleString()
-            }),
+        message: t("vet.schedule.successBodyProposed", {
+          farm: res.farmName ?? "—",
+          date: new Date(res.scheduledAt).toLocaleString()
+        }),
         autoDismissMs: 3200
       });
     },
     onError: (e) => setError(formatApiError(e))
   });
 
-  const canSubmit = Boolean(farmId && selectedSlot && !scheduleMut.isPending);
+  const paidAmountValid =
+    pricingChoice === "paid" &&
+    parsePriceInput(price) != null &&
+    (parsePriceInput(price) ?? 0) > 0;
+
+  const canSubmit = Boolean(
+    farmId &&
+      selectedSlot &&
+      pricingChoice != null &&
+      (pricingChoice === "free" || paidAmountValid) &&
+      !scheduleMut.isPending
+  );
 
   const dayLabel = useMemo(
     () =>
@@ -204,21 +229,72 @@ export function ScheduleVisitModal({
           onChangeText={setNotes}
         />
 
-        <Text style={styles.label}>{t("vet.schedule.price")}</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="decimal-pad"
-          placeholder={t("vet.schedule.pricePlaceholder")}
-          placeholderTextColor={vetColors.textSecondary}
-          value={price}
-          onChangeText={setPrice}
-        />
-        <PlatformFeePreview
-          breakdown={vetFeeBreakdown}
-          currency="XOF"
-          unitLabelKey="platformFees.unitPerService"
-          compact
-        />
+        <Text style={styles.label}>{t("vet.schedule.pricingChoice")}</Text>
+        <View style={styles.reasonRow}>
+          <Pressable
+            style={[
+              styles.reasonChip,
+              pricingChoice === "paid" && styles.reasonChipOn
+            ]}
+            onPress={() => setPricingChoice("paid")}
+          >
+            <Text
+              style={[
+                styles.reasonTx,
+                pricingChoice === "paid" && styles.reasonTxOn
+              ]}
+            >
+              {t("vet.schedule.pricingPaid")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.reasonChip,
+              pricingChoice === "free" && styles.reasonChipOn
+            ]}
+            onPress={() => {
+              setPricingChoice("free");
+              setPrice("");
+            }}
+          >
+            <Text
+              style={[
+                styles.reasonTx,
+                pricingChoice === "free" && styles.reasonTxOn
+              ]}
+            >
+              {t("vet.schedule.pricingFree")}
+            </Text>
+          </Pressable>
+        </View>
+
+        {pricingChoice === "paid" ? (
+          <>
+            <Text style={styles.label}>{t("vet.schedule.price")}</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="decimal-pad"
+              placeholder={t("vet.schedule.pricePlaceholder")}
+              placeholderTextColor={vetColors.textSecondary}
+              value={price}
+              onChangeText={setPrice}
+            />
+            <PlatformFeePreview
+              breakdown={vetFeeBreakdown}
+              currency="XOF"
+              unitLabelKey="platformFees.unitPerService"
+              compact
+            />
+          </>
+        ) : null}
+
+        {pricingChoice === "free" ? (
+          <Text style={styles.freeHint}>{t("vet.schedule.freeHint")}</Text>
+        ) : null}
+
+        {pricingChoice == null ? (
+          <Text style={styles.warn}>{t("vet.schedule.pricingRequired")}</Text>
+        ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
@@ -242,6 +318,12 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   hint: { color: vetColors.textSecondary, marginBottom: mobileSpacing.sm },
+  freeHint: {
+    ...mobileTypography.meta,
+    color: vetColors.textSecondary,
+    marginTop: mobileSpacing.sm,
+    marginBottom: mobileSpacing.sm
+  },
   farmList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   farmChip: {
     paddingHorizontal: 12,
