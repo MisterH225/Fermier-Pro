@@ -1,5 +1,6 @@
 import { buyerColors } from "./buyerTheme";
-import { mobileColors } from "./mobileTheme";
+import { merchantColors } from "./merchantTheme";
+import { producerColors } from "./producerTheme";
 import { techColors } from "./technicianTheme";
 import { vetColors } from "./vetTheme";
 
@@ -14,8 +15,9 @@ export function profileAccentColor(type: string | undefined): string {
     case "buyer":
       return buyerColors.primary;
     case "merchant":
-      return "#C45C26";
+      return merchantColors.primary;
+    case "producer":
     default:
-      return mobileColors.accent;
+      return producerColors.primary;
   }
 }

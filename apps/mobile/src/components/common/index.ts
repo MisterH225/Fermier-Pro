@@ -9,5 +9,10 @@ export { ProfileCompletionGauge } from "./ProfileCompletionGauge";
 export {
   buyerPalette,
   vetPalette,
+  producerPalette,
+  merchantPalette,
+  technicianPalette,
+  paletteForProfileType,
   type RolePalette
 } from "./rolePalette";
+export { useRolePalette } from "../../hooks/useRolePalette";
