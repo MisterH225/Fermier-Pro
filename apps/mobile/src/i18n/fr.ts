@@ -1149,9 +1149,23 @@ export const fr = {
       completeConfirmTitle: "Confirmer la prestation",
       completeConfirmBody: "Cette action déclenche le paiement du vétérinaire. Assurez-vous que la prestation est bien effectuée.",
       completeFreeConfirmBody: "Confirmer que la visite gratuite est terminée ? Aucun paiement ne sera déclenché.",
-      cancelCta: "Annuler la demande",
-      cancelConfirmTitle: "Annuler le rendez-vous ?",
-      cancelConfirmBody: "Aucun paiement ne sera prélevé si vous n'avez pas encore payé.",
+      cancelCta: "Annuler le rendez-vous",
+      cancelSectionTitle: "Annuler le rendez-vous",
+      cancelHintUnpaid:
+        "L’autre partie sera informée. Aucun paiement ne sera prélevé.",
+      cancelHintPaid:
+        "Le montant bloqué sera remboursé intégralement sur le portefeuille du producteur. L’autre partie verra votre motif.",
+      cancelReasonLabel: "Motif pour l’autre partie",
+      cancelReasonPlaceholder: "Expliquez brièvement pourquoi vous annulez…",
+      cancelReasonRequired: "Indiquez un motif pour informer l’autre partie.",
+      cancelConfirmTitle: "Confirmer l’annulation ?",
+      cancelConfirmBody:
+        "Cette action est définitive. Un message avec votre motif sera envoyé à l’autre partie.",
+      cancelConfirmBodyPaid:
+        "Cette action est définitive. Le paiement sera remboursé intégralement et votre motif sera transmis.",
+      cancelledByProducer: "Annulé par le producteur",
+      cancelledByVet: "Annulé par le vétérinaire",
+      cancellationReasonLabel: "Motif d’annulation",
       waitingVetHint: "Votre demande a été envoyée au vétérinaire. Vous pouvez l'annuler en attendant sa réponse.",
       ratingTitle: "Noter le vétérinaire",
       ratingRequired: "Choisissez une note entre 1 et 5",

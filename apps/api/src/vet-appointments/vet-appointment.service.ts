@@ -145,6 +145,8 @@ export class VetAppointmentService {
       paymentConfirmedAt: row.paymentConfirmedAt?.toISOString() ?? null,
       proposedByVetAt: row.proposedByVetAt?.toISOString() ?? null,
       completedAt: row.completedAt?.toISOString() ?? null,
+      cancelledAt: row.cancelledAt?.toISOString() ?? null,
+      cancellationReason: row.cancellationReason,
       conflictStatus: row.conflictStatus,
       conflictLabel: this.conflictLabel(row.conflictStatus, conflictDetails),
       conflictDetails,
@@ -1306,7 +1308,14 @@ export class VetAppointmentService {
     );
   }
 
-  async cancelByProducer(producer: User, appointmentId: string, reason?: string) {
+  async cancelByProducer(producer: User, appointmentId: string, reason: string) {
+    const note = reason.trim();
+    if (!note) {
+      throw new BadRequestException(
+        "Un motif d'annulation est obligatoire pour informer l'autre partie"
+      );
+    }
+
     const row = await this.requireProducerAppointment(
       producer.id,
       appointmentId,
@@ -1316,11 +1325,6 @@ export class VetAppointmentService {
     assertTransition(row.status, "CANCEL_BY_PRODUCER");
 
     const wasPaid = this.hasConfirmedPayment(row);
-    if (wasPaid && !reason?.trim()) {
-      throw new BadRequestException(
-        "Un motif d'annulation est obligatoire après paiement"
-      );
-    }
 
     let refundAmount = 0;
     if (wasPaid) {
@@ -1346,26 +1350,48 @@ export class VetAppointmentService {
         data: {
           status: VetAppointmentStatus.CANCELLED_BY_PRODUCER,
           cancelledAt: new Date(),
-          cancellationReason: reason?.trim() || null
+          cancellationReason: note
         }
       });
     });
 
+    const refundMsg =
+      refundAmount > 0
+        ? ` Remboursement intégral: ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
+        : "";
+    const reasonMsg = ` Motif : ${note.slice(0, 160)}`;
     await this.push.sendToUser(
       row.vetUserId,
       "RDV annulé",
-      `${producer.fullName?.trim() || "Le producteur"} a annulé.${
-        refundAmount > 0
-          ? ` Remboursement intégral: ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
-          : ""
-      }`,
+      `${producer.fullName?.trim() || "Le producteur"} a annulé.${refundMsg}${reasonMsg}`,
       { type: "vet_appointment_cancelled_producer", appointmentId }
     );
+
+    await this.audit.record({
+      actorUserId: producer.id,
+      farmId: row.farmId,
+      action: AUDIT_ACTION.vetAppointmentCancelled,
+      resourceType: "VetAppointment",
+      resourceId: appointmentId,
+      metadata: {
+        by: "producer",
+        wasPaid,
+        refundAmount,
+        reason: note
+      }
+    });
 
     return this.getById(producer, appointmentId);
   }
 
-  async cancelByVet(vet: User, appointmentId: string, reason?: string) {
+  async cancelByVet(vet: User, appointmentId: string, reason: string) {
+    const note = reason.trim();
+    if (!note) {
+      throw new BadRequestException(
+        "Un motif d'annulation est obligatoire pour informer l'autre partie"
+      );
+    }
+
     const row = await this.requireVetAppointment(
       vet.id,
       appointmentId,
@@ -1375,11 +1401,6 @@ export class VetAppointmentService {
     assertTransition(row.status, "CANCEL_BY_VET");
 
     const wasPaid = this.hasConfirmedPayment(row);
-    if (wasPaid && !reason?.trim()) {
-      throw new BadRequestException(
-        "Un motif d'annulation est obligatoire après paiement"
-      );
-    }
 
     let refundAmount = 0;
     if (wasPaid) {
@@ -1405,7 +1426,7 @@ export class VetAppointmentService {
         data: {
           status: VetAppointmentStatus.CANCELLED_BY_VET,
           cancelledAt: new Date(),
-          cancellationReason: reason?.trim() || null
+          cancellationReason: note
         }
       });
       await tx.vetProfile.update({
@@ -1427,12 +1448,27 @@ export class VetAppointmentService {
       refundAmount > 0
         ? ` Remboursement intégral de ${Math.round(refundAmount).toLocaleString("fr-FR")} FCFA.`
         : "";
+    const reasonMsg = ` Motif : ${note.slice(0, 160)}`;
     await this.push.sendToUser(
       row.producerUserId,
       "RDV annulé",
-      `Dr ${vetName} a annulé votre RDV.${refundMsg}`,
+      `Dr ${vetName} a annulé votre RDV.${refundMsg}${reasonMsg}`,
       { type: "vet_appointment_cancelled_vet", appointmentId }
     );
+
+    await this.audit.record({
+      actorUserId: vet.id,
+      farmId: row.farmId,
+      action: AUDIT_ACTION.vetAppointmentCancelled,
+      resourceType: "VetAppointment",
+      resourceId: appointmentId,
+      metadata: {
+        by: "vet",
+        wasPaid,
+        refundAmount,
+        reason: note
+      }
+    });
 
     return this.getById(vet, appointmentId);
   }

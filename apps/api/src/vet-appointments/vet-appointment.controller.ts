@@ -15,6 +15,7 @@ import { VetRefuseAppointmentDto } from "./dto/vet-refuse-appointment.dto";
 import { ProducerRefuseAppointmentDto } from "./dto/producer-refuse-appointment.dto";
 import { RequestVetAppointmentDto } from "./dto/request-vet-appointment.dto";
 import { ScheduleFromVetAppointmentDto } from "./dto/schedule-from-vet-appointment.dto";
+import { CancelVetAppointmentDto } from "./dto/cancel-vet-appointment.dto";
 import { SubmitAppointmentRatingDto } from "./dto/submit-appointment-rating.dto";
 import { VetPaymentConfirmDto, VetPaymentInitiateDto } from "./dto/vet-payment.dto";
 import { VetAppointmentService } from "./vet-appointment.service";
@@ -156,12 +157,12 @@ export class VetAppointmentController {
   async cancel(
     @CurrentUser() user: User,
     @Param("id") id: string,
-    @Body() body: { reason?: string }
+    @Body() dto: CancelVetAppointmentDto
   ) {
     const r = await this.appointments.getById(user, id);
     if (r.vetUserId === user.id) {
-      return this.appointments.cancelByVet(user, id, body.reason);
+      return this.appointments.cancelByVet(user, id, dto.reason);
     }
-    return this.appointments.cancelByProducer(user, id, body.reason);
+    return this.appointments.cancelByProducer(user, id, dto.reason);
   }
 }
