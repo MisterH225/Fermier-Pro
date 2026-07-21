@@ -1,6 +1,23 @@
 -- Platform feature flags (mirrors Prisma migration 20260530120000)
 
-CREATE TYPE "FeatureFlagHistoryAction" AS ENUM ('disabled', 'reactivated', 'scheduled');
+DO $$ BEGIN
+  CREATE TYPE "FeatureFlagHistoryAction" AS ENUM ('disabled', 'reactivated', 'scheduled');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Ensure base enum exists on preview DBs (Prisma baseline may be absent).
+DO $$ BEGIN
+  CREATE TYPE "SmartAlertModule" AS ENUM (
+    'stock',
+    'health',
+    'finance',
+    'gestation',
+    'cheptel'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TYPE "SmartAlertModule" ADD VALUE IF NOT EXISTS 'market';
 
