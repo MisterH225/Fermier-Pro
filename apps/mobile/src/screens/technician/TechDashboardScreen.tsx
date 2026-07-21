@@ -36,6 +36,10 @@ import { ActivityToggleHeader } from "../../components/collaboration/ActivityTog
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import {
+  resolveTechActiveFarm,
+  useTechActiveFarm
+} from "../../context/TechActiveFarmContext";
+import {
   fetchTechnicianActivity,
   fetchTechnicianDashboard,
   fetchTechnicianProfile,
@@ -54,6 +58,7 @@ import { welcomeFirstName } from "../../lib/userDisplay";
 import { mobileSpacing, mobileTypography, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { techColors, techRadius, techShadow } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { TechFarmSelector } from "../../components/technician/TechFarmSelector";
 
 const QUICK_ACTIONS: {
   key: TechQuickActionKey;
@@ -99,9 +104,9 @@ export function TechDashboardScreen() {
   const bottomInset = useBottomInset();
   const { accessToken, activeProfileId, authMe, refreshAuthMe, clientFeatures } =
     useSession();
+  const { activeFarmId, setActiveFarmId } = useTechActiveFarm();
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFarmId, setActiveFarmId] = useState<string | null>(null);
   const [quickAction, setQuickAction] = useState<TechQuickActionKey | null>(null);
   const [activityExpanded, setActivityExpanded] = useState(false);
 
@@ -126,8 +131,12 @@ export function TechDashboardScreen() {
   });
 
   const farms = dashQ.data?.farms ?? [];
-  const resolvedFarmId = activeFarmId ?? dashQ.data?.activeFarmId ?? farms[0]?.farmId ?? null;
-  const activeFarm = farms.find((f) => f.farmId === resolvedFarmId);
+  const activeFarm = resolveTechActiveFarm(
+    farms,
+    activeFarmId,
+    dashQ.data?.activeFarmId
+  );
+  const resolvedFarmId = activeFarm?.farmId ?? null;
 
   const avatarUrl = useMemo(
     () =>
@@ -246,22 +255,11 @@ export function TechDashboardScreen() {
           </Text>
 
           {farms.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.farmPills}>
-              {farms.map((f) => {
-                const active = f.farmId === resolvedFarmId;
-                return (
-                  <Pressable
-                    key={f.farmId}
-                    style={[styles.farmPill, active && styles.farmPillActive]}
-                    onPress={() => setActiveFarmId(f.farmId)}
-                  >
-                    <Text style={[styles.farmPillText, active && styles.farmPillTextActive]}>
-                      {f.farmName}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            <TechFarmSelector
+              farms={farms}
+              selectedFarmId={resolvedFarmId}
+              onSelect={setActiveFarmId}
+            />
           ) : null}
         </ProfileHeroCard>
 
@@ -480,19 +478,6 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   badgeText: { color: mobileColors.background, fontSize: mobileFontSize.xs, fontWeight: "700" },
-  farmPills: { marginTop: mobileSpacing.xs },
-  farmPill: {
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: 8,
-    borderRadius: techRadius.pill,
-    backgroundColor: techColors.primaryLight,
-    borderWidth: 1,
-    borderColor: techColors.border,
-    marginRight: mobileSpacing.sm
-  },
-  farmPillActive: { backgroundColor: techColors.primary, borderColor: techColors.primary },
-  farmPillText: { ...mobileTypography.meta, fontWeight: "600", color: techColors.textSecondary },
-  farmPillTextActive: { color: mobileColors.background },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   quickCard: {
     width: "31%",

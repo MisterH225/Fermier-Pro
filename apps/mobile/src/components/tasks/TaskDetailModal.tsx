@@ -122,13 +122,13 @@ export function TaskDetailModal({
         tone: "neutral"
       }}
       secondaryActions={
-        canWrite
+        canWrite && onEdit
           ? [
               {
                 key: "edit",
                 icon: "create-outline",
                 label: t("tasksScreen.edit"),
-                onPress: () => onEdit?.()
+                onPress: onEdit
               }
             ]
           : undefined

@@ -3597,7 +3597,9 @@ export const fr = {
     },
     tasks: {
       noFarm: "Aucune ferme assignée pour le moment.",
-      viewFarmTasks: "Voir les tâches de la ferme"
+      noAssigned: "Aucune tâche assignée.",
+      sectionMine: "Mes tâches",
+      viewAllFarm: "Toutes les tâches de la ferme"
     },
     farm: {
       tabs: {
@@ -3608,7 +3610,11 @@ export const fr = {
       },
       openModule: "Ouvrir le module",
       sectionModules: "Modules disponibles",
-      sectionAction: "Accès"
+      sectionAction: "Accès",
+      selectorPlaceholder: "Choisir une ferme",
+      selectorChange: "Changer",
+      selectorTitle: "Mes fermes",
+      selectorA11y: "Changer de ferme"
     },
     tracking: {
       sectionLog: "Journal d'activité"
