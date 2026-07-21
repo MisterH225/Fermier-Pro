@@ -26,7 +26,7 @@ import {
 import { formatApiError } from "../../lib/apiErrors";
 import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
   skippable?: boolean;
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     paddingTop: mobileSpacing.sm
   },
   title: {
-    fontSize: 26,
+    fontSize: mobileFontSize.xxl,
     fontWeight: "800",
     color: merchantColors.textPrimary,
     textAlign: "center"
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   featureEmoji: {
-    fontSize: 28,
+    fontSize: mobileFontSize.xxl,
     lineHeight: 34
   },
   featureText: {
@@ -945,17 +945,17 @@ const styles = StyleSheet.create({
     gap: 2
   },
   featureTitle: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: merchantColors.textPrimary
   },
   featureCaption: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     color: merchantColors.textSecondary
   },
   chooseLabel: {
     textAlign: "center",
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: merchantColors.textSecondary,
     marginBottom: mobileSpacing.md
@@ -977,7 +977,7 @@ const styles = StyleSheet.create({
     position: "relative"
   },
   planCardPremium: {
-    backgroundColor: "#FFFBEB"
+    backgroundColor: merchantColors.warnBannerBg
   },
   planCardSelected: {
     borderColor: merchantColors.primary
@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
     right: -10,
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: mobileRadius.md,
     backgroundColor: merchantColors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -996,23 +996,23 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.cardBg
   },
   planIcon: {
-    fontSize: 28,
+    fontSize: mobileFontSize.xxl,
     marginBottom: mobileSpacing.xs
   },
   planName: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
   planPrice: {
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     fontWeight: "800",
     color: merchantColors.textPrimary,
     marginTop: 4,
     textAlign: "center"
   },
   planCaption: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     color: merchantColors.textMuted,
     marginTop: 4,
     textAlign: "center"
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
   },
   planFeatureTx: {
     flex: 1,
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     lineHeight: 15,
     color: merchantColors.textSecondary
   },
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
   ctaTx: {
     color: merchantColors.onPrimary,
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     textAlign: "center"
   },
   skip: {
@@ -1096,7 +1096,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120
   },
   waitingTitle: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: merchantColors.textPrimary,
     textAlign: "center"
@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
   },
   payMethodLabel: {
     textAlign: "center",
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
@@ -1145,7 +1145,7 @@ const styles = StyleSheet.create({
     opacity: 0.45
   },
   payMethodTx: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: merchantColors.textSecondary,
     textAlign: "center"
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
     color: merchantColors.primary
   },
   walletHint: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: merchantColors.textMuted,
     textAlign: "center"
   },
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   promoLabel: {
     textAlign: "center",
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     color: merchantColors.textPrimary,
     backgroundColor: merchantColors.cardBg
   },
@@ -1198,12 +1198,12 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   promoApplyTx: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: merchantColors.primary
   },
   promoHintApplied: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     color: merchantColors.primary,
     textAlign: "center"
   },
@@ -1217,13 +1217,13 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   pendingBannerTitle: {
-    fontSize: 15,
+    fontSize: mobileFontSize.md,
     fontWeight: "700",
     color: merchantColors.textPrimary,
     textAlign: "center"
   },
   pendingBannerBody: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     lineHeight: 18,
     color: merchantColors.textSecondary,
     textAlign: "center"
@@ -1238,6 +1238,6 @@ const styles = StyleSheet.create({
   pendingBannerBtnTx: {
     color: merchantColors.onPrimary,
     fontWeight: "700",
-    fontSize: 14
+    fontSize: mobileFontSize.md
   }
 });

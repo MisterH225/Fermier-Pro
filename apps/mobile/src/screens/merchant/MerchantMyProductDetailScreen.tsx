@@ -24,12 +24,7 @@ import { useBottomChromePad } from "../../hooks/useBottomInset";
 import { fetchMerchantProduct } from "../../lib/api";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantMyProductDetail">;
@@ -210,25 +205,25 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill
   },
   statusTx: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
     color: merchantColors.primary
   },
   firstCard: { marginTop: mobileSpacing.md },
   title: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     marginBottom: mobileSpacing.xs
   },
   price: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: merchantColors.primary,
     marginBottom: 4
   },
   stock: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
@@ -256,12 +251,12 @@ const styles = StyleSheet.create({
     gap: 4
   },
   statValue: {
-    fontSize: 20,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: merchantColors.primaryDark
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: mobileFontSize.xs,
     fontWeight: "600",
     color: merchantColors.textSecondary,
     textAlign: "center"
@@ -280,5 +275,5 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill,
     alignItems: "center"
   },
-  editBtnTx: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  editBtnTx: { color: mobileColors.background, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

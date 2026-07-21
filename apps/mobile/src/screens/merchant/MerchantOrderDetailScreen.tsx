@@ -39,8 +39,9 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { producerColors } from "../../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantOrderDetail">;
 
@@ -234,7 +235,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
               onPress={() => runAction.mutate("confirm")}
               disabled={actionBusy}
             >
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Ionicons name="checkmark-circle" size={20} color={mobileColors.background} />
               <Text style={styles.primaryBtnTx}>{t("merchant.orders.accept")}</Text>
             </Pressable>
             <Pressable
@@ -266,7 +267,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
             onPress={() => runAction.mutate("complete")}
             disabled={actionBusy}
           >
-            <Ionicons name="checkmark-done" size={20} color="#fff" />
+            <Ionicons name="checkmark-done" size={20} color={mobileColors.background} />
             <Text style={styles.primaryBtnTx}>{t("merchant.orders.markComplete")}</Text>
           </Pressable>
         ) : null}
@@ -277,7 +278,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
             onPress={() => runAction.mutate("ship")}
             disabled={actionBusy}
           >
-            <Ionicons name="bicycle" size={20} color="#fff" />
+            <Ionicons name="bicycle" size={20} color={mobileColors.background} />
             <Text style={styles.primaryBtnTx}>{t("merchant.orders.startShipping")}</Text>
           </Pressable>
         ) : null}
@@ -288,7 +289,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
               style={[styles.primaryBtn, actionBusy && styles.btnDisabled]}
               onPress={scrollToActivity}
             >
-              <Ionicons name="search" size={20} color="#fff" />
+              <Ionicons name="search" size={20} color={mobileColors.background} />
               <Text style={styles.primaryBtnTx}>
                 {t("merchant.orders.trackShipping")}
               </Text>
@@ -311,7 +312,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
             onPress={() => runAction.mutate("complete")}
             disabled={actionBusy}
           >
-            <Ionicons name="checkmark-done" size={20} color="#fff" />
+            <Ionicons name="checkmark-done" size={20} color={mobileColors.background} />
             <Text style={styles.primaryBtnTx}>{t("merchant.orders.confirmReceipt")}</Text>
           </Pressable>
         ) : null}
@@ -319,7 +320,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
         {(order.status === "delivered" || order.status === "completed") &&
         !(isBuyer && order.status === "delivered") ? (
           <Pressable style={styles.primaryBtn} onPress={scrollToActivity}>
-            <Ionicons name="search" size={20} color="#fff" />
+            <Ionicons name="search" size={20} color={mobileColors.background} />
             <Text style={styles.primaryBtnTx}>{t("merchant.orders.trackShipping")}</Text>
           </Pressable>
         ) : null}
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10
   },
-  primaryBtnTx: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  primaryBtnTx: { color: mobileColors.background, fontWeight: "800", fontSize: mobileFontSize.lg },
   secondaryBtn: {
     backgroundColor: merchantColors.cardBg,
     paddingVertical: 14,
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
   secondaryBtnTx: {
     color: merchantColors.primary,
     fontWeight: "800",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   btnDisabled: { opacity: 0.55 },
   acceptReturnBtn: {
@@ -423,17 +424,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center"
   },
-  acceptReturnBtnTx: { color: "#fff", fontWeight: "800" },
+  acceptReturnBtnTx: { color: mobileColors.background, fontWeight: "800" },
   disputeBox: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: producerColors.kpiAmberSoft,
     borderRadius: merchantRadius.card,
     padding: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: "#F59E0B",
+    borderColor: producerColors.warning,
     gap: 6
   },
-  disputeTitle: { fontWeight: "800", color: "#92400E" },
-  disputeReason: { color: "#78350F" },
+  disputeTitle: { fontWeight: "800", color: merchantColors.amberText },
+  disputeReason: { color: merchantColors.amberTextDeep },
   disputeBtn: {
     paddingVertical: 14,
     borderRadius: merchantRadius.button,

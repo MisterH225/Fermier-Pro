@@ -32,7 +32,7 @@ import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard, fetchVetAppointmentFinanceSummary } from "../../lib/api";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const TASK_FILTERS = ["today", "week", "all"] as const;
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   heroIconBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: vetColors.cardBg,
     alignItems: "center",
     justifyContent: "center",
@@ -486,12 +486,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...mobileTypography.title,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.textPrimary
   },
   sectionGap: { marginTop: mobileSpacing.md },
-  sectionCta: { color: vetColors.primary, fontWeight: "600", fontSize: 14 },
+  sectionCta: { color: vetColors.primary, fontWeight: "600", fontSize: mobileFontSize.md },
   emptyCard: {
     backgroundColor: vetColors.cardBg,
     borderRadius: vetRadius.card,
@@ -513,8 +513,8 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     minHeight: 100
   },
-  kpiEmoji: { fontSize: 22, marginBottom: 4 },
-  kpiVal: { fontSize: 26, fontWeight: "800" },
+  kpiEmoji: { fontSize: mobileFontSize.xl, marginBottom: 4 },
+  kpiVal: { fontSize: mobileFontSize.xxl, fontWeight: "800" },
   kpiLbl: {
     ...mobileTypography.meta,
     color: vetColors.textSecondary,
@@ -524,18 +524,18 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     backgroundColor: vetColors.cardBg,
     borderWidth: 1,
     borderColor: vetColors.border
   },
   pillActive: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
-  pillTx: { fontSize: 13, color: vetColors.textSecondary, fontWeight: "600" },
+  pillTx: { fontSize: mobileFontSize.sm, color: vetColors.textSecondary, fontWeight: "600" },
   pillTxActive: { color: vetColors.onPrimary },
   earningsCard: {
     marginTop: mobileSpacing.md,
     backgroundColor: vetColors.kpiGreen,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     padding: mobileSpacing.lg,
     gap: 4
   },
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
   },
   earningsValue: {
     ...mobileTypography.title,
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: vetColors.success
   }

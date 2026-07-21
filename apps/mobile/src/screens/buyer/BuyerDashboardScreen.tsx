@@ -31,7 +31,7 @@ import { useSession } from "../../context/SessionContext";
 import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     borderColor: buyerColors.border
   },
   infoValue: {
-    fontSize: 24,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     letterSpacing: -0.3,
     color: buyerColors.primary

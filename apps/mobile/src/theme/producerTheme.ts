@@ -90,7 +90,24 @@ export const producerColors = {
   coralBorder: "#C47A6A",
   /** Marque Telegram (écran Support). */
   telegram: "#229ED9",
-  telegramSoft: "#229ED918"
+  telegramSoft: "#229ED918",
+  visitHighlightBg: "#EFF6FF",
+  visitHighlightBorder: "#BFDBFE",
+  healthPink: "#E91E8C",
+  healthPurpleBg: "#EDE7F6",
+  healthPurple: "#6A1B9A",
+  scoreGood: "#6BCB77",
+  scoreMid: "#FFB84D",
+  scoreLow: "#FF8C5A",
+  scoreIconBg: "#FFF4D6",
+  chartDisease: "#E24B4A",
+  chartAccident: "#BA7517",
+  chartUnknown: "#888780",
+  chartOther: "#4A90D9",
+  chartOk: "#1D9E75",
+  settingsGreen: "#1A7F37",
+  cguSoftBg: "#E2F0E8",
+  warnOrange: "#C2410C"
 } as const;
 
 export const producerRadius = {

@@ -26,7 +26,13 @@ export const merchantColors = {
   blueSoftBg: "#DBEAFE",
   blueText: "#1E40AF",
   blueTextDeep: "#1E3A8A",
-  greenText: "#047857"
+  greenText: "#047857",
+  warnBannerBg: "#FFFBEB",
+  orderNeutralBg: "#F3F4F6",
+  orderNeutralFg: "#374151",
+  orderProgressBg: "#E0F2FE",
+  orderProgressFg: "#0369A1",
+  orderDangerBg: "#FCE7F3"
 } as const;
 
 export const merchantRadius = { card: 22, button: 16, pill: 999 } as const;

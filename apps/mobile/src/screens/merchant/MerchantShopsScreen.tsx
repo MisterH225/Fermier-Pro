@@ -20,7 +20,7 @@ import { fetchMerchantMe } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { hasMerchantShop } from "../../lib/merchantShop";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function MerchantShopsScreen() {
@@ -63,7 +63,7 @@ export function MerchantShopsScreen() {
           onPress={() => navigation.navigate("MerchantShop")}
           testID="merchant-shops-create"
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name="add" size={24} color={mobileColors.background} />
         </Pressable>
       ) : null}
     </View>
@@ -195,11 +195,11 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     backgroundColor: merchantColors.canvas
   },
-  title: { fontSize: 22, fontWeight: "800", color: merchantColors.textPrimary },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "800", color: merchantColors.textPrimary },
   addBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: merchantColors.primary,
     alignItems: "center",
     justifyContent: "center"
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     textAlign: "center",
     color: merchantColors.textSecondary,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22
   },
   createPrimary: {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     borderRadius: merchantRadius.pill
   },
-  createPrimaryTx: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  createPrimaryTx: { color: mobileColors.background, fontWeight: "800", fontSize: mobileFontSize.lg },
   card: {
     backgroundColor: merchantColors.cardBg,
     borderRadius: merchantRadius.card,
@@ -236,14 +236,14 @@ const styles = StyleSheet.create({
   shopIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: mobileRadius.xl,
     backgroundColor: merchantColors.primaryLight,
     alignItems: "center",
     justifyContent: "center"
   },
   cardBody: { flex: 1, gap: 2 },
-  cardName: { fontWeight: "800", fontSize: 16, color: merchantColors.textPrimary },
-  cardMeta: { color: merchantColors.textSecondary, fontSize: 13 },
+  cardName: { fontWeight: "800", fontSize: mobileFontSize.lg, color: merchantColors.textPrimary },
+  cardMeta: { color: merchantColors.textSecondary, fontSize: mobileFontSize.sm },
   addProductBtn: {
     alignSelf: "flex-start",
     paddingHorizontal: 14,
@@ -252,5 +252,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: merchantColors.primary
   },
-  addProductTx: { color: merchantColors.primary, fontWeight: "700", fontSize: 13 }
+  addProductTx: { color: merchantColors.primary, fontWeight: "700", fontSize: mobileFontSize.sm }
 });

@@ -52,7 +52,7 @@ import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { getUserFacingError } from "../../lib/userFacingError";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 const AVATAR = 54;
@@ -848,7 +848,7 @@ const styles = StyleSheet.create({
     borderColor: buyerColors.border
   },
   name: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     letterSpacing: -0.1,
     color: buyerColors.textPrimary
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: buyerColors.cardBg,
     alignItems: "center",
     justifyContent: "center",
@@ -875,10 +875,10 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   meteoLvl: { flexDirection: "row", alignItems: "center", gap: 10 },
-  meteoSun: { fontSize: 34 },
+  meteoSun: { fontSize: mobileFontSize.xxl },
   meteoTexts: { flex: 1, gap: 2 },
   meteoTitle: {
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: buyerColors.textPrimary
   },
@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
   dot: {
     height: 6,
     flex: 1,
-    borderRadius: 99,
+    borderRadius: mobileRadius.pill,
     backgroundColor: buyerColors.primaryLight
   },
   dotOn: { backgroundColor: buyerColors.warning },
@@ -923,14 +923,14 @@ const styles = StyleSheet.create({
   },
   frowValue: {
     flex: 1,
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: buyerColors.textPrimary,
     textAlign: "right"
   },
   frowValueEmpty: { color: buyerColors.textMuted },
   frowEdit: {
-    fontSize: 12,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: buyerColors.primary,
     marginLeft: 4
@@ -964,14 +964,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    fontSize: 17,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: buyerColors.textPrimary
   },
   modalCloseBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: mobileRadius.lg,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: buyerColors.primaryLight

@@ -21,7 +21,7 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantOrderDispute">;
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: merchantColors.canvas },
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 22, fontWeight: "800" },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "800" },
   subtitle: { color: merchantColors.textSecondary },
   label: { fontWeight: "600" },
   input: {
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.border,
     borderRadius: merchantRadius.button,
     padding: mobileSpacing.md,
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     minHeight: 100,
     textAlignVertical: "top"
   },
@@ -166,9 +166,9 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.button,
     alignItems: "center"
   },
-  btnTx: { color: "#fff", fontWeight: "700" },
+  btnTx: { color: mobileColors.background, fontWeight: "700" },
   box: {
-    backgroundColor: "#fff",
+    backgroundColor: mobileColors.background,
     borderRadius: merchantRadius.card,
     padding: mobileSpacing.md,
     borderWidth: 1,

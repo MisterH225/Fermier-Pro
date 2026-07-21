@@ -33,7 +33,7 @@ import {
 import { formatApiError } from "../../lib/apiErrors";
 import { hasMerchantShop } from "../../lib/merchantShop";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type StatusFilter =
@@ -326,23 +326,23 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     backgroundColor: merchantColors.canvas
   },
-  title: { fontSize: 22, fontWeight: "800", color: merchantColors.textPrimary },
+  title: { fontSize: mobileFontSize.xl, fontWeight: "800", color: merchantColors.textPrimary },
   addBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: mobileRadius.xl,
     backgroundColor: merchantColors.primary,
     alignItems: "center",
     justifyContent: "center"
   },
-  addBtnTx: { color: "#fff", fontSize: 24, fontWeight: "700", marginTop: -2 },
+  addBtnTx: { color: mobileColors.background, fontSize: mobileFontSize.xl, fontWeight: "700", marginTop: -2 },
   createShopBtn: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: merchantRadius.pill,
     backgroundColor: merchantColors.primary
   },
-  createShopBtnTx: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  createShopBtnTx: { color: mobileColors.background, fontWeight: "700", fontSize: mobileFontSize.sm },
   noShopWrap: {
     flex: 1,
     justifyContent: "center",
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   noShopTitle: {
     textAlign: "center",
     color: merchantColors.textSecondary,
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     lineHeight: 22
   },
   createShopPrimary: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.md,
     borderRadius: merchantRadius.pill
   },
-  createShopPrimaryTx: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  createShopPrimaryTx: { color: mobileColors.background, fontWeight: "800", fontSize: mobileFontSize.lg },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -383,14 +383,14 @@ const styles = StyleSheet.create({
     backgroundColor: merchantColors.primaryLight,
     borderColor: merchantColors.primary
   },
-  filterTx: { fontSize: 12, fontWeight: "600", color: merchantColors.textSecondary },
+  filterTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: merchantColors.textSecondary },
   filterTxOn: { color: merchantColors.primary },
   column: {
     gap: GRID_GAP,
     marginBottom: GRID_GAP
   },
   catalogTitle: {
-    fontSize: 13,
+    fontSize: mobileFontSize.sm,
     fontWeight: "800",
     letterSpacing: 0.6,
     textTransform: "uppercase",

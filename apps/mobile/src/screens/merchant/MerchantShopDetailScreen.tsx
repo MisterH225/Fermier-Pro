@@ -24,7 +24,7 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
-import { mobileSpacing } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 function statusLabel(t: (k: string) => string, status: string) {
@@ -230,9 +230,9 @@ const styles = StyleSheet.create({
     paddingBottom: mobileSpacing.sm,
     gap: 4
   },
-  shopName: { fontSize: 22, fontWeight: "800", color: merchantColors.textPrimary },
-  shopDesc: { color: merchantColors.textSecondary, fontSize: 14, lineHeight: 20 },
-  shopMeta: { color: merchantColors.textMuted, fontSize: 13 },
+  shopName: { fontSize: mobileFontSize.xl, fontWeight: "800", color: merchantColors.textPrimary },
+  shopDesc: { color: merchantColors.textSecondary, fontSize: mobileFontSize.md, lineHeight: 20 },
+  shopMeta: { color: merchantColors.textMuted, fontSize: mobileFontSize.sm },
   emptyWrap: {
     flex: 1,
     justifyContent: "center",
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.xl,
     gap: mobileSpacing.lg
   },
-  emptyTitle: { textAlign: "center", color: merchantColors.textSecondary, fontSize: 16 },
+  emptyTitle: { textAlign: "center", color: merchantColors.textSecondary, fontSize: mobileFontSize.lg },
   emptyList: { textAlign: "center", color: merchantColors.textSecondary, marginTop: 40 },
   card: {
     backgroundColor: merchantColors.cardBg,
@@ -250,15 +250,15 @@ const styles = StyleSheet.create({
     borderColor: merchantColors.border
   },
   cardHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
-  cardName: { fontWeight: "800", fontSize: 16, flex: 1 },
+  cardName: { fontWeight: "800", fontSize: mobileFontSize.lg, flex: 1 },
   statusPill: {
     backgroundColor: merchantColors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: merchantRadius.pill
   },
-  statusTx: { fontSize: 11, fontWeight: "700", color: merchantColors.primary },
-  cardMeta: { color: merchantColors.textSecondary, marginTop: 4, fontSize: 13 },
+  statusTx: { fontSize: mobileFontSize.xs, fontWeight: "700", color: merchantColors.primary },
+  cardMeta: { color: merchantColors.textSecondary, marginTop: 4, fontSize: mobileFontSize.sm },
   footer: {
     position: "absolute",
     left: 0,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill,
     alignItems: "center"
   },
-  primaryBtnTx: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  primaryBtnTx: { color: mobileColors.background, fontWeight: "800", fontSize: mobileFontSize.lg },
   dangerBtn: {
     backgroundColor: merchantColors.cardBg,
     paddingVertical: 14,
@@ -286,5 +286,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: merchantColors.danger
   },
-  dangerBtnTx: { color: merchantColors.danger, fontWeight: "800", fontSize: 15 }
+  dangerBtnTx: { color: merchantColors.danger, fontWeight: "800", fontSize: mobileFontSize.md }
 });

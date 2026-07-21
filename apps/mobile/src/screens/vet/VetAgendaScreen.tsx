@@ -22,7 +22,7 @@ import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchVetDashboard, fetchVetProfileMe } from "../../lib/api";
 import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
-import { mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileTypography, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 export function VetAgendaScreen() {
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   farmChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: mobileRadius.pill,
     backgroundColor: vetColors.cardBg,
     borderWidth: 1,
     borderColor: vetColors.border,
@@ -277,15 +277,15 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.primary,
     borderColor: vetColors.primary
   },
-  farmChipTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: 13 },
+  farmChipTx: { fontWeight: "600", color: vetColors.textSecondary, fontSize: mobileFontSize.sm },
   farmChipTxOn: { color: vetColors.onPrimary },
-  toggle: { fontSize: 20, paddingHorizontal: 8 },
+  toggle: { fontSize: mobileFontSize.xl, paddingHorizontal: 8 },
   monthRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
   },
-  navBtn: { fontSize: 22, color: vetColors.primary, padding: 8 },
+  navBtn: { fontSize: mobileFontSize.xl, color: vetColors.primary, padding: 8 },
   monthLabel: {
     ...mobileTypography.title,
     fontWeight: "700",
@@ -301,12 +301,12 @@ const styles = StyleSheet.create({
     backgroundColor: vetColors.cardBg
   },
   dayCellActive: { backgroundColor: vetColors.primary },
-  dayName: { fontSize: 11, color: vetColors.textSecondary },
+  dayName: { fontSize: mobileFontSize.xs, color: vetColors.textSecondary },
   dayNameActive: { color: "rgba(255,255,255,0.9)" },
-  dayNum: { fontSize: 16, fontWeight: "700", color: vetColors.textPrimary },
-  dayNumActive: { color: "#fff" },
+  dayNum: { fontSize: mobileFontSize.lg, fontWeight: "700", color: vetColors.textPrimary },
+  dayNumActive: { color: mobileColors.background },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: mobileFontSize.lg,
     fontWeight: "700",
     color: vetColors.textPrimary,
     marginTop: mobileSpacing.md
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   periodPillOn: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
   periodTx: { fontWeight: "600", color: vetColors.textSecondary },
-  periodTxOn: { color: "#fff" },
+  periodTxOn: { color: mobileColors.background },
   slots: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   slot: {
     width: "30%",
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: mobileRadius.md,
     backgroundColor: vetColors.cardBg,
     alignItems: "center",
     borderWidth: 1,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   slotSelected: { backgroundColor: vetColors.primary, borderColor: vetColors.primary },
   slotTx: { fontWeight: "600", color: vetColors.textPrimary },
-  slotTxInv: { color: "#fff" },
+  slotTxInv: { color: mobileColors.background },
   bookBtn: {
     marginTop: mobileSpacing.lg,
     backgroundColor: vetColors.primary,
@@ -356,5 +356,5 @@ const styles = StyleSheet.create({
     ...vetShadow.soft
   },
   bookBtnDisabled: { opacity: 0.45 },
-  bookBtnTx: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  bookBtnTx: { color: mobileColors.background, fontWeight: "700", fontSize: mobileFontSize.lg }
 });

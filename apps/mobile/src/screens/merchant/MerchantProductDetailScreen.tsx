@@ -43,12 +43,7 @@ import {
 import { formatApiError } from "../../lib/apiErrors";
 import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import type { RootStackParamList } from "../../types/navigation";
-import {
-  mobileColors,
-  mobileRadius,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantProductDetail">;
@@ -460,7 +455,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
               testID="merchant-product-detail-buy"
             >
               {busy ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={mobileColors.background} />
               ) : (
                 <Text style={styles.btnTx}>{t("merchant.purchase.buy")}</Text>
               )}
@@ -493,7 +488,7 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   waitingTitle: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     textAlign: "center"
@@ -528,9 +523,9 @@ const styles = StyleSheet.create({
     borderRadius: merchantRadius.pill
   },
   categoryBadgeTx: {
-    color: "#fff",
+    color: mobileColors.background,
     fontWeight: "700",
-    fontSize: 12
+    fontSize: mobileFontSize.sm
   },
   firstCard: {
     marginTop: mobileSpacing.md
@@ -542,19 +537,19 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.sm
   },
   title: {
-    fontSize: 24,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: mobileColors.textPrimary,
     marginBottom: mobileSpacing.xs
   },
   price: {
-    fontSize: 22,
+    fontSize: mobileFontSize.xl,
     fontWeight: "800",
     color: merchantColors.primary,
     marginBottom: mobileSpacing.xs
   },
   stock: {
-    fontSize: 14,
+    fontSize: mobileFontSize.md,
     fontWeight: "600",
     color: merchantColors.textSecondary
   },
@@ -580,7 +575,7 @@ const styles = StyleSheet.create({
   rowValue: {
     color: mobileColors.textPrimary,
     fontWeight: "600",
-    fontSize: 15
+    fontSize: mobileFontSize.md
   },
   shopAboutBlock: {
     marginTop: mobileSpacing.md,
@@ -604,8 +599,8 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: 12,
-    backgroundColor: "#fff",
-    fontSize: 16
+    backgroundColor: mobileColors.background,
+    fontSize: mobileFontSize.lg
   },
   btn: {
     backgroundColor: merchantColors.primary,
@@ -616,7 +611,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   btnDisabled: { opacity: 0.7 },
-  btnTx: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  btnTx: { color: mobileColors.background, fontWeight: "700", fontSize: mobileFontSize.lg },
   secondary: { alignItems: "center", paddingVertical: mobileSpacing.sm },
   secondaryTx: { color: merchantColors.primary, fontWeight: "600" }
 });

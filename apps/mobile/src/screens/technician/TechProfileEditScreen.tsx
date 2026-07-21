@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   avatarSkeleton: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: mobileRadius.xl,
     backgroundColor: mobileColors.surfaceMuted,
     alignSelf: "center",
     marginBottom: mobileSpacing.lg
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     bottom: -2,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: mobileRadius.lg,
     backgroundColor: techColors.primary,
     alignItems: "center",
     justifyContent: "center",

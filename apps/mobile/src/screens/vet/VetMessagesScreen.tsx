@@ -21,11 +21,7 @@ import type { ChatRoomListItem } from "../../lib/api";
 import { filterChatRooms } from "../../lib/filterChatRooms";
 import { chatRoomTitle } from "../../lib/messaging/chatRoomDisplay";
 import { vetColors } from "../../theme/vetTheme";
-import {
-  mobileHeaderButtonOnDark,
-  mobileSpacing,
-  mobileTypography
-} from "../../theme/mobileTheme";
+import { mobileHeaderButtonOnDark, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { getUserFacingError } from "../../lib/userFacingError";
 
@@ -142,7 +138,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...mobileTypography.title,
-    fontSize: 18,
+    fontSize: mobileFontSize.lg,
     color: vetColors.textPrimary,
     marginBottom: 10
   },
