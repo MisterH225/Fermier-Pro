@@ -113,6 +113,14 @@ export const en = {
     countrySearchPlaceholder: "Search for a country…",
     countryEmpty: "No matching country."
   },
+  phoneInput: {
+    countryA11y: "Country and dial code, {{country}} {{dial}}",
+    nationalPlaceholder: "07 00 00 00 00",
+    nationalHint: "Country code already set — enter the local number only.",
+    countryModalTitle: "Country / dial code",
+    countrySearchPlaceholder: "Search for a country…",
+    countryEmpty: "No matching country."
+  },
   moduleRoadmap: {
     note: "This module is coming soon on mobile."
   },
@@ -2737,7 +2745,7 @@ export const en = {
       emailLabel: "Invitee email (optional)",
       emailPlaceholder: "example@domain.com",
       phoneLabel: "Invitee phone (optional)",
-      phonePlaceholder: "+221 …",
+      phonePlaceholder: "07 00 00 00 00",
       note: "An email or phone helps match the invitation; the link can also be shared after creation.",
       submit: "Create invitation",
       submitting: "Creating…"
@@ -3798,7 +3806,7 @@ export const en = {
         transferSuccessBody: "The recipient received the funds in their balance.",
         amountPlaceholder: "Amount (XOF)",
         phonePlaceholder: "Mobile money number (optional)",
-        recipientPhonePlaceholder: "Recipient phone number",
+        recipientPhonePlaceholder: "07 00 00 00 00",
         lookupRecipientCta: "Verify recipient",
         recipientNotVerified: "Verify the recipient phone number first",
         notePlaceholder: "Note (optional)",

@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import { CollaboratorRolePermissionsFields } from "../components/collaboration/CollaboratorRolePermissionsFields";
+import { PhoneInput } from "../components/PhoneInput";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useSession } from "../context/SessionContext";
 import {
@@ -107,12 +108,11 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
       <Text style={styles.label}>
         {t("collab.createInvitation.phoneLabel")}
       </Text>
-      <TextInput
-        style={styles.input}
+      <PhoneInput
         value={phone}
-        onChangeText={setPhone}
+        onChange={setPhone}
         placeholder={t("collab.createInvitation.phonePlaceholder")}
-        keyboardType="phone-pad"
+        showHint
       />
       <Text style={styles.note}>{t("collab.createInvitation.note")}</Text>
 

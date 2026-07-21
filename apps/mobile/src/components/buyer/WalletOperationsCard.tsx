@@ -24,6 +24,7 @@ import {
 import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
+import { PhoneInput } from "../PhoneInput";
 
 type WalletSection = "topup" | "withdraw" | "transfer" | "all";
 
@@ -257,15 +258,14 @@ export function WalletOperationsCard({
         <View style={styles.block}>
           <Text style={styles.blockTitle}>{t("buyer.wallet.ops.transfer")}</Text>
           <Text style={styles.blockHint}>{t("buyer.wallet.ops.transferHint")}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="phone-pad"
-            placeholder={t("buyer.wallet.ops.recipientPhonePlaceholder")}
+          <PhoneInput
             value={transferPhone}
-            onChangeText={(value) => {
-              setTransferPhone(value);
+            onChange={(e164) => {
+              setTransferPhone(e164);
               setTransferRecipient(null);
             }}
+            placeholder={t("buyer.wallet.ops.recipientPhonePlaceholder")}
+            showHint
           />
           <ActionButton
             label={t("buyer.wallet.ops.lookupRecipientCta")}
