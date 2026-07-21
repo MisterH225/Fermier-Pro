@@ -4,6 +4,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { useSession } from "../context/SessionContext";
 import { resolveDeepNavProfile } from "../lib/resolveDeepNavProfile";
 import {
+  isNavigationReady,
   navigateFromGenericPushData,
   navigateFromPushData
 } from "../services/navigation/DeepNavigationService";
@@ -36,7 +37,7 @@ function navigateFromNotificationData(
     return false;
   }
   const nav = navigationRef.current;
-  if (!nav?.isReady()) {
+  if (!isNavigationReady(nav)) {
     return false;
   }
   const profile = resolveDeepNavProfile(authMe, activeProfileId);
