@@ -8,8 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  View
+  Text
 } from "react-native";
 import { FarmSelector } from "../../components/vet/FarmSelector";
 import { VetFarmHealthTab } from "../../components/vet/farmDetail/VetFarmHealthTab";
@@ -142,6 +141,8 @@ export function VetFarmDetailScreen() {
 
         {tab === "repro" ? (
           <VetFarmReproTab
+            farmId={farmId}
+            farmName={farmName}
             summary={summaryQ.data}
             summaryLoading={summaryQ.isLoading}
             locale={locale}

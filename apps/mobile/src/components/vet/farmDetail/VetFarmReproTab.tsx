@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { VetReadingCard } from "./VetReadingCard";
 import type { VetFarmSummaryDto, VetStatusLevel } from "../../../lib/api/vet";
 import {
   vetColors,
@@ -12,6 +13,8 @@ import {
 import { mobileSpacing } from "../../../theme/mobileTheme";
 
 type Props = {
+  farmId: string;
+  farmName: string;
   summary: VetFarmSummaryDto | undefined;
   summaryLoading?: boolean;
   locale: string;
@@ -25,6 +28,8 @@ function fmtNull(v: number | null | undefined, suffix = ""): string {
 }
 
 export function VetFarmReproTab({
+  farmId,
+  farmName,
   summary,
   summaryLoading,
   locale
@@ -252,6 +257,17 @@ export function VetFarmReproTab({
           </Text>
         </View>
       )}
+
+      <VetReadingCard
+        reading={summary?.readings?.repro}
+        farmId={farmId}
+        farmName={farmName}
+        batchName={
+          summary?.batches?.find(
+            (b) => b.id === summary?.readings?.repro?.batchId
+          )?.name
+        }
+      />
     </View>
   );
 }

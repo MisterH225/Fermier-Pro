@@ -11,7 +11,7 @@ import {
   View
 } from "react-native";
 import { LineTrend } from "../charts";
-import { useSession } from "../../../context/SessionContext";
+import { VetReadingCard } from "./VetReadingCard";
 import type { VetFarmSummaryDto, VetStatusLevel } from "../../../lib/api/vet";
 import type { RootStackParamList } from "../../../types/navigation";
 import {
@@ -22,6 +22,7 @@ import {
   vetType
 } from "../../../theme/vetTheme";
 import { mobileSpacing } from "../../../theme/mobileTheme";
+
 
 type Props = {
   farmId: string;
@@ -48,7 +49,6 @@ export function VetFarmLivestockTab({
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken: _token } = useSession();
 
   const gmqPoints = useMemo(() => {
     const weeks = summary?.gmqWeekly?.weeks;
@@ -223,6 +223,16 @@ export function VetFarmLivestockTab({
       <Text style={styles.readonlyHint}>
         {t("vet.farmDetail.livestockReadonly")}
       </Text>
+
+      <VetReadingCard
+        reading={summary?.readings?.livestock}
+        farmId={farmId}
+        farmName={farmName}
+        batchName={
+          batches.find((b) => b.id === summary?.readings?.livestock?.batchId)
+            ?.name
+        }
+      />
     </View>
   );
 }
