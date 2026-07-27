@@ -1,0 +1,139 @@
+[
+  {
+    "severity": "HIGH",
+    "location": "apps/api/src/marketplace/escrow/marketplace-transaction.service.ts, lines 1964-2116 and 2346-2540",
+    "title": "Session-scoped advisory locks in settleTransaction/settleCreditTransaction leak on connection pool return",
+    "description": "Both `settleTransaction` (line 2348) and `settleCreditTransaction` (line 1966) use `pg_advisory_lock()` (session-level) with a manual `pg_advisory_unlock()` in a `finally` block. However, Prisma uses a connection pool (PgBouncer-compatible). If the Prisma client returns the connection to the pool before the `finally` block executes (e.g., due to an unhandled promise rejection or connection timeout during the fund-release/refund calls between the lock acquisition and the unlock), the session-level lock leaks. Any subsequent request that happens to get the same pooled connection will hold the leaked lock silently, while new settlement requests for the same transaction will hang waiting for the lock — or worse, if the leaked connection is reused for a different transaction's settlement, two settlements could proceed concurrently under different lock keys. By contrast, the receipt service (receipt.service.ts line 422) correctly uses `pg_advisory_xact_lock()` (transaction-scoped, auto-released on commit/rollback) inside a `$transaction` block. The settlement methods should do the same but don't — they perform multiple separate Prisma calls (reads, updateMany, escrow fund movements) outside of a single database transaction while holding a session-level advisory lock. This means if the process crashes or the connection drops between `pg_advisory_lock` and `pg_advisory_unlock`, the lock is leaked for the lifetime of the backend connection, and the actual state mutations are not atomic.",
+    "impact": "If the advisory lock leaks (process crash, timeout during escrow.releaseFundsToSeller, etc.), the same marketplace transaction can be settled twice concurrently — releasing funds to the seller twice (double-payout) and/or refunding the buyer twice. Even without a crash, the non-atomic settlement means a partial failure (e.g., releaseFundsToSeller succeeds but the subsequent updateMany fails) leaves the transaction in an inconsistent state where funds are released but the status is not TRANSACTION_CLOSED, allowing a retry to release funds again.",
+    "attack_path": "1. Buyer confirms receipt for a per-kg transaction where the real weight differs from estimated → settleTransaction is called. 2. Attacker causes network latency or the mobile money gateway times out during releaseFundsToSeller. 3. The connection is returned to pool before pg_advisory_unlock executes. 4. Meanwhile, a webhook or cron retriggers settlement for the same transaction. 5. The second call acquires a new connection, gets a different session, acquires its own advisory lock (no collision since the first lock is on a leaked connection), and also settles — resulting in double fund release.",
+    "evidence": [
+      "Line 1966: `await this.prisma.$executeRaw\\`SELECT pg_advisory_lock(hashtext(${lockKey}))\\``",
+      "Line 2115: `await this.prisma.$executeRaw\\`SELECT pg_advisory_unlock(hashtext(${lockKey}))\\``",
+      "Line 2348: `await this.prisma.$executeRaw\\`SELECT pg_advisory_lock(hashtext(${lockKey}))\\``",
+      "Between lock and unlock: multiple non-transactional calls to escrow.refundBuyer, escrow.releaseFundsToSeller, prisma.marketplaceTransaction.updateMany, prisma.platformRevenue.create",
+      "Contrast with receipt.service.ts line 422 which correctly uses pg_advisory_xact_lock inside $transaction"
+    ],
+    "remediation": "Replace `pg_advisory_lock`/`pg_advisory_unlock` with `pg_advisory_xact_lock` inside a Prisma `$transaction` block. Wrap the entire settlement logic (status update + fund movements) in a single database transaction with the advisory lock. The lock will be automatically released on commit or rollback, eliminating leak risk. Alternatively, use `updateMany` with a status precondition as the atomic gate (already partially done), and remove the advisory lock entirely — relying on idempotency keys in the wallet/escrow services (which already exist) to prevent double payouts."
+  },
+  {
+    "severity": "HIGH",
+    "location": "apps/api/src/marketplace/escrow/marketplace-transaction.service.ts, lines 2119-2147 (cancelByBuyer) and 2204-2272 (cancelBySeller)",
+    "title": "Race condition between cancellation refund and settlement causes double fund disbursement",
+    "description": "The `cancelByBuyer` method (line 2119) reads the transaction status, checks `needsEscrowRefundOnCancel`, issues a refund via `escrow.refundBuyer`, and then atomically updates the status with `updateMany` (conditional on CANCELLABLE_BY_BUYER statuses). However, between the status read and the refund call, a concurrent `settleTransaction` (triggered by buyer confirming receipt or a webhook) can also read the same status, pass the `canTransition` check, and proceed to release funds to the seller. Neither operation holds a lock that prevents the other. The `cancelByBuyer` uses a `priorRefund` check (line 2131) to avoid double-refund, but this doesn't protect against the concurrent settlement path which releases funds to the seller. The result: the buyer gets refunded AND the seller gets paid — the platform loses the escrowed amount. Similarly, `cancelBySeller` (line 2204) performs the same pattern without advisory locks.",
+    "impact": "An attacker (buyer) can race a cancellation request against a seller's shipment confirmation + buyer receipt confirmation to extract both a refund and the seller payout from the same escrowed funds. Financial loss equals the full blocked amount of the transaction.",
+    "attack_path": "1. Transaction is in SELLER_SHIPPED or BUYER_RECEIVED status (CANCELLABLE_BY_BUYER includes these if the state machine allows). 2. Buyer sends two concurrent HTTP requests: one to `cancelByBuyer` and one to `confirmReceipt`. 3. `cancelByBuyer` reads status=SELLER_SHIPPED, passes `needsEscrowRefundOnCancel` → refunds buyer via wallet credit. 4. Concurrently, `confirmReceipt` reads status=SELLER_SHIPPED (still unchanged), transitions to BUYER_RECEIVED, and calls `settleTransaction` which releases funds to seller. 5. The `updateMany` in cancel sees count=0 (status already changed) but the refund was already issued. Funds are disbursed twice.",
+    "evidence": [
+      "cancelByBuyer line 2129: `const needsRefund = needsEscrowRefundOnCancel(tx.status);` — read without lock",
+      "cancelByBuyer line 2138: `await this.escrow.refundBuyer(...)` — refund issued before atomic status update",
+      "cancelByBuyer line 2148: `updateMany` with status precondition — but refund already happened",
+      "settleTransaction line 2346-2540: no shared lock with cancel path",
+      "No advisory lock or serializable transaction wrapping the refund+status-update in cancel methods"
+    ],
+    "remediation": "Move the refund call inside a serializable transaction or use the same advisory lock pattern as settlement. Better yet, adopt a two-phase approach: (1) atomically transition status to CANCELLED with updateMany (precondition on current status), (2) only if the transition succeeds (count > 0), then issue the refund. This is the reverse of the current order and ensures that if the status was already changed by a concurrent settle, no refund is issued."
+  },
+  {
+    "severity": "HIGH",
+    "location": "apps/api/src/marketplace/escrow/marketplace-transaction.service.ts, lines 669-793 (initiatePayment)",
+    "title": "Wallet escrow hold balance check is non-atomic with the payment state update, enabling double-spend across transactions",
+    "description": "When a buyer pays via wallet, `initiatePayment` calls `escrow.holdFunds` which calls `userWallet.assertSufficientBalance` (a simple balance >= amount read) and returns a 'pending' reference without actually debiting the wallet. The actual debit only happens later in `confirmPayment` → `escrow.confirmHold` → `userWallet.confirmPendingHold` → `debitForEscrowHold`. Between `initiatePayment` and `confirmPayment`, the buyer's wallet balance is not locked or decremented. A buyer with balance B can call `initiatePayment` on N different transactions simultaneously (each for amount B), all passing the `assertSufficientBalance` check. Then, each `confirmPayment` will attempt to debit via `debit()` which uses `updateMany` with `balance >= amount` — only the first succeeds, but the transaction status for all N was already set to show a valid payment reference. While subsequent `confirmPayment` calls would fail at the debit step, the race window between `initiatePayment` and `confirmPayment` allows the buyer to hold multiple transactions in a 'payment initiated' state with the same wallet balance, preventing the seller from accepting other offers.",
+    "impact": "A malicious buyer can lock up multiple marketplace listings simultaneously by initiating wallet payments on all of them with the same insufficient balance, effectively performing a denial-of-service against sellers. The buyer can then selectively confirm only the most favorable transaction. While this doesn't result in direct financial loss (the debit is atomic), it griefs sellers by reserving their listings.",
+    "attack_path": "1. Buyer has 100,000 XOF in wallet. 2. Buyer concurrently calls initiatePayment(wallet) on 5 different transactions, each for 100,000 XOF. 3. All 5 pass assertSufficientBalance (balance=100000 >= 100000). 4. All 5 get valid providerRef and the transactions show payment is in progress to the sellers. 5. Buyer confirms only the one they want; the other 4 remain in limbo until the payment expiry cron runs.",
+    "evidence": [
+      "escrow.service.ts line 60: `await this.userWallet.assertSufficientBalance(buyerUserId, amount)` — read-only check",
+      "escrow.service.ts line 61: returns pending ref without debiting",
+      "user-wallet.service.ts line 143-149: `assertSufficientBalance` is just a balance read",
+      "The actual atomic debit only happens in confirmPayment → confirmHold → confirmPendingHold → debitForEscrowHold"
+    ],
+    "remediation": "Either (1) atomically debit the wallet during `holdFunds` for wallet payments (not just check the balance), returning a confirmed entry immediately, or (2) implement a reservation/hold mechanism that decrements available balance (but not main balance) during initiation and increments it back if the payment is not confirmed within the timeout."
+  },
+  {
+    "severity": "MEDIUM",
+    "location": "apps/api/src/marketplace/credit/credit-offers.service.ts, lines 208-282 (agreeCredit)",
+    "title": "Credit offer double-agreement race condition due to non-atomic status check and transition",
+    "description": "The `agreeCredit` method reads the offer status (line 218-235), validates it is `pending` or `countered`, and then transitions it to `credit_agreed` inside a `$transaction` batch (line 237). However, the status check is done outside the transaction on potentially stale data. Two concurrent requests (e.g., seller agrees while buyer also agrees on a countered offer) can both pass the status check, and both enter the `$transaction`. The `$transaction` uses a batched `update` (not `updateMany` with a status precondition), so the second transaction will also succeed — the offer is already `credit_agreed` from the first, but the update just sets it to `credit_agreed` again (idempotent for status). However, `createCreditAdvanceTransaction` is called after the transaction (line 258), and while it has an idempotency check (`findUnique({ where: { offerId } })`), there's still a TOCTOU window: two concurrent calls both see `existing=null`, and both attempt `create` — one fails with a unique constraint violation (P2002) on `offerId`, which is unhandled and surfaces as a 500 error.",
+    "impact": "Race condition causes a 500 Internal Server Error for one of the concurrent callers. While no financial double-spend occurs (the unique constraint on `offerId` in `MarketplaceTransaction` prevents duplicate transactions), the error is unhandled and may leave the listing in an inconsistent reservation state. The `$transaction` batch that rejects other offers would execute twice, which is harmless but wasteful.",
+    "attack_path": "1. Seller sends a counter-offer on a credit listing. 2. Both seller and buyer simultaneously call `agreeCredit` (seller can agree on pending, buyer on countered). 3. Both pass the status check. 4. Both execute the $transaction batch, both set offer to credit_agreed. 5. Both call createCreditAdvanceTransaction. 6. First succeeds. Second hits P2002 unique constraint on MarketplaceTransaction.offerId, causing an unhandled 500 error.",
+    "evidence": [
+      "agreeCredit line 218: `const offer = await this.requireCreditOffer(offerId, listingId)` — read outside transaction",
+      "agreeCredit line 237-256: `$transaction` batch updates but no conditional status check in the update",
+      "createCreditAdvanceTransaction line 115-119: `findUnique` then `create` — classic TOCTOU",
+      "No P2002 catch in createCreditAdvanceTransaction for the create call at line 128"
+    ],
+    "remediation": "1. Move the status check inside the `$transaction` using an interactive transaction (`$transaction(async (tx) => { ... })`), re-reading the offer status within the transaction. 2. In `createCreditAdvanceTransaction`, wrap the `create` call in a try/catch for P2002 and return the existing transaction if the unique constraint fires. 3. Use `updateMany` with a status precondition instead of `update` to make the status transition atomic."
+  },
+  {
+    "severity": "MEDIUM",
+    "location": "apps/api/src/marketplace/offers.service.ts, lines 387-466 (accept) and 579-631 (acceptCounter)",
+    "title": "Offer acceptance race condition allows duplicate transaction creation for the same listing",
+    "description": "In `OffersService.accept` (line 387), the listing status is checked (`published`), the offer status is checked (`pending`), and then `reserveListingForAcceptedOffer` is called followed by `createFromAcceptedOffer`. However, the initial checks are non-atomic with the reservation. If a seller concurrently accepts two different offers on the same listing (or accepts one while the buyer accepts a counter on another), both can pass the listing status check (both see `published`), and both call `reserveListingForAcceptedOffer`. The `$transaction` batch in `reserveListingForAcceptedOffer` (line 690-714) updates the listing's `reservedForBuyerUserId`, but since it's a plain `update` (not conditional on current status), the second call overwrites the first reservation. Both then proceed to `createFromAcceptedOffer`, which has a `findUnique({ where: { offerId } })` idempotency guard that works per-offer but doesn't prevent two different offers from creating two transactions for the same listing. The `dealInProgress` check in `create` (line 127-138) only applies when creating new offers, not when accepting existing ones.",
+    "impact": "Two active marketplace transactions can exist simultaneously for the same listing, each with different buyers. Both buyers can then pay for the same listing. While the settlement will eventually only succeed for one, the second buyer's funds are locked in escrow unnecessarily, and the listing state becomes inconsistent with two competing reservations.",
+    "attack_path": "1. Listing has two pending offers from different buyers. 2. Seller rapidly accepts both offers (two concurrent API calls). 3. Both pass the `listing.status === published` check. 4. Both call reserveListingForAcceptedOffer — the second overwrites the first's reservation. 5. Both call createFromAcceptedOffer — since the offerId is different, both create a MarketplaceTransaction. 6. Two active transactions now exist for one listing.",
+    "evidence": [
+      "offers.service.ts accept line 395: `listing.status !== ListingStatus.published` check is non-atomic",
+      "offers.service.ts reserveListingForAcceptedOffer line 690-714: plain update, no conditional status check",
+      "marketplace-transaction.service.ts createFromAcceptedOffer line 167-172: idempotency check is per-offerId, not per-listingId",
+      "No unique constraint or check preventing two active transactions per listing"
+    ],
+    "remediation": "Add a listing-level uniqueness guard: either (1) use a `updateMany` with `status: 'published'` as a precondition in `reserveListingForAcceptedOffer` to ensure only one accept succeeds, or (2) add a check in `createFromAcceptedOffer` for existing active transactions on the same listing (like `dealInProgress` in `create`), or (3) use a unique partial index on `MarketplaceTransaction(listingId)` where status is in ACTIVE_ESCROW_STATUSES."
+  },
+  {
+    "severity": "MEDIUM",
+    "location": "apps/api/src/marketplace/escrow/marketplace-transaction.service.ts, lines 299-430 (completePendingTransfer)",
+    "title": "Pending livestock transfer can be completed multiple times concurrently, duplicating animals",
+    "description": "The `completePendingTransfer` method fetches a pending transfer record (line 310, `completedAt: null, cancelledAt: null`), then inside a `$transaction` creates new animals for the buyer and marks the transfer as completed. However, two concurrent requests can both read the same pending transfer with `completedAt: null`, both enter the transaction, and both create duplicate animals. The `$transaction` at line 369 updates the `marketplacePendingTransfer` record's `completedAt` field, but since this is a plain `update` (not a conditional `updateMany`), the second concurrent transaction will also succeed — it just overwrites `completedAt` with a new timestamp. The animals created by both transactions persist.",
+    "impact": "A buyer can duplicate livestock records by sending concurrent `completePendingTransfer` requests, creating phantom animals in their farm inventory. While these are digital records (not actual animals), it corrupts farm data integrity, inflates livestock counts, and could be exploited for fraudulent insurance claims or marketplace listings.",
+    "attack_path": "1. Transaction closes, creating a pending transfer with 5 animals. 2. Buyer sends 3 concurrent requests to completePendingTransfer. 3. All 3 read the same pending transfer with completedAt=null. 4. All 3 enter the $transaction, each creating 5 new animal records. 5. Buyer now has 15 duplicate animals instead of 5.",
+    "evidence": [
+      "Line 310-326: `findFirst({ where: { completedAt: null } })` — read without lock",
+      "Line 369-410: `$transaction` creates animals then updates `completedAt` with plain `update`",
+      "No `updateMany` with `completedAt: null` precondition to ensure only one transaction succeeds",
+      "No advisory lock protecting the completion flow"
+    ],
+    "remediation": "Replace the plain `update` on the pending transfer with an `updateMany` that includes `completedAt: null` as a precondition. Check the returned count; if 0, another concurrent request already completed the transfer — skip animal creation and return. Alternatively, wrap the entire operation in an advisory lock keyed on the pending transfer ID."
+  },
+  {
+    "severity": "MEDIUM",
+    "location": "apps/api/src/marketplace/escrow/marketplace-transaction.service.ts, lines 2204-2272 (cancelBySeller)",
+    "title": "Seller cancellation refunds buyers before atomic status update, allowing concurrent refund + settlement",
+    "description": "The `cancelBySeller` method iterates over active transactions for a listing and for each: (1) checks `canTransition`, (2) calls `escrow.refundBuyer` if needed, (3) then does `updateMany` with a status precondition. The refund at step 2 is performed before the atomic status transition at step 3. A concurrent settlement (triggered by a webhook confirming buyer receipt) can run between steps 2 and 3, also releasing funds to the seller. Unlike `cancelByBuyer` which has a `priorRefund` check, `cancelBySeller` does NOT check for prior refunds before issuing one (line 2222-2231: no `priorRefund` guard). This makes the race window even wider than `cancelByBuyer`.",
+    "impact": "Double disbursement: the buyer receives a refund from the cancellation, and the seller receives a payout from the concurrent settlement. Platform loses the escrowed amount.",
+    "attack_path": "1. Transaction is in PAYMENT_HELD or later cancellable status. 2. Seller calls cancelBySeller while a webhook simultaneously confirms buyer receipt. 3. cancelBySeller refunds buyer (no prior-refund check), webhook triggers settleTransaction which pays seller. 4. Both refund and payout succeed because they don't share a lock. 5. The updateMany in cancelBySeller returns count=0 (status already changed by settlement), but the refund was already issued.",
+    "evidence": [
+      "cancelBySeller lines 2222-2231: `if (needsEscrowRefundOnCancel(tx.status)) { await this.escrow.refundBuyer(...) }` — NO priorRefund check",
+      "Contrast with cancelByBuyer lines 2131-2137 which does check priorRefund",
+      "cancelBySeller line 2232-2246: `updateMany` with status precondition — but refund already happened",
+      "No advisory lock shared with settleTransaction"
+    ],
+    "remediation": "1. Add a `priorRefund` check in `cancelBySeller` matching what `cancelByBuyer` does. 2. Reorder: first atomically transition status, then refund only if the transition succeeded (count > 0). 3. Use the same advisory lock as `settleTransaction` to serialize cancel and settle for the same transaction."
+  },
+  {
+    "severity": "MEDIUM",
+    "location": "apps/api/src/profiles/profile-deactivation.service.ts, lines 99-223 (deactivate) and apps/api/src/marketplace/escrow/marketplace-transaction.service.ts",
+    "title": "TOCTOU in profile deactivation allows deactivation during active transaction window",
+    "description": "The `deactivate` method calls `collectBlocks` (line 105) which queries for active escrow transactions and open offers to determine if the profile can be deactivated. If no blocks are found, it proceeds to deactivate the profile in a `$transaction` (line 117). However, between the `collectBlocks` check and the `$transaction`, a new marketplace transaction could be created or an existing offer could be accepted. The deactivation transaction does not re-check for active marketplace operations. For a buyer profile specifically, deactivation sets `buyerProfile.isActive = false` (line 189), which is checked when creating new offers (offers.service.ts line 106-116). However, already-accepted offers and in-flight transactions are not affected — the buyer can still proceed with existing transactions. The deactivation of a producer profile cancels pending invitations (line 166-177) but doesn't cancel or block in-progress marketplace transactions where the producer is the seller.",
+    "impact": "A deactivated buyer or seller profile can still have active marketplace transactions that proceed to settlement. This creates a state inconsistency where the platform considers the profile inactive but financial operations continue. For producers, the deactivation closes invitations but leaves marketplace listings active, potentially confusing buyers.",
+    "attack_path": "1. Buyer has no active transactions (passes collectBlocks). 2. Concurrently, a seller accepts the buyer's pending offer (which was in 'pending' status, not counted as 'active' by collectBlocks). 3. Buyer's profile is deactivated. 4. The accepted offer creates a transaction — the buyer can still pay and complete the transaction despite having a deactivated buyer profile.",
+    "evidence": [
+      "profile-deactivation.service.ts line 105: `const blocks = await this.collectBlocks(user.id, profile)` — outside transaction",
+      "profile-deactivation.service.ts line 117-201: `$transaction` does not re-check for new marketplace activity",
+      "buyerBlocks line 406-438: checks ACTIVE_ESCROW_STATUSES but not pending offers that could become active",
+      "offers.service.ts line 106-116: isActive check only on offer creation, not on transaction progression"
+    ],
+    "remediation": "Re-check blocking conditions inside the deactivation `$transaction`, using the transaction client (`tx`) to ensure a consistent snapshot. Alternatively, add a database-level check constraint or trigger that prevents marketplace state transitions for deactivated profiles."
+  },
+  {
+    "severity": "MEDIUM",
+    "location": "apps/api/src/auth/account-deletion.service.ts, lines 30-261 (deleteAccount)",
+    "title": "Account deletion TOCTOU allows deletion during concurrent transaction creation",
+    "description": "The `deleteAccount` method checks for active escrow transactions (line 31-41) and pending merchant orders (line 43-53) before proceeding with deletion. These checks are performed outside the main deletion `$transaction` (line 202-224). Between the checks and the deletion transaction, a seller could accept an offer creating a new active transaction for the user being deleted, or a webhook could create new financial records. The deletion transaction uses `maxWait: 15_000, timeout: 120_000` (line 223), giving ample time for concurrent operations to interleave. If a transaction is created after the check but before the deletion, the `onDelete: Restrict` foreign key constraints on `MarketplaceTransaction.buyerUserId` and `sellerUserId` will cause the deletion to fail with an opaque internal server error rather than the user-friendly 'transactions in progress' message.",
+    "impact": "Either (1) the deletion fails with a 500 error instead of a clear 400 error explaining that transactions are in progress, degrading UX, or (2) if foreign key constraints are not properly configured, orphaned transaction records could reference a deleted user, corrupting data integrity.",
+    "attack_path": "1. User initiates account deletion; activeEscrow count returns 0. 2. Concurrently, a seller accepts the user's pending marketplace offer. 3. createFromAcceptedOffer creates a MarketplaceTransaction with buyerUserId = deleting user. 4. The deletion $transaction attempts to delete the user, hitting the Restrict foreign key on MarketplaceTransaction.buyerUserId. 5. Deletion fails with InternalServerErrorException instead of the clear BadRequestException.",
+    "evidence": [
+      "account-deletion.service.ts line 31-41: activeEscrow check outside $transaction",
+      "account-deletion.service.ts line 202-224: deletion $transaction doesn't re-check",
+      "prisma/schema.prisma line 2027-2030: `buyerUserId` and `sellerUserId` have `onDelete: Restrict`",
+      "account-deletion.service.ts line 226-234: generic InternalServerErrorException on failure"
+    ],
+    "remediation": "Move the active-transaction and pending-order checks inside the deletion `$transaction`, using the transaction client. This ensures a consistent snapshot. Alternatively, catch the specific Prisma error code for foreign key violations (P2003) in the catch block and return a user-friendly error message."
+  }
+]
