@@ -42,6 +42,20 @@ describe("navigateFromGenericPushData (inbox / stack nav)", () => {
     });
   });
 
+  it("opens producer proposal notification (vet_appointment_proposed) from stack nav", () => {
+    const navigate = jest.fn();
+    expect(() =>
+      navigateFromGenericPushData({ navigate } as never, {
+        type: "vet_appointment_proposed",
+        appointmentId: "appt-proposed-1",
+        farmId: "farm-1"
+      })
+    ).not.toThrow();
+    expect(navigate).toHaveBeenCalledWith("VetAppointmentDetail", {
+      appointmentId: "appt-proposed-1"
+    });
+  });
+
   it("returns false when container isReady is false", () => {
     const navigate = jest.fn();
     const result = navigateFromGenericPushData(
@@ -59,7 +73,7 @@ describe("navigateFromGenericPushData (inbox / stack nav)", () => {
     const navigate = jest.fn();
     const result = navigateFromGenericPushData(
       { navigate } as never,
-      { type: "vet_appointment_refused_by_producer" }
+      { type: "vet_appointment_proposed" }
     );
     expect(result).toBe(false);
     expect(navigate).not.toHaveBeenCalled();

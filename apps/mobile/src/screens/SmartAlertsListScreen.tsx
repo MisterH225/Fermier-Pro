@@ -30,6 +30,7 @@ import {
 } from "../lib/api";
 import { navigateFromGenericPushData } from "../services/navigation/DeepNavigationService";
 import { sortSmartAlerts } from "../services/smartAlerts/SmartAlertsEngine";
+import { rootNavigationRef } from "../lib/navigationRef";
 import { mobileColors, mobileSpacing, mobileTypography } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 
@@ -162,7 +163,7 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
         navigation.navigate("MerchantOrderDetail", { orderId });
         return;
       }
-      navigateFromGenericPushData(navigation, {
+      const payload: Record<string, unknown> = {
         type: notification.type,
         ...Object.fromEntries(
           Object.entries(notification.data ?? {}).map(([k, v]) => [
@@ -170,9 +171,17 @@ export function SmartAlertsListScreen({ route, navigation }: Props) {
             v == null ? "" : String(v)
           ])
         )
-      });
+      };
+      // Préférer le container ref (isReady fiable) ; fallback stack (inbox).
+      const navTarget = rootNavigationRef.isReady()
+        ? rootNavigationRef
+        : navigation;
+      const navigated = navigateFromGenericPushData(navTarget, payload);
+      if (!navigated) {
+        Alert.alert(t("common.error"), t("common.errors.notFound"));
+      }
     },
-    [markUserRead, navigation]
+    [markUserRead, navigation, t]
   );
 
   const rows = useMemo((): ListRow[] => {
