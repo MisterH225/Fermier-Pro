@@ -2840,7 +2840,8 @@ export const fr = {
     marginExpAlloc: "Dépenses imputées :",
     marginGross: "Marge :",
     marginPerHead: "Coût / tête :",
-    marginPerKg: "Coût / kg :"
+    marginPerKg: "Coût / kg :",
+    historicalRecordsLink: "Historique pré-app"
   },
   financeStockLink: {
     stockSectionTitle: "Détails de l'entrée en stock",

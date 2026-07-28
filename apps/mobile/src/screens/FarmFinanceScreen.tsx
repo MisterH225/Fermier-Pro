@@ -1166,16 +1166,18 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                       onPressDetail={() => setFinanceTab("rentabilite")}
                     />
                     <Pressable
-                      style={styles.historicalLink}
+                      style={styles.historicalBtn}
                       onPress={() =>
                         navigation.navigate("HistoricalRecords", {
                           farmId,
                           farmName
                         })
                       }
+                      accessibilityRole="button"
+                      accessibilityLabel={t("financeScreen.historicalRecordsLink")}
                     >
-                      <Text style={styles.historicalLinkText}>
-                        {t("financeScreen.historicalRecordsLink")}
+                      <Text style={styles.historicalBtnText}>
+                        {t("financeScreen.historicalRecordsLink")} →
                       </Text>
                     </Pressable>
                     <View style={[styles.kpiRow, { marginTop: mobileSpacing.md }]}>
@@ -1927,12 +1929,19 @@ const styles = StyleSheet.create({
   projMonthNet: {
     fontWeight: "800"
   },
-  historicalLink: {
+  historicalBtn: {
     marginTop: mobileSpacing.sm,
+    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: mobileSpacing.sm,
-    alignItems: "center"
+    paddingHorizontal: mobileSpacing.md,
+    borderRadius: mobileRadius.pill,
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.background
   },
-  historicalLinkText: {
+  historicalBtnText: {
     color: mobileColors.accent,
     fontWeight: "700",
     fontSize: mobileFontSize.md

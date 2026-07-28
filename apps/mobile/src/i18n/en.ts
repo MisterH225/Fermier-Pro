@@ -2839,7 +2839,8 @@ export const en = {
     marginExpAlloc: "Allocated expenses:",
     marginGross: "Margin:",
     marginPerHead: "Cost per head:",
-    marginPerKg: "Cost per kg:"
+    marginPerKg: "Cost per kg:",
+    historicalRecordsLink: "Pre-app history"
   },
   financeStockLink: {
     stockSectionTitle: "Stock details",
