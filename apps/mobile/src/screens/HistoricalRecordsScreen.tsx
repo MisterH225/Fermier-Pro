@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,6 +18,7 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import { ScreenSection } from "../components/layout";
 import { useScreenTitle } from "../hooks/useScreenTitle";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useSession } from "../context/SessionContext";
 import {
   HISTORICAL_EXPENSE_CATEGORIES,
@@ -62,6 +65,7 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad({ extra: mobileSpacing.lg });
   useScreenTitle(navigation, t("historicalRecords.title"));
 
   const [mode, setMode] = useState<Mode>("choice");
@@ -213,9 +217,17 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
     t(`historicalRecords.categories.${key}`, key);
 
   return (
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
     <ScrollView
       style={styles.root}
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      nestedScrollEnabled
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={invalidateAll} />
       }
@@ -359,7 +371,12 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
           </View>
 
           <Text style={styles.fieldLabel}>{t("financeScreen.fieldCategory")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.chipRow}>
               {categories.map((cat) => (
                 <Pressable
@@ -505,6 +522,7 @@ export function HistoricalRecordsScreen({ route, navigation }: Props) {
         </ScreenSection>
       ) : null}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -532,7 +550,7 @@ function SummaryCard({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: mobileColors.canvas },
-  scroll: { padding: mobileSpacing.md, paddingBottom: mobileSpacing.xl },
+  scroll: { padding: mobileSpacing.md },
   summaryGrid: { gap: mobileSpacing.sm },
   summaryCard: {
     borderRadius: mobileRadius.md,
