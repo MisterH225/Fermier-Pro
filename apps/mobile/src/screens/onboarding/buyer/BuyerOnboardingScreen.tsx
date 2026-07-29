@@ -29,6 +29,7 @@ import {
   buyerProfileCompletionPercent,
   buyerProfileNextEmptyField
 } from "../../../lib/buyerProfileCompletion";
+import { useScrollBottomPad } from "../../../hooks/useScrollBottomPad";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { buyerColors, buyerRadius } from "../../../theme/buyerTheme";
 
@@ -63,6 +64,7 @@ type Props = {
 
 export function BuyerOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, activeProfileId, authMe, refreshAuthMe, setActiveProfileId } =
     useSession();
   const [step, setStep] = useState(0);
@@ -191,7 +193,10 @@ export function BuyerOnboardingScreen({ onFinished, onCancel }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        contentContainerStyle={profileScreenScrollContent}
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: scrollPad }
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <Pressable onPress={() => void onSkipProfile()} style={styles.skip}>

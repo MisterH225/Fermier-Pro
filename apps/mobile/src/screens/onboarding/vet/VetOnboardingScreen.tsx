@@ -32,6 +32,7 @@ import {
   vetProfileCompletionPercent,
   vetProfileNextEmptyField
 } from "../../../lib/vetProfileCompletion";
+import { useScrollBottomPad } from "../../../hooks/useScrollBottomPad";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../../theme/mobileTheme";
 import { vetColors, vetRadius } from "../../../theme/vetTheme";
 
@@ -56,6 +57,7 @@ type Props = {
  */
 export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, activeProfileId, authMe, refreshAuthMe, setActiveProfileId } =
     useSession();
   /** 0–1 vérification · 2 vitrine · 3 final */
@@ -275,7 +277,9 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
   if (step === 3) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScrollView contentContainerStyle={styles.completion}>
+        <ScrollView
+          contentContainerStyle={[styles.completion, { paddingBottom: scrollPad }]}
+        >
           <Text style={styles.completionTitle}>
             {t("vetOnboarding.finalTitle")}
           </Text>
@@ -315,7 +319,9 @@ export function VetOnboardingScreen({ onFinished, onCancel }: Props) {
       >
         <Text style={styles.cancelTopText}>{t("vetOnboarding.cancelLink")}</Text>
       </Pressable>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
+      >
         <Text style={styles.head}>{t("vetOnboarding.title")}</Text>
         {authMe?.vetProfessional?.verificationStatus === "rejected" ? (
           <Text style={styles.rejected}>
@@ -570,7 +576,7 @@ const styles = StyleSheet.create({
     color: vetColors.textSecondary,
     fontWeight: "600"
   },
-  scroll: { padding: mobileSpacing.lg, paddingBottom: 48 },
+  scroll: { padding: mobileSpacing.lg },
   head: {
     ...mobileTypography.sectionTitle,
     color: vetColors.textPrimary,
@@ -658,8 +664,7 @@ const styles = StyleSheet.create({
   ctaTx: { color: vetColors.onPrimary, fontWeight: "700" },
   completion: {
     padding: mobileSpacing.xl,
-    gap: mobileSpacing.md,
-    paddingBottom: 48
+    gap: mobileSpacing.md
   },
   completionTitle: {
     ...mobileTypography.sectionTitle,

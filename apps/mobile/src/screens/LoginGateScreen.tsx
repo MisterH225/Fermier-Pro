@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { GoogleOAuthButton } from "../components/GoogleOAuthButton";
 import { PhoneOtpAuth } from "../components/PhoneOtpAuth";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { isAuthEnvConfigured } from "../env";
 import { getGoogleOAuthRedirectUri } from "../lib/googleAuth";
 import { authColors, authRadii } from "../theme/authTheme";
@@ -27,6 +28,7 @@ const AUTH_BACKGROUND = require("../../assets/images/auth-background.jpg");
  */
 export function LoginGateScreen() {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const authOk = isAuthEnvConfigured();
   const oauthRedirectUri = authOk ? getGoogleOAuthRedirectUri() : "";
   const showDevRedirectHint =
@@ -51,7 +53,7 @@ export function LoginGateScreen() {
         >
           <ScrollView
             style={styles.scroll}
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -136,8 +138,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 40
+    paddingTop: 48
   },
   logoBlock: {
     alignItems: "center",

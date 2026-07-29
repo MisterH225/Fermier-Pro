@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import { RefuseModal } from "../../components/onboarding/RefuseModal";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { acceptCgu, fetchCguCurrent } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
 import { authColors, authRadii } from "../../theme/authTheme";
@@ -30,12 +31,19 @@ import { producerColors } from "../../theme/producerTheme";
 
 const LOGO = require("../../../assets/images/fermier-pro-logo-nobg.png");
 
+/** Breathing room above sticky footer (footer is a flow sibling). */
+const SCROLL_EXTRA = 8;
+
 type Props = {
   onAccepted: () => void;
 };
 
 export function CGUScreen({ onAccepted }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({
+    includeChrome: false,
+    extra: SCROLL_EXTRA
+  });
   const { accessToken, signOut, refreshAuthMe } = useSession();
   const { width: winW } = useWindowDimensions();
   const logoW = Math.min(winW - 80, 200);
@@ -120,7 +128,10 @@ export function CGUScreen({ onAccepted }: Props) {
         <>
           <ScrollView
             style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: scrollPad }
+            ]}
             onScroll={onScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator
@@ -209,7 +220,7 @@ const styles = StyleSheet.create({
   skeletonPad: { alignItems: "stretch", paddingHorizontal: 24, paddingTop: 8 },
   err: { color: authColors.error, textAlign: "center", padding: 20 },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 22, paddingVertical: 12 },
+  scrollContent: { paddingHorizontal: 22, paddingTop: 12 },
   cguBody: {
     fontSize: mobileFontSize.md,
     lineHeight: 22,

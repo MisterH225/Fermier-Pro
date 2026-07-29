@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   fetchBuyerReviews,
   fetchMarketplaceOrders,
@@ -61,6 +62,7 @@ export function OrdersHubView({
   showReviewsLink = false
 }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
@@ -134,7 +136,11 @@ export function OrdersHubView({
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.scroll, contentContainerStyle]}
+      contentContainerStyle={[
+        styles.scroll,
+        { paddingBottom: scrollPad },
+        contentContainerStyle
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={
@@ -313,8 +319,7 @@ export function OrdersHubView({
 const styles = StyleSheet.create({
   scroll: {
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.md,
-    paddingBottom: mobileSpacing.xxl
+    gap: mobileSpacing.md
   },
   proposalsBanner: {
     borderRadius: mobileRadius.md,

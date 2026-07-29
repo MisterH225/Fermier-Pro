@@ -7,6 +7,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { authColors } from "../../theme/authTheme";
 import { mobileFontSize } from "../../theme/mobileTheme";
 
@@ -18,6 +19,7 @@ type Props = {
 /** Écran plein politique de confidentialité (empilé sur CGU). */
 export function PrivacyPolicyScreen({ content, onClose }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -29,7 +31,7 @@ export function PrivacyPolicyScreen({ content, onClose }: Props) {
       </View>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPad }]}
         showsVerticalScrollIndicator
       >
         <Text style={styles.body}>{content}</Text>
@@ -59,7 +61,7 @@ const styles = StyleSheet.create({
     color: authColors.forest
   },
   scroll: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 32 },
+  scrollContent: { padding: 20 },
   body: {
     fontSize: mobileFontSize.md,
     lineHeight: 22,

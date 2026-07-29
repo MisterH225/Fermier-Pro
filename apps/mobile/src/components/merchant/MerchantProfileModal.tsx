@@ -33,6 +33,7 @@ import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
 import { welcomeFirstName } from "../../lib/userDisplay";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -64,6 +65,7 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 
 export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalProps) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
@@ -319,7 +321,7 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
@@ -477,7 +479,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.sm
   },
   hero: {

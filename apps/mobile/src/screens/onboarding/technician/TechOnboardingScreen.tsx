@@ -16,6 +16,7 @@ import {
   ScreenSection
 } from "../../../components/layout";
 import { useSession } from "../../../context/SessionContext";
+import { useScrollBottomPad } from "../../../hooks/useScrollBottomPad";
 import { patchAuthProfile, upsertTechnicianProfile } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
 import { pickNonTechnicianFallbackProfileId } from "../../../lib/techOnboardingState";
@@ -32,6 +33,7 @@ type Props = {
 
 export function TechOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, activeProfileId, authMe, refreshAuthMe, setActiveProfileId } =
     useSession();
   const [step, setStep] = useState(0);
@@ -93,7 +95,10 @@ export function TechOnboardingScreen({ onFinished, onCancel }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        contentContainerStyle={profileScreenScrollContent}
+        contentContainerStyle={[
+          profileScreenScrollContent,
+          { paddingBottom: scrollPad }
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <Pressable onPress={() => void onSkipProfile()} style={styles.skip}>

@@ -17,6 +17,7 @@ import type { EventItem, FilterPill } from "./types";
 import { EmptyStateCard } from "../common/EmptyStateCard";
 import { ListItemSkeleton } from "../common/SkeletonBlocks";
 import { ScreenSection } from "../layout/ScreenSection";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 
@@ -69,6 +70,7 @@ export function EventList({
   renderSwipeRight,
   initialOpenItemId
 }: EventListProps) {
+  const scrollPad = useScrollBottomPad();
   const [limit, setLimit] = useState(pageSize);
   const [selected, setSelected] = useState<EventItem | null>(null);
   const [didOpenInitial, setDidOpenInitial] = useState(false);
@@ -276,7 +278,7 @@ export function EventList({
             </Pressable>
           ) : null
         }
-        contentContainerStyle={styles.flatContent}
+        contentContainerStyle={[styles.flatContent, { paddingBottom: scrollPad }]}
         style={{ backgroundColor: LIST_BG }}
         onEndReached={() => {
           if (canLoadMore) {
@@ -308,7 +310,6 @@ const styles = StyleSheet.create({
   flatRoot: { flex: 1, backgroundColor: LIST_BG },
   flatContent: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     flexGrow: 1,
     backgroundColor: LIST_BG
   },

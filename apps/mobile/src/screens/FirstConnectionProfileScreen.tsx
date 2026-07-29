@@ -17,6 +17,7 @@ import {
 import { formatAuthError } from "../lib/authErrors";
 import { profileTypeIcon } from "../lib/profileTypeIcon";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { authColors, authRadii } from "../theme/authTheme";
 import { mobileRadius, mobileFontSize } from "../theme/mobileTheme";
 
@@ -33,6 +34,7 @@ const PROFILE_TYPES: ProfileTypeChoice[] = [
  */
 export function FirstConnectionProfileScreen() {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, setActiveProfileId, signOut } = useSession();
   const [selected, setSelected] = useState<ProfileTypeChoice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,7 +70,7 @@ export function FirstConnectionProfileScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.head}>{t("firstConnection.title")}</Text>
@@ -153,8 +155,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 22,
-    paddingBottom: 32
+    paddingHorizontal: 22
   },
   head: {
     fontSize: mobileFontSize.xxl,

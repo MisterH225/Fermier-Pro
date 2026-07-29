@@ -21,6 +21,7 @@ import {
   type MyPendingInvitationDto
 } from "../../lib/api";
 import { ROLE_DISPLAY_FR } from "../../lib/memberPermissions";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   mobileColors,
   mobileRadius,
@@ -35,6 +36,7 @@ type Props = {
 
 export function PendingInvitationsModal({ visible, onClose }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
 
@@ -118,7 +120,7 @@ export function PendingInvitationsModal({ visible, onClose }: Props) {
           <FlatList
             data={items}
             keyExtractor={(it) => it.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: scrollPad }]}
             ItemSeparatorComponent={() => <View style={styles.sep} />}
             renderItem={({ item }) => (
               <InvitationRow

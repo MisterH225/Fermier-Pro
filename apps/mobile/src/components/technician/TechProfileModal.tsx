@@ -24,6 +24,7 @@ import {
 } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { techColors, techRadius } from "../../theme/technicianTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -55,6 +56,7 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 
 export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId, authMe } = useSession();
@@ -125,7 +127,7 @@ export function TechProfileModal({ visible, onClose }: TechProfileModalProps) {
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.hero}>
@@ -246,7 +248,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.sm
   },
   hero: {

@@ -24,6 +24,7 @@ import {
 } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
 import { resolveMerchantOnboardingStep } from "../../../lib/merchantOnboardingState";
+import { useScrollBottomPad } from "../../../hooks/useScrollBottomPad";
 import { MerchantSubscriptionScreen } from "../../merchant/MerchantSubscriptionScreen";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../../theme/mobileTheme";
 
@@ -34,6 +35,7 @@ type Props = {
 
 export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId, refreshAuthMe } = useSession();
   const [step, setStep] = useState(0);
@@ -212,7 +214,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >

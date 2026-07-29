@@ -23,6 +23,7 @@ import {
   postOnboardingSkip
 } from "../../lib/api";
 import { useModal } from "../../components/modals/useModal";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { Step1Project } from "./steps/Step1Project";
 import { Step2Breeders } from "./steps/Step2Breeders";
@@ -36,6 +37,7 @@ type Props = {
 
 export function OnboardingScreen({ onFinished }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, activeProfileId, refreshAuthMe } = useSession();
   const { clearResume } = useOnboardingResume();
   const { open } = useModal();
@@ -121,7 +123,7 @@ export function OnboardingScreen({ onFinished }: Props) {
       )}
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
         keyboardShouldPersistTaps="handled"
       >
         {!isCompletion ? (
@@ -200,8 +202,7 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   },
   scroll: {
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xl
+    paddingHorizontal: mobileSpacing.lg
   },
   footer: {
     flexDirection: "row",

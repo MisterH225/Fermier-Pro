@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
 import { useActiveProject } from "../../context/ActiveProjectContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { patchAuthProfile, type PatchMeProfilePayload, type FarmDto } from "../../lib/api";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
@@ -74,6 +75,7 @@ export function ProducerProfileModal({
   onClose
 }: ProducerProfileModalProps) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
@@ -343,7 +345,7 @@ export function ProducerProfileModal({
                 keyboardVerticalOffset={80}
               >
               <ScrollView
-                contentContainerStyle={styles.scroll}
+                contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
                 keyboardShouldPersistTaps="handled"
                 automaticallyAdjustKeyboardInsets
                 showsVerticalScrollIndicator={false}
@@ -589,7 +591,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.sm
   },
   hero: {
