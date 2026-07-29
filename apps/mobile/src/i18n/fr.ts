@@ -2466,6 +2466,16 @@ export const fr = {
     },
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
+    projects: {
+      title: "Mes projets",
+      activeCountLimited: "{{count}} actif(s) / {{max}} max",
+      activeCountUnlimited: "{{count}} actif(s)",
+      limitReached:
+        "Limite de {{count}} projet(s) atteinte. Archivez un projet ou passez Premium.",
+      activeSection: "Projets actifs",
+      archivedSection: "Projets archivés",
+      newProject: "Nouveau projet"
+    },
     subscription: {
       title: "Premium équipe",
       subtitle: "Invite et gère ton équipe sur tes projets",
@@ -4563,7 +4573,8 @@ export const fr = {
       graceEnds: "Fin de grâce",
       cancelSubscription: "Annuler mon abonnement Premium",
       cancelSubscriptionTitle: "Annuler l'abonnement Premium ?",
-      cancelSubscriptionMessage: "Retour au Free : 1 boutique, 5 produits actifs max. Les produits en trop sont désactivés tout de suite.",
+      cancelSubscriptionMessage:
+        "Retour au Standard : {{shops}} boutique(s), {{products}} produit(s) actif(s) max. Les produits en trop sont désactivés tout de suite.",
       cancelSubscriptionConfirm: "Annuler l'abonnement",
       cancelSubscriptionSuccess: "Ton abonnement Premium a été annulé.",
       cancelSubscriptionError: "Impossible d'annuler l'abonnement. Réessaie dans un instant.",

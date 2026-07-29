@@ -21,6 +21,7 @@ import {
   ProfilePickerModal,
   ProfileSwitcherButton
 } from "../components/ProfilePickerModal";
+import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
 import {
   buildFarmListEmptyRows,
@@ -30,7 +31,7 @@ import {
 } from "../features/farm-list-menu";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { FarmDto } from "../lib/api";
-import { fetchFarms } from "../lib/api";
+import { fetchFarms, fetchProducerMe } from "../lib/api";
 import { farmDetailMenuVisibility } from "../lib/menuVisibility";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
@@ -54,6 +55,7 @@ export function FarmListScreen({ navigation }: Props) {
     clientFeatures
   } = useSession();
   const scrollPad = useScrollBottomPad();
+  const { open } = useModal();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const menuFlags = farmDetailMenuVisibility(clientFeatures);
   const headerSecondaryItems = buildFarmListHeaderSecondaryItems(menuFlags, t);
@@ -64,8 +66,31 @@ export function FarmListScreen({ navigation }: Props) {
     enabled: !authLoading
   });
 
+  const producerMeQ = useQuery({
+    queryKey: ["producer-me", activeProfileId],
+    queryFn: () => fetchProducerMe(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId && !authLoading)
+  });
+
   const profiles = authMe?.profiles ?? [];
   const producerProfile = profiles.find((p) => p.type === PRODUCER);
+
+  const openCreateFarm = () => {
+    const maxFarms = producerMeQ.data?.maxFarms ?? null;
+    const farmCount =
+      producerMeQ.data?.farmCount ??
+      farmsQuery.data?.filter((f) => f.status === "active").length ??
+      0;
+    if (maxFarms != null && farmCount >= maxFarms) {
+      open("upgrade-limit", {
+        code: "FARM_LIMIT_REACHED",
+        limit: maxFarms,
+        onUpgrade: () => stackNavigation.navigate("ProducerSubscription")
+      });
+      return;
+    }
+    navigateFarmListQuickNav(stackNavigation, { screen: "CreateFarm" });
+  };
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -100,11 +125,7 @@ export function FarmListScreen({ navigation }: Props) {
             ))}
           {producerProfile ? (
             <TouchableOpacity
-              onPress={() =>
-                navigateFarmListQuickNav(stackNavigation, {
-                  screen: "CreateFarm"
-                })
-              }
+              onPress={openCreateFarm}
               style={styles.headerSecondary}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
@@ -217,9 +238,7 @@ export function FarmListScreen({ navigation }: Props) {
                   <TouchableOpacity
                     key={row.kind}
                     style={styles.cta}
-                    onPress={() =>
-                      navigateFarmListQuickNav(stackNavigation, row.target)
-                    }
+                    onPress={openCreateFarm}
                   >
                     <Text style={styles.ctaText}>{row.title}</Text>
                   </TouchableOpacity>

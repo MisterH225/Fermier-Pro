@@ -13,6 +13,7 @@ import {
 import { queryClient } from "../lib/queryClient";
 import {
   fetchAllFarms,
+  fetchProducerMe,
   setActiveFarm as apiSetActiveFarm,
   archiveFarm as apiArchiveFarm,
   restoreFarm as apiRestoreFarm,
@@ -32,6 +33,8 @@ export type ActiveProjectContextValue = {
   archivedFarmsCount: number;
   isLoading: boolean;
   error: string | null;
+  /** Limite API pour le palier actuel — null = illimité. */
+  maxFarms: number | null;
   canCreateNewProject: boolean;
   setActiveFarm: (farmId: string) => Promise<void>;
   archiveFarm: (farmId: string, reason?: ArchiveFarmReason) => Promise<void>;
@@ -42,13 +45,12 @@ export type ActiveProjectContextValue = {
 
 const ActiveProjectContext = createContext<ActiveProjectContextValue | null>(null);
 
-const MAX_ACTIVE_FARMS = 3;
-
 export function ActiveProjectProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const [farms, setFarms] = useState<FarmDto[]>([]);
   const [activeFarmId, setActiveFarmIdState] = useState<string | null>(null);
+  const [maxFarms, setMaxFarms] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,7 +69,8 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
     [farms]
   );
 
-  const canCreateNewProject = activeFarmsCount < MAX_ACTIVE_FARMS;
+  const canCreateNewProject =
+    maxFarms == null || activeFarmsCount < maxFarms;
 
   const loadFarms = useCallback(async () => {
     if (!accessToken) return;
@@ -76,6 +79,16 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
     try {
       const data = await fetchAllFarms(accessToken, activeProfileId);
       setFarms(data);
+
+      if (activeProfileId) {
+        try {
+          const me = await fetchProducerMe(accessToken, activeProfileId);
+          setMaxFarms(me.maxFarms ?? null);
+        } catch {
+          // Limite inconnue : ne pas bloquer la création côté client.
+          setMaxFarms(null);
+        }
+      }
 
       const storedId = await AsyncStorage.getItem(STORAGE_ACTIVE_FARM_KEY);
       const serverActiveId = authMe?.activeFarm?.id;
@@ -100,7 +113,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, activeProfileId, authMe?.activeFarm?.id]);
+  }, [accessToken, activeProfileId, authMe?.activeFarm?.id, t]);
 
   useEffect(() => {
     void loadFarms();
@@ -213,6 +226,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
       archivedFarmsCount,
       isLoading,
       error,
+      maxFarms,
       canCreateNewProject,
       setActiveFarm,
       archiveFarm,
@@ -228,6 +242,7 @@ export function ActiveProjectProvider({ children }: { children: ReactNode }) {
       archivedFarmsCount,
       isLoading,
       error,
+      maxFarms,
       canCreateNewProject,
       setActiveFarm,
       archiveFarm,

@@ -2465,6 +2465,16 @@ export const en = {
     },
     welcomeLine: "Welcome",
     settingsButton: "Settings",
+    projects: {
+      title: "My projects",
+      activeCountLimited: "{{count}} active / {{max}} max",
+      activeCountUnlimited: "{{count}} active",
+      limitReached:
+        "Limit of {{count}} project(s) reached. Archive a project or go Premium.",
+      activeSection: "Active projects",
+      archivedSection: "Archived projects",
+      newProject: "New project"
+    },
     subscription: {
       title: "Team Premium",
       subtitle: "Invite and manage your farm team",
@@ -4562,7 +4572,8 @@ export const en = {
       graceEnds: "Grace period ends",
       cancelSubscription: "Cancel Premium subscription",
       cancelSubscriptionTitle: "Cancel Premium subscription?",
-      cancelSubscriptionMessage: "Back to Free: 1 shop, 5 active products max. Extra products are disabled right away.",
+      cancelSubscriptionMessage:
+        "Back to Standard: {{shops}} shop(s), {{products}} active product(s) max. Extra products are disabled right away.",
       cancelSubscriptionConfirm: "Cancel subscription",
       cancelSubscriptionSuccess: "Your Premium subscription has been cancelled.",
       cancelSubscriptionError: "Could not cancel the subscription. Try again shortly.",

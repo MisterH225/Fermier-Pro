@@ -303,6 +303,11 @@ export function ProducerProfileModal({
                   onClose();
                   navigation.navigate("CreateFarm");
                 }}
+                onUpgradeToPremium={() => {
+                  closeProjectSwitcher();
+                  onClose();
+                  navigation.navigate("ProducerSubscription");
+                }}
                 onEditProject={(farm: FarmDto) => {
                   closeProjectSwitcher();
                   onClose();

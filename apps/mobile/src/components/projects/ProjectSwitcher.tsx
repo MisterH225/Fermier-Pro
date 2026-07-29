@@ -23,12 +23,15 @@ import { producerColors } from "../../theme/producerTheme";
 
 type ProjectSwitcherProps = {
   onCreateProject: () => void;
+  /** Appelé quand la limite API est atteinte (ouvre Premium). */
+  onUpgradeToPremium?: () => void;
   onEditProject: (farm: FarmDto) => void;
   onClose: () => void;
 };
 
 export function ProjectSwitcher({
   onCreateProject,
+  onUpgradeToPremium,
   onEditProject,
   onClose
 }: ProjectSwitcherProps) {
@@ -40,6 +43,7 @@ export function ProjectSwitcher({
     isLoading,
     canCreateNewProject,
     activeFarmsCount,
+    maxFarms,
     setActiveFarm,
     archiveFarm,
     restoreFarm,
@@ -123,20 +127,36 @@ export function ProjectSwitcher({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mes projets</Text>
+        <Text style={styles.title}>{t("producer.projects.title")}</Text>
         <Text style={styles.subtitle}>
-          {activeFarmsCount} actif{activeFarmsCount > 1 ? "s" : ""} sur 3 max
+          {maxFarms == null
+            ? t("producer.projects.activeCountUnlimited", {
+                count: activeFarmsCount
+              })
+            : t("producer.projects.activeCountLimited", {
+                count: activeFarmsCount,
+                max: maxFarms
+              })}
         </Text>
       </View>
 
-      {!canCreateNewProject && (
+      {!canCreateNewProject ? (
         <View style={styles.limitBanner}>
           <Ionicons name="warning" size={18} color={marketplaceColors.pending} />
-          <Text style={styles.limitText}>
-            Limite de 3 projets atteinte. Archivez un projet pour en créer un nouveau.
-          </Text>
+          <View style={styles.limitBannerBody}>
+            <Text style={styles.limitText}>
+              {t("producer.projects.limitReached", { count: maxFarms ?? 0 })}
+            </Text>
+            {onUpgradeToPremium ? (
+              <Pressable onPress={onUpgradeToPremium} testID="project-switcher-upgrade">
+                <Text style={styles.limitCta}>
+                  {t("subscriptionLimits.upgrade.upgradeCta")}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-      )}
+      ) : null}
 
       <ScrollView
         style={styles.scrollView}
@@ -145,7 +165,7 @@ export function ProjectSwitcher({
       >
         {activeFarms.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Projets actifs</Text>
+            <Text style={styles.sectionTitle}>{t("producer.projects.activeSection")}</Text>
             {activeFarms.map((farm) => (
               <ProjectCard
                 key={farm.id}
@@ -162,7 +182,7 @@ export function ProjectSwitcher({
 
         {archivedFarms.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Projets archivés</Text>
+            <Text style={styles.sectionTitle}>{t("producer.projects.archivedSection")}</Text>
             {archivedFarms.map((farm) => (
               <ProjectCard
                 key={farm.id}
@@ -181,25 +201,25 @@ export function ProjectSwitcher({
 
       <View style={styles.footer}>
         <Pressable
-          style={[
-            styles.createBtn,
-            !canCreateNewProject && styles.createBtnDisabled
-          ]}
-          onPress={onCreateProject}
-          disabled={!canCreateNewProject}
+          style={styles.createBtn}
+          onPress={() => {
+            if (!canCreateNewProject && onUpgradeToPremium) {
+              onUpgradeToPremium();
+              return;
+            }
+            onCreateProject();
+          }}
+          testID="project-switcher-create"
         >
           <Ionicons
-            name="add-circle"
+            name={!canCreateNewProject && onUpgradeToPremium ? "diamond" : "add-circle"}
             size={20}
-            color={canCreateNewProject ? mobileColors.background : mobileColors.textSecondary}
+            color={mobileColors.background}
           />
-          <Text
-            style={[
-              styles.createBtnText,
-              !canCreateNewProject && styles.createBtnTextDisabled
-            ]}
-          >
-            Nouveau projet
+          <Text style={styles.createBtnText}>
+            {!canCreateNewProject && onUpgradeToPremium
+              ? t("subscriptionLimits.upgrade.upgradeCta")
+              : t("producer.projects.newProject")}
           </Text>
         </Pressable>
       </View>
@@ -259,7 +279,7 @@ const styles = StyleSheet.create({
   },
   limitBanner: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
     backgroundColor: producerColors.kpiAmberSoft,
     padding: mobileSpacing.md,
@@ -267,10 +287,19 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.md,
     borderRadius: mobileRadius.md
   },
-  limitText: {
+  limitBannerBody: {
     flex: 1,
+    gap: 6
+  },
+  limitText: {
     ...mobileTypography.meta,
     color: marketplaceColors.pending
+  },
+  limitCta: {
+    ...mobileTypography.meta,
+    fontWeight: "700",
+    color: producerColors.primary,
+    textDecorationLine: "underline"
   },
   scrollView: {
     flex: 1

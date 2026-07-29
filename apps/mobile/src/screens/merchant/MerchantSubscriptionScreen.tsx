@@ -307,7 +307,12 @@ export function MerchantSubscriptionScreen({
     setError(null);
     setPendingPayment(null);
     checkoutOpenedRef.current = null;
-  }, []);
+    if (skippable && onSkip) {
+      onSkip();
+      return;
+    }
+    onCancel();
+  }, [skippable, onSkip, onCancel]);
 
   useEffect(() => {
     if (!autoAdvanceIfTierChosen || advancedRef.current || !meQ.data?.subscriptionTier) {
