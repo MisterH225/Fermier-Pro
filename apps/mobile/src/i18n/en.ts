@@ -584,6 +584,23 @@ export const en = {
       agreedAmount: "Agreed price",
       currentAmount: "Amount",
       paymentMethod: "Payment method",
+      paymentMethodCredit: "Credit",
+      paymentMethodBalanceOrMobile: "Balance or Mobile money",
+      paymentState: {
+        held: "Payment secured",
+        released: "Payment released",
+        cancelled: "Payment cancelled",
+        failed: "Payment failed",
+        credit: "Credit payment",
+        pending: "Payment pending"
+      },
+      activityPickup: "Pickup appointment scheduled",
+      activityPickupAt: "Pickup appointment scheduled — {{location}}",
+      activitySellerWeight: "Weight declared by seller",
+      activitySellerWeightKg: "Weight declared by seller: {{kg}} kg",
+      activitySellerShipped: "Handover confirmed by seller",
+      activityBuyerReceived: "Receipt confirmed by buyer",
+      activityClosedReceipt: "Purchase closed — receipt {{number}}",
       escrowStatus: "Held payment state",
       notAvailable: "Not available",
       notDeclared: "Not declared",
@@ -695,12 +712,13 @@ export const en = {
       receiptNotReady: "Receipt not available yet.",
       stepPayment: "Payment",
       status: {
+        OFFER_ACCEPTED: "Offer accepted",
         PAYMENT_PENDING: "Awaiting payment",
         PAYMENT_HELD: "Payment secured — propose pickup",
         PICKUP_PROPOSED: "Appointment proposed — awaiting seller",
         PICKUP_SCHEDULED: "Appointment confirmed — enter weight",
         WEIGHT_DECLARED: "Weight declared — seller confirmation",
-        WEIGHT_COUNTER_DECLARED: "Weight gap — negotiate or arbitrate",
+        WEIGHT_COUNTER_DECLARED: "Weight gap — negotiate or request help",
         WEIGHT_DISPUTED: "Weight problem — decision pending",
         WEIGHT_VALIDATED: "Weight confirmed — confirm handover",
         SELLER_SHIPPED: "Handover confirmed — confirm receipt",
@@ -709,7 +727,9 @@ export const en = {
         TRANSACTION_CLOSED: "Sale completed",
         CANCELLED_BY_BUYER: "Cancelled by buyer",
         CANCELLED_BY_SELLER: "Cancelled by seller",
-        PAYMENT_FAILED: "Payment failed"
+        CANCELLED_SOLD_TO_OTHER: "Sold elsewhere",
+        PAYMENT_FAILED: "Payment failed",
+        OFFER_EXPIRED: "Offer expired"
       },
       scheduledPickup: "Pickup: {{date}} — {{location}}",
       schedulePickupHint: "Propose the date and place where you want to pick up the animal. The seller will confirm if it works.",
@@ -1103,6 +1123,11 @@ export const en = {
       inTransit: "In transit",
       delivered: "Delivered",
       disputed: "Problem"
+    },
+    steps: {
+      received: "Picked up",
+      in_transit: "In transit",
+      delivered: "Delivered"
     }
   },
   smartAlerts: {
@@ -3824,7 +3849,7 @@ export const en = {
     finance: {
       tabOverview: "Overview",
       tabCredits: "Credit",
-      tabWallet: "Wallet",
+      tabWallet: "Balance",
       spentTitle: "Total spent",
       spentMeta: "{{count}} purchase(s) · prev. period {{previous}}",
       overviewEmpty: "No completed purchases yet.",
@@ -4412,6 +4437,11 @@ export const en = {
       amount: "Amount",
       payment: "Payment",
       paidBadge: "Paid",
+      paymentMethods: {
+        wallet: "Balance",
+        mobile_money: "Mobile money",
+        unknown: "Other"
+      },
       net: "Seller net",
       trackShipping: "Track shipping",
       accept: "Accept",
@@ -4433,6 +4463,11 @@ export const en = {
         copy: "Copy tracking ID",
         copied: "Tracking ID copied"
       },
+      progress: {
+        received: "Received",
+        in_transit: "In transit",
+        delivered: "Delivered"
+      },
       deliveryDetails: {
         title: "Delivery details",
         receiver: "Receiver",
@@ -4449,7 +4484,19 @@ export const en = {
       activity: {
         title: "Activity",
         empty: "No activity yet.",
-        generic: "State updated: {{status}}"
+        generic: "State updated: {{status}}",
+        payment_pending: "Awaiting payment",
+        paid: "Order paid",
+        confirmed: "Order confirmed",
+        shipping: "Shipping started",
+        delivered: "Order delivered",
+        completed: "Order completed",
+        rejected: "Order declined",
+        auto_rejected: "Order expired",
+        refunded: "Order refunded",
+        disputed: "Problem reported",
+        cancelled: "Order cancelled",
+        failed: "Payment failed"
       },
       filter: {
         all: "All",
@@ -4472,7 +4519,7 @@ export const en = {
         rejected: "Declined",
         auto_rejected: "Expired",
         refunded: "Refunded",
-        disputed: "Disputed",
+        disputed: "Open problem",
         cancelled: "Cancelled",
         failed: "Failed"
       }

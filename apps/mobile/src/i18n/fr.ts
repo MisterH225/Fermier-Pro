@@ -585,6 +585,23 @@ export const fr = {
       agreedAmount: "Prix convenu",
       currentAmount: "Montant",
       paymentMethod: "Mode de paiement",
+      paymentMethodCredit: "Crédit",
+      paymentMethodBalanceOrMobile: "Mon solde ou Mobile money",
+      paymentState: {
+        held: "Paiement gardé",
+        released: "Paiement versé",
+        cancelled: "Paiement annulé",
+        failed: "Paiement échoué",
+        credit: "Paiement à crédit",
+        pending: "Paiement en attente"
+      },
+      activityPickup: "Rendez-vous de récupération prévu",
+      activityPickupAt: "Rendez-vous de récupération prévu — {{location}}",
+      activitySellerWeight: "Poids déclaré par le vendeur",
+      activitySellerWeightKg: "Poids déclaré par le vendeur : {{kg}} kg",
+      activitySellerShipped: "Remise confirmée par le vendeur",
+      activityBuyerReceived: "Réception confirmée par l’acheteur",
+      activityClosedReceipt: "Achat clôturé — reçu {{number}}",
       escrowStatus: "État du paiement",
       notAvailable: "Non disponible",
       notDeclared: "Non déclaré",
@@ -696,6 +713,7 @@ export const fr = {
       receiptNotReady: "Reçu non disponible pour le moment.",
       stepPayment: "Paiement",
       status: {
+        OFFER_ACCEPTED: "Offre acceptée",
         PAYMENT_PENDING: "En attente de paiement",
         PAYMENT_HELD: "Paiement gardé — proposez un rendez-vous",
         PICKUP_PROPOSED: "Rendez-vous proposé — en attente du vendeur",
@@ -710,7 +728,9 @@ export const fr = {
         TRANSACTION_CLOSED: "Vente conclue",
         CANCELLED_BY_BUYER: "Annulée par l'acheteur",
         CANCELLED_BY_SELLER: "Annulée par le vendeur",
-        PAYMENT_FAILED: "Paiement échoué"
+        CANCELLED_SOLD_TO_OTHER: "Vendue ailleurs",
+        PAYMENT_FAILED: "Paiement échoué",
+        OFFER_EXPIRED: "Offre expirée"
       },
       scheduledPickup: "Rendez-vous : {{date}} — {{location}}",
       schedulePickupHint: "Proposez la date et le lieu où vous souhaitez récupérer l'animal. Le vendeur confirmera si cela lui convient.",
@@ -1104,6 +1124,11 @@ export const fr = {
       inTransit: "En transit",
       delivered: "Livré",
       disputed: "Problème"
+    },
+    steps: {
+      received: "Prise en charge",
+      in_transit: "En transit",
+      delivered: "Livré"
     }
   },
   smartAlerts: {
@@ -3830,7 +3855,7 @@ export const fr = {
     finance: {
       tabOverview: "Aperçu",
       tabCredits: "Crédits",
-      tabWallet: "Portefeuille",
+      tabWallet: "Mon solde",
       spentTitle: "Total dépensé",
       spentMeta: "{{count}} achat(s) · période préc. {{previous}}",
       overviewEmpty: "Aucun achat abouti pour le moment.",
@@ -4413,6 +4438,11 @@ export const fr = {
       amount: "Montant",
       payment: "Paiement",
       paidBadge: "Payé",
+      paymentMethods: {
+        wallet: "Mon solde",
+        mobile_money: "Mobile money",
+        unknown: "Autre"
+      },
       net: "Net vendeur",
       trackShipping: "Suivre la livraison",
       accept: "Accepter",
@@ -4434,6 +4464,11 @@ export const fr = {
         copy: "Copier le numéro",
         copied: "Numéro de suivi copié"
       },
+      progress: {
+        received: "Reçue",
+        in_transit: "En livraison",
+        delivered: "Livrée"
+      },
       deliveryDetails: {
         title: "Détails de livraison",
         receiver: "Destinataire",
@@ -4450,7 +4485,19 @@ export const fr = {
       activity: {
         title: "Activité",
         empty: "Aucune activité pour le moment.",
-        generic: "État mis à jour : {{status}}"
+        generic: "État mis à jour : {{status}}",
+        payment_pending: "En attente de paiement",
+        paid: "Commande payée",
+        confirmed: "Commande confirmée",
+        shipping: "Livraison démarrée",
+        delivered: "Commande livrée",
+        completed: "Commande terminée",
+        rejected: "Commande refusée",
+        auto_rejected: "Commande expirée",
+        refunded: "Commande remboursée",
+        disputed: "Problème signalé",
+        cancelled: "Commande annulée",
+        failed: "Paiement échoué"
       },
       filter: {
         all: "Toutes",

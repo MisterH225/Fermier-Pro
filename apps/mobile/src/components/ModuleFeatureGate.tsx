@@ -18,7 +18,7 @@ const TITLES: Record<ClientFeatureKey, string> = {
   finance: "Finance",
   housing: "Loges et parcours",
   feedStock: "Nutrition et stock aliments",
-  wallet: "Portefeuille"
+  wallet: "Mon solde"
 };
 
 /**
