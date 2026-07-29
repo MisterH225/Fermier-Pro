@@ -28,7 +28,6 @@ import {
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileStatusSurfaces, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
-import { producerColors } from "../../theme/producerTheme";
 
 type OrderFilter =
   | "all"
@@ -55,7 +54,7 @@ const BADGE_STYLES: Record<OrderStatusBadgeTone, { bg: string; fg: string }> = {
   info: { bg: merchantColors.primaryLight, fg: merchantColors.primaryDark },
   progress: { bg: merchantColors.orderProgressBg, fg: merchantColors.orderProgressFg },
   success: { bg: mobileStatusSurfaces.successBg, fg: mobileStatusSurfaces.successText },
-  warning: { bg: producerColors.kpiAmberSoft, fg: merchantColors.amberText },
+  warning: { bg: merchantColors.warnBannerBg, fg: merchantColors.amberText },
   danger: { bg: merchantColors.orderDangerBg, fg: merchantColors.danger }
 };
 

@@ -46,7 +46,6 @@ import { MERCHANT_PRODUCT_UNIT_PRESETS } from "../../lib/merchantProductUnits";
 import { merchantColors } from "../../theme/merchantTheme";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import { useBottomInset } from "../../hooks/useBottomInset";
-import { producerColors } from "../../theme/producerTheme";
 import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 /** useFocusEffect exige un NavigationContainer — hors onboarding uniquement. */
@@ -665,12 +664,12 @@ const styles = StyleSheet.create({
   warn: { color: merchantColors.warning, fontSize: mobileFontSize.sm },
   title: { fontSize: mobileFontSize.xl, fontWeight: "700" },
   moderationBanner: {
-    backgroundColor: producerColors.kpiAmberSoft,
+    backgroundColor: merchantColors.warnBannerBg,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     gap: 6,
     borderWidth: 1,
-    borderColor: producerColors.warning
+    borderColor: merchantColors.warning
   },
   moderationTitle: { fontWeight: "700", color: merchantColors.amberText, fontSize: mobileFontSize.md },
   moderationReason: { color: merchantColors.amberTextDeep, fontSize: mobileFontSize.sm, lineHeight: 18 },
@@ -681,7 +680,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     gap: 4,
     borderWidth: 1,
-    borderColor: producerColors.chartBlue
+    borderColor: merchantColors.blueText
   },
   pendingTitle: { fontWeight: "700", color: merchantColors.blueTextDeep, fontSize: mobileFontSize.md },
   pendingHint: { color: merchantColors.blueText, fontSize: mobileFontSize.sm, lineHeight: 17 },

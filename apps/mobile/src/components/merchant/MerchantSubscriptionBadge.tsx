@@ -5,8 +5,6 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileKpiPalette, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
-import { producerColors } from "../../theme/producerTheme";
-import { vetColors } from "../../theme/vetTheme";
 
 type SubscriptionStatus =
   | "active"
@@ -116,13 +114,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: merchantColors.border
   },
-  badgePremium: { backgroundColor: mobileKpiPalette.dueMonth.bg, borderColor: producerColors.warning },
-  badgeTrial: { backgroundColor: producerColors.successMintBg, borderColor: vetColors.success },
-  badgePastDue: { backgroundColor: mobileStatusSurfaces.errorBg, borderColor: vetColors.danger },
+  badgePremium: { backgroundColor: mobileKpiPalette.dueMonth.bg, borderColor: merchantColors.warning },
+  badgeTrial: { backgroundColor: mobileStatusSurfaces.successBg, borderColor: merchantColors.success },
+  badgePastDue: { backgroundColor: mobileStatusSurfaces.errorBg, borderColor: merchantColors.danger },
   badgeTx: { fontWeight: "700", color: merchantColors.primary, fontSize: mobileFontSize.sm },
-  badgeTxPremium: { color: producerColors.warningDeep },
+  badgeTxPremium: { color: merchantColors.amberText },
   badgeTxTrial: { color: merchantColors.greenText },
-  badgeTxPastDue: { color: producerColors.dangerStrong },
+  badgeTxPastDue: { color: merchantColors.danger },
   cta: {
     paddingHorizontal: 14,
     paddingVertical: 8,
