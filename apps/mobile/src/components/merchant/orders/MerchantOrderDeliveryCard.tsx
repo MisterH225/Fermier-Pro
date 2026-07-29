@@ -54,8 +54,12 @@ export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
       labelKey: "merchant.orders.payment",
       value:
         order.status !== "payment_pending" && order.status !== "failed"
-          ? `${order.paymentMethod} · ${t("merchant.orders.paidBadge")}`
-          : order.paymentMethod
+          ? `${t(`merchant.orders.paymentMethods.${order.paymentMethod}`, {
+              defaultValue: t("merchant.orders.paymentMethods.unknown")
+            })} · ${t("merchant.orders.paidBadge")}`
+          : t(`merchant.orders.paymentMethods.${order.paymentMethod}`, {
+              defaultValue: t("merchant.orders.paymentMethods.unknown")
+            })
     }
   ];
   if (isSeller) {

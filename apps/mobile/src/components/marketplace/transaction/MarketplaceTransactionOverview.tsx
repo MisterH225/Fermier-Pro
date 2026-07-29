@@ -28,21 +28,38 @@ type Props = {
   messageBusy?: boolean;
 };
 
-function escrowLabel(status: string, isCredit?: boolean): string {
-  if (status === "PAYMENT_HELD") return "Paiement séquestré";
-  if (status === "TRANSACTION_CLOSED") return "Paiement libéré";
-  if (status.startsWith("CANCELLED") || status === "OFFER_EXPIRED") {
-    return "Séquestre annulé";
+type Translate = (key: string, opts?: Record<string, unknown>) => string;
+
+function escrowLabel(
+  t: Translate,
+  status: string,
+  isCredit?: boolean
+): string {
+  if (status === "PAYMENT_HELD") return t("marketScreen.transaction.paymentState.held");
+  if (status === "TRANSACTION_CLOSED") {
+    return t("marketScreen.transaction.paymentState.released");
   }
-  if (status === "PAYMENT_FAILED") return "Paiement échoué";
-  return isCredit ? "Paiement à crédit" : "Séquestre en attente";
+  if (status.startsWith("CANCELLED") || status === "OFFER_EXPIRED") {
+    return t("marketScreen.transaction.paymentState.cancelled");
+  }
+  if (status === "PAYMENT_FAILED") {
+    return t("marketScreen.transaction.paymentState.failed");
+  }
+  return isCredit
+    ? t("marketScreen.transaction.paymentState.credit")
+    : t("marketScreen.transaction.paymentState.pending");
 }
 
-function paymentMethodLabel(isCredit?: boolean): string {
-  return isCredit ? "Crédit" : "Portefeuille ou Mobile Money";
+function paymentMethodLabel(t: Translate, isCredit?: boolean): string {
+  return isCredit
+    ? t("marketScreen.transaction.paymentMethodCredit")
+    : t("marketScreen.transaction.paymentMethodBalanceOrMobile");
 }
 
-function activityEvents(transaction: MarketplaceTransactionDto) {
+function activityEvents(
+  t: Translate,
+  transaction: MarketplaceTransactionDto
+) {
   const events: Array<{
     at: string;
     label: string;
@@ -52,9 +69,11 @@ function activityEvents(transaction: MarketplaceTransactionDto) {
   if (transaction.pickupDate) {
     events.push({
       at: transaction.pickupDate,
-      label: `Rendez-vous de récupération prévu${
-        transaction.pickupLocation ? ` — ${transaction.pickupLocation}` : ""
-      }`,
+      label: transaction.pickupLocation
+        ? t("marketScreen.transaction.activityPickupAt", {
+            location: transaction.pickupLocation
+          })
+        : t("marketScreen.transaction.activityPickup"),
       tone: "active"
     });
   }
@@ -63,11 +82,12 @@ function activityEvents(transaction: MarketplaceTransactionDto) {
       at: transaction.sellerWeightDeclaredAt,
       label:
         transaction.sellerDeclaredWeightKg != null
-          ? `Poids déclaré par le vendeur : ${transaction.sellerDeclaredWeightKg.toLocaleString(
-              "fr-FR",
-              { maximumFractionDigits: 1 }
-            )} kg`
-          : "Poids déclaré par le vendeur",
+          ? t("marketScreen.transaction.activitySellerWeightKg", {
+              kg: transaction.sellerDeclaredWeightKg.toLocaleString("fr-FR", {
+                maximumFractionDigits: 1
+              })
+            })
+          : t("marketScreen.transaction.activitySellerWeight"),
       tone:
         transaction.status === "WEIGHT_DISPUTED" ? "danger" : "pending"
     });
@@ -75,7 +95,7 @@ function activityEvents(transaction: MarketplaceTransactionDto) {
   if (transaction.sellerShippedAt) {
     events.push({
       at: transaction.sellerShippedAt,
-      label: "Remise confirmée par le vendeur",
+      label: t("marketScreen.transaction.activitySellerShipped"),
       tone:
         transaction.status === "DELIVERY_DISPUTED" ? "danger" : "active"
     });
@@ -83,14 +103,16 @@ function activityEvents(transaction: MarketplaceTransactionDto) {
   if (transaction.buyerReceivedAt) {
     events.push({
       at: transaction.buyerReceivedAt,
-      label: "Réception confirmée par l’acheteur",
+      label: t("marketScreen.transaction.activityBuyerReceived"),
       tone: "success"
     });
   }
   if (transaction.receipt?.generatedAt) {
     events.push({
       at: transaction.receipt.generatedAt,
-      label: `Transaction clôturée — reçu ${transaction.receipt.receiptNumber}`,
+      label: t("marketScreen.transaction.activityClosedReceipt", {
+        number: transaction.receipt.receiptNumber
+      }),
       tone: "success"
     });
   }
@@ -239,11 +261,11 @@ export function MarketplaceTransactionOverview({
           },
           {
             labelKey: "marketScreen.transaction.paymentMethod",
-            value: paymentMethodLabel(transaction.isCredit)
+            value: paymentMethodLabel(t, transaction.isCredit)
           },
           {
             labelKey: "marketScreen.transaction.escrowStatus",
-            value: escrowLabel(transaction.status, transaction.isCredit),
+            value: escrowLabel(t, transaction.status, transaction.isCredit),
             tone:
               transaction.status.includes("DISPUTED") ||
               transaction.status === "PAYMENT_FAILED"
@@ -260,7 +282,7 @@ export function MarketplaceTransactionOverview({
         messageBusy={messageBusy}
       />
 
-      <OrderActivityFeed events={activityEvents(transaction)} />
+      <OrderActivityFeed events={activityEvents(t, transaction)} />
     </>
   );
 }
