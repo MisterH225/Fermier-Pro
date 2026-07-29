@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (ad51cad0) — dashboard + finance acheteur + fix commandes À agir #272 #273 #274",
-  "updatedAt": "2026-07-29T12:55Z",
+  "message": "OTA preview (d08d50f5) — fix texte brut commandes boutique/marketplace #275",
+  "updatedAt": "2026-07-29T13:17Z",
   "channels": ["preview"],
-  "updateGroupId": "4dbbd050-dc8b-4e1d-a65a-a9c4aef7c08a",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/4dbbd050-dc8b-4e1d-a65a-a9c4aef7c08a"
+  "updateGroupId": "8a8bf2bd-9e37-42db-a8dc-4ab089ea857e",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/8a8bf2bd-9e37-42db-a8dc-4ab089ea857e"
 }
