@@ -17,7 +17,7 @@ import { PhoneInput } from "../components/PhoneInput";
 import { useSession } from "../context/SessionContext";
 import { useScreenTitle } from "../hooks/useScreenTitle";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
-import { checkPhoneAvailability } from "../lib/api";
+import { checkPhoneAvailability, fetchAuthMe } from "../lib/api";
 import { formatAuthError } from "../lib/authErrors";
 import { getSupabase } from "../lib/supabase";
 import {
@@ -85,7 +85,7 @@ export function AddPhoneScreen({ navigation }: Props) {
   const { t } = useTranslation();
   useScreenTitle(navigation, t("addPhone.title"));
   const scrollPad = useScrollBottomPad();
-  const { accessToken, reloadAuth } = useSession();
+  const { accessToken, activeProfileId, authMe, reloadAuth } = useSession();
   const supabase = getSupabase();
 
   const [step, setStep] = useState<Step>("phone");
@@ -95,6 +95,13 @@ export function AddPhoneScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
   const [verifyAttempts, setVerifyAttempts] = useState(0);
+
+  // Hors périmètre : modification d’un numéro déjà présent.
+  useEffect(() => {
+    if (authMe?.user?.phone) {
+      navigation.goBack();
+    }
+  }, [authMe?.user?.phone, navigation]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -153,12 +160,19 @@ export function AddPhoneScreen({ navigation }: Props) {
 
     setBusy(true);
     try {
-      const { error: e } = await supabase.auth.verifyOtp({
+      const { data, error: e } = await supabase.auth.verifyOtp({
         phone: phone.trim(),
         token: code,
         type: "phone_change"
       });
       if (e) throw e;
+      // Sync Prisma User.phone with the fresh JWT (phone + phone_confirmed_at).
+      const freshToken = data.session?.access_token;
+      if (freshToken) {
+        await fetchAuthMe(freshToken, activeProfileId ?? undefined);
+      } else {
+        await supabase.auth.refreshSession();
+      }
       await reloadAuth();
       Alert.alert(t("addPhone.success"), undefined, [
         { text: "OK", onPress: () => navigation.goBack() }

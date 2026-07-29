@@ -140,7 +140,7 @@ export const en = {
     smsFailed: "Could not send the SMS. Try again in a minute.",
     maxAttempts: "Too many attempts. Request a new code.",
     alreadyHasPhone: "A phone number is already linked to this account.",
-    walletBanner: "Add your phone number to secure your wallet.",
+    walletBanner: "Add your number to receive money.",
     changeNumber: "Change number"
   },
   moduleRoadmap: {

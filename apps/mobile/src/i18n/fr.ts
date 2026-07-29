@@ -140,7 +140,7 @@ export const fr = {
     smsFailed: "Impossible d’envoyer le SMS. Réessaie dans une minute.",
     maxAttempts: "Trop d’essais. Demande un nouveau code.",
     alreadyHasPhone: "Un numéro est déjà associé à ce compte.",
-    walletBanner: "Ajoute ton numéro pour sécuriser ton solde.",
+    walletBanner: "Ajoute ton numéro pour recevoir de l’argent.",
     changeNumber: "Changer de numéro"
   },
   moduleRoadmap: {
