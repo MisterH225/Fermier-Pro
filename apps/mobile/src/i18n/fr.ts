@@ -3827,6 +3827,38 @@ export const fr = {
       creditDueAt: "Échéance {{when}}",
       creditOverdue: "En retard"
     },
+    finance: {
+      tabOverview: "Aperçu",
+      tabCredits: "Crédits",
+      tabWallet: "Portefeuille",
+      spentTitle: "Total dépensé",
+      spentMeta: "{{count}} achat(s) · période préc. {{previous}}",
+      overviewEmpty: "Aucun achat abouti pour le moment.",
+      byCategory: "Répartition par catégorie",
+      categoryEmpty: "Aucune dépense à catégoriser sur cette période.",
+      categoryShop: "Boutique",
+      categoryShopNamed: "Boutique · {{name}}",
+      categoryOther: "Autre",
+      donutCenter: "Total",
+      monthlyTitle: "Évolution sur 12 mois",
+      chartSpent: "Dépenses",
+      chartEmpty: "Pas encore de courbe de dépenses.",
+      creditTotal: "Total restant dû",
+      creditsEmpty: "Aucun achat à crédit pour le moment.",
+      creditInitial: "Initial : {{amount}}",
+      creditAdvance: "Avance : {{amount}}",
+      creditRemaining: "Restant : {{amount}}",
+      creditDueAt: "Échéance {{when}}",
+      creditStatus: {
+        current: "À jour",
+        overdue: "En retard",
+        settled: "Soldé"
+      },
+      history: "Historique",
+      historyHint: "Recharges, retraits, transferts, achats et remboursements.",
+      emptyTitle: "Aucune opération",
+      emptyBody: "Vos remboursements et paiements apparaîtront ici."
+    },
     pendingMarketplace: {
       bannerOne: "Action requise sur un achat",
       bannerCount: "{{count}} actions en attente sur vos achats",
@@ -3892,12 +3924,6 @@ export const fr = {
         insufficientBalance: "Solde insuffisant",
         transferInvalid: "Montant et destinataire requis"
       }
-    },
-    finance: {
-      history: "Historique",
-      historyHint: "Recharges, retraits, transferts, achats et remboursements.",
-      emptyTitle: "Aucune opération",
-      emptyBody: "Vos remboursements et paiements apparaîtront ici."
     },
     profile: {
       sectionAccount: "Compte",

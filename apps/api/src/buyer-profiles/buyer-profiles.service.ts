@@ -21,6 +21,15 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
 import { loadBuyerDashboardExtras } from "./buyer-dashboard.extras";
+import { loadBuyerCreditSituation } from "./buyer-credit.aggregation";
+import {
+  categoryBreakdownForWindow,
+  loadBuyerPurchaseRows,
+  monthlyEvolutionLast12,
+  periodWindowOf,
+  purchasesDtoFromRows,
+  type BuyerDashboardPeriodKey
+} from "./buyer-purchases.aggregation";
 import type { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
 import type { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import type { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
@@ -40,6 +49,15 @@ function haversineKm(
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function parseBuyerFinancePeriod(
+  raw: string | undefined
+): BuyerDashboardPeriodKey {
+  if (raw === "quarter" || raw === "year" || raw === "month") {
+    return raw;
+  }
+  return "month";
 }
 
 @Injectable()
@@ -218,6 +236,57 @@ export class BuyerProfilesService {
       purchases: extras.purchases,
       creditDues: extras.creditDues
     };
+  }
+
+  /**
+   * Aperçu finance acheteur : totaux par période, catégories, courbe 12 mois.
+   * `purchases` = même agrégat que le dashboard (SSOT).
+   */
+  async financeOverview(
+    user: User,
+    periodRaw?: string
+  ) {
+    const period = parseBuyerFinancePeriod(periodRaw);
+    const now = new Date();
+    const pairsStart = periodWindowOf("year", now).start;
+    const prevYearStart = new Date(now.getFullYear() - 1, 0, 1);
+    const twelveStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const from = new Date(
+      Math.min(
+        pairsStart.getTime(),
+        prevYearStart.getTime(),
+        twelveStart.getTime()
+      )
+    );
+
+    const rows = await loadBuyerPurchaseRows(
+      this.prisma,
+      user.id,
+      from,
+      now
+    );
+    const purchases = purchasesDtoFromRows(rows, now);
+    const window = periodWindowOf(period, now);
+    const byCategory = categoryBreakdownForWindow(
+      rows,
+      window.start,
+      window.end
+    );
+    const monthlyEvolution = monthlyEvolutionLast12(rows, now);
+
+    return {
+      currency: purchases.currency,
+      period,
+      purchases,
+      totals: purchases[period],
+      byCategory,
+      monthlyEvolution
+    };
+  }
+
+  /** Situation crédit — `open` / `totalDue` identiques au dashboard. */
+  async financeCredits(user: User) {
+    return loadBuyerCreditSituation(this.prisma, user.id);
   }
 
   async listProposals(user: User, status?: OfferStatus) {

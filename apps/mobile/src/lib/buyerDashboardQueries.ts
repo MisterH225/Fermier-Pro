@@ -5,4 +5,6 @@ export function invalidateBuyerDashboardQueries(qc: QueryClient) {
   void qc.invalidateQueries({ queryKey: ["buyerDashboard"] });
   void qc.invalidateQueries({ queryKey: ["buyerProposals"] });
   void qc.invalidateQueries({ queryKey: ["buyerPurchases"] });
+  void qc.invalidateQueries({ queryKey: ["buyerFinanceOverview"] });
+  void qc.invalidateQueries({ queryKey: ["buyerFinanceCredits"] });
 }

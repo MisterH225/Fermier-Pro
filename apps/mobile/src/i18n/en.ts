@@ -3821,6 +3821,38 @@ export const en = {
       creditDueAt: "Due {{when}}",
       creditOverdue: "Overdue"
     },
+    finance: {
+      tabOverview: "Overview",
+      tabCredits: "Credit",
+      tabWallet: "Wallet",
+      spentTitle: "Total spent",
+      spentMeta: "{{count}} purchase(s) · prev. period {{previous}}",
+      overviewEmpty: "No completed purchases yet.",
+      byCategory: "Spend by category",
+      categoryEmpty: "No categorized spend in this period.",
+      categoryShop: "Shop",
+      categoryShopNamed: "Shop · {{name}}",
+      categoryOther: "Other",
+      donutCenter: "Total",
+      monthlyTitle: "12-month trend",
+      chartSpent: "Spend",
+      chartEmpty: "No spend curve yet.",
+      creditTotal: "Total still due",
+      creditsEmpty: "No credit purchases yet.",
+      creditInitial: "Initial: {{amount}}",
+      creditAdvance: "Advance: {{amount}}",
+      creditRemaining: "Remaining: {{amount}}",
+      creditDueAt: "Due {{when}}",
+      creditStatus: {
+        current: "On track",
+        overdue: "Overdue",
+        settled: "Settled"
+      },
+      history: "History",
+      historyHint: "Top-ups, withdrawals, transfers, purchases and refunds.",
+      emptyTitle: "No activity yet",
+      emptyBody: "Held payment refunds and payments will appear here."
+    },
     pendingMarketplace: {
       bannerOne: "Action required on a purchase",
       bannerCount: "{{count}} pending actions on your purchases",
@@ -3886,12 +3918,6 @@ export const en = {
         insufficientBalance: "Insufficient balance",
         transferInvalid: "Amount and recipient required"
       }
-    },
-    finance: {
-      history: "History",
-      historyHint: "Top-ups, withdrawals, transfers, purchases and refunds.",
-      emptyTitle: "No activity yet",
-      emptyBody: "Held payment refunds and payments will appear here."
     },
     profile: {
       sectionAccount: "Account",
