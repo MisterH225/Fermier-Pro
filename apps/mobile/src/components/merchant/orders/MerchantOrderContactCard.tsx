@@ -1,7 +1,8 @@
 import {
-  merchantOrderPalette,
-  OrderContactCard
+  OrderContactCard,
+  type OrderPalette
 } from "../../orders";
+import { useOrderPalette } from "../../../hooks/useOrderPalette";
 
 type Props = {
   name: string;
@@ -9,6 +10,7 @@ type Props = {
   phone?: string | null;
   onMessage: () => void;
   messageBusy?: boolean;
+  palette?: OrderPalette;
 };
 
 export function MerchantOrderContactCard({
@@ -16,8 +18,11 @@ export function MerchantOrderContactCard({
   subtitle,
   phone,
   onMessage,
-  messageBusy
+  messageBusy,
+  palette
 }: Props) {
+  const rolePalette = useOrderPalette();
+  const resolved = palette ?? rolePalette;
   return (
     <OrderContactCard
       displayName={name}
@@ -25,7 +30,7 @@ export function MerchantOrderContactCard({
       phone={phone}
       onMessage={onMessage}
       messageBusy={messageBusy}
-      palette={merchantOrderPalette}
+      palette={resolved}
     />
   );
 }

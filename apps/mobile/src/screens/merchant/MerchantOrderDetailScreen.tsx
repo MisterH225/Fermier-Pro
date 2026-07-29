@@ -21,11 +21,11 @@ import { MerchantOrderDeliveryCard } from "../../components/merchant/orders/Merc
 import { MerchantOrderProgressStepper } from "../../components/merchant/orders/MerchantOrderProgressStepper";
 import { MerchantOrderTrackingHeader } from "../../components/merchant/orders/MerchantOrderTrackingHeader";
 import {
-  merchantOrderPalette,
   DeadlineNotice
 } from "../../components/orders";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
+import { useOrderPalette } from "../../hooks/useOrderPalette";
 import {
   acceptMerchantOrderDisputeReturn,
   completeMerchantOrder,
@@ -38,10 +38,9 @@ import {
   type MerchantOrderDto
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
-import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
-import { mobileSpacing, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
+import { mobileSpacing, mobileFontSize, mobileStatusSurfaces } from "../../theme/mobileTheme";
+import { uiNamedColors } from "../../theme/uiNamedColors";
 import type { RootStackParamList } from "../../types/navigation";
-import { producerColors } from "../../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantOrderDetail">;
 
@@ -52,6 +51,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId, authMe } = useSession();
   const bottomInset = useBottomInset();
+  const palette = useOrderPalette();
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const activityY = useRef(0);
@@ -184,7 +184,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
   if (q.isLoading || !order) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator color={merchantColors.primary} />
+        <ActivityIndicator color={palette.primary} />
       </View>
     );
   }
@@ -200,7 +200,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
   const actionBusy = runAction.isPending;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: palette.canvas }]} edges={["bottom"]}>
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
@@ -215,31 +215,48 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           orderId={order.id}
           status={order.status}
           statusLabel={statusLabel}
+          palette={palette}
         />
 
         {order.deadlineAt ? (
           <DeadlineNotice
             deadlineAt={order.deadlineAt}
             outcomeKey={order.timeoutOutcomeKey}
-            palette={merchantOrderPalette}
+            palette={palette}
           />
         ) : null}
 
-        <MerchantOrderProgressStepper order={order} />
+        <MerchantOrderProgressStepper order={order} palette={palette} />
 
         {/* CTA principal — style « Track Shipping » */}
         {isSeller && order.status === "paid" && escrowHeld ? (
           <View style={styles.actionsCol}>
             <Pressable
-              style={[styles.primaryBtn, actionBusy && styles.btnDisabled]}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: palette.primary,
+                  borderRadius: palette.radius.button
+                },
+                actionBusy && styles.btnDisabled
+              ]}
               onPress={() => runAction.mutate("confirm")}
               disabled={actionBusy}
             >
-              <Ionicons name="checkmark-circle" size={20} color={mobileColors.background} />
-              <Text style={styles.primaryBtnTx}>{t("merchant.orders.accept")}</Text>
+              <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
+              <Text style={[styles.primaryBtnTx, { color: palette.onPrimary }]}>
+                {t("merchant.orders.accept")}
+              </Text>
             </Pressable>
             <Pressable
-              style={styles.secondaryBtn}
+              style={[
+                styles.secondaryBtn,
+                {
+                  backgroundColor: palette.cardBg,
+                  borderColor: palette.primary,
+                  borderRadius: palette.radius.button
+                }
+              ]}
               onPress={() =>
                 Alert.alert(
                   t("merchant.orders.reject"),
@@ -256,50 +273,84 @@ export function MerchantOrderDetailScreen({ route }: Props) {
               }
               disabled={actionBusy}
             >
-              <Text style={styles.secondaryBtnTx}>{t("merchant.orders.reject")}</Text>
+              <Text style={[styles.secondaryBtnTx, { color: palette.primary }]}>
+                {t("merchant.orders.reject")}
+              </Text>
             </Pressable>
           </View>
         ) : null}
 
         {isSeller && order.status === "paid" && !escrowHeld ? (
           <Pressable
-            style={[styles.primaryBtn, actionBusy && styles.btnDisabled]}
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: palette.primary,
+                borderRadius: palette.radius.button
+              },
+              actionBusy && styles.btnDisabled
+            ]}
             onPress={() => runAction.mutate("complete")}
             disabled={actionBusy}
           >
-            <Ionicons name="checkmark-done" size={20} color={mobileColors.background} />
-            <Text style={styles.primaryBtnTx}>{t("merchant.orders.markComplete")}</Text>
+            <Ionicons name="checkmark-done" size={20} color={palette.onPrimary} />
+            <Text style={[styles.primaryBtnTx, { color: palette.onPrimary }]}>
+              {t("merchant.orders.markComplete")}
+            </Text>
           </Pressable>
         ) : null}
 
         {isSeller && order.status === "confirmed" ? (
           <Pressable
-            style={[styles.primaryBtn, actionBusy && styles.btnDisabled]}
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: palette.primary,
+                borderRadius: palette.radius.button
+              },
+              actionBusy && styles.btnDisabled
+            ]}
             onPress={() => runAction.mutate("ship")}
             disabled={actionBusy}
           >
-            <Ionicons name="bicycle" size={20} color={mobileColors.background} />
-            <Text style={styles.primaryBtnTx}>{t("merchant.orders.startShipping")}</Text>
+            <Ionicons name="bicycle" size={20} color={palette.onPrimary} />
+            <Text style={[styles.primaryBtnTx, { color: palette.onPrimary }]}>
+              {t("merchant.orders.startShipping")}
+            </Text>
           </Pressable>
         ) : null}
 
         {isSeller && order.status === "shipping" ? (
           <View style={styles.actionsCol}>
             <Pressable
-              style={[styles.primaryBtn, actionBusy && styles.btnDisabled]}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: palette.primary,
+                  borderRadius: palette.radius.button
+                },
+                actionBusy && styles.btnDisabled
+              ]}
               onPress={scrollToActivity}
             >
-              <Ionicons name="search" size={20} color={mobileColors.background} />
-              <Text style={styles.primaryBtnTx}>
+              <Ionicons name="search" size={20} color={palette.onPrimary} />
+              <Text style={[styles.primaryBtnTx, { color: palette.onPrimary }]}>
                 {t("merchant.orders.trackShipping")}
               </Text>
             </Pressable>
             <Pressable
-              style={styles.secondaryBtn}
+              style={[
+                styles.secondaryBtn,
+                {
+                  backgroundColor: palette.cardBg,
+                  borderColor: palette.primary,
+                  borderRadius: palette.radius.button
+                }
+              ]}
               onPress={() => runAction.mutate("deliver")}
               disabled={actionBusy}
             >
-              <Text style={styles.secondaryBtnTx}>
+              <Text style={[styles.secondaryBtnTx, { color: palette.primary }]}>
                 {t("merchant.orders.markDelivered")}
               </Text>
             </Pressable>
@@ -308,24 +359,48 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 
         {isBuyer && order.status === "delivered" ? (
           <Pressable
-            style={[styles.primaryBtn, actionBusy && styles.btnDisabled]}
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: palette.primary,
+                borderRadius: palette.radius.button
+              },
+              actionBusy && styles.btnDisabled
+            ]}
             onPress={() => runAction.mutate("complete")}
             disabled={actionBusy}
           >
-            <Ionicons name="checkmark-done" size={20} color={mobileColors.background} />
-            <Text style={styles.primaryBtnTx}>{t("merchant.orders.confirmReceipt")}</Text>
+            <Ionicons name="checkmark-done" size={20} color={palette.onPrimary} />
+            <Text style={[styles.primaryBtnTx, { color: palette.onPrimary }]}>
+              {t("merchant.orders.confirmReceipt")}
+            </Text>
           </Pressable>
         ) : null}
 
         {(order.status === "delivered" || order.status === "completed") &&
         !(isBuyer && order.status === "delivered") ? (
-          <Pressable style={styles.primaryBtn} onPress={scrollToActivity}>
-            <Ionicons name="search" size={20} color={mobileColors.background} />
-            <Text style={styles.primaryBtnTx}>{t("merchant.orders.trackShipping")}</Text>
+          <Pressable
+            style={[
+              styles.primaryBtn,
+              {
+                backgroundColor: palette.primary,
+                borderRadius: palette.radius.button
+              }
+            ]}
+            onPress={scrollToActivity}
+          >
+            <Ionicons name="search" size={20} color={palette.onPrimary} />
+            <Text style={[styles.primaryBtnTx, { color: palette.onPrimary }]}>
+              {t("merchant.orders.trackShipping")}
+            </Text>
           </Pressable>
         ) : null}
 
-        <MerchantOrderDeliveryCard order={order} isSeller={Boolean(isSeller)} />
+        <MerchantOrderDeliveryCard
+          order={order}
+          isSeller={Boolean(isSeller)}
+          palette={palette}
+        />
 
         <MerchantOrderContactCard
           name={contactName}
@@ -333,20 +408,41 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           phone={contactPhone}
           onMessage={() => void onChat()}
           messageBusy={busy}
+          palette={palette}
         />
 
         {order.dispute && order.dispute.status === "open" ? (
-          <View style={styles.disputeBox}>
-            <Text style={styles.disputeTitle}>{t("merchant.orders.disputeOpen")}</Text>
-            <Text style={styles.disputeReason}>{order.dispute.reason}</Text>
+          <View
+            style={[
+              styles.disputeBox,
+              {
+                borderRadius: palette.radius.card,
+                backgroundColor: mobileStatusSurfaces.warningBg,
+                borderColor: palette.warning
+              }
+            ]}
+          >
+            <Text style={[styles.disputeTitle, { color: uiNamedColors.c92400E }]}>
+              {t("merchant.orders.disputeOpen")}
+            </Text>
+            <Text style={[styles.disputeReason, { color: uiNamedColors.c92400E }]}>
+              {order.dispute.reason}
+            </Text>
             {isSeller ? (
               <Pressable
-                style={[styles.acceptReturnBtn, actionBusy && styles.btnDisabled]}
+                style={[
+                  styles.acceptReturnBtn,
+                  {
+                    backgroundColor: palette.primary,
+                    borderRadius: palette.radius.button
+                  },
+                  actionBusy && styles.btnDisabled
+                ]}
                 onPress={confirmAcceptReturn}
                 disabled={actionBusy}
                 testID="merchant-order-accept-return"
               >
-                <Text style={styles.acceptReturnBtnTx}>
+                <Text style={[styles.acceptReturnBtnTx, { color: palette.onPrimary }]}>
                   {t("merchant.orders.acceptReturn")}
                 </Text>
               </Pressable>
@@ -356,12 +452,18 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 
         {canDispute(order) ? (
           <Pressable
-            style={styles.disputeBtn}
+            style={[
+              styles.disputeBtn,
+              {
+                borderRadius: palette.radius.button,
+                borderColor: palette.danger
+              }
+            ]}
             onPress={() =>
               navigation.navigate("MerchantOrderDispute", { orderId: order.id })
             }
           >
-            <Text style={styles.disputeBtnTx}>
+            <Text style={[styles.disputeBtnTx, { color: palette.danger }]}>
               {order.dispute
                 ? t("merchant.orders.disputeManage")
                 : t("merchant.orders.openDispute")}
@@ -374,7 +476,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
             activityY.current = e.nativeEvent.layout.y;
           }}
         >
-          <MerchantOrderActivitySheet order={order} />
+          <MerchantOrderActivitySheet order={order} palette={palette} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -382,7 +484,7 @@ export function MerchantOrderDetailScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: merchantColors.canvas },
+  safe: { flex: 1 },
   scrollView: { flex: 1 },
   scroll: {
     paddingHorizontal: mobileSpacing.lg,
@@ -392,56 +494,43 @@ const styles = StyleSheet.create({
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   actionsCol: { gap: 10 },
   primaryBtn: {
-    backgroundColor: merchantColors.primary,
     paddingVertical: 16,
     paddingHorizontal: mobileSpacing.lg,
-    borderRadius: merchantRadius.button,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 10
   },
-  primaryBtnTx: { color: mobileColors.background, fontWeight: "800", fontSize: mobileFontSize.lg },
+  primaryBtnTx: { fontWeight: "800", fontSize: mobileFontSize.lg },
   secondaryBtn: {
-    backgroundColor: merchantColors.cardBg,
     paddingVertical: 14,
     paddingHorizontal: mobileSpacing.lg,
-    borderRadius: merchantRadius.button,
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: merchantColors.primary
+    borderWidth: 1.5
   },
   secondaryBtnTx: {
-    color: merchantColors.primary,
     fontWeight: "800",
     fontSize: mobileFontSize.md
   },
   btnDisabled: { opacity: 0.55 },
   acceptReturnBtn: {
     marginTop: 10,
-    backgroundColor: merchantColors.primary,
-    borderRadius: merchantRadius.button,
     paddingVertical: 12,
     alignItems: "center"
   },
-  acceptReturnBtnTx: { color: mobileColors.background, fontWeight: "800" },
+  acceptReturnBtnTx: { fontWeight: "800" },
   disputeBox: {
-    backgroundColor: producerColors.kpiAmberSoft,
-    borderRadius: merchantRadius.card,
     padding: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: producerColors.warning,
     gap: 6
   },
-  disputeTitle: { fontWeight: "800", color: merchantColors.amberText },
-  disputeReason: { color: merchantColors.amberTextDeep },
+  disputeTitle: { fontWeight: "800" },
+  disputeReason: {},
   disputeBtn: {
     paddingVertical: 14,
-    borderRadius: merchantRadius.button,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: merchantColors.danger,
     backgroundColor: "transparent"
   },
-  disputeBtnTx: { color: merchantColors.danger, fontWeight: "800" }
+  disputeBtnTx: { fontWeight: "800" }
 });

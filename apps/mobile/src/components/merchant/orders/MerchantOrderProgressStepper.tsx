@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-  merchantOrderPalette,
   OrderTrackingStepper,
+  type OrderPalette,
   type OrderTrackingStep
 } from "../../orders";
+import { useOrderPalette } from "../../../hooks/useOrderPalette";
 import type { MerchantOrderDto } from "../../../lib/api";
 import {
   ORDER_PROGRESS_STEPS,
@@ -24,9 +25,12 @@ function stampForStep(order: MerchantOrderDto, key: OrderProgressStepKey) {
 
 type Props = {
   order: MerchantOrderDto;
+  palette?: OrderPalette;
 };
 
-export function MerchantOrderProgressStepper({ order }: Props) {
+export function MerchantOrderProgressStepper({ order, palette }: Props) {
+  const rolePalette = useOrderPalette();
+  const resolved = palette ?? rolePalette;
   const steps: OrderTrackingStep[] = ORDER_PROGRESS_STEPS.map((step) => ({
     key: step.key,
     labelKey: `merchant.orders.progress.${step.key}`,
@@ -52,7 +56,7 @@ export function MerchantOrderProgressStepper({ order }: Props) {
       activeIndex={activeIndex}
       completedThroughIndex={completedThroughIndex}
       completedIcon="step"
-      palette={merchantOrderPalette}
+      palette={resolved}
     />
   );
 }

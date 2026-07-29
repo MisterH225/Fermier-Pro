@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
 import {
-  merchantOrderPalette,
   OrderActivityFeed,
-  type OrderActivityEvent as OrderActivityFeedEvent
+  type OrderActivityEvent as OrderActivityFeedEvent,
+  type OrderPalette
 } from "../../orders";
+import { useOrderPalette } from "../../../hooks/useOrderPalette";
 import {
   buildOrderActivityEvents,
   type OrderActivityEvent
@@ -12,6 +13,7 @@ import type { MerchantOrderDto } from "../../../lib/api";
 
 type Props = {
   order: MerchantOrderDto;
+  palette?: OrderPalette;
 };
 
 function activityMessage(
@@ -29,8 +31,10 @@ function activityMessage(
   });
 }
 
-export function MerchantOrderActivitySheet({ order }: Props) {
+export function MerchantOrderActivitySheet({ order, palette }: Props) {
   const { t } = useTranslation();
+  const rolePalette = useOrderPalette();
+  const resolved = palette ?? rolePalette;
   const events: OrderActivityFeedEvent[] = buildOrderActivityEvents(order).map(
     (event) => ({
       at: event.at,
@@ -44,7 +48,7 @@ export function MerchantOrderActivitySheet({ order }: Props) {
       events={events}
       titleKey="merchant.orders.activity.title"
       emptyLabelKey="merchant.orders.activity.empty"
-      palette={merchantOrderPalette}
+      palette={resolved}
     />
   );
 }

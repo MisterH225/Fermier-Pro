@@ -32,7 +32,8 @@ import { openProducerOffersHub } from "../../lib/producerMarketplacePending";
 import { mobileRadius, mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { OrderCard } from "./OrderCard";
-import { ordersPalette, type OrderPalette } from "./orderTheme";
+import { type OrderPalette } from "./orderTheme";
+import { useOrderPalette } from "../../hooks/useOrderPalette";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 
 const SEGMENTS: OrdersHubUiSegment[] = [
@@ -57,10 +58,12 @@ export function OrdersHubView({
   role,
   initialSegment,
   legacyInitialTab,
-  palette = ordersPalette,
+  palette: paletteProp,
   contentContainerStyle,
   showReviewsLink = false
 }: Props) {
+  const rolePalette = useOrderPalette();
+  const palette = paletteProp ?? rolePalette;
   const { t } = useTranslation();
   const scrollPad = useScrollBottomPad();
   const navigation =
