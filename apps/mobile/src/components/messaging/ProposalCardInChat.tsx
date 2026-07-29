@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatFarmMoney, formatPricePerKg } from "../../lib/formatMoney";
 import type { MarketplaceOfferChatPayload } from "../../lib/marketplaceOfferMessage";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -31,6 +32,7 @@ function statusLabel(status: string): string {
 export function ProposalCardInChat({ payload, isMine }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const palette = useRolePalette();
 
   const priceLine =
     payload.proposedPricePerKg != null
@@ -54,10 +56,17 @@ export function ProposalCardInChat({ payload, isMine }: Props) {
 
   return (
     <Pressable
-      style={[styles.wrap, isMine ? styles.wrapMine : styles.wrapOther]}
+      style={[
+        styles.wrap,
+        isMine
+          ? [styles.wrapMine, { borderColor: palette.primary }]
+          : styles.wrapOther
+      ]}
       onPress={openProposals}
     >
-      <Text style={styles.badge}>Proposition commerciale</Text>
+      <Text style={[styles.badge, { color: palette.primary }]}>
+        Proposition commerciale
+      </Text>
       <Text style={styles.title} numberOfLines={2}>
         {payload.listingTitle}
       </Text>
@@ -72,7 +81,7 @@ export function ProposalCardInChat({ payload, isMine }: Props) {
       ) : null}
       <View style={styles.footer}>
         <Text style={styles.status}>{statusLabel(payload.status)}</Text>
-        <Text style={styles.link}>{linkLabel}</Text>
+        <Text style={[styles.link, { color: palette.primary }]}>{linkLabel}</Text>
       </View>
     </Pressable>
   );
@@ -88,8 +97,7 @@ const styles = StyleSheet.create({
   },
   wrapMine: {
     alignSelf: "flex-end",
-    backgroundColor: mobileStatusSurfaces.positiveBg,
-    borderColor: mobileColors.accent
+    backgroundColor: mobileStatusSurfaces.positiveBg
   },
   wrapOther: {
     alignSelf: "flex-start",
@@ -100,7 +108,6 @@ const styles = StyleSheet.create({
     ...mobileTypography.meta,
     fontSize: mobileFontSize.xs,
     fontWeight: "700",
-    color: mobileColors.accent,
     textTransform: "uppercase",
     letterSpacing: 0.3,
     marginBottom: 6
@@ -142,7 +149,6 @@ const styles = StyleSheet.create({
   },
   link: {
     ...mobileTypography.meta,
-    fontWeight: "700",
-    color: mobileColors.accent
+    fontWeight: "700"
   }
 });

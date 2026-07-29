@@ -6,6 +6,7 @@ import {
   type StyleProp,
   type ViewStyle
 } from "react-native";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
@@ -23,12 +24,18 @@ export function SecondaryButton({
   disabled = false,
   style
 }: Props) {
+  const palette = useRolePalette();
   return (
     <Pressable
       style={({ pressed }) => [
         styles.btn,
+        {
+          borderColor: palette.primary,
+          backgroundColor: pressed && !disabled && !loading
+            ? palette.primaryLight
+            : mobileColors.background
+        },
         (loading || disabled) && styles.btnDisabled,
-        pressed && !disabled && !loading && styles.btnPressed,
         style
       ]}
       onPress={onPress}
@@ -36,9 +43,9 @@ export function SecondaryButton({
       accessibilityRole="button"
     >
       {loading ? (
-        <ActivityIndicator color={mobileColors.accent} />
+        <ActivityIndicator color={palette.primary} />
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: palette.primary }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -49,16 +56,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: mobileRadius.pill,
     borderWidth: 1.5,
-    borderColor: mobileColors.accent,
-    backgroundColor: mobileColors.background,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: mobileSpacing.xl
   },
-  btnPressed: { opacity: 0.9, backgroundColor: mobileColors.accentSoft },
   btnDisabled: { opacity: 0.55 },
   label: {
-    color: mobileColors.accent,
     fontSize: mobileFontSize.lg,
     fontWeight: "700"
   }

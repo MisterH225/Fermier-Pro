@@ -268,7 +268,7 @@ export function MerchantProductDetailScreen({ route }: Props) {
   if (q.isLoading || !product) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator color={mobileColors.accent} />
+        <ActivityIndicator color={merchantColors.primary} />
       </View>
     );
   }

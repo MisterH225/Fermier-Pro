@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { mobileColors, mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
-import { producerColors } from "../../theme/producerTheme";
+import { merchantColors } from "../../theme/merchantTheme";
+import { mobileRadius, mobileSpacing } from "../../theme/mobileTheme";
 
 type Props = {
   variant: "shop" | "product";
@@ -27,12 +27,12 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.md,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
-    backgroundColor: producerColors.kpiAmberSoft,
+    backgroundColor: merchantColors.warnBannerBg,
     borderWidth: 1,
-    borderColor: producerColors.warning
+    borderColor: merchantColors.warning
   },
   text: {
-    color: mobileColors.textPrimary,
+    color: merchantColors.textPrimary,
     fontWeight: "600"
   }
 });

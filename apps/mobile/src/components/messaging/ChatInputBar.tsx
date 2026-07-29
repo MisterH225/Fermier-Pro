@@ -20,6 +20,7 @@ import {
   type PhoneWarningVariant
 } from "../chat/PhoneWarningBanner";
 import { containsPhone } from "../../services/chat/PhoneNumberDetector";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type PendingImage = {
@@ -60,6 +61,7 @@ export function ChatInputBar({
   imageAnalyzingMessage = "Vérification sécurité…",
   externalWarning = null
 }: Props) {
+  const palette = useRolePalette();
   const [realtimePhone, setRealtimePhone] = useState(false);
   const [hideRealtimeTimer, setHideRealtimeTimer] = useState<ReturnType<
     typeof setTimeout
@@ -230,6 +232,7 @@ export function ChatInputBar({
         <Pressable
           style={[
             styles.sendBtn,
+            { backgroundColor: palette.primary },
             !(canSendText || canSendImage) && styles.sendBtnDisabled
           ]}
           onPress={() => void handleSend()}
@@ -279,7 +282,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: mobileRadius.xl,
-    backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center"
   },

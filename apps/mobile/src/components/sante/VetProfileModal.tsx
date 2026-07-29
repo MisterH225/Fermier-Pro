@@ -13,7 +13,7 @@ import { openPhoneCall } from "../../lib/phone";
 import { ensureDirectChatRoom, fetchVetPublicProfile } from "../../lib/api";
 import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
-import { producerColors } from "../../theme/producerTheme";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
@@ -46,6 +46,7 @@ export function VetProfileModal({
 }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const palette = useRolePalette();
   const isCollaboration = variant === "collaboration";
 
   const q = useQuery({
@@ -91,39 +92,48 @@ export function VetProfileModal({
             {isCollaboration ? (
               <>
                 <Pressable
-                  style={styles.btnPrimary}
+                  style={[styles.btnPrimary, { backgroundColor: palette.primary }]}
                   onPress={() => chatMutation.mutate()}
                   disabled={chatMutation.isPending}
                 >
                   {chatMutation.isPending ? (
-                    <ActivityIndicator size="small" color={mobileColors.onAccent} />
+                    <ActivityIndicator size="small" color={palette.onPrimary} />
                   ) : (
-                    <Text style={styles.btnPrimaryTx}>
+                    <Text style={[styles.btnPrimaryTx, { color: palette.onPrimary }]}>
                       {t("collab.directory.message")}
                     </Text>
                   )}
                 </Pressable>
                 {onInvite ? (
                   <Pressable
-                    style={styles.btnSecondary}
+                    style={[
+                      styles.btnSecondary,
+                      { borderColor: palette.primary }
+                    ]}
                     onPress={() => {
                       onInvite(profile.userId, profile.fullName);
                       onClose();
                     }}
                   >
-                    <Text style={styles.btnSecondaryTx}>
+                    <Text style={[styles.btnSecondaryTx, { color: palette.primary }]}>
                       {t("collab.directory.invite")}
                     </Text>
                   </Pressable>
                 ) : null}
-                <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
-                  <Text style={styles.btnSecondaryTx}>
+                <Pressable
+                  style={[styles.btnSecondary, { borderColor: palette.primary }]}
+                  onPress={onPlanVisit}
+                >
+                  <Text style={[styles.btnSecondaryTx, { color: palette.primary }]}>
                     📅 {t("health.vetSearch.planVisit")}
                   </Text>
                 </Pressable>
                 {profile.canContact ? (
-                  <Pressable style={styles.btnSecondary} onPress={onCall}>
-                    <Text style={styles.btnSecondaryTx}>
+                  <Pressable
+                    style={[styles.btnSecondary, { borderColor: palette.primary }]}
+                    onPress={onCall}
+                  >
+                    <Text style={[styles.btnSecondaryTx, { color: palette.primary }]}>
                       📞 {t("health.vetSearch.call")}
                     </Text>
                   </Pressable>
@@ -131,33 +141,44 @@ export function VetProfileModal({
               </>
             ) : (
               <>
-                <Pressable style={styles.btnSecondary} onPress={onPlanVisit}>
-                  <Text style={styles.btnSecondaryTx}>
+                <Pressable
+                  style={[styles.btnSecondary, { borderColor: palette.primary }]}
+                  onPress={onPlanVisit}
+                >
+                  <Text style={[styles.btnSecondaryTx, { color: palette.primary }]}>
                     📅 {t("health.vetSearch.planVisit")}
                   </Text>
                 </Pressable>
                 {profile.canContact ? (
                   <View style={styles.contactRow}>
                     <Pressable
-                      style={[styles.btnPrimary, styles.btnHalf]}
+                      style={[
+                        styles.btnPrimary,
+                        styles.btnHalf,
+                        { backgroundColor: palette.primary }
+                      ]}
                       onPress={onCall}
                     >
-                      <Text style={styles.btnPrimaryTx}>
+                      <Text style={[styles.btnPrimaryTx, { color: palette.onPrimary }]}>
                         📞 {t("health.vetSearch.call")}
                       </Text>
                     </Pressable>
                     <Pressable
-                      style={[styles.btnSecondary, styles.btnHalf]}
+                      style={[
+                        styles.btnSecondary,
+                        styles.btnHalf,
+                        { borderColor: palette.primary }
+                      ]}
                       onPress={() => chatMutation.mutate()}
                       disabled={chatMutation.isPending}
                     >
                       {chatMutation.isPending ? (
                         <ActivityIndicator
                           size="small"
-                          color={mobileColors.accent}
+                          color={palette.primary}
                         />
                       ) : (
-                        <Text style={styles.btnSecondaryTx}>
+                        <Text style={[styles.btnSecondaryTx, { color: palette.primary }]}>
                           💬 {t("health.vetSearch.message")}
                         </Text>
                       )}
@@ -171,7 +192,7 @@ export function VetProfileModal({
       }
     >
       {q.isPending ? (
-        <ActivityIndicator color={mobileColors.accent} />
+        <ActivityIndicator color={palette.primary} />
       ) : q.error ? (
         <Text style={styles.err}>{(q.error as Error).message}</Text>
       ) : profile ? (
@@ -294,7 +315,7 @@ const styles = StyleSheet.create({
   err: { color: mobileColors.error },
   reviews: { marginTop: mobileSpacing.sm, gap: mobileSpacing.sm },
   reviewRow: { gap: 2 },
-  reviewScore: { color: producerColors.warning, fontWeight: "700", fontSize: mobileFontSize.md },
+  reviewScore: { color: mobileColors.warning, fontWeight: "700", fontSize: mobileFontSize.md },
   reviewComment: { ...mobileTypography.meta, color: mobileColors.textSecondary },
   reviewTags: { ...mobileTypography.meta, fontSize: mobileFontSize.xs, color: mobileColors.textSecondary },
   actions: { gap: mobileSpacing.sm },
@@ -304,18 +325,16 @@ const styles = StyleSheet.create({
   },
   btnHalf: { flex: 1 },
   btnPrimary: {
-    backgroundColor: mobileColors.accent,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  btnPrimaryTx: { color: mobileColors.onAccent, fontWeight: "700" },
+  btnPrimaryTx: { fontWeight: "700" },
   btnSecondary: {
     borderWidth: 1,
-    borderColor: mobileColors.accent,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md,
     alignItems: "center"
   },
-  btnSecondaryTx: { color: mobileColors.accent, fontWeight: "700" }
+  btnSecondaryTx: { fontWeight: "700" }
 });

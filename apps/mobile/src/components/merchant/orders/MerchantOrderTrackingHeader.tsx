@@ -3,30 +3,34 @@ import * as Clipboard from "expo-clipboard";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  merchantOrderPalette,
-  merchantWarningOrderPalette,
   OrderStatusBadge,
+  warningOrderPalette,
+  type OrderPalette,
   type OrderStatusTone
 } from "../../orders";
+import { useOrderPalette } from "../../../hooks/useOrderPalette";
 import {
   orderStatusBadgeTone,
   shortOrderTrackingId
 } from "../../../lib/merchantOrderTracking";
-import { merchantColors } from "../../../theme/merchantTheme";
 import { mobileRadius, mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   orderId: string;
   status: string;
   statusLabel: string;
+  palette?: OrderPalette;
 };
 
 export function MerchantOrderTrackingHeader({
   orderId,
   status,
-  statusLabel
+  statusLabel,
+  palette
 }: Props) {
   const { t } = useTranslation();
+  const rolePalette = useOrderPalette();
+  const base = palette ?? rolePalette;
   const trackingId = shortOrderTrackingId(orderId);
   const legacyTone = orderStatusBadgeTone(status);
   const tone: OrderStatusTone =
@@ -37,10 +41,8 @@ export function MerchantOrderTrackingHeader({
         : legacyTone === "warning"
           ? "danger"
           : legacyTone;
-  const palette =
-    legacyTone === "warning"
-      ? merchantWarningOrderPalette
-      : merchantOrderPalette;
+  const resolved =
+    legacyTone === "warning" ? warningOrderPalette(base) : base;
 
   const onCopy = async () => {
     await Clipboard.setStringAsync(trackingId);
@@ -50,13 +52,20 @@ export function MerchantOrderTrackingHeader({
   return (
     <View style={styles.row}>
       <View style={styles.left}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="cube-outline" size={20} color={merchantColors.primary} />
+        <View
+          style={[styles.iconWrap, { backgroundColor: resolved.primaryLight }]}
+        >
+          <Ionicons name="cube-outline" size={20} color={resolved.primary} />
         </View>
         <View style={styles.idBlock}>
-          <Text style={styles.label}>{t("merchant.orders.tracking.label")}</Text>
+          <Text style={[styles.label, { color: resolved.textSecondary }]}>
+            {t("merchant.orders.tracking.label")}
+          </Text>
           <View style={styles.idRow}>
-            <Text style={styles.id} numberOfLines={1}>
+            <Text
+              style={[styles.id, { color: resolved.textPrimary }]}
+              numberOfLines={1}
+            >
               {trackingId}
             </Text>
             <Pressable
@@ -68,7 +77,7 @@ export function MerchantOrderTrackingHeader({
               <Ionicons
                 name="copy-outline"
                 size={16}
-                color={merchantColors.textSecondary}
+                color={resolved.textSecondary}
               />
             </Pressable>
           </View>
@@ -78,7 +87,7 @@ export function MerchantOrderTrackingHeader({
         labelKey={statusLabel}
         label={statusLabel}
         tone={tone}
-        palette={palette}
+        palette={resolved}
       />
     </View>
   );
@@ -96,21 +105,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: mobileRadius.md,
-    backgroundColor: merchantColors.primaryLight,
     alignItems: "center",
     justifyContent: "center"
   },
   idBlock: { flex: 1, gap: 2 },
   label: {
     fontSize: mobileFontSize.sm,
-    fontWeight: "600",
-    color: merchantColors.textSecondary
+    fontWeight: "600"
   },
   idRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   id: {
     fontSize: mobileFontSize.lg,
     fontWeight: "800",
-    color: merchantColors.textPrimary,
     flexShrink: 1
-  },
+  }
 });

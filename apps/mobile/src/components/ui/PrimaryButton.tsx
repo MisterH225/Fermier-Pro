@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
+import { useRolePalette } from "../../hooks/useRolePalette";
+import { mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 
 type PrimaryButtonProps = {
   label: string;
@@ -14,17 +15,22 @@ export function PrimaryButton({
   loading = false,
   disabled = false
 }: PrimaryButtonProps) {
+  const palette = useRolePalette();
   return (
     <TouchableOpacity
-      style={[styles.btn, (loading || disabled) && styles.btnDisabled]}
+      style={[
+        styles.btn,
+        { backgroundColor: palette.primary },
+        (loading || disabled) && styles.btnDisabled
+      ]}
       onPress={onPress}
       disabled={loading || disabled}
       activeOpacity={0.9}
     >
       {loading ? (
-        <ActivityIndicator color={mobileColors.onAccent} />
+        <ActivityIndicator color={palette.onPrimary} />
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: palette.onPrimary }]}>{label}</Text>
       )}
     </TouchableOpacity>
   );
@@ -34,7 +40,6 @@ const styles = StyleSheet.create({
   btn: {
     minHeight: 48,
     borderRadius: mobileRadius.pill,
-    backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: mobileSpacing.xl
@@ -43,7 +48,6 @@ const styles = StyleSheet.create({
     opacity: 0.55
   },
   label: {
-    color: mobileColors.onAccent,
     fontSize: mobileFontSize.lg,
     fontWeight: "700"
   }

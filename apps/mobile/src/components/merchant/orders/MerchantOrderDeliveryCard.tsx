@@ -2,22 +2,25 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import {
-  merchantOrderPalette,
   OrderInfoCard,
-  type OrderInfoRow
+  type OrderInfoRow,
+  type OrderPalette
 } from "../../orders";
+import { useOrderPalette } from "../../../hooks/useOrderPalette";
 import type { MerchantOrderDto } from "../../../lib/api";
 import { formatMarketMoney } from "../../../lib/formatMoney";
-import { merchantColors } from "../../../theme/merchantTheme";
 import { mobileFontSize } from "../../../theme/mobileTheme";
 
 type Props = {
   order: MerchantOrderDto;
   isSeller: boolean;
+  palette?: OrderPalette;
 };
 
-export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
+export function MerchantOrderDeliveryCard({ order, isSeller, palette }: Props) {
   const { t } = useTranslation();
+  const rolePalette = useOrderPalette();
+  const resolved = palette ?? rolePalette;
   const counterparty = isSeller
     ? (order.buyerName ?? t("merchant.orders.buyer"))
     : (order.sellerName ?? t("merchant.orders.seller"));
@@ -77,14 +80,16 @@ export function MerchantOrderDeliveryCard({ order, isSeller }: Props) {
       titleKey="merchant.orders.deliveryDetails.title"
       icon="bicycle-outline"
       rows={rows}
-      palette={merchantOrderPalette}
+      palette={resolved}
     >
       {order.dispute ? (
         <View style={styles.noteRow}>
-          <Text style={styles.label}>{t("merchant.orders.deliveryDetails.note")}</Text>
+          <Text style={[styles.label, { color: resolved.textSecondary }]}>
+            {t("merchant.orders.deliveryDetails.note")}
+          </Text>
           <View style={styles.noteValue}>
-            <Ionicons name="warning" size={14} color={merchantColors.danger} />
-            <Text style={styles.noteTx} numberOfLines={3}>
+            <Ionicons name="warning" size={14} color={resolved.danger} />
+            <Text style={[styles.noteTx, { color: resolved.danger }]} numberOfLines={3}>
               {order.dispute.reason || t("merchant.orders.disputeOpen")}
             </Text>
           </View>
@@ -99,7 +104,6 @@ const styles = StyleSheet.create({
     fontSize: mobileFontSize.sm,
     lineHeight: 16,
     fontWeight: "500",
-    color: merchantColors.textSecondary,
     flexShrink: 0
   },
   noteRow: {
@@ -119,7 +123,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "right",
     fontWeight: "700",
-    fontSize: mobileFontSize.sm,
-    color: merchantColors.danger
+    fontSize: mobileFontSize.sm
   }
 });

@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ChatListingSummary } from "../../lib/api";
 import { ListingImage } from "../marketplace/ListingImage";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function ListingContextBanner({ listing }: Props) {
+  const palette = useRolePalette();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -41,7 +43,7 @@ export function ListingContextBanner({ listing }: Props) {
           {listing.title}
         </Text>
         {priceLabel ? (
-          <Text style={styles.meta} numberOfLines={1}>
+          <Text style={[styles.meta, { color: palette.primary }]} numberOfLines={1}>
             {priceLabel}
           </Text>
         ) : null}
@@ -82,7 +84,6 @@ const styles = StyleSheet.create({
   },
   meta: {
     ...mobileTypography.meta,
-    color: mobileColors.accent,
     fontSize: mobileFontSize.sm,
     marginTop: 2
   },

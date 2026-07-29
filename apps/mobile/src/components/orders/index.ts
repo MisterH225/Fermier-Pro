@@ -11,8 +11,13 @@ export type { OrderStatusTone } from "./OrderStatusBadge";
 export { OrderTrackingStepper } from "./OrderTrackingStepper";
 export type { OrderTrackingStep } from "./OrderTrackingStepper";
 export {
+  buyerOrderPalette,
   merchantOrderPalette,
   merchantWarningOrderPalette,
-  ordersPalette
+  orderPaletteForProfileType,
+  ordersPalette,
+  technicianOrderPalette,
+  vetOrderPalette,
+  warningOrderPalette
 } from "./orderTheme";
 export type { OrderPalette } from "./orderTheme";

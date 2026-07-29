@@ -30,7 +30,6 @@ import { welcomeFirstName } from "../../lib/userDisplay";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
-import { producerColors } from "../../theme/producerTheme";
 
 export function MerchantDashboardScreen() {
   const { t } = useTranslation();
@@ -270,11 +269,11 @@ const styles = StyleSheet.create({
   kpiValue: { fontSize: mobileFontSize.xl, fontWeight: "800" },
   kpiLabel: { ...mobileTypography.meta, textAlign: "center", marginTop: 4 },
   alertCard: {
-    backgroundColor: producerColors.kpiAmberSoft,
+    backgroundColor: merchantColors.warnBannerBg,
     borderRadius: merchantRadius.card,
     padding: mobileSpacing.md,
     borderWidth: 1,
-    borderColor: producerColors.warning,
+    borderColor: merchantColors.warning,
     gap: 6
   },
   alertLine: { color: merchantColors.amberText, fontWeight: "600" },

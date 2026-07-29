@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 type Props = {
@@ -13,8 +14,10 @@ export function ConversationSearchBar({
   value,
   onChangeText,
   placeholder = "Rechercher une conversation…",
-  accentColor = mobileColors.accent
+  accentColor
 }: Props) {
+  const palette = useRolePalette();
+  const accent = accentColor ?? palette.primary;
   return (
     <View style={styles.wrap}>
       <Ionicons name="search" size={18} color={mobileColors.textSecondary} />
@@ -36,7 +39,7 @@ export function ConversationSearchBar({
           accessibilityRole="button"
           accessibilityLabel="Effacer la recherche"
         >
-          <Ionicons name="close-circle" size={18} color={accentColor} />
+          <Ionicons name="close-circle" size={18} color={accent} />
         </Pressable>
       ) : null}
     </View>

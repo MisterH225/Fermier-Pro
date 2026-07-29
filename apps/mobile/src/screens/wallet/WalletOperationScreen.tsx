@@ -17,6 +17,7 @@ import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { fetchUserWallet } from "../../lib/api";
 import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import type { RootStackParamList } from "../../types/navigation";
 
 type Route = RouteProp<RootStackParamList, "WalletOperation">;
@@ -24,6 +25,7 @@ type Route = RouteProp<RootStackParamList, "WalletOperation">;
 export function WalletOperationScreen() {
   const route = useRoute<Route>();
   const bottomInset = useBottomInset();
+  const palette = useRolePalette();
   const { accessToken } = useSession();
   const operation = route.params.operation;
 
@@ -51,7 +53,7 @@ export function WalletOperationScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {walletQ.isLoading ? (
-              <ActivityIndicator color={mobileColors.accent} />
+              <ActivityIndicator color={palette.primary} />
             ) : wallet ? (
               <WalletOperationsCard
                 balance={wallet.balance}

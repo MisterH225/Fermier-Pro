@@ -8,6 +8,7 @@ import {
   chatRoomListingPill,
   chatRoomTitle
 } from "../../lib/messaging/chatRoomDisplay";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 export type ConversationRowProps = {
@@ -25,6 +26,7 @@ export function ConversationRow({
   contextPill,
   unreadCount = 0
 }: ConversationRowProps) {
+  const palette = useRolePalette();
   const title = chatRoomTitle(room, myUserId);
   const preview = chatRoomLastPreview(room);
   const time = chatRoomLastTime(room);
@@ -36,14 +38,16 @@ export function ConversationRow({
     <Pressable
       style={({ pressed }) => [
         styles.row,
-        unread && styles.rowUnread,
+        unread && { backgroundColor: palette.primaryLight },
         pressed && { opacity: 0.92 }
       ]}
       onPress={onPress}
     >
       <View style={styles.avatarWrap}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarTx}>{chatRoomInitials(title)}</Text>
+        <View style={[styles.avatar, { backgroundColor: palette.primaryLight }]}>
+          <Text style={[styles.avatarTx, { color: palette.primary }]}>
+            {chatRoomInitials(title)}
+          </Text>
         </View>
         <View style={styles.avatarBadge}>
           <Text style={styles.avatarBadgeTx}>🐷</Text>
@@ -71,7 +75,7 @@ export function ConversationRow({
         </Text>
       </View>
       {unread ? (
-        <View style={styles.unreadBadge}>
+        <View style={[styles.unreadBadge, { backgroundColor: palette.primary }]}>
           <Text style={styles.unreadBadgeTx}>
             {badgeCount > 99 ? "99+" : String(badgeCount)}
           </Text>
@@ -97,9 +101,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileSpacing.lg,
     ...mobileShadows.card
   },
-  rowUnread: {
-    backgroundColor: mobileColors.accentSoft
-  },
   avatarWrap: {
     position: "relative",
     width: 48,
@@ -109,14 +110,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: mobileRadius.xl,
-    backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarTx: {
     fontWeight: "800",
     fontSize: mobileFontSize.lg,
-    color: mobileColors.accent
   },
   avatarBadge: {
     position: "absolute",
@@ -174,7 +173,6 @@ const styles = StyleSheet.create({
     height: 22,
     paddingHorizontal: 6,
     borderRadius: mobileRadius.md,
-    backgroundColor: mobileColors.accent,
     alignItems: "center",
     justifyContent: "center"
   },

@@ -14,7 +14,7 @@ import {
   mobileTypography
 } from "../../theme/mobileTheme";
 import { BuyerMeteoSheet } from "./BuyerMeteoSheet";
-import { producerColors } from "../../theme/producerTheme";
+import { buyerColors } from "../../theme/buyerTheme";
 import { marketplaceColors } from "../../theme/marketplaceTheme";
 
 type Props = {
@@ -54,7 +54,7 @@ export function BuyerMeteoBadge({ meteo, compact = true }: Props) {
   if (blocked) {
     label = t("marketScreen.meteoBuyer.suspended");
     color = mobileColors.error;
-    bg = producerColors.kpiRose;
+    bg = buyerColors.kpiRose;
     border = mobileColors.error + "55";
     icon = "⛔";
   } else if (isNew) {

@@ -17,11 +17,11 @@ import { WalletScreenShell } from "../../components/wallet/WalletScreenShell";
 import { ModuleFeatureGate } from "../../components/ModuleFeatureGate";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import {
   fetchUserWallet,
   fetchUserWalletEntries
 } from "../../lib/api";
-import { buyerColors } from "../../theme/buyerTheme";
 import {
   mobileColors,
   mobileFontSize,
@@ -33,7 +33,7 @@ import type { RootStackParamList } from "../../types/navigation";
 
 function walletVariantForProfile(
   profileType: string | undefined
-): "buyer" | "producer" | "vet" | "tech" {
+): "buyer" | "producer" | "vet" | "tech" | "merchant" {
   switch (profileType) {
     case "buyer":
       return "buyer";
@@ -41,6 +41,8 @@ function walletVariantForProfile(
       return "vet";
     case "technician":
       return "tech";
+    case "merchant":
+      return "merchant";
     default:
       return "producer";
   }
@@ -49,6 +51,7 @@ function walletVariantForProfile(
 export function UserWalletScreen() {
   const { t } = useTranslation();
   const bottomInset = useBottomInset();
+  const palette = useRolePalette();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, authMe, activeProfileId } = useSession();
@@ -96,13 +99,19 @@ export function UserWalletScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => void onRefresh()}
-              tintColor={buyerColors.primary}
+              tintColor={palette.primary}
             />
           }
         >
           {needsPhone ? (
             <Pressable
-              style={styles.phoneBanner}
+              style={[
+                styles.phoneBanner,
+                {
+                  backgroundColor: palette.primaryLight,
+                  borderColor: palette.primary
+                }
+              ]}
               onPress={() => navigation.navigate("AddPhone")}
               accessibilityRole="button"
               accessibilityLabel={t("addPhone.walletBanner")}
@@ -110,7 +119,9 @@ export function UserWalletScreen() {
               <Text style={styles.phoneBannerText}>
                 {t("addPhone.walletBanner")}
               </Text>
-              <Text style={styles.phoneBannerChevron}>›</Text>
+              <Text style={[styles.phoneBannerChevron, { color: palette.primary }]}>
+                ›
+              </Text>
             </Pressable>
           ) : null}
 
@@ -118,7 +129,7 @@ export function UserWalletScreen() {
             <WalletDashboardCard variant={walletVariant} hideDetailsLink />
           ) : null}
 
-          <WalletHistoryList />
+          <WalletHistoryList accentColor={palette.primary} />
         </ScrollView>
       </WalletScreenShell>
     </ModuleFeatureGate>
@@ -133,10 +144,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: mobileSpacing.sm,
-    backgroundColor: mobileColors.accentSoft,
     borderRadius: mobileRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.accent,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.md
   },
@@ -149,7 +158,6 @@ const styles = StyleSheet.create({
   },
   phoneBannerChevron: {
     fontSize: mobileFontSize.xl,
-    color: mobileColors.accent,
     fontWeight: "700"
   }
 });

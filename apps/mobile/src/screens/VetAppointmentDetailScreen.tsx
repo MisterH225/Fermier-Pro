@@ -46,7 +46,7 @@ import {
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
-import { producerColors } from "../theme/producerTheme";
+import { useRolePalette } from "../hooks/useRolePalette";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VetAppointmentDetail">;
 
@@ -88,12 +88,12 @@ function conflictStatusLabel(
 
 function conflictBadgeStyle(status?: string | null) {
   if (status === "CONFLICT_EXACT") {
-    return { bg: mobileStatusSurfaces.errorBg, color: producerColors.dangerStrong };
+    return { bg: mobileStatusSurfaces.errorBg, color: mobileColors.error };
   }
   if (status === "CONFLICT_NEARBY") {
-    return { bg: producerColors.kpiAmberSoft, color: producerColors.warningDeep };
+    return { bg: mobileStatusSurfaces.warningBg, color: mobileStatusSurfaces.warningText };
   }
-  return { bg: mobileStatusSurfaces.successBg, color: producerColors.successDeep };
+  return { bg: mobileStatusSurfaces.successBg, color: mobileStatusSurfaces.successText };
 }
 
 function formatWhen(iso: string | null | undefined, locale: string): string {
@@ -125,6 +125,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   const locale = i18n.language === "en" ? "en-US" : "fr-FR";
   const { accessToken, activeProfileId, authMe, clientFeatures, platformFees } =
     useSession();
+  const palette = useRolePalette();
   const qc = useQueryClient();
   const myId = authMe?.user?.id;
 
@@ -512,7 +513,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   if (q.isPending && appointmentId) {
     return (
       <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
-        <ActivityIndicator color={mobileColors.accent} style={{ marginTop: 32 }} />
+        <ActivityIndicator color={palette.primary} style={{ marginTop: 32 }} />
       </MobileAppShell>
     );
   }
@@ -543,7 +544,7 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
   return (
     <MobileAppShell title={t("vet.appointment.title")} hideTopBar>
       <ScrollView contentContainerStyle={[styles.wrap, { paddingBottom: bottomInset }]}>
-        <Text style={styles.status}>
+        <Text style={[styles.status, { color: palette.primary }]}>
           {appt.status === "VISIT_PROPOSED" && isVet
             ? t("vet.appointment.awaitingProducerResponse")
             : appointmentStatusLabel(appt.status, t)}
@@ -602,7 +603,9 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             <>
               <Text style={styles.label}>{t("vet.appointment.vet")}</Text>
               <Pressable onPress={() => setVetProfileOpen(true)}>
-                <Text style={styles.vetLink}>{appt.vetName} →</Text>
+                <Text style={[styles.vetLink, { color: palette.primary }]}>
+                  {appt.vetName} →
+                </Text>
               </Pressable>
             </>
           ) : null}
@@ -616,14 +619,14 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
 
           {appt.isFree ? (
             <View style={styles.freeBadge}>
-              <Text style={styles.freeBadgeTx}>
+              <Text style={[styles.freeBadgeTx, { color: mobileStatusSurfaces.successText }]}>
                 {t("vet.appointment.freeBadge")}
               </Text>
             </View>
           ) : appt.servicePrice != null ? (
             <>
               <Text style={styles.label}>{t("vet.appointment.price")}</Text>
-              <Text style={styles.price}>
+              <Text style={[styles.price, { color: palette.primary }]}>
                 {money(appt.servicePrice, appt.currency, locale)}
               </Text>
             </>
@@ -779,12 +782,12 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             <Text style={styles.hint}>{t("vet.appointment.proposalHint")}</Text>
             {appt.isFree ? (
               <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeTx}>
+                <Text style={[styles.freeBadgeTx, { color: mobileStatusSurfaces.successText }]}>
                   {t("vet.appointment.freeBadge")}
                 </Text>
               </View>
             ) : (
-              <Text style={styles.price}>
+              <Text style={[styles.price, { color: palette.primary }]}>
                 {money(appt.servicePrice ?? 0, appt.currency, locale)}
               </Text>
             )}
@@ -823,12 +826,12 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             <Text style={styles.sectionTitle}>
               {t("vet.appointment.paymentRecapTitle")}
             </Text>
-            <Text style={styles.price}>
+            <Text style={[styles.price, { color: palette.primary }]}>
               {money(appt.servicePrice ?? payAmount, appt.currency, locale)}
             </Text>
             <Text style={styles.hint}>{t("vet.appointment.paymentHint")}</Text>
             {deadline ? (
-              <Text style={styles.deadline}>
+              <Text style={[styles.deadline, { color: mobileStatusSurfaces.warningText }]}>
                 {t("vet.appointment.paymentDeadline", { time: deadline })}
               </Text>
             ) : null}
@@ -1021,7 +1024,12 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
             <View style={styles.stars}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <Pressable key={n} onPress={() => setRating(n)} accessibilityRole="button">
-                  <Text style={[styles.star, rating >= n && styles.starOn]}>
+                  <Text
+                    style={[
+                      styles.star,
+                      rating >= n && { color: mobileColors.warning }
+                    ]}
+                  >
                     {rating >= n ? "★" : "☆"}
                   </Text>
                 </Pressable>
@@ -1033,7 +1041,13 @@ export function VetAppointmentDetailScreen({ route, navigation }: Props) {
                 return (
                   <Pressable
                     key={tagKey}
-                    style={[styles.tag, on && styles.tagOn]}
+                    style={[
+                      styles.tag,
+                      on && {
+                        backgroundColor: palette.primary,
+                        borderColor: palette.primary
+                      }
+                    ]}
                     onPress={() =>
                       setSelectedTags((prev) =>
                         on
@@ -1106,7 +1120,6 @@ const styles = StyleSheet.create({
   status: {
     ...mobileTypography.meta,
     fontWeight: "700",
-    color: mobileColors.accent,
     textTransform: "uppercase"
   },
   badge: {
@@ -1129,11 +1142,10 @@ const styles = StyleSheet.create({
   },
   value: { ...mobileTypography.body, fontWeight: "600" },
   meta: { ...mobileTypography.meta, color: mobileColors.textSecondary },
-  price: { ...mobileTypography.title, color: mobileColors.accent },
+  price: { ...mobileTypography.title },
   vetLink: {
     ...mobileTypography.body,
     fontWeight: "700",
-    color: mobileColors.accent,
     textDecorationLine: "underline"
   },
   freeBadge: {
@@ -1144,11 +1156,11 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.sm,
     backgroundColor: mobileStatusSurfaces.successBg
   },
-  freeBadgeTx: { fontSize: mobileFontSize.sm, fontWeight: "700", color: producerColors.successDeep },
+  freeBadgeTx: { fontSize: mobileFontSize.sm, fontWeight: "700" },
   section: { gap: mobileSpacing.sm },
   sectionTitle: { ...mobileTypography.title, fontSize: mobileFontSize.lg },
   hint: { ...mobileTypography.body, color: mobileColors.textSecondary, lineHeight: 22 },
-  deadline: { ...mobileTypography.meta, fontWeight: "700", color: producerColors.warningDeep },
+  deadline: { ...mobileTypography.meta, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
@@ -1160,7 +1172,6 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 80, textAlignVertical: "top" },
   stars: { flexDirection: "row", gap: 8 },
   star: { fontSize: mobileFontSize.xxl, color: mobileColors.border },
-  starOn: { color: producerColors.warning },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tag: {
     paddingHorizontal: 10,
@@ -1169,7 +1180,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: mobileColors.border
   },
-  tagOn: { backgroundColor: mobileColors.accent, borderColor: mobileColors.accent },
   tagTx: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary },
   tagTxOn: { color: mobileColors.onAccent, fontWeight: "600" }
 });

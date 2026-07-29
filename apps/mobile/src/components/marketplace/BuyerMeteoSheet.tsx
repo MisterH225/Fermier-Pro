@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { METEO_LEVELS } from "../../constants/meteoProfil";
 import type { BuyerMeteoDto } from "../../lib/api";
+import { buyerColors } from "../../theme/buyerTheme";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { BaseModal } from "../modals/BaseModal";
 
@@ -88,9 +89,9 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.surfaceMuted
   },
   levelRowActive: {
-    backgroundColor: mobileColors.accentSoft,
+    backgroundColor: buyerColors.primaryLight,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: mobileColors.accent
+    borderColor: buyerColors.primary
   },
   levelIcon: { fontSize: mobileFontSize.xl },
   levelTexts: { flex: 1, gap: 1 },
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: mobileColors.textPrimary
   },
-  levelTitleActive: { color: mobileColors.accent },
+  levelTitleActive: { color: buyerColors.primary },
   levelMeta: {
     ...mobileTypography.meta,
     color: mobileColors.textSecondary
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   currentTag: {
     ...mobileTypography.meta,
     fontWeight: "700",
-    color: mobileColors.accent
+    color: buyerColors.primary
   },
   stats: {
     ...mobileTypography.body,

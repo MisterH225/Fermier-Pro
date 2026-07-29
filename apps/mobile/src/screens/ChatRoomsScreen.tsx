@@ -15,6 +15,7 @@ import { ConversationRow } from "../components/messaging/ConversationRow";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { useChatRoomsQuery } from "../hooks/useChatRoomsQuery";
 import { useSession } from "../context/SessionContext";
+import { useRolePalette } from "../hooks/useRolePalette";
 import { chatRoomTitle } from "../lib/messaging/chatRoomDisplay";
 import { mobileColors, mobileHeaderButtonOnDark } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
@@ -26,6 +27,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const bottomInset = useBottomInset();
   const { authMe } = useSession();
+  const palette = useRolePalette();
   const myUserId = authMe?.user.id;
   const roomsQuery = useChatRoomsQuery("chatRooms");
 
@@ -52,7 +54,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
       <View style={styles.wrap}>
         {roomsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={mobileColors.accent} />
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         ) : roomsQuery.error ? (
           <View style={styles.centered}>
@@ -73,7 +75,7 @@ export function ChatRoomsScreen({ navigation }: Props) {
               <RefreshControl
                 refreshing={roomsQuery.isRefetching}
                 onRefresh={() => void roomsQuery.refetch()}
-                tintColor={mobileColors.accent}
+                tintColor={palette.primary}
               />
             }
             ListEmptyComponent={

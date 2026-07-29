@@ -1,4 +1,8 @@
+import type { ProfileType } from "@fermier/types";
+import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
+import { techColors, techRadius, techShadow } from "../../theme/technicianTheme";
+import { vetColors, vetRadius, vetShadow } from "../../theme/vetTheme";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 import {
   mobileColors,
@@ -23,6 +27,7 @@ export type OrderPalette = {
   nodeIdle: string;
   activityHandle: string;
   onPrimary: string;
+  canvas: string;
   radius: {
     card: number;
     button: number;
@@ -41,13 +46,33 @@ export type OrderPalette = {
   };
 };
 
-/** Palette neutre par défaut pour le hub transversal « Mes commandes ». */
+const semanticBadges = {
+  active: {
+    background: mobileStatusSurfaces.infoBg,
+    foreground: mobileStatusSurfaces.infoText
+  },
+  success: {
+    background: mobileStatusSurfaces.successBg,
+    foreground: mobileStatusSurfaces.successText
+  },
+  danger: {
+    background: mobileStatusSurfaces.errorBg,
+    foreground: mobileColors.error
+  },
+  neutral: {
+    background: uiNamedColors.cF3F4F6,
+    foreground: uiNamedColors.c374151
+  }
+} as const;
+
+/** Palette neutre / producteur pour le hub transversal « Mes commandes ». */
 export const ordersPalette: OrderPalette = {
   primary: mobileColors.accent,
   primarySoft: uiNamedColors.c68B978,
   primaryLight: mobileColors.accentSoft,
   primaryDark: uiNamedColors.c1F7A32,
   cardBg: mobileColors.background,
+  canvas: mobileColors.background,
   textPrimary: mobileColors.textPrimary,
   textSecondary: mobileColors.textSecondary,
   textMuted: uiNamedColors.c9CA3AF,
@@ -72,19 +97,39 @@ export const ordersPalette: OrderPalette = {
       background: mobileStatusSurfaces.warningBg,
       foreground: mobileStatusSurfaces.warningText
     },
-    active: {
-      background: mobileStatusSurfaces.infoBg,
-      foreground: mobileStatusSurfaces.infoText
+    ...semanticBadges
+  }
+};
+
+export const buyerOrderPalette: OrderPalette = {
+  primary: buyerColors.primary,
+  primarySoft: buyerColors.primarySoft,
+  primaryLight: buyerColors.primaryLight,
+  primaryDark: buyerColors.primaryDark,
+  cardBg: buyerColors.cardBg,
+  canvas: buyerColors.canvas,
+  textPrimary: buyerColors.textPrimary,
+  textSecondary: buyerColors.textSecondary,
+  textMuted: buyerColors.textMuted,
+  warning: buyerColors.warning,
+  danger: buyerColors.danger,
+  border: buyerColors.border,
+  railIdle: "rgba(124, 58, 237, 0.18)",
+  nodeIdle: buyerColors.primaryLight,
+  activityHandle: "rgba(124, 58, 237, 0.22)",
+  onPrimary: buyerColors.onPrimary,
+  radius: buyerRadius,
+  shadow: buyerShadow,
+  badges: {
+    pending: {
+      background: buyerColors.primaryLight,
+      foreground: buyerColors.primaryDark
     },
-    success: {
-      background: mobileStatusSurfaces.successBg,
-      foreground: mobileStatusSurfaces.successText
-    },
+    ...semanticBadges,
     danger: {
-      background: mobileStatusSurfaces.errorBg,
-      foreground: mobileColors.error
-    },
-    neutral: { background: uiNamedColors.cF3F4F6, foreground: uiNamedColors.c374151 }
+      background: buyerColors.kpiRose,
+      foreground: buyerColors.danger
+    }
   }
 };
 
@@ -95,6 +140,7 @@ export const merchantOrderPalette: OrderPalette = {
   primaryLight: merchantColors.primaryLight,
   primaryDark: merchantColors.primaryDark,
   cardBg: merchantColors.cardBg,
+  canvas: merchantColors.canvas,
   textPrimary: merchantColors.textPrimary,
   textSecondary: merchantColors.textSecondary,
   textMuted: merchantColors.textMuted,
@@ -119,11 +165,103 @@ export const merchantOrderPalette: OrderPalette = {
   }
 };
 
-/** Variante réservée au badge « litige » jaune historique. */
-export const merchantWarningOrderPalette: OrderPalette = {
-  ...merchantOrderPalette,
+export const vetOrderPalette: OrderPalette = {
+  primary: vetColors.primary,
+  primarySoft: vetColors.primarySoft,
+  primaryLight: vetColors.primaryLight,
+  primaryDark: vetColors.primaryDark,
+  cardBg: vetColors.cardBg,
+  canvas: vetColors.canvas,
+  textPrimary: vetColors.textPrimary,
+  textSecondary: vetColors.textSecondary,
+  textMuted: vetColors.textMuted,
+  warning: vetColors.warning,
+  danger: vetColors.danger,
+  border: vetColors.border,
+  railIdle: "rgba(43, 127, 255, 0.18)",
+  nodeIdle: vetColors.primaryLight,
+  activityHandle: "rgba(43, 127, 255, 0.22)",
+  onPrimary: vetColors.onPrimary,
+  radius: {
+    card: vetRadius.card,
+    button: vetRadius.button,
+    pill: vetRadius.pill
+  },
+  shadow: vetShadow,
   badges: {
-    ...merchantOrderPalette.badges,
-    danger: { background: uiNamedColors.cFEF3C7, foreground: uiNamedColors.c92400E }
+    pending: {
+      background: vetColors.primaryLight,
+      foreground: vetColors.primaryDark
+    },
+    ...semanticBadges,
+    danger: {
+      background: vetColors.kpiRose,
+      foreground: vetColors.danger
+    }
   }
 };
+
+export const technicianOrderPalette: OrderPalette = {
+  primary: techColors.primary,
+  primarySoft: techColors.primarySoft,
+  primaryLight: techColors.primaryLight,
+  primaryDark: techColors.primaryDark,
+  cardBg: techColors.cardBg,
+  canvas: techColors.canvas,
+  textPrimary: techColors.textPrimary,
+  textSecondary: techColors.textSecondary,
+  textMuted: techColors.textMuted,
+  warning: techColors.warning,
+  danger: techColors.danger,
+  border: techColors.border,
+  railIdle: "rgba(255, 107, 53, 0.2)",
+  nodeIdle: techColors.primaryLight,
+  activityHandle: "rgba(255, 107, 53, 0.25)",
+  onPrimary: techColors.onPrimary,
+  radius: techRadius,
+  shadow: techShadow,
+  badges: {
+    pending: {
+      background: techColors.primaryLight,
+      foreground: techColors.primary
+    },
+    ...semanticBadges
+  }
+};
+
+/** Variante badge « problème » ambre (sémantique, indépendante de la marque). */
+export function warningOrderPalette(base: OrderPalette): OrderPalette {
+  return {
+    ...base,
+    badges: {
+      ...base.badges,
+      danger: {
+        background: uiNamedColors.cFEF3C7,
+        foreground: uiNamedColors.c92400E
+      }
+    }
+  };
+}
+
+/** @deprecated préférer warningOrderPalette(base) */
+export const merchantWarningOrderPalette: OrderPalette =
+  warningOrderPalette(merchantOrderPalette);
+
+/** Palette commande alignée sur le profil actif. */
+export function orderPaletteForProfileType(
+  type: string | null | undefined
+): OrderPalette {
+  switch (type as ProfileType | undefined) {
+    case "buyer":
+      return buyerOrderPalette;
+    case "merchant":
+      return merchantOrderPalette;
+    case "veterinarian":
+      return vetOrderPalette;
+    case "technician":
+      return technicianOrderPalette;
+    case "producer":
+    default:
+      return ordersPalette;
+  }
+}
