@@ -9,6 +9,7 @@ export { ProfileCompletionGauge } from "./ProfileCompletionGauge";
 export { EmptyStateCard } from "./EmptyStateCard";
 export { SurfaceCard } from "./SurfaceCard";
 export { StatusBadge } from "./StatusBadge";
+export { DashboardPeriodPills } from "./DashboardPeriodPills";
 export {
   buyerPalette,
   vetPalette,

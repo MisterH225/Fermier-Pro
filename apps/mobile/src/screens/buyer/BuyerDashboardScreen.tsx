@@ -9,32 +9,34 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   View
 } from "react-native";
 import { PendingInvitationsBanner } from "../../components/collaboration/PendingInvitationsBanner";
 import { PigPriceIndex } from "../../components/market/PigPriceIndex";
-import { BuyerActiveProposalsSection } from "../../components/buyer/BuyerActiveProposalsSection";
+import { BuyerCreditDuesSection } from "../../components/buyer/BuyerCreditDuesSection";
 import { BuyerPendingMarketplaceBanner } from "../../components/buyer/BuyerPendingMarketplaceBanner";
+import { BuyerProposalsBreakdownCard } from "../../components/buyer/BuyerProposalsBreakdownCard";
+import { BuyerPurchasesPeriodCard } from "../../components/buyer/BuyerPurchasesPeriodCard";
 import { BuyerWelcomeHeader } from "../../components/buyer/BuyerWelcomeHeader";
 import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard";
 import { NotificationsHeaderButton } from "../../components/notifications/NotificationsHeaderButton";
 import { ShopOrdersTrackingCard } from "../../components/notifications/ShopOrdersTrackingCard";
 import { SupportHeaderButton } from "../../components/support/SupportHeaderButton";
-import {
-  profileScreenScrollContent,
-  ScreenSection
-} from "../../components/layout";
+import { profileScreenScrollContent } from "../../components/layout";
 import { BuyerMobileShell } from "../../components/layout/BuyerMobileShell";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchBuyerDashboard } from "../../lib/api";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
-import { mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
-import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
+import { mobileSpacing } from "../../theme/mobileTheme";
+import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
+/**
+ * Dashboard acheteur — structure calquée sur le producteur :
+ * bannières → propositions → wallet → achats (période) → crédits → raccourcis.
+ */
 export function BuyerDashboardScreen() {
   const { t } = useTranslation();
   const navigation =
@@ -68,7 +70,6 @@ export function BuyerDashboardScreen() {
 
   const displayName =
     welcomeFirstName(authMe?.user ?? null) ?? t("buyer.dashboard.defaultName");
-  const kpis = dashQ.data?.kpis;
 
   const dashboardHeader: ReactNode = (
     <View style={styles.heroBar}>
@@ -107,14 +108,17 @@ export function BuyerDashboardScreen() {
           </Pressable>
         </View>
       </View>
+      {accessToken ? <WalletDashboardCard variant="buyer" /> : null}
     </View>
   );
 
   return (
     <BuyerMobileShell customHeader={dashboardHeader} omitBottomTabBar>
       <ScrollView
+        testID="buyer-dashboard-screen"
         contentContainerStyle={[
           profileScreenScrollContent,
+          styles.wrap,
           { paddingBottom: bottomInset }
         ]}
         refreshControl={
@@ -132,36 +136,19 @@ export function BuyerDashboardScreen() {
           backgroundColor={buyerColors.primaryLight}
         />
 
-        {/* 1) Action requise */}
-        <BuyerActiveProposalsSection />
+        <BuyerProposalsBreakdownCard
+          proposals={dashQ.data?.proposals}
+          isLoading={dashQ.isPending}
+        />
 
-        {/* 2) Portefeuille */}
-        <WalletDashboardCard variant="buyer" />
+        <BuyerPurchasesPeriodCard
+          purchases={dashQ.data?.purchases}
+          isLoading={dashQ.isPending}
+        />
 
-        {/* 3) Index prix porc */}
+        <BuyerCreditDuesSection creditDues={dashQ.data?.creditDues} />
+
         <PigPriceIndex />
-
-        {/* 4) Duo KPI info (non cliquables) */}
-        <ScreenSection title={t("buyer.dashboard.sectionStats")} plain>
-          <View style={styles.duo}>
-            <View style={[styles.infoCard, buyerShadow.card]}>
-              <Text style={styles.infoValue}>
-                {kpis?.purchasesCount ?? 0}
-              </Text>
-              <Text style={styles.infoLabel}>
-                {t("buyer.kpi.purchasesInProgress")}
-              </Text>
-            </View>
-            <View style={[styles.infoCard, buyerShadow.card]}>
-              <Text style={styles.infoValue}>
-                {kpis?.pendingProposals ?? 0}
-              </Text>
-              <Text style={styles.infoLabel}>
-                {t("buyer.kpi.proposalsSent")}
-              </Text>
-            </View>
-          </View>
-        </ScreenSection>
       </ScrollView>
     </BuyerMobileShell>
   );
@@ -195,27 +182,7 @@ const styles = StyleSheet.create({
   heroIconBtnPressed: {
     opacity: 0.85
   },
-  duo: {
-    flexDirection: "row",
-    gap: 10
-  },
-  infoCard: {
-    flex: 1,
-    backgroundColor: buyerColors.cardBg,
-    borderRadius: buyerRadius.card,
-    padding: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: buyerColors.border
-  },
-  infoValue: {
-    fontSize: mobileFontSize.xl,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-    color: buyerColors.primary
-  },
-  infoLabel: {
-    ...mobileTypography.meta,
-    color: buyerColors.textSecondary,
-    marginTop: 2
+  wrap: {
+    gap: mobileSpacing.lg
   }
 });

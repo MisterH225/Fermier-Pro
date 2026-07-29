@@ -20,6 +20,7 @@ import {
 } from "../app-events/profile-completion-bucket.util";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
+import { loadBuyerDashboardExtras } from "./buyer-dashboard.extras";
 import type { CreateBuyerPriceAlertDto } from "./dto/create-price-alert.dto";
 import type { UpdateBuyerPriceAlertDto } from "./dto/update-price-alert.dto";
 import type { UpsertBuyerProfileDto } from "./dto/upsert-buyer-profile.dto";
@@ -147,7 +148,8 @@ export class BuyerProfilesService {
       completedPurchases,
       activeAlerts,
       favoritesCount,
-      walletSummary
+      walletSummary,
+      extras
     ] = await Promise.all([
       this.prisma.marketplaceOffer.count({
         where: {
@@ -184,7 +186,8 @@ export class BuyerProfilesService {
             })
           ]).then(([listings, products]) => listings + products)
         : Promise.resolve(0),
-      this.userWallet.getSummary(user.id)
+      this.userWallet.getSummary(user.id),
+      loadBuyerDashboardExtras(this.prisma, user.id)
     ]);
 
     return {
@@ -210,7 +213,10 @@ export class BuyerProfilesService {
         favoritesCount,
         activeAlerts
       },
-      wallet: walletSummary
+      wallet: walletSummary,
+      proposals: extras.proposals,
+      purchases: extras.purchases,
+      creditDues: extras.creditDues
     };
   }
 
