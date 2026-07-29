@@ -1,6 +1,7 @@
 import { Webhook } from "standardwebhooks";
 import {
   buildOtpSmsMessage,
+  resolveSendSmsDestinationPhone,
   verifySupabaseSendSmsHook
 } from "./supabase-send-sms-webhook.util";
 
@@ -35,5 +36,34 @@ describe("supabase-send-sms-webhook.util", () => {
     });
     expect(result.sms.otp).toBe("654321");
     expect(result.user.phone).toBe("+2250708123456");
+  });
+
+  describe("resolveSendSmsDestinationPhone", () => {
+    it("préfère sms.phone quand user.phone est une chaîne vide", () => {
+      expect(
+        resolveSendSmsDestinationPhone({
+          user: { phone: "" },
+          sms: { phone: "+2250708123456" }
+        })
+      ).toBe("+2250708123456");
+    });
+
+    it("retombe sur user.phone si sms.phone est absent", () => {
+      expect(
+        resolveSendSmsDestinationPhone({
+          user: { phone: "+2250708000000" },
+          sms: {}
+        })
+      ).toBe("+2250708000000");
+    });
+
+    it("renvoie vide si les deux sont vides", () => {
+      expect(
+        resolveSendSmsDestinationPhone({
+          user: { phone: "" },
+          sms: { phone: "" }
+        })
+      ).toBe("");
+    });
   });
 });

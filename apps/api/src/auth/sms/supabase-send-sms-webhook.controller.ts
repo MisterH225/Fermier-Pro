@@ -16,6 +16,7 @@ import {
 } from "./supabase-hook-response.util";
 import {
   buildOtpSmsMessage,
+  resolveSendSmsDestinationPhone,
   verifySupabaseSendSmsHook
 } from "./supabase-send-sms-webhook.util";
 import { YellikaSmsSendError } from "./yellika-sms.errors";
@@ -65,7 +66,7 @@ export class SupabaseSendSmsWebhookController {
       );
     }
 
-    const phone = (event.user?.phone ?? event.sms?.phone ?? "").trim();
+    const phone = resolveSendSmsDestinationPhone(event);
     const otp = event.sms?.otp?.trim();
     if (!phone) {
       return supabaseHookError("Numéro de téléphone manquant dans le webhook", 400);

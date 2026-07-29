@@ -190,6 +190,19 @@ export function patchAuthProfile(
   );
 }
 
+/** POST /api/v1/auth/me/phone/check — pré-contrôle avant ajout/changement OTP. */
+export function checkPhoneAvailability(
+  accessToken: string,
+  phone: string
+): Promise<{ ok: true; phone: string; mode: "add" | "change" }> {
+  return apiPostJson<{ ok: true; phone: string; mode: "add" | "change" }>(
+    "/auth/me/phone/check",
+    { phone },
+    accessToken,
+    null
+  );
+}
+
 /** Type d'un message admin (modération, info, avertissement). */
 export type AdminMessageTypeDto = "notification" | "warning" | "info";
 

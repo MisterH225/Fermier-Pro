@@ -3,6 +3,7 @@ export { VetSearchScreen } from "../../screens/VetSearchScreen";
 export { ProducerScheduleVetVisitScreen } from "../../screens/ProducerScheduleVetVisitScreen";
 export { VetAppointmentDetailScreen } from "../../screens/VetAppointmentDetailScreen";
 export { AccountScreen } from "../../screens/AccountScreen";
+export { AddPhoneScreen } from "../../screens/AddPhoneScreen";
 export { SupportScreen } from "../../screens/SupportScreen";
 export { DeleteAccountProcessScreen } from "../../screens/DeleteAccountProcessScreen";
 export { DeleteAccountCompleteScreen } from "../../screens/DeleteAccountCompleteScreen";

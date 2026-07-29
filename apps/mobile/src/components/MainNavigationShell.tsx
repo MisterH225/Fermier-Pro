@@ -29,6 +29,7 @@ import { VetBottomChromeProvider } from "../context/VetBottomChromeContext";
 import {
   AcceptFarmInvitationScreen,
   AccountScreen,
+  AddPhoneScreen,
   DeleteAccountCompleteScreen,
   DeleteAccountProcessScreen,
   AddVetConsultationAttachmentScreen,
@@ -431,6 +432,11 @@ function MainStack() {
         name="Account"
         component={AccountScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AddPhone"
+        component={AddPhoneScreen}
+        options={{ title: st("addPhone") }}
       />
       <Stack.Screen
         name="DeleteAccountProcess"
