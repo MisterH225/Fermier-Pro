@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (f2f0e6b) — dossier véto enrichi #251",
-  "updatedAt": "2026-07-21T01:56Z",
+  "message": "OTA preview (ad51cad0) — dashboard + finance acheteur + fix commandes À agir #272 #273 #274",
+  "updatedAt": "2026-07-29T12:55Z",
   "channels": ["preview"],
-  "updateGroupId": "33dbc0b1-b630-4e99-ba9d-945ff4391b8b",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/33dbc0b1-b630-4e99-ba9d-945ff4391b8b"
+  "updateGroupId": "4dbbd050-dc8b-4e1d-a65a-a9c4aef7c08a",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/4dbbd050-dc8b-4e1d-a65a-a9c4aef7c08a"
 }

@@ -1,3 +1,4 @@
+# Dernière release OTA preview : 2026-07-29T12:55Z — dashboard + finance acheteur + fix commandes À agir #272 #273 #274
 # Dernière release OTA preview : 2026-07-21T01:56Z — dossier véto enrichi (vet-summary + onglets) #251
 # Dernière release OTA preview : 2026-07-20T23:36Z — FAB véto + clavier params acheteur/véto #246 #247
 # Dernière release OTA preview : 2026-07-20T15:37Z — nettoyage A (code mort + perf buyerMeteo) #239
