@@ -1,3 +1,4 @@
+# Dernière release OTA preview : 2026-07-29T15:19Z — trust score #279 + i18n #276
 # Dernière release OTA preview : 2026-07-29T15:17Z — trust score avis croisés + météo explicite #279
 # Dernière release OTA preview : 2026-07-29T13:55Z — palettes par rôle + écrans partagés #277
 # Dernière release OTA preview : 2026-07-29T13:17Z — fix texte brut commandes boutique/marketplace #275

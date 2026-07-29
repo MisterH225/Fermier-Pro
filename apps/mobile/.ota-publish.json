@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (c2a90972) — trust score avis croisés + météo explicite #279",
-  "updatedAt": "2026-07-29T15:17Z",
+  "message": "OTA preview (eed2c08d) — trust score #279 + i18n #276",
+  "updatedAt": "2026-07-29T15:19Z",
   "channels": ["preview"],
-  "updateGroupId": "1bd00d9c-357b-47c6-b996-be26194f25e1",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/1bd00d9c-357b-47c6-b996-be26194f25e1"
+  "updateGroupId": "360712b3-a564-4d6f-8042-b55213ab9ebf",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/360712b3-a564-4d6f-8042-b55213ab9ebf"
 }
