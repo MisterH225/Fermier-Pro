@@ -103,7 +103,7 @@ export function BuyerPersistentTabBar() {
           a11y: t("navigation.extended.settings")
         }
       ];
-      if (clientFeatures.wallet) {
+      if (clientFeatures.marketplace || clientFeatures.wallet) {
         items.splice(1, 0, {
           id: "wallet" as ExtendedNavMenuId,
           label: t("buyer.nav.finance"),
@@ -112,7 +112,7 @@ export function BuyerPersistentTabBar() {
       }
       return items;
     },
-    [t, clientFeatures.wallet]
+    [t, clientFeatures.wallet, clientFeatures.marketplace]
   );
 
   const onExtendedSelect = useCallback(
@@ -123,7 +123,7 @@ export function BuyerPersistentTabBar() {
           navigation.navigate("CommunityFeed");
           return;
         case "wallet":
-          navigation.navigate("UserWallet");
+          navigation.navigate("BuyerFinance");
           return;
         case "reviews":
           navigation.navigate("BuyerHistory", { initialTab: "reviews" });

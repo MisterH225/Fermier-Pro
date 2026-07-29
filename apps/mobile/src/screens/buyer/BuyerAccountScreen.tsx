@@ -612,7 +612,7 @@ export function BuyerAccountScreen() {
             value={walletDisplay}
             empty={wallet == null}
             actionLabel={t("buyer.account.openShort")}
-            onEdit={() => navigation.navigate("UserWallet")}
+            onEdit={() => navigation.navigate("BuyerFinance")}
           />
           <View style={styles.switcherWrap}>
             <ActiveProfileSwitcherControl variant="default" />

@@ -30,6 +30,19 @@ export class BuyerProfilesController {
     return this.svc.dashboard(user);
   }
 
+  @Get("finance/overview")
+  financeOverview(
+    @CurrentUser() user: User,
+    @Query("period") period?: string
+  ) {
+    return this.svc.financeOverview(user, period);
+  }
+
+  @Get("finance/credits")
+  financeCredits(@CurrentUser() user: User) {
+    return this.svc.financeCredits(user);
+  }
+
   @Get("proposals")
   proposals(
     @CurrentUser() user: User,

@@ -185,6 +185,77 @@ export function fetchBuyerDashboard(
     activeProfileId
   );
 }
+
+export type BuyerFinanceSpendCategoryDto = {
+  key: string;
+  amount: number;
+  count: number;
+};
+
+export type BuyerFinanceMonthlyPointDto = {
+  month: string;
+  total: number;
+};
+
+export type BuyerFinanceOverviewDto = {
+  currency: string;
+  period: BuyerDashboardPeriodKey;
+  purchases: BuyerDashboardPurchasesDto;
+  totals: BuyerDashboardPeriodTotals;
+  byCategory: BuyerFinanceSpendCategoryDto[];
+  monthlyEvolution: BuyerFinanceMonthlyPointDto[];
+};
+
+export type BuyerCreditFinanceStatus = "current" | "overdue" | "settled";
+
+export type BuyerCreditSituationItemDto = {
+  offerId: string;
+  transactionId: string | null;
+  sellerName: string;
+  farmName: string | null;
+  listingTitle: string;
+  initialAmount: number;
+  advanceAmount: number;
+  amountDue: number;
+  balanceDueAt: string | null;
+  overdue: boolean;
+  financeStatus: BuyerCreditFinanceStatus;
+  status: string;
+  currency: string;
+};
+
+export type BuyerCreditSituationDto = {
+  totalDue: number;
+  currency: string;
+  open: BuyerDashboardCreditDuesDto;
+  items: BuyerCreditSituationItemDto[];
+};
+
+/** GET /api/v1/buyers/me/finance/overview?period= */
+export function fetchBuyerFinanceOverview(
+  accessToken: string,
+  activeProfileId?: string | null,
+  period: BuyerDashboardPeriodKey = "month"
+): Promise<BuyerFinanceOverviewDto> {
+  const q = new URLSearchParams({ period });
+  return apiGetJson<BuyerFinanceOverviewDto>(
+    `/buyers/me/finance/overview?${q.toString()}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+/** GET /api/v1/buyers/me/finance/credits */
+export function fetchBuyerFinanceCredits(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<BuyerCreditSituationDto> {
+  return apiGetJson<BuyerCreditSituationDto>(
+    "/buyers/me/finance/credits",
+    accessToken,
+    activeProfileId
+  );
+}
 /** GET /api/v1/buyers/me/personalized-listings */
 export function fetchBuyerPersonalizedListings(
   accessToken: string,
