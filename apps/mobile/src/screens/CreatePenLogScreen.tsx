@@ -17,6 +17,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { PenLogTypeDto } from "../lib/api";
 import { createPenLog } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
@@ -38,6 +39,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
   const { farmId, farmName, penId, penLabel } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
   const [logType, setLogType] = useState<PenLogTypeDto>("cleaning");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -89,7 +91,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
       >
         <Text style={styles.penHint}>{penLabel ?? "Loge"}</Text>
 
@@ -150,7 +152,7 @@ export function CreatePenLogScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16 },
   hint: { fontSize: mobileFontSize.sm, color: mobileColors.textSecondary, marginBottom: 4 },
   penHint: {
     fontSize: mobileFontSize.md,

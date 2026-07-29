@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { VetModuleGate } from "../components/VetModuleGate";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { VetConsultationStatusDto } from "../lib/api";
 import { fetchVetConsultations } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
@@ -46,6 +47,7 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { t } = useTranslation();
   const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const scrollPad = useScrollBottomPad();
   const [filter, setFilter] = useState<VetFilterKey>("all");
 
   useScreenTitle(navigation, t("navigation.screenTitles.vetConsultations"), {
@@ -145,9 +147,10 @@ export function FarmVetConsultationsScreen({ route, navigation }: Props) {
       <FlatList
         data={rows}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={
-          rows.length === 0 ? styles.emptyList : styles.list
-        }
+        contentContainerStyle={[
+          rows.length === 0 ? styles.emptyList : styles.list,
+          { paddingBottom: scrollPad }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={q.isRefetching}
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textPrimary,
     fontWeight: "600"
   },
-  list: { padding: 16, paddingTop: 4, paddingBottom: 32 },
+  list: { padding: 16, paddingTop: 4 },
   emptyList: { flexGrow: 1 },
   centered: {
     flex: 1,

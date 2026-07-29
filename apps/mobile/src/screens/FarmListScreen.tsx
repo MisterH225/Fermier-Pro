@@ -28,6 +28,7 @@ import {
   buildFarmListListHeaderRows,
   navigateFarmListQuickNav
 } from "../features/farm-list-menu";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { FarmDto } from "../lib/api";
 import { fetchFarms } from "../lib/api";
 import { farmDetailMenuVisibility } from "../lib/menuVisibility";
@@ -52,6 +53,7 @@ export function FarmListScreen({ navigation }: Props) {
     setActiveProfileId,
     clientFeatures
   } = useSession();
+  const scrollPad = useScrollBottomPad();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const menuFlags = farmDetailMenuVisibility(clientFeatures);
   const headerSecondaryItems = buildFarmListHeaderSecondaryItems(menuFlags, t);
@@ -254,7 +256,7 @@ export function FarmListScreen({ navigation }: Props) {
       <FlatList
         data={farms}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
         ListHeaderComponent={
           <>
             {authMe?.user.fullName ? (
@@ -343,7 +345,6 @@ export function FarmListScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   list: {
     padding: mobileSpacing.lg,
-    paddingBottom: 32,
     backgroundColor: mobileColors.canvas
   },
   listWelcome: {

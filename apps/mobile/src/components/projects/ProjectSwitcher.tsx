@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useActiveProject } from "../../context/ActiveProjectContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import type { ArchiveFarmReason, FarmDto } from "../../lib/api";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { ProjectCard } from "./ProjectCard";
@@ -32,6 +33,7 @@ export function ProjectSwitcher({
   onClose
 }: ProjectSwitcherProps) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const {
     farms,
     activeFarmId,
@@ -138,7 +140,7 @@ export function ProjectSwitcher({
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPad }]}
         showsVerticalScrollIndicator={false}
       >
         {activeFarms.length > 0 && (

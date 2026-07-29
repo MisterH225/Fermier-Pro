@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { FarmInvitationPendingDto, FarmMemberDto } from "../lib/api";
 import {
   fetchFarmMembers,
@@ -39,6 +40,7 @@ export function FarmMembersScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
   const myId = authMe?.user.id;
 
   const canInvite = hasFarmScope(effectiveScopes, "invitations.manage");
@@ -135,7 +137,7 @@ export function FarmMembersScreen({ route, navigation }: Props) {
       <FlatList
         data={members}
         keyExtractor={(m: FarmMemberDto) => m.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: scrollPad }]}
         refreshing={membersQ.isFetching}
         onRefresh={() => void membersQ.refetch()}
         renderItem={({ item: m }: { item: FarmMemberDto }) => {
@@ -211,7 +213,7 @@ const styles = StyleSheet.create({
   },
   inviteTitle: { fontWeight: "700", marginBottom: 6, color: mobileColors.textPrimary },
   inviteLine: { fontSize: mobileFontSize.sm, color: producerColors.oliveInk, marginBottom: 4 },
-  listContent: { padding: 16, paddingBottom: 32 },
+  listContent: { padding: 16 },
   card: {
     backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.lg,

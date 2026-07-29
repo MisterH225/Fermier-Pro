@@ -34,6 +34,7 @@ import {
 } from "../../constants/meteoProfil";
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   fetchBuyerDashboard,
   fetchMyCreditScore,
@@ -118,6 +119,10 @@ export function BuyerAccountScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
+  const modalScrollPad = useScrollBottomPad({
+    includeChrome: false,
+    stickyFooterHeight: 88
+  });
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const qc = useQueryClient();
   const [editModal, setEditModal] = useState<PrefModalKey>(null);
@@ -669,7 +674,10 @@ export function BuyerAccountScreen() {
               </View>
               <ScrollView
                 style={styles.modalScroll}
-                contentContainerStyle={styles.modalScrollContent}
+                contentContainerStyle={[
+                  styles.modalScrollContent,
+                  { paddingBottom: modalScrollPad }
+                ]}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
                 automaticallyAdjustKeyboardInsets
@@ -977,7 +985,7 @@ const styles = StyleSheet.create({
     backgroundColor: buyerColors.primaryLight
   },
   modalScroll: { flexGrow: 0 },
-  modalScrollContent: { paddingBottom: mobileSpacing.sm, gap: mobileSpacing.sm },
+  modalScrollContent: { gap: mobileSpacing.sm },
   fieldLbl: {
     ...mobileTypography.meta,
     color: buyerColors.textSecondary,

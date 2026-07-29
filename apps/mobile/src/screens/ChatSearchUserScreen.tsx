@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   directConversationTitle,
   ensureDirectChatRoom,
@@ -32,6 +33,7 @@ export function ChatSearchUserScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
   const myUserId = authMe?.user.id ?? "";
   const shareListingId = route.params?.shareListingId;
   const shareListingTitle = route.params?.shareListingTitle;
@@ -150,7 +152,7 @@ export function ChatSearchUserScreen({ navigation, route }: Props) {
           <FlatList
             data={rows}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
             keyboardShouldPersistTaps="handled"
             renderItem={renderItem}
           />
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     lineHeight: 18
   },
-  list: { padding: 16, paddingBottom: 32 },
+  list: { padding: 16 },
   centered: {
     flex: 1,
     justifyContent: "center",

@@ -15,6 +15,7 @@ import {
 import { CollaboratorRolePermissionsFields } from "../components/collaboration/CollaboratorRolePermissionsFields";
 import { PhoneInput } from "../components/PhoneInput";
 import { useScreenTitle } from "../hooks/useScreenTitle";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { useSession } from "../context/SessionContext";
 import {
   buildInvitationShareUrl,
@@ -38,6 +39,7 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
   useScreenTitle(navigation, t("navigation.screenTitles.invite"));
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
 
   const [recipientKind, setRecipientKind] =
     useState<InvitationRecipientKind>("technician");
@@ -84,7 +86,7 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
       keyboardShouldPersistTaps="handled"
     >
       <CollaboratorRolePermissionsFields
@@ -134,8 +136,7 @@ export function CreateFarmInvitationScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: mobileColors.background },
   content: {
-    padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl
+    padding: mobileSpacing.lg
   },
   label: {
     ...mobileTypography.meta,

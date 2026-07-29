@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useScreenTitle } from "../hooks/useScreenTitle";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   ActivityIndicator,
   FlatList,
@@ -86,6 +87,7 @@ function FarmBarnsContent({
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const { clientFeatures } = useSession();
+  const scrollPad = useScrollBottomPad();
   const [createOpen, setCreateOpen] = useState(false);
 
   useScreenTitle(navigation, t("navigation.screenTitles.barns"), {
@@ -132,9 +134,10 @@ function FarmBarnsContent({
       <FlatList
         data={barns}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={
-          barns.length === 0 ? styles.emptyList : styles.list
-        }
+        contentContainerStyle={[
+          barns.length === 0 ? styles.emptyList : styles.list,
+          { paddingBottom: scrollPad }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={q.isRefetching}
@@ -186,7 +189,7 @@ function FarmBarnsContent({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
-  list: { padding: mobileSpacing.lg, paddingBottom: 32 },
+  list: { padding: mobileSpacing.lg },
   emptyList: { flexGrow: 1 },
   centered: {
     flex: 1,

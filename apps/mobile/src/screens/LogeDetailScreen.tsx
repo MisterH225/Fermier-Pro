@@ -34,6 +34,7 @@ import { useModal } from "../components/modals/useModal";
 import { EventList, type EventItem } from "../components/lists";
 import { useSession } from "../context/SessionContext";
 import { useCheptelAnimalActions } from "../hooks/useCheptelAnimalActions";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   fetchFarmAnimals,
   fetchPenContents,
@@ -65,6 +66,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
 
   const [filter, setFilter] = useState<AnimalFilter>("all");
   const [avgWeight, setAvgWeight] = useState("");
@@ -269,7 +271,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}>
         <View
           style={[
             styles.infoCard,
@@ -641,7 +643,7 @@ export function LogeDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: mobileColors.canvas },
-  scroll: { padding: mobileSpacing.md, paddingBottom: mobileSpacing.xl },
+  scroll: { padding: mobileSpacing.md },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   infoCard: {
     backgroundColor: mobileColors.background,

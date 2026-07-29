@@ -1,5 +1,6 @@
 import { FlatList, StyleSheet, View } from "react-native";
 import type { FarmTaskDto } from "../../lib/api";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileSpacing } from "../../theme/mobileTheme";
 import { TaskCard } from "./TaskCard";
 
@@ -22,6 +23,8 @@ export function TaskListView({
   embedded = false,
   canToggle = true
 }: Props) {
+  const scrollPad = useScrollBottomPad();
+
   if (embedded) {
     return (
       <View style={styles.embeddedList}>
@@ -43,7 +46,7 @@ export function TaskListView({
     <FlatList
       data={tasks}
       key="list"
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <TaskCard
@@ -60,8 +63,7 @@ export function TaskListView({
 
 const styles = StyleSheet.create({
   list: {
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl
+    paddingHorizontal: mobileSpacing.lg
   },
   embeddedList: {
     gap: mobileSpacing.sm

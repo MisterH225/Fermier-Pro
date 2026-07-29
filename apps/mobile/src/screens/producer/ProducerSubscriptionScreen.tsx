@@ -12,9 +12,10 @@ import {
   Text,
   View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
 import { useBottomChromePad } from "../../hooks/useBottomInset";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   chooseProducerSubscription,
   confirmProducerSubscription,
@@ -54,11 +55,14 @@ function billingPeriodSuffix(
     : t("producer.subscription.periodMonthN", { count: n });
 }
 
+/** Sticky footer CTA block height (matches MerchantSubscriptionScreen). */
+const STICKY_FOOTER_HEIGHT = 88;
+
 export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const bottomChromePad = useBottomChromePad();
   const footerBottomPad = Math.max(bottomChromePad, mobileSpacing.md);
+  const scrollPad = useScrollBottomPad({ stickyFooterHeight: STICKY_FOOTER_HEIGHT });
   const { accessToken, activeProfileId, refreshAuthMe } = useSession();
   const queryClient = useQueryClient();
   const completingRef = useRef(false);
@@ -232,7 +236,7 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}>
         <Pressable style={styles.backBtn} onPress={onCancel}>
           <Ionicons name="arrow-back" size={22} color={mobileColors.textPrimary} />
         </Pressable>
@@ -366,7 +370,7 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.background },
-  scroll: { padding: mobileSpacing.lg, paddingBottom: mobileSpacing.xl },
+  scroll: { padding: mobileSpacing.lg },
   backBtn: { marginBottom: mobileSpacing.md },
   title: { ...mobileTypography.title, color: mobileColors.textPrimary },
   subtitle: {

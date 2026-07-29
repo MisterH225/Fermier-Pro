@@ -16,6 +16,7 @@ import {
   type FarmDetailMenuNavigateRow,
   type FarmDetailMenuPreset
 } from "../features/farm-detail-menu";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { FarmDto } from "../lib/api";
 import { ensureFarmChatRoom, fetchFarm } from "../lib/api";
 import { buildFarmDetailMenu } from "../lib/menuVisibility";
@@ -70,6 +71,7 @@ export function FarmDetailScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
 
   const farmQuery = useQuery({
     queryKey: ["farm", farmId, activeProfileId],
@@ -120,7 +122,10 @@ export function FarmDetailScreen({ route, navigation }: Props) {
   });
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
+    >
       {menuRows
         .filter((row) => row.visible)
         .map((row) => {
@@ -210,8 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.canvas
   },
   content: {
-    padding: 16,
-    paddingBottom: 32
+    padding: 16
   },
   cheptelCta: {
     backgroundColor: mobileColors.accent,

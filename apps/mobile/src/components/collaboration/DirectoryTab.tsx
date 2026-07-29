@@ -16,6 +16,7 @@ import {
 import { VetCard } from "../sante/VetCard";
 import { VetProfileModal } from "../sante/VetProfileModal";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   ensureDirectChatRoom,
   fetchFarm,
@@ -44,6 +45,7 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, activeProfileId } = useSession();
+  const scrollPad = useScrollBottomPad();
 
   const [kind, setKind] = useState<ProfileKind>("technician");
   const [search, setSearch] = useState("");
@@ -226,7 +228,7 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
           keyExtractor={(item) => item.userId}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: scrollPad }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -243,7 +245,7 @@ export function DirectoryTab({ farmId, farmName, canManageInvites }: Props) {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={listEmpty}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: scrollPad }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -339,8 +341,7 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: {
     flexGrow: 1,
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl
+    paddingHorizontal: mobileSpacing.lg
   },
   listHeader: {
     marginBottom: mobileSpacing.sm

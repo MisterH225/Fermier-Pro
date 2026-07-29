@@ -15,6 +15,7 @@ import { CreateLogeModal } from "../components/cheptel/pens/CreateLogeModal";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { TechFarmAccessGate } from "../components/technician/TechFarmAccessGate";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { fetchFarmBarn } from "../lib/api";
 import { resolvePenOccupancy } from "../lib/penOccupancy";
 import { getQueryErrorMessage } from "../lib/userFacingError";
@@ -61,6 +62,7 @@ function BarnDetailContent({
   const { t } = useTranslation();
   const { farmId, farmName, barnId, barnName } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const scrollPad = useScrollBottomPad();
   const [createOpen, setCreateOpen] = useState(false);
 
   const q = useQuery({
@@ -129,9 +131,10 @@ function BarnDetailContent({
       <FlatList
         data={pens}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={
-          pens.length === 0 ? styles.emptyList : styles.list
-        }
+        contentContainerStyle={[
+          pens.length === 0 ? styles.emptyList : styles.list,
+          { paddingBottom: scrollPad }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={q.isRefetching}
@@ -201,7 +204,7 @@ const styles = StyleSheet.create({
     color: producerColors.oliveInk,
     lineHeight: 20
   },
-  list: { padding: 16, paddingBottom: 32 },
+  list: { padding: 16 },
   emptyList: { flexGrow: 1 },
   centered: {
     flex: 1,

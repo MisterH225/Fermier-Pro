@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   fetchMerchantOrder,
   openMerchantOrderDispute,
@@ -30,6 +31,7 @@ export function MerchantOrderDisputeScreen({ route }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId, authMe } = useSession();
+  const scrollPad = useScrollBottomPad();
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
 
@@ -90,7 +92,7 @@ export function MerchantOrderDisputeScreen({ route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}>
         <Text style={styles.title}>{t("merchant.dispute.title")}</Text>
         <Text style={styles.subtitle}>{t("merchant.dispute.subtitle")}</Text>
 

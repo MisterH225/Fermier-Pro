@@ -14,6 +14,7 @@ import { ChatModuleGate } from "../components/ChatModuleGate";
 import { SurfaceCard } from "../components/common/SurfaceCard";
 import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   directConversationTitle,
   ensureDirectChatRoom,
@@ -30,6 +31,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
   const myUserId = authMe?.user.id ?? "";
 
   const membersQuery = useQuery({
@@ -84,7 +86,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
           <FlatList
             data={rows}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
             renderItem={({ item }) => (
               <SurfaceCard
                 palette={producerPalette}
@@ -130,7 +132,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textTertiary,
     lineHeight: 20
   },
-  list: { padding: 16, paddingBottom: 32 },
+  list: { padding: 16 },
   centered: {
     flex: 1,
     justifyContent: "center",

@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { HousingModuleGate } from "../components/HousingModuleGate";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { fetchFarmBarn, fetchFarmBarns, postPenMove } from "../lib/api";
 import { invalidateCheptelCaches, CHEPTEL_PEN_MOVE_ROOTS } from "../lib/cheptelQueries";
 import { resolvePenOccupancy } from "../lib/penOccupancy";
@@ -39,6 +40,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
   } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
   const [selectedBarnId, setSelectedBarnId] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
@@ -136,7 +138,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}>
         <Text style={styles.fromLine}>
           Depuis : {fromPenLabel ?? "Loge"} —{" "}
           {occupantSummary ?? occupantFallback}
@@ -212,7 +214,7 @@ export function PenMoveScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16 },
   centered: {
     flex: 1,
     justifyContent: "center",

@@ -33,6 +33,7 @@ import {
   roundCoerced
 } from "../../lib/coerceNumber";
 import { formatFarmMoney as formatMoney } from "../../lib/formatMoney";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileKpiPalette } from "../../theme/mobileTheme";
 import { producerColors } from "../../theme/producerTheme";
 import { buyerColors } from "../../theme/buyerTheme";
@@ -60,6 +61,7 @@ export function RentabilityScreen({
   currencySymbol
 }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad();
   const [period, setPeriod] = useState<ProfitabilityPeriodKey>("current_month");
   const [viewMode, setViewMode] = useState<ProfitabilityViewMode>("combined");
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export function RentabilityScreen({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={{ paddingBottom: scrollPad }}>
       <ScreenSection title={t("profitability.globalTitle")} plain>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.pillRow}>
@@ -345,7 +347,6 @@ export function RentabilityScreen({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: mobileSpacing.xl },
   loader: { marginTop: mobileSpacing.xl },
   pillRow: { flexDirection: "row", gap: 8, paddingBottom: mobileSpacing.sm },
   pill: {

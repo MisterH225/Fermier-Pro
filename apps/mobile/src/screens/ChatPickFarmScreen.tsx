@@ -14,6 +14,7 @@ import { ChatModuleGate } from "../components/ChatModuleGate";
 import { SurfaceCard } from "../components/common/SurfaceCard";
 import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { fetchFarms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
@@ -24,6 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ChatPickFarm">;
 export function ChatPickFarmScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
+  const scrollPad = useScrollBottomPad();
 
   const farmsQuery = useQuery({
     queryKey: ["farms", activeProfileId],
@@ -68,7 +70,7 @@ export function ChatPickFarmScreen({ navigation }: Props) {
           <FlatList
             data={farms}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
             renderItem={({ item }) => (
               <SurfaceCard
                 palette={producerPalette}
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     lineHeight: 18
   },
-  list: { padding: 16, paddingBottom: 32 },
+  list: { padding: 16 },
   centered: {
     flex: 1,
     justifyContent: "center",

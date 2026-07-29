@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAdminMessagesInbox } from "../../hooks/useAdminMessagesInbox";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { AdminMessageCard } from "./AdminMessageCard";
 
@@ -21,6 +22,7 @@ type Props = {
 
 export function AdminMessagesModal({ visible, onClose }: Props) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { items, isLoading, markRead } = useAdminMessagesInbox(visible);
 
   return (
@@ -46,7 +48,7 @@ export function AdminMessagesModal({ visible, onClose }: Props) {
           </Pressable>
         </View>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
           showsVerticalScrollIndicator={false}
         >
           {isLoading ? (
@@ -101,7 +103,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl,
     gap: mobileSpacing.md
   },
   emptyBox: {

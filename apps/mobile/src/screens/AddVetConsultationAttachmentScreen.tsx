@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { VetModuleGate } from "../components/VetModuleGate";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { addVetConsultationAttachment } from "../lib/api";
 import { getUserFacingError } from "../lib/userFacingError";
 import type { RootStackParamList } from "../types/navigation";
@@ -35,6 +36,7 @@ export function AddVetConsultationAttachmentScreen({
   const { farmId, farmName, consultationId } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
   const [mimeType, setMimeType] = useState("");
@@ -88,7 +90,7 @@ export function AddVetConsultationAttachmentScreen({
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
       >
         <Text style={styles.info}>
           Après avoir déposé la photo ou le PDF sur ton espace de stockage
@@ -145,7 +147,7 @@ export function AddVetConsultationAttachmentScreen({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: mobileColors.canvas },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16 },
   hint: { fontSize: mobileFontSize.sm, color: producerColors.oliveMuted, marginBottom: 8 },
   info: {
     fontSize: mobileFontSize.md,

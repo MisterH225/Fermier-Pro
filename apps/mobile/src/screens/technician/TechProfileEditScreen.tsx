@@ -18,6 +18,7 @@ import {
 import { CardContentSkeleton } from "../../components/common/SkeletonBlocks";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   fetchTechnicianProfile,
   patchAuthProfile,
@@ -61,6 +62,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
   const qc = useQueryClient();
+  const scrollPad = useScrollBottomPad();
 
   const profileQ = useQuery({
     queryKey: ["techProfile", activeProfileId],
@@ -253,7 +255,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
 
   if (profileQ.isPending) {
     return (
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}>
         <View style={styles.avatarSkeleton} />
         <CardContentSkeleton lines={6} />
       </ScrollView>
@@ -261,7 +263,7 @@ export function TechProfileEditScreen({ navigation }: Props) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}>
       {photoSection}
       <Text style={styles.section}>{t("tech.profileEdit.identity")}</Text>
       <TextInput

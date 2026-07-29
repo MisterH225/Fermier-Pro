@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { createProfile, type ProfileTypeChoice } from "../../lib/api";
 import { formatAuthError } from "../../lib/authErrors";
 import { profileTypeIcon } from "../../lib/profileTypeIcon";
@@ -37,6 +38,7 @@ export function ActiveProfileSwitcherModal({
   onClose
 }: ActiveProfileSwitcherModalProps) {
   const { t } = useTranslation();
+  const scrollPad = useScrollBottomPad({ includeChrome: false });
   const { accessToken, authMe, activeProfileId, setActiveProfileId, refreshAuthMe } =
     useSession();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export function ActiveProfileSwitcherModal({
         {error ? <Text style={styles.err}>{error}</Text> : null}
 
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollPad }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.group}>
@@ -274,8 +276,7 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm
   },
   scroll: {
-    paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: mobileSpacing.xxl
+    paddingHorizontal: mobileSpacing.lg
   },
   group: {
     borderRadius: mobileRadius.lg,

@@ -19,6 +19,7 @@ import { AppDatePicker } from "../../common/AppDatePicker";
 import { BaseModal } from "../../modals/BaseModal";
 import { ModalSection } from "../../modals/ModalSection";
 import { useModal } from "../../modals/useModal";
+import { useScrollBottomPad } from "../../../hooks/useScrollBottomPad";
 import type { AnimalListItem, AnimalOriginDto } from "../../../lib/api";
 import {
   fetchFarmAnimal,
@@ -88,6 +89,7 @@ export function AnimalDetailModal({
   const { t } = useTranslation();
   const { open } = useModal();
   const queryClient = useQueryClient();
+  const scrollPad = useScrollBottomPad();
 
   const [breedId, setBreedId] = useState<string | null>(null);
   const [birthDate, setBirthDate] = useState("");
@@ -752,7 +754,7 @@ export function AnimalDetailModal({
     return (
       <ScrollView
         style={styles.pageScroll}
-        contentContainerStyle={styles.pageContent}
+        contentContainerStyle={[styles.pageContent, { paddingBottom: scrollPad }]}
         keyboardShouldPersistTaps="handled"
       >
         {renderFormBody()}
@@ -800,7 +802,6 @@ const styles = StyleSheet.create({
   pageScroll: { flex: 1, backgroundColor: mobileColors.canvas },
   pageContent: {
     padding: mobileSpacing.md,
-    paddingBottom: mobileSpacing.xl,
     gap: mobileSpacing.md
   },
   pageFooter: { marginTop: mobileSpacing.md },

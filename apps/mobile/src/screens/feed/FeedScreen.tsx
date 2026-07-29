@@ -32,6 +32,7 @@ import { checkFeedContentBeforeSend } from "../../services/ai/FeedModerationAgen
 import { appealFeedSanction, getMyFeedStatus } from "../../services/ai/SanctionService";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import { useScreenTitle } from "../../hooks/useScreenTitle";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import type { RootStackParamList } from "../../types/navigation";
 
 const POST_TYPE_LABELS: Record<CommunityFeedPostType, string> = {
@@ -57,6 +58,7 @@ export function FeedScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId } = useSession();
+  const scrollPad = useScrollBottomPad();
   const [composerOpen, setComposerOpen] = useState(false);
   const [body, setBody] = useState("");
   const [postType, setPostType] = useState<CommunityFeedPostType>("question");
@@ -332,7 +334,7 @@ export function FeedScreen() {
             style={styles.listFlex}
             data={Array.isArray(postsQ.data?.items) ? postsQ.data.items : []}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
             renderItem={({ item }) => (
               <FeedPostCard
                 post={item}
@@ -364,7 +366,7 @@ export function FeedScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: mobileSpacing.md, backgroundColor: mobileColors.canvas },
   listFlex: { flex: 1 },
-  list: { paddingBottom: 120, gap: mobileSpacing.md },
+  list: { gap: mobileSpacing.md },
   loader: { marginTop: 24 },
   errorBanner: {
     backgroundColor: mobileStatusSurfaces.errorBg,
