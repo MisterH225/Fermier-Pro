@@ -13,11 +13,9 @@ import {
   View
 } from "react-native";
 import { useSession } from "../../context/SessionContext";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { fetchUserWallet } from "../../lib/api";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
-import { buyerColors } from "../../theme/buyerTheme";
-import { techColors } from "../../theme/technicianTheme";
-import { vetColors } from "../../theme/vetTheme";
 import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import { uiNamedColors } from "../../theme/uiNamedColors";
@@ -26,26 +24,13 @@ const BALANCE_HIDDEN_KEY = "@fermier/wallet_balance_hidden";
 
 type WalletAction = "topup" | "withdraw" | "transfer";
 
-type ProfileVariant = "buyer" | "producer" | "vet" | "tech";
+type ProfileVariant = "buyer" | "producer" | "vet" | "tech" | "merchant";
 
 type Props = {
   variant?: ProfileVariant;
   /** Masque le lien « Voir le portefeuille » (ex. écran historique déjà ouvert). */
   hideDetailsLink?: boolean;
 };
-
-function accentForVariant(variant: ProfileVariant): string {
-  switch (variant) {
-    case "buyer":
-      return buyerColors.primary;
-    case "vet":
-      return vetColors.primary;
-    case "tech":
-      return techColors.primary;
-    default:
-      return mobileColors.accent;
-  }
-}
 
 function splitBalanceDisplay(
   balance: number,
@@ -63,17 +48,17 @@ function splitBalanceDisplay(
 }
 
 export function WalletDashboardCard({
-  variant = "producer",
+  variant: _variant = "producer",
   hideDetailsLink = false
 }: Props) {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken, clientFeatures } = useSession();
+  const palette = useRolePalette();
+  const accent = palette.primary;
   const [balanceHidden, setBalanceHidden] = useState(false);
   const walletEnabled = clientFeatures.wallet;
-
-  const accent = accentForVariant(variant);
 
   const walletQ = useQuery({
     queryKey: ["userWallet"],

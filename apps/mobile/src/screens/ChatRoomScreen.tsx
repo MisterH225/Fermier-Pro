@@ -27,7 +27,7 @@ import { ChatModuleGate } from "../components/ChatModuleGate";
 import { ChatInputBar } from "../components/messaging/ChatInputBar";
 import { ListingContextBanner } from "../components/messaging/ListingContextBanner";
 import { MessageBubble } from "../components/messaging/MessageBubble";
-import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize, mobileStatusSurfaces } from "../theme/mobileTheme";
 import { useSession } from "../context/SessionContext";
 import {
   type ChatSocketConnectionStatus,
@@ -52,7 +52,7 @@ import type { PhoneWarningVariant } from "../components/chat/PhoneWarningBanner"
 import { DirectInviteModal } from "../components/collaboration/DirectInviteModal";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
-import { producerColors } from "../theme/producerTheme";
+import { useRolePalette } from "../hooks/useRolePalette";
 
 const CHAT_PAGE_SIZE = 40;
 
@@ -82,30 +82,30 @@ function liveStripProps(status: ChatSocketConnectionStatus): LiveStrip {
       return {
         kind: "banner",
         label: "Connexion au salon…",
-        bg: producerColors.kpiAmber,
-        fg: producerColors.oliveClosedText
+        bg: mobileStatusSurfaces.warningBg,
+        fg: mobileStatusSurfaces.warningText
       };
     case "connected":
       return {
         kind: "pill",
         label: "Temps réel actif",
-        bg: producerColors.oliveOnlineBg,
-        fg: producerColors.oliveOnlineFg,
-        dot: producerColors.oliveOnlineDot
+        bg: mobileStatusSurfaces.successBg,
+        fg: mobileStatusSurfaces.successText,
+        dot: mobileStatusSurfaces.successText
       };
     case "reconnecting":
       return {
         kind: "banner",
         label: "Reconnexion au salon…",
-        bg: producerColors.kpiAmber,
-        fg: producerColors.oliveClosedText
+        bg: mobileStatusSurfaces.warningBg,
+        fg: mobileStatusSurfaces.warningText
       };
     case "disconnected":
       return {
         kind: "banner",
         label:
           "Flux temps réel interrompu — tirez la liste pour actualiser les messages.",
-        bg: producerColors.oliveNeutralBg,
+        bg: mobileColors.surfaceMuted,
         fg: mobileColors.textTertiary
       };
     case "error":
@@ -113,8 +113,8 @@ function liveStripProps(status: ChatSocketConnectionStatus): LiveStrip {
         kind: "banner",
         label:
           "Impossible d’ouvrir le flux temps réel. Les envois REST fonctionnent toujours.",
-        bg: producerColors.dangerSoftBg,
-        fg: producerColors.dangerDeep
+        bg: mobileStatusSurfaces.errorBg,
+        fg: mobileColors.error
       };
     default:
       return null;
@@ -159,6 +159,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const { accessToken, activeProfileId, authMe, clientFeatures } =
     useSession();
+  const palette = useRolePalette();
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
   const [phoneWarning, setPhoneWarning] = useState<PhoneWarningVariant | null>(
@@ -220,7 +221,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
                 onPress={() => setInviteOpen(true)}
                 style={{ paddingHorizontal: 8 }}
               >
-                <Text style={{ color: mobileColors.accent, fontWeight: "700" }}>
+                <Text style={{ color: palette.primary, fontWeight: "700" }}>
                   Inviter
                 </Text>
               </TouchableOpacity>
@@ -566,7 +567,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         ) : null}
         {messagesQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={mobileColors.accent} />
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         ) : messagesQuery.error ? (
           <View style={styles.centered}>
@@ -597,7 +598,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
               ListHeaderComponent={
                 loadingOlder ? (
                   <View style={styles.loadOlderBanner}>
-                    <ActivityIndicator size="small" color={mobileColors.accent} />
+                    <ActivityIndicator size="small" color={palette.primary} />
                     <Text style={styles.loadOlderText}>Messages plus anciens…</Text>
                   </View>
                 ) : null
@@ -619,13 +620,13 @@ export function ChatRoomScreen({ route, navigation }: Props) {
                       }
                     });
                   }}
-                  tintColor={mobileColors.accent}
+                  tintColor={palette.primary}
                 />
               }
             />
             {pendingBelowCount > 0 ? (
               <TouchableOpacity
-                style={styles.newMessagesFab}
+                style={[styles.newMessagesFab, { backgroundColor: palette.primary }]}
                 onPress={jumpToLatestMessages}
                 activeOpacity={0.88}
                 accessibilityRole="button"
@@ -634,7 +635,7 @@ export function ChatRoomScreen({ route, navigation }: Props) {
                 <Text style={styles.newMessagesFabChevron}>↓</Text>
                 <Text style={styles.newMessagesFabText}>Nouveaux messages</Text>
                 <View style={styles.newMessagesFabBadge}>
-                  <Text style={styles.newMessagesFabBadgeText}>
+                  <Text style={[styles.newMessagesFabBadgeText, { color: palette.primary }]}>
                     {pendingBelowCount > 99 ? "99+" : String(pendingBelowCount)}
                   </Text>
                 </View>
@@ -644,11 +645,13 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         )}
         {effectiveListingId ? (
           <TouchableOpacity
-            style={styles.quickOfferBtn}
+            style={[styles.quickOfferBtn, { backgroundColor: palette.primaryLight }]}
             onPress={openListingProposal}
             activeOpacity={0.88}
           >
-            <Text style={styles.quickOfferBtnText}>Faire une proposition</Text>
+            <Text style={[styles.quickOfferBtnText, { color: palette.primary }]}>
+              Faire une proposition
+            </Text>
           </TouchableOpacity>
         ) : null}
         <ChatInputBar
@@ -711,7 +714,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: producerColors.oliveBorder
+    borderBottomColor: mobileColors.border
   },
   livePillStrip: {
     flexDirection: "row",
@@ -719,7 +722,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: producerColors.oliveBannerBorder,
+    borderBottomColor: mobileColors.border,
     gap: 8
   },
   liveDot: {
@@ -742,7 +745,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24
   },
-  error: { color: producerColors.dangerDeep, textAlign: "center", fontSize: mobileFontSize.md },
+  error: { color: mobileColors.error, textAlign: "center", fontSize: mobileFontSize.md },
   listWrap: { flex: 1, position: "relative" },
   listFlex: { flex: 1 },
   loadOlderBanner: {
@@ -766,7 +769,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: mobileColors.accent,
     paddingVertical: 10,
     paddingHorizontal: 18,
     paddingLeft: 14,
@@ -797,7 +799,6 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   newMessagesFabBadgeText: {
-    color: mobileColors.accent,
     fontSize: mobileFontSize.sm,
     fontWeight: "800"
   },
@@ -823,11 +824,9 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.xs,
     paddingVertical: 10,
     borderRadius: mobileRadius.pill,
-    backgroundColor: mobileColors.accentSoft,
     alignItems: "center"
   },
   quickOfferBtnText: {
-    color: mobileColors.accent,
     fontWeight: "700",
     fontSize: mobileFontSize.md
   },
@@ -846,17 +845,16 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   bubbleMine: {
-    backgroundColor: mobileColors.accent,
-    borderColor: producerColors.oliveComposerBorder
+    borderColor: mobileColors.border
   },
   bubbleOther: {
     backgroundColor: mobileColors.background,
-    borderColor: producerColors.oliveBorder
+    borderColor: mobileColors.border
   },
   senderName: {
     fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: mobileColors.accent,
+    color: mobileColors.textSecondary,
     marginBottom: 4
   },
   msgBody: {
@@ -873,7 +871,7 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary
   },
   msgMetaMine: {
-    color: producerColors.primaryMuted
+    color: "rgba(255,255,255,0.75)"
   },
   composer: {
     flexDirection: "row",
@@ -883,8 +881,8 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 24 : 12,
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: producerColors.oliveBorder,
-    backgroundColor: producerColors.oliveCard
+    borderTopColor: mobileColors.border,
+    backgroundColor: mobileColors.background
   },
   input: {
     flex: 1,
@@ -894,13 +892,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: mobileRadius.lg,
     borderWidth: 1,
-    borderColor: producerColors.oliveBorder,
+    borderColor: mobileColors.border,
     backgroundColor: mobileColors.background,
     fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
   },
   sendBtn: {
-    backgroundColor: mobileColors.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: mobileRadius.lg
@@ -916,7 +913,7 @@ const styles = StyleSheet.create({
   sendError: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    color: producerColors.dangerDeep,
+    color: mobileColors.error,
     fontSize: mobileFontSize.sm
   }
 });

@@ -6,8 +6,8 @@ import { parseMarketplaceOfferMessage } from "../../lib/marketplaceOfferMessage"
 import { InviteCardInChat } from "./InviteCardInChat";
 import { formatPrivacyDisplayName } from "../../lib/userDisplay";
 import { ProposalCardInChat } from "./ProposalCardInChat";
-import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
-import { producerColors } from "../../theme/producerTheme";
+import { useRolePalette } from "../../hooks/useRolePalette";
+import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize, mobileStatusSurfaces } from "../../theme/mobileTheme";
 import { merchantColors } from "../../theme/merchantTheme";
 
 function formatMessageTime(iso: string): string {
@@ -38,6 +38,7 @@ type Props = {
 };
 
 export function MessageBubble({ message, isMine }: Props) {
+  const palette = useRolePalette();
   const body = message.body?.trim() ?? "";
   const invite = parseFarmInvitationMessage(body);
   if (invite) {
@@ -51,7 +52,14 @@ export function MessageBubble({ message, isMine }: Props) {
   if (chatImage) {
     return (
       <View style={[styles.row, isMine ? styles.rowMine : styles.rowOther]}>
-        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
+        <View
+          style={[
+            styles.bubble,
+            isMine
+              ? [styles.bubbleMine, { backgroundColor: palette.primary }]
+              : styles.bubbleOther
+          ]}
+        >
           {!isMine ? (
             <Text style={styles.senderName} numberOfLines={1}>
               {formatPrivacyDisplayName(message.sender?.fullName)}
@@ -76,7 +84,14 @@ export function MessageBubble({ message, isMine }: Props) {
 
   return (
     <View style={[styles.row, isMine ? styles.rowMine : styles.rowOther]}>
-      <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
+      <View
+        style={[
+          styles.bubble,
+          isMine
+            ? [styles.bubbleMine, { backgroundColor: palette.primary }]
+            : styles.bubbleOther
+        ]}
+      >
         {!isMine ? (
           <Text style={styles.senderName} numberOfLines={1}>
             {formatPrivacyDisplayName(message.sender?.fullName)}
@@ -105,7 +120,6 @@ const styles = StyleSheet.create({
     maxWidth: "100%"
   },
   bubbleMine: {
-    backgroundColor: mobileColors.accent,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 4,
     borderBottomLeftRadius: 16,
@@ -145,7 +159,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: mobileSpacing.sm,
     maxWidth: "92%",
-    backgroundColor: producerColors.kpiAmberSoft,
+    backgroundColor: mobileStatusSurfaces.warningBg,
     borderRadius: mobileRadius.pill,
     paddingHorizontal: mobileSpacing.md,
     paddingVertical: mobileSpacing.sm

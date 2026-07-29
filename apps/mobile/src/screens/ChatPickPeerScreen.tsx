@@ -12,8 +12,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { SurfaceCard } from "../components/common/SurfaceCard";
-import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
+import { useRolePalette } from "../hooks/useRolePalette";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   directConversationTitle,
@@ -22,11 +22,11 @@ import {
 } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
-import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatPickPeer">;
 
 export function ChatPickPeerScreen({ route, navigation }: Props) {
+  const palette = useRolePalette();
   const { t } = useTranslation();
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, authMe } = useSession();
@@ -66,7 +66,7 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
         </Text>
         {membersQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={mobileColors.accent} />
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         ) : membersQuery.error ? (
           <View style={styles.centered}>
@@ -89,9 +89,9 @@ export function ChatPickPeerScreen({ route, navigation }: Props) {
             contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
             renderItem={({ item }) => (
               <SurfaceCard
-                palette={producerPalette}
+                palette={palette}
                 style={{
-                  borderColor: producerColors.oliveBorder,
+                  borderColor: palette.border,
                   opacity: openDirect.isPending ? 0.6 : 1
                 }}
                 onPress={
@@ -149,12 +149,12 @@ const styles = StyleSheet.create({
     fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
-  error: { color: producerColors.dangerDeep, textAlign: "center" },
+  error: { color: mobileColors.error, textAlign: "center" },
   empty: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, textAlign: "center" },
   mutationErr: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-    color: producerColors.dangerDeep,
+    color: mobileColors.error,
     fontSize: mobileFontSize.sm
   }
 });

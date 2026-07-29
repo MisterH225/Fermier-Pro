@@ -12,17 +12,17 @@ import {
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { SurfaceCard } from "../components/common/SurfaceCard";
-import { producerPalette } from "../components/common/rolePalette";
 import { useSession } from "../context/SessionContext";
+import { useRolePalette } from "../hooks/useRolePalette";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { fetchFarms } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
-import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatPickFarm">;
 
 export function ChatPickFarmScreen({ navigation }: Props) {
+  const palette = useRolePalette();
   const { t } = useTranslation();
   const { accessToken, activeProfileId } = useSession();
   const scrollPad = useScrollBottomPad();
@@ -52,7 +52,7 @@ export function ChatPickFarmScreen({ navigation }: Props) {
         </TouchableOpacity>
         {farmsQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={mobileColors.accent} />
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         ) : farmsQuery.error ? (
           <View style={styles.centered}>
@@ -73,8 +73,8 @@ export function ChatPickFarmScreen({ navigation }: Props) {
             contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
             renderItem={({ item }) => (
               <SurfaceCard
-                palette={producerPalette}
-                style={{ borderColor: producerColors.oliveBorder }}
+                palette={palette}
+                style={{ borderColor: palette.border }}
                 onPress={() =>
                   navigation.navigate("ChatPickPeer", {
                     farmId: item.id,
@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: mobileRadius.lg,
     borderWidth: 2,
-    borderColor: producerColors.primarySoft,
-    backgroundColor: producerColors.oliveWash
+    borderColor: mobileColors.border,
+    backgroundColor: mobileColors.surfaceMuted
   },
   searchCtaText: {
     fontSize: mobileFontSize.lg,
     fontWeight: "700",
-    color: producerColors.primaryDark
+    color: mobileColors.textPrimary
   },
   searchCtaSub: {
     marginTop: 6,
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
     fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
-  error: { color: producerColors.dangerDeep, textAlign: "center" },
+  error: { color: mobileColors.error, textAlign: "center" },
   empty: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary, textAlign: "center" }
 });

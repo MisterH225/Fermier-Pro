@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { useSession } from "../context/SessionContext";
+import { useRolePalette } from "../hooks/useRolePalette";
 import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import {
   directConversationTitle,
@@ -25,11 +26,11 @@ import {
 import { buildListingShareMessage } from "../lib/shareMarketplaceListing";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
-import { producerColors } from "../theme/producerTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ChatSearchUser">;
 
 export function ChatSearchUserScreen({ navigation, route }: Props) {
+  const palette = useRolePalette();
   const { t } = useTranslation();
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
@@ -121,7 +122,7 @@ export function ChatSearchUserScreen({ navigation, route }: Props) {
           value={rawQuery}
           onChangeText={setRawQuery}
           placeholder="Nom ou e-mail — cercle de tes fermes"
-          placeholderTextColor={producerColors.olivePlaceholder}
+          placeholderTextColor={mobileColors.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -134,7 +135,7 @@ export function ChatSearchUserScreen({ navigation, route }: Props) {
           </Text>
         ) : searchQuery.isPending ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={mobileColors.accent} />
+            <ActivityIndicator size="large" color={palette.primary} />
           </View>
         ) : searchQuery.error ? (
           <View style={styles.centered}>
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: mobileRadius.lg,
     borderWidth: 1,
-    borderColor: producerColors.oliveBorder,
+    borderColor: mobileColors.border,
     backgroundColor: mobileColors.background,
     fontSize: mobileFontSize.lg,
     color: mobileColors.textPrimary
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: producerColors.oliveBorder
+    borderColor: mobileColors.border
   },
   cardTitle: {
     fontSize: mobileFontSize.lg,
@@ -214,12 +215,12 @@ const styles = StyleSheet.create({
     fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary
   },
-  error: { color: producerColors.dangerDeep, textAlign: "center" },
+  error: { color: mobileColors.error, textAlign: "center" },
   empty: { fontSize: mobileFontSize.md, color: mobileColors.textSecondary },
   mutationErr: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-    color: producerColors.dangerDeep,
+    color: mobileColors.error,
     fontSize: mobileFontSize.sm
   }
 });

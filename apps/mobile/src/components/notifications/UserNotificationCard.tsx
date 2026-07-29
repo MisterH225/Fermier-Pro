@@ -3,13 +3,14 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import type { UserNotificationDto } from "../../lib/api";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import {
   mobileColors,
   mobileRadius,
   mobileSpacing,
-  mobileTypography
+  mobileTypography,
+  mobileStatusSurfaces
 } from "../../theme/mobileTheme";
-import { merchantColors } from "../../theme/merchantTheme";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 
 type Props = {
@@ -24,14 +25,23 @@ export function UserNotificationCard({
   onDelete
 }: Props) {
   const { t } = useTranslation();
+  const palette = useRolePalette();
   const isOrder = notification.type.startsWith("merchant_order");
   const isFinanceReminder =
     notification.type === "smart_alert" &&
     String(notification.data?.ruleKey ?? "").startsWith(
       "finance-expense-inactive"
     );
-  const iconBg = isOrder ? merchantColors.blueSoftBg : isFinanceReminder ? uiNamedColors.cD1FAE5 : uiNamedColors.cD1FAE5;
-  const iconColor = isOrder ? uiNamedColors.c1D4ED8 : merchantColors.greenText;
+  const iconBg = isOrder
+    ? uiNamedColors.cDBEAFE
+    : isFinanceReminder
+      ? mobileStatusSurfaces.successBg
+      : palette.primaryLight;
+  const iconColor = isOrder
+    ? uiNamedColors.c1D4ED8
+    : isFinanceReminder
+      ? mobileStatusSurfaces.successText
+      : palette.primary;
   const iconName = isOrder
     ? "bag-handle"
     : isFinanceReminder
@@ -43,7 +53,7 @@ export function UserNotificationCard({
       onPress={() => onPress(notification)}
       style={({ pressed }) => [
         styles.card,
-        !notification.isRead && styles.cardUnread,
+        !notification.isRead && { borderColor: palette.primary },
         notification.isRead && styles.cardRead,
         pressed && { opacity: 0.9 }
       ]}
@@ -56,7 +66,9 @@ export function UserNotificationCard({
           <Text style={styles.subject} numberOfLines={2}>
             {notification.title}
           </Text>
-          {!notification.isRead ? <View style={styles.dot} /> : null}
+          {!notification.isRead ? (
+            <View style={[styles.dot, { backgroundColor: palette.primary }]} />
+          ) : null}
         </View>
         <Text style={styles.message} numberOfLines={4}>
           {notification.body}
@@ -101,7 +113,7 @@ const styles = StyleSheet.create({
     borderColor: mobileColors.border,
     marginBottom: mobileSpacing.sm
   },
-  cardUnread: { borderColor: mobileColors.accent },
+  cardUnread: {},
   cardRead: { opacity: 0.85 },
   iconWrap: {
     width: 40,
@@ -122,7 +134,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: mobileRadius.sm,
-    backgroundColor: mobileColors.accent,
     marginTop: 6
   },
   message: { ...mobileTypography.meta, color: mobileColors.textSecondary },

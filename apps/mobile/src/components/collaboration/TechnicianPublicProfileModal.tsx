@@ -4,6 +4,7 @@ import type { TechnicianProfileDto } from "../../lib/api";
 import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import { SecondaryButton } from "../ui/SecondaryButton";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 type Props = {
   visible: boolean;
@@ -21,6 +22,7 @@ export function TechnicianPublicProfileModal({
   onInvite
 }: Props) {
   const { t } = useTranslation();
+  const palette = useRolePalette();
 
   if (!tech) {
     return null;
@@ -53,7 +55,7 @@ export function TechnicianPublicProfileModal({
         {tech.profilePhotoUrl ? (
           <Image source={{ uri: tech.profilePhotoUrl }} style={styles.photo} />
         ) : (
-          <View style={styles.photoPh}>
+          <View style={[styles.photoPh, { backgroundColor: palette.primaryLight }]}>
             <Text style={styles.photoTx}>👷</Text>
           </View>
         )}
@@ -90,8 +92,11 @@ export function TechnicianPublicProfileModal({
         ) : null}
         <View style={styles.pills}>
           {tech.specializations.map((s) => (
-            <View key={s} style={styles.pill}>
-              <Text style={styles.pillTx}>{s}</Text>
+            <View
+              key={s}
+              style={[styles.pill, { backgroundColor: palette.primaryLight }]}
+            >
+              <Text style={[styles.pillTx, { color: palette.primary }]}>{s}</Text>
             </View>
           ))}
         </View>
@@ -149,7 +154,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: mobileRadius.xl,
-    backgroundColor: mobileColors.accentSoft,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -171,12 +175,11 @@ const styles = StyleSheet.create({
   line: { ...mobileTypography.body, marginBottom: 6 },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   pill: {
-    backgroundColor: mobileColors.accentSoft,
     borderRadius: mobileRadius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4
   },
-  pillTx: { fontSize: mobileFontSize.sm, fontWeight: "600", color: mobileColors.accent },
+  pillTx: { fontSize: mobileFontSize.sm, fontWeight: "600" },
   pretension: { fontWeight: "700", color: mobileColors.textPrimary },
   bio: { ...mobileTypography.body, lineHeight: 22 },
   actions: { gap: mobileSpacing.sm, width: "100%" }

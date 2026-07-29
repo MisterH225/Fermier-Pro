@@ -12,9 +12,16 @@ import {
 } from "react-native";
 import { formatMarketMoney } from "../marketplace/MarketplaceListingCard";
 import { useSession } from "../../context/SessionContext";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { fetchUserWalletEntries } from "../../lib/api";
-import { buyerColors, buyerRadius } from "../../theme/buyerTheme";
-import { mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+import {
+  mobileColors,
+  mobileSpacing,
+  mobileTypography,
+  mobileStatusSurfaces,
+  mobileRadius,
+  mobileFontSize
+} from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 import {
   isWalletEntryCredit,
@@ -26,8 +33,10 @@ type Props = {
   accentColor?: string;
 };
 
-export function WalletHistoryList({ accentColor = buyerColors.primary }: Props) {
+export function WalletHistoryList({ accentColor }: Props) {
   const { t } = useTranslation();
+  const palette = useRolePalette();
+  const accent = accentColor ?? palette.primary;
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { accessToken } = useSession();
@@ -46,13 +55,13 @@ export function WalletHistoryList({ accentColor = buyerColors.primary }: Props) 
       <Text style={styles.sectionSub}>{t("buyer.finance.historyHint")}</Text>
 
       {entriesQ.isLoading ? (
-        <ActivityIndicator color={accentColor} style={styles.loader} />
+        <ActivityIndicator color={accent} style={styles.loader} />
       ) : entries.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons
             name="wallet-outline"
             size={40}
-            color={buyerColors.textMuted}
+            color={palette.textMuted}
           />
           <Text style={styles.emptyTitle}>{t("buyer.finance.emptyTitle")}</Text>
           <Text style={styles.emptyBody}>{t("buyer.finance.emptyBody")}</Text>
@@ -80,26 +89,33 @@ export function WalletHistoryList({ accentColor = buyerColors.primary }: Props) 
                 }}
                 style={({ pressed }) => [
                   styles.row,
+                  {
+                    borderRadius: palette.radiusCard,
+                    backgroundColor: palette.cardBg,
+                    borderColor: palette.border
+                  },
                   pressed && entry.transactionId && { opacity: 0.9 }
                 ]}
               >
                 <View
                   style={[
                     styles.iconWrap,
-                    credit ? styles.iconCredit : styles.iconDebit
+                    credit
+                      ? styles.iconCredit
+                      : { backgroundColor: palette.primaryLight }
                   ]}
                 >
                   <Ionicons
                     name={walletEntryIcon(entry.kind)}
                     size={20}
-                    color={credit ? buyerColors.success : buyerColors.primary}
+                    color={credit ? palette.success : accent}
                   />
                 </View>
                 <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle}>
+                  <Text style={[styles.rowTitle, { color: palette.textPrimary }]}>
                     {walletEntryLabel(entry.kind, t)}
                   </Text>
-                  <Text style={styles.rowMeta}>
+                  <Text style={[styles.rowMeta, { color: palette.textMuted }]}>
                     {new Date(entry.createdAt).toLocaleString("fr-FR", {
                       day: "numeric",
                       month: "short",
@@ -109,7 +125,10 @@ export function WalletHistoryList({ accentColor = buyerColors.primary }: Props) 
                     })}
                   </Text>
                   {entry.note ? (
-                    <Text style={styles.rowNote} numberOfLines={2}>
+                    <Text
+                      style={[styles.rowNote, { color: palette.textSecondary }]}
+                      numberOfLines={2}
+                    >
                       {entry.note}
                     </Text>
                   ) : null}
@@ -117,7 +136,9 @@ export function WalletHistoryList({ accentColor = buyerColors.primary }: Props) 
                 <Text
                   style={[
                     styles.rowAmount,
-                    credit ? styles.amountCredit : styles.amountDebit
+                    credit
+                      ? { color: palette.success }
+                      : { color: palette.textPrimary }
                   ]}
                 >
                   {amountLabel}
@@ -135,11 +156,11 @@ const styles = StyleSheet.create({
   wrap: { gap: mobileSpacing.sm },
   sectionTitle: {
     ...mobileTypography.sectionTitle,
-    color: buyerColors.textPrimary
+    color: mobileColors.textPrimary
   },
   sectionSub: {
     ...mobileTypography.meta,
-    color: buyerColors.textSecondary
+    color: mobileColors.textSecondary
   },
   loader: { marginTop: mobileSpacing.lg },
   empty: {
@@ -149,11 +170,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...mobileTypography.cardTitle,
-    color: buyerColors.textPrimary
+    color: mobileColors.textPrimary
   },
   emptyBody: {
     ...mobileTypography.meta,
-    color: buyerColors.textSecondary,
+    color: mobileColors.textSecondary,
     textAlign: "center"
   },
   list: { gap: mobileSpacing.sm },
@@ -162,10 +183,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: mobileSpacing.md,
     padding: mobileSpacing.md,
-    borderRadius: buyerRadius.card,
-    backgroundColor: buyerColors.cardBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: buyerColors.border
+    borderWidth: StyleSheet.hairlineWidth
   },
   iconWrap: {
     width: 40,
@@ -175,26 +193,20 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   iconCredit: { backgroundColor: mobileStatusSurfaces.positiveBg },
-  iconDebit: { backgroundColor: buyerColors.primaryLight },
   rowBody: { flex: 1, gap: 2 },
   rowTitle: {
     ...mobileTypography.cardTitle,
-    fontSize: mobileFontSize.md,
-    color: buyerColors.textPrimary
+    fontSize: mobileFontSize.md
   },
   rowMeta: {
-    ...mobileTypography.meta,
-    color: buyerColors.textMuted
+    ...mobileTypography.meta
   },
   rowNote: {
-    ...mobileTypography.meta,
-    color: buyerColors.textSecondary
+    ...mobileTypography.meta
   },
   rowAmount: {
     ...mobileTypography.cardTitle,
     fontSize: mobileFontSize.md,
     fontVariant: ["tabular-nums"]
-  },
-  amountCredit: { color: buyerColors.success },
-  amountDebit: { color: buyerColors.textPrimary }
+  }
 });

@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
-import { mobileColors, mobileSpacing } from "../../theme/mobileTheme";
+import { useRolePalette } from "../../hooks/useRolePalette";
+import { mobileSpacing } from "../../theme/mobileTheme";
 import { WalletDashboardCard } from "./WalletDashboardCard";
 import { WalletHistoryList } from "./WalletHistoryList";
 
@@ -8,11 +9,12 @@ import { WalletHistoryList } from "./WalletHistoryList";
  * et historique. Les formulaires d'opération sont sur WalletOperationScreen.
  */
 export function FinanceWalletTab() {
+  const palette = useRolePalette();
   return (
     <View style={styles.wrap}>
-      <WalletDashboardCard variant="producer" hideDetailsLink />
+      <WalletDashboardCard hideDetailsLink />
       <View style={styles.history}>
-        <WalletHistoryList accentColor={mobileColors.accent} />
+        <WalletHistoryList accentColor={palette.primary} />
       </View>
     </View>
   );

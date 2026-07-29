@@ -14,6 +14,7 @@ import { useSession } from "../../context/SessionContext";
 import { patchAuthProfile } from "../../lib/api";
 import { obtainExpoPushToken } from "../../lib/expoPush";
 import { mobileColors, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { useRolePalette } from "../../hooks/useRolePalette";
 import { Card } from "../ui/Card";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 
@@ -35,6 +36,7 @@ function pushPlatformParam():
 }
 
 export function NotificationSettingsRow() {
+  const palette = useRolePalette();
   const { t } = useTranslation();
   const {
     accessToken,
@@ -127,7 +129,7 @@ export function NotificationSettingsRow() {
           <Text style={styles.hint}>{t("account.notificationsHint")}</Text>
         </View>
         {busy ? (
-          <ActivityIndicator size="small" color={mobileColors.accent} />
+          <ActivityIndicator size="small" color={palette.primary} />
         ) : (
           <Switch
             value={displayOn}
@@ -136,7 +138,7 @@ export function NotificationSettingsRow() {
               false: mobileColors.border,
               true: uiNamedColors.cC7DDFF
             }}
-            thumbColor={displayOn ? mobileColors.accent : uiNamedColors.cF4F4F5}
+            thumbColor={displayOn ? palette.primary : uiNamedColors.cF4F4F5}
             accessibilityLabel={t("account.notificationsA11y")}
           />
         )}
