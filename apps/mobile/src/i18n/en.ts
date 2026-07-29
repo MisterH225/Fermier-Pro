@@ -34,7 +34,8 @@ export const en = {
       network: "Connection failed. Check your network and try again.",
       unauthorized: "Session expired. Please sign in again.",
       forbidden: "You don't have permission for this action.",
-      notFound: "Item not found."
+      notFound: "Item not found.",
+      saveFailed: "Could not save. Please try again."
     }
   },
   cgu: {
@@ -286,7 +287,20 @@ export const en = {
     profileSuspendedTitle: "Profile suspended",
     profileSuspendedDefault: "This profile is no longer available.",
     switchProfileHint: "Switch profile in settings if you have another one.",
-    contactSupport: "Contact support"
+    contactSupport: "Contact support",
+    blockedTitle: "Content blocked"
+  },
+  feed: {
+    like: "Like",
+    likes: "{{count}} likes",
+    reply: "Reply",
+    replyPlaceholder: "Write a reply…",
+    commentPlaceholder: "Write a comment…",
+    comments: "Comments",
+    mostRecent: "Most recent",
+    commentBlocked: "Comment unavailable",
+    loadError: "Could not load the feed.",
+    statusError: "Could not publish. Please try again."
   },
   adminMessages: {
     title: "Admin messages",
@@ -1058,6 +1072,7 @@ export const en = {
       durationHint: "Applied when you publish the listing.",
       durationDays: "{{count}} days",
       draftHint: "Draft: not visible until published.",
+      draftSuccess: "Draft saved.",
       footerNote: "Saved as draft. Publish from the detail screen to go live.",
       errors: {
         titleRequired: "Title is required.",
@@ -1078,7 +1093,15 @@ export const en = {
     publishing: "Publishing…",
     publishSuccess: "Listing published — visible on the market.",
     editForm: {
-      success: "Listing updated."
+      success: "Listing updated.",
+      titleModal: "Edit listing",
+      submit: "Save",
+      errorTitle: "Could not update",
+      closedListing: "This listing is closed — editing is not available.",
+      sectionDuration: "Listing duration",
+      expiresAt: "Expires on {{date}}",
+      extendToggle: "Extend duration",
+      extendHint: "Adds more days of visibility after you save."
     }
   },
   pigPriceIndex: {
@@ -1125,7 +1148,7 @@ export const en = {
       disputed: "Problem"
     },
     steps: {
-      received: "Picked up",
+      received: "Ordered",
       in_transit: "In transit",
       delivered: "Delivered"
     }
@@ -1986,6 +2009,8 @@ export const en = {
     navGestation: "Gestations",
     navWeight: "Weight & ADG",
     navHistory: "History",
+    requalificationBanner:
+      "This pen should be reclassified (starter threshold / usage type).",
     totalHeadcount: "Total headcount",
     kpiSectionTitle: "Key indicators",
     kpiBreedingFemales: "Breeding females",
@@ -2143,6 +2168,7 @@ export const en = {
       createMissing: "Building and name required.",
       barn: "Building",
       penName: "Pen name",
+      penCodeOptional: "Pen code (optional)",
       capacity: "Max capacity",
       capacityLine: "{{occ}} / {{cap}} places",
       editCapacityTitle: "Edit pen capacity",
@@ -2193,6 +2219,11 @@ export const en = {
       noPen: "No pen assigned",
       sexMale: "Boar",
       sexFemale: "Sow",
+      sex: {
+        male: "Male",
+        female: "Female",
+        unknown: "Not set"
+      },
       create: {
         title: "New animal",
         category: "Category",
@@ -2825,6 +2856,7 @@ export const en = {
   financeScreen: {
     tabOverview: "Overview",
     tabRentability: "Profitability",
+    newTransaction: "New movement",
     balance: "Balance (all time)",
     revenuesMonth: "Revenue (month)",
     expensesMonth: "Expenses (month)",
@@ -3900,6 +3932,9 @@ export const en = {
       insufficientBalance: "Insufficient balance ({{amount}})",
       mobileMoneyHint: "Orange Money, MTN, Wave…",
       paymentMethod: "Payment method",
+      topUp: {
+        insufficientBalance: "Insufficient balance. Top up to pay."
+      },
       entry: {
         topUp: "Mobile money top-up",
         withdraw: "Mobile money withdrawal",
@@ -4464,7 +4499,7 @@ export const en = {
         copied: "Tracking ID copied"
       },
       progress: {
-        received: "Received",
+        received: "Ordered",
         in_transit: "In transit",
         delivered: "Delivered"
       },
