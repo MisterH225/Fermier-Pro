@@ -22,6 +22,7 @@ import { UserNotificationsService } from "../user-notifications/user-notificatio
 import { AccountDeletionService } from "./account-deletion.service";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user.decorator";
+import { CheckPhoneDto } from "./dto/check-phone.dto";
 import { UpdateMeProfileDto } from "./dto/update-me-profile.dto";
 import { OptionalActiveProfileGuard } from "./guards/optional-active-profile.guard";
 import { SupabaseJwtGuard } from "./guards/supabase-jwt.guard";
@@ -82,6 +83,13 @@ export class AuthController {
       req.activeProfile?.id
     );
     return this.authService.buildMeResponse(updated, req.activeProfile);
+  }
+
+  @Post("me/phone/check")
+  @UseGuards(SupabaseJwtGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async checkPhone(@CurrentUser() user: User, @Body() dto: CheckPhoneDto) {
+    return this.authService.checkPhoneAvailable(user.id, dto.phone);
   }
 
   @Get("me/admin-messages/unread-count")

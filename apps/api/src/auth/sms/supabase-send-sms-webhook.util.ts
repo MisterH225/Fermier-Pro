@@ -45,6 +45,18 @@ export function verifySupabaseSendSmsHook(
   }
 }
 
+/**
+ * Destination SMS du hook Send SMS.
+ * Pour `phone_change`, GoTrue met le numéro cible dans `sms.phone` et peut laisser
+ * `user.phone` à `""` — le `??` échouerait (empty string n'est pas nullish).
+ */
+export function resolveSendSmsDestinationPhone(event: {
+  user?: { phone?: string | null };
+  sms?: { phone?: string | null };
+}): string {
+  return (event.sms?.phone || event.user?.phone || "").trim();
+}
+
 export function buildOtpSmsMessage(otp: string): string {
   const template = process.env.YELLIKA_SMS_OTP_TEMPLATE?.trim();
   if (template) {

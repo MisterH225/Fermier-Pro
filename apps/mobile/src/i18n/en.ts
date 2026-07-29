@@ -121,6 +121,28 @@ export const en = {
     countrySearchPlaceholder: "Search for a country…",
     countryEmpty: "No matching country."
   },
+  addPhone: {
+    title: "Add a phone number",
+    sectionTitle: "Phone number",
+    addButton: "Add my number",
+    maskedHint: "Visible only to you, shown masked.",
+    receiveCode: "Receive code",
+    verify: "Verify",
+    resend: "Resend code",
+    resendCooldown: "Resend code ({{seconds}}s)",
+    hintPhone: "Add your mobile number to secure your account and receive SMS codes.",
+    hintOtp: "Enter the 6-digit code received by SMS.",
+    success: "Phone number verified and saved.",
+    invalidPhone: "Invalid phone number.",
+    invalidOtp: "Incorrect code. Try again.",
+    otpExpired: "Code expired. Request a new one.",
+    phoneTaken: "This number is already used by another account.",
+    smsFailed: "Could not send the SMS. Try again in a minute.",
+    maxAttempts: "Too many attempts. Request a new code.",
+    alreadyHasPhone: "A phone number is already linked to this account.",
+    walletBanner: "Add your phone number to secure your wallet.",
+    changeNumber: "Change number"
+  },
   moduleRoadmap: {
     note: "This module is coming soon on mobile."
   },
@@ -1692,6 +1714,7 @@ export const en = {
       farmList: "My farms",
       vetReports: "Reports",
       support: "Support",
+      addPhone: "Add a phone number",
       invitation: "Invitation",
       animalDetail: "Animal record",
       farm: "Farm",

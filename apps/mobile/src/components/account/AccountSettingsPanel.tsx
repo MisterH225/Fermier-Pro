@@ -22,6 +22,17 @@ import { NotificationSettingsRow } from "./NotificationSettingsRow";
 
 const LOCALE_CODES: AppLocaleCode[] = ["fr", "en"];
 
+/** Affiche `+225 07 ** ** ** **` : code pays + 2 premiers chiffres + étoiles. */
+function maskPhoneDisplay(phone: string): string {
+  const digits = phone.replace(/[^\d]/g, "");
+  if (digits.length < 4) return "***";
+  const cc = digits.slice(0, 3);
+  const head = digits.slice(3, 5);
+  const tail = digits.slice(5);
+  const masked = tail.replace(/\d/g, "*").replace(/(.{2})/g, "$1 ").trim();
+  return `+${cc} ${head} ${masked}`.trim();
+}
+
 type AccountSettingsPanelProps = {
   /** Avant une navigation stack (ex. fermer la modal producteur). */
   onBeforeNavigate?: () => void;
@@ -76,6 +87,39 @@ export function AccountSettingsPanel({
     navigation.navigate("Support");
   };
 
+  const goAddPhone = () => {
+    onBeforeNavigate?.();
+    navigation.navigate("AddPhone");
+  };
+
+  const phoneBlock = (
+    <>
+      <Text
+        style={[
+          styles.sectionLabel,
+          !compact ? styles.phoneSectionLabel : undefined
+        ]}
+      >
+        {t("addPhone.sectionTitle")}
+      </Text>
+      {user?.phone ? (
+        <>
+          <Text style={styles.meta}>{maskPhoneDisplay(user.phone)}</Text>
+          <Text style={styles.phoneHint}>{t("addPhone.maskedHint")}</Text>
+        </>
+      ) : (
+        <Pressable
+          style={styles.addPhoneBtn}
+          onPress={goAddPhone}
+          accessibilityRole="button"
+          accessibilityLabel={t("addPhone.addButton")}
+        >
+          <Text style={styles.addPhoneBtnLabel}>{t("addPhone.addButton")}</Text>
+        </Pressable>
+      )}
+    </>
+  );
+
   return (
     <View style={styles.wrap}>
       {!compact ? (
@@ -87,12 +131,14 @@ export function AccountSettingsPanel({
             <Text style={styles.nameMuted}>{t("account.noName")}</Text>
           )}
           {user?.email ? <Text style={styles.meta}>{user.email}</Text> : null}
-          {user?.phone ? <Text style={styles.meta}>{user.phone}</Text> : null}
           {!user?.email && !user?.phone ? (
             <Text style={styles.meta}>{t("account.linkedAccount")}</Text>
           ) : null}
+          {phoneBlock}
         </Card>
-      ) : null}
+      ) : (
+        <Card>{phoneBlock}</Card>
+      )}
 
       {!hideActiveProfileSwitcher ? (
         <>
@@ -201,6 +247,32 @@ const styles = StyleSheet.create({
     fontSize: mobileFontSize.md,
     color: mobileColors.textSecondary,
     marginTop: 4
+  },
+  phoneSectionLabel: {
+    marginTop: mobileSpacing.lg,
+    marginBottom: mobileSpacing.xs
+  },
+  phoneHint: {
+    ...mobileTypography.meta,
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textSecondary,
+    marginTop: 4
+  },
+  addPhoneBtn: {
+    marginTop: mobileSpacing.xs,
+    minHeight: 44,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: mobileSpacing.md
+  },
+  addPhoneBtnLabel: {
+    ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.accent
   },
   hint: {
     ...mobileTypography.meta,

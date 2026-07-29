@@ -117,6 +117,15 @@ export function formatAuthError(err: unknown): string {
   if (m.includes("invalid phone") || m.includes("phone number")) {
     return "Numéro de téléphone invalide. Vérifie l’indicatif pays et le numéro saisi.";
   }
+  if (
+    m.includes("phone_exists") ||
+    m.includes("phone exists") ||
+    m.includes("already registered") ||
+    m.includes("already been registered") ||
+    (m.includes("phone") && m.includes("already"))
+  ) {
+    return "Ce numéro est déjà utilisé par un autre compte.";
+  }
   if (m.includes("otp") && (m.includes("expired") || m.includes("invalid"))) {
     return "Code incorrect ou expiré. Demande un nouveau code et réessaie.";
   }

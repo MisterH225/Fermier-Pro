@@ -95,6 +95,8 @@ export type RootStackParamList = {
   FarmList: undefined;
   /** Compte : déconnexion, langue, aide. */
   Account: undefined;
+  /** Ajout / vérification OTP d’un numéro pour comptes email (Gmail) sans téléphone. */
+  AddPhone: undefined;
   /** Support : appel téléphonique ou Telegram. */
   Support: undefined;
   DeleteAccountProcess: undefined;

@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException
@@ -9,6 +11,7 @@ import { AccountStatus, Prisma, ProfileModerationStatus } from "@prisma/client";
 import type { Profile, User } from "@prisma/client";
 import type { Decimal } from "@prisma/client/runtime/library";
 import { CguService } from "../cgu/cgu.service";
+import { normalizePhone } from "../invitations/identifier-utils";
 import { PrismaService } from "../prisma/prisma.service";
 import type { UpdateMeProfileDto } from "./dto/update-me-profile.dto";
 import { verifySupabaseAccessToken as verifySupabaseJwt } from "./supabase-jwt.verifier";
@@ -106,28 +109,75 @@ export class AuthService {
         ? this.splitFullName(fullName)
         : { firstName: null as string | null, lastName: null as string | null };
 
-    const user = await this.prisma.user.upsert({
-      where: { supabaseUserId: payload.sub },
-      create: {
-        supabaseUserId: payload.sub,
-        email,
-        phone,
-        fullName,
-        firstName: nameParts.firstName,
-        lastName: nameParts.lastName
-      },
-      update: {
-        ...(email !== null && emailConfirmedAt ? { email } : {}),
-        ...(phone !== null && phoneConfirmedAt ? { phone } : {}),
-        ...(fullName !== undefined ? { fullName } : {})
+    let user: User;
+    try {
+      user = await this.prisma.user.upsert({
+        where: { supabaseUserId: payload.sub },
+        create: {
+          supabaseUserId: payload.sub,
+          email,
+          phone,
+          fullName,
+          firstName: nameParts.firstName,
+          lastName: nameParts.lastName
+        },
+        update: {
+          ...(email !== null && emailConfirmedAt ? { email } : {}),
+          ...(phone !== null && phoneConfirmedAt ? { phone } : {}),
+          ...(fullName !== undefined ? { fullName } : {})
+        }
+      });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        throw new ConflictException(
+          "Ce numéro est déjà utilisé par un autre compte"
+        );
       }
-    });
+      throw e;
+    }
 
     /**
      * Pas de profil crée automatiquement : la premiere connexion mobile impose un choix
      * (producteur, veterinaire, etc.) via POST /profiles — premier profil `isDefault: true`.
      */
     return this.liftExpiredAccountSuspension(user);
+  }
+
+  /**
+   * Pré-contrôle avant `updateUser({ phone })` côté mobile :
+   * refuse si le compte a déjà un numéro, si le format est invalide,
+   * ou si le numéro est déjà pris par un autre utilisateur Nest.
+   */
+  async checkPhoneAvailable(
+    userId: string,
+    rawPhone: string
+  ): Promise<{ ok: true; phone: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException("Utilisateur introuvable");
+    }
+    if (user.phone) {
+      throw new BadRequestException(
+        "Un numéro est déjà associé à ce compte."
+      );
+    }
+
+    const phone = normalizePhone(rawPhone);
+    if (!phone) {
+      throw new BadRequestException("Numéro de téléphone invalide.");
+    }
+
+    const taken = await this.prisma.user.findUnique({ where: { phone } });
+    if (taken && taken.id !== userId) {
+      throw new ConflictException(
+        "Ce numéro est déjà utilisé par un autre compte"
+      );
+    }
+
+    return { ok: true, phone };
   }
 
   /** Réactive automatiquement un compte dont la suspension temporaire est expirée. */
