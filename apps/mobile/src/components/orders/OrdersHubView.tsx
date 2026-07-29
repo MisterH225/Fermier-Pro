@@ -232,9 +232,27 @@ export function OrdersHubView({
       {ordersQ.isLoading ? (
         <ActivityIndicator color={palette.primary} style={styles.loader} />
       ) : ordersQ.error ? (
-        <Text style={[styles.error, { color: palette.danger }]}>
-          {(ordersQ.error as Error).message}
-        </Text>
+        <View style={styles.errorBlock}>
+          <Text style={[styles.error, { color: palette.danger }]}>
+            {t("orders.hub.loadError")}
+          </Text>
+          <Pressable
+            style={[
+              styles.retryBtn,
+              {
+                backgroundColor: palette.primaryLight,
+                borderColor: palette.border
+              }
+            ]}
+            onPress={() => void ordersQ.refetch()}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.retry")}
+          >
+            <Text style={[styles.retryBtnText, { color: palette.primary }]}>
+              {t("common.retry")}
+            </Text>
+          </Pressable>
+        </View>
       ) : cards.length === 0 ? (
         <Text style={[styles.empty, { color: palette.textSecondary }]}>
           {t(emptyKey)}
@@ -383,10 +401,25 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xl,
     paddingHorizontal: mobileSpacing.lg
   },
+  errorBlock: {
+    marginTop: mobileSpacing.lg,
+    alignItems: "center",
+    gap: mobileSpacing.sm
+  },
   error: {
     ...mobileTypography.body,
     textAlign: "center",
-    marginTop: mobileSpacing.lg
+    paddingHorizontal: mobileSpacing.lg
+  },
+  retryBtn: {
+    borderWidth: 1,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm
+  },
+  retryBtnText: {
+    ...mobileTypography.meta,
+    fontWeight: "800"
   },
   list: { gap: mobileSpacing.md },
   reviewsBlock: {

@@ -10,7 +10,10 @@ import { ordersPalette } from "../orderTheme";
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
-    i18n: { language: "fr" }
+    i18n: {
+      language: "fr",
+      exists: (key: string) => key.startsWith("orders.")
+    }
   })
 }));
 

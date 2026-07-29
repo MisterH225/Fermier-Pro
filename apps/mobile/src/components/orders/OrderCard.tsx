@@ -46,7 +46,24 @@ export function OrderCard({
   onPress,
   palette = ordersPalette
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const displayCounterparty =
+    counterparty === "Utilisateur"
+      ? t("orders.hub.counterpartyFallback")
+      : counterparty;
+
+  const displayItemSummary =
+    itemSummary === "Commande marketplace"
+      ? t("orders.hub.itemSummary.escrow")
+      : itemSummary === "Commande boutique"
+        ? t("orders.hub.itemSummary.shop")
+        : itemSummary;
+
+  const actionLabel =
+    nextActionKey && i18n.exists(nextActionKey)
+      ? t(nextActionKey)
+      : t("orders.action.generic");
 
   return (
     <Pressable
@@ -67,7 +84,7 @@ export function OrderCard({
         <View style={styles.referenceBlock}>
           <View style={styles.referenceMeta}>
             <Text style={[styles.referenceLabel, { color: palette.textSecondary }]}>
-              {t("orders.trackingNumber", { defaultValue: "N° de suivi" })}
+              {t("orders.trackingNumber")}
             </Text>
             {typeLabelKey ? (
               <View
@@ -88,12 +105,12 @@ export function OrderCard({
           >
             {reference}
           </Text>
-          {itemSummary ? (
+          {displayItemSummary ? (
             <Text
               style={[styles.itemSummary, { color: palette.textSecondary }]}
               numberOfLines={1}
             >
-              {itemSummary}
+              {displayItemSummary}
             </Text>
           ) : null}
         </View>
@@ -110,14 +127,14 @@ export function OrderCard({
             style={[styles.avatar, { backgroundColor: palette.primaryLight }]}
           >
             <Text style={[styles.avatarText, { color: palette.primary }]}>
-              {(counterparty.trim().charAt(0) || "?").toUpperCase()}
+              {(displayCounterparty.trim().charAt(0) || "?").toUpperCase()}
             </Text>
           </View>
           <Text
             style={[styles.counterpartyText, { color: palette.textPrimary }]}
             numberOfLines={1}
           >
-            {counterparty}
+            {displayCounterparty}
           </Text>
         </View>
         <Text style={[styles.amount, { color: palette.textPrimary }]}>
@@ -138,10 +155,7 @@ export function OrderCard({
             color={palette.primary}
           />
           <Text style={[styles.nextActionText, { color: palette.primaryDark }]}>
-            {t("orders.nextAction", {
-              action: t(nextActionKey),
-              defaultValue: `Prochaine action : ${t(nextActionKey)}`
-            })}
+            {t("orders.nextAction", { action: actionLabel })}
           </Text>
         </View>
       ) : null}
