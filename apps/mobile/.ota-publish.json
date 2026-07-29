@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (d08d50f5) — fix texte brut commandes boutique/marketplace #275",
-  "updatedAt": "2026-07-29T13:17Z",
+  "message": "OTA preview (c2a90972) — trust score avis croisés + météo explicite #279",
+  "updatedAt": "2026-07-29T15:17Z",
   "channels": ["preview"],
-  "updateGroupId": "8a8bf2bd-9e37-42db-a8dc-4ab089ea857e",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/8a8bf2bd-9e37-42db-a8dc-4ab089ea857e"
+  "updateGroupId": "1bd00d9c-357b-47c6-b996-be26194f25e1",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/1bd00d9c-357b-47c6-b996-be26194f25e1"
 }
