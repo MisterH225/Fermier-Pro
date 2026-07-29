@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -40,6 +40,15 @@ function isPlausibleE164(full: string): boolean {
   return digits.length >= 8 && digits.length <= 15;
 }
 
+function maskPhoneDisplay(phone: string): string {
+  const digits = phone.replace(/[^\d]/g, "");
+  if (digits.length < 6) return "***";
+  const cc = digits.slice(0, 3);
+  const head = digits.slice(3, 5);
+  const tail = digits.slice(5).replace(/\d/g, "*").replace(/(.{2})/g, "$1 ").trim();
+  return `+${cc} ${head} ${tail}`.trim();
+}
+
 function mapAddPhoneError(err: unknown, t: (key: string) => string): string {
   const raw =
     err instanceof Error ? err.message : typeof err === "string" ? err : "";
@@ -47,7 +56,7 @@ function mapAddPhoneError(err: unknown, t: (key: string) => string): string {
 
   if (
     m.includes("déjà utilisé") ||
-    m.includes("already") ||
+    m.includes("already used") ||
     m.includes("phone_exists") ||
     m.includes("phone exists") ||
     m.includes("already registered") ||
@@ -55,7 +64,7 @@ function mapAddPhoneError(err: unknown, t: (key: string) => string): string {
   ) {
     return t("addPhone.phoneTaken");
   }
-  if (m.includes("déjà associé") || m.includes("already associated")) {
+  if (m.includes("déjà associé") || m.includes("already linked") || m.includes("already associated")) {
     return t("addPhone.alreadyHasPhone");
   }
   if (m.includes("invalide") || m.includes("invalid phone")) {
@@ -83,10 +92,16 @@ function mapAddPhoneError(err: unknown, t: (key: string) => string): string {
 
 export function AddPhoneScreen({ navigation }: Props) {
   const { t } = useTranslation();
-  useScreenTitle(navigation, t("addPhone.title"));
   const scrollPad = useScrollBottomPad();
   const { accessToken, activeProfileId, authMe, reloadAuth } = useSession();
   const supabase = getSupabase();
+  const isChange = Boolean(authMe?.user?.phone);
+  const currentPhone = authMe?.user?.phone ?? null;
+
+  useScreenTitle(
+    navigation,
+    isChange ? t("addPhone.changeTitle") : t("addPhone.title")
+  );
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
@@ -96,12 +111,10 @@ export function AddPhoneScreen({ navigation }: Props) {
   const [resendIn, setResendIn] = useState(0);
   const [verifyAttempts, setVerifyAttempts] = useState(0);
 
-  // Hors périmètre : modification d’un numéro déjà présent.
-  useEffect(() => {
-    if (authMe?.user?.phone) {
-      navigation.goBack();
-    }
-  }, [authMe?.user?.phone, navigation]);
+  const phoneHint = useMemo(
+    () => (isChange ? t("addPhone.hintChange") : t("addPhone.hintPhone")),
+    [isChange, t]
+  );
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -120,6 +133,10 @@ export function AddPhoneScreen({ navigation }: Props) {
     const p = phone.trim();
     if (!isPlausibleE164(p)) {
       setError(t("addPhone.invalidPhone"));
+      return;
+    }
+    if (currentPhone && p === currentPhone) {
+      setError(t("addPhone.alreadyHasPhone"));
       return;
     }
 
@@ -166,7 +183,6 @@ export function AddPhoneScreen({ navigation }: Props) {
         type: "phone_change"
       });
       if (e) throw e;
-      // Sync Prisma User.phone with the fresh JWT (phone + phone_confirmed_at).
       const freshToken = data.session?.access_token;
       if (freshToken) {
         await fetchAuthMe(freshToken, activeProfileId ?? undefined);
@@ -174,9 +190,11 @@ export function AddPhoneScreen({ navigation }: Props) {
         await supabase.auth.refreshSession();
       }
       await reloadAuth();
-      Alert.alert(t("addPhone.success"), undefined, [
-        { text: "OK", onPress: () => navigation.goBack() }
-      ]);
+      Alert.alert(
+        isChange ? t("addPhone.successChange") : t("addPhone.success"),
+        undefined,
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
     } catch (err: unknown) {
       const next = verifyAttempts + 1;
       setVerifyAttempts(next);
@@ -200,8 +218,16 @@ export function AddPhoneScreen({ navigation }: Props) {
         contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
       >
         <Text style={styles.hint}>
-          {step === "phone" ? t("addPhone.hintPhone") : t("addPhone.hintOtp")}
+          {step === "phone" ? phoneHint : t("addPhone.hintOtp")}
         </Text>
+
+        {step === "phone" && currentPhone ? (
+          <Text style={styles.currentPhone}>
+            {t("addPhone.currentNumber", {
+              phone: maskPhoneDisplay(currentPhone)
+            })}
+          </Text>
+        ) : null}
 
         {step === "phone" ? (
           <>
@@ -305,6 +331,11 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     lineHeight: 22,
     marginBottom: mobileSpacing.sm
+  },
+  currentPhone: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginBottom: mobileSpacing.xs
   },
   phoneRecall: {
     ...mobileTypography.cardTitle,

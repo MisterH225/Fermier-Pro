@@ -23,17 +23,6 @@ describe("AuthService.checkPhoneAvailable", () => {
     jest.clearAllMocks();
   });
 
-  it("refuse si un numéro est déjà associé", async () => {
-    prisma.user.findUnique.mockResolvedValueOnce({
-      id: "user-1",
-      phone: "+2250708000000"
-    });
-
-    await expect(
-      service.checkPhoneAvailable("user-1", "+2250708123456")
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
   it("refuse un numéro invalide", async () => {
     prisma.user.findUnique.mockResolvedValueOnce({
       id: "user-1",
@@ -47,7 +36,18 @@ describe("AuthService.checkPhoneAvailable", () => {
     });
   });
 
-  it("refuse si le numéro est déjà pris", async () => {
+  it("refuse si le numéro est déjà celui du compte", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: "user-1",
+      phone: "+2250708123456"
+    });
+
+    await expect(
+      service.checkPhoneAvailable("user-1", "+2250708123456")
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("refuse si le numéro est déjà pris par un autre", async () => {
     prisma.user.findUnique
       .mockResolvedValueOnce({ id: "user-1", phone: null })
       .mockResolvedValueOnce({ id: "user-2", phone: "+2250708123456" });
@@ -57,14 +57,42 @@ describe("AuthService.checkPhoneAvailable", () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it("accepte un numéro libre", async () => {
+  it("accepte un numéro libre (ajout)", async () => {
     prisma.user.findUnique
       .mockResolvedValueOnce({ id: "user-1", phone: null })
       .mockResolvedValueOnce(null);
 
     await expect(
       service.checkPhoneAvailable("user-1", "+2250708123456")
-    ).resolves.toEqual({ ok: true, phone: "+2250708123456" });
+    ).resolves.toEqual({
+      ok: true,
+      phone: "+2250708123456",
+      mode: "add"
+    });
+  });
+
+  it("accepte un nouveau numéro (changement)", async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "user-1", phone: "+2250708000000" })
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      service.checkPhoneAvailable("user-1", "+2250708123456")
+    ).resolves.toEqual({
+      ok: true,
+      phone: "+2250708123456",
+      mode: "change"
+    });
+  });
+
+  it("refuse le changement si le nouveau numéro est pris", async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "user-1", phone: "+2250708000000" })
+      .mockResolvedValueOnce({ id: "user-2", phone: "+2250708123456" });
+
+    await expect(
+      service.checkPhoneAvailable("user-1", "+2250708123456")
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("404 si utilisateur introuvable", async () => {

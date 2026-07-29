@@ -147,27 +147,28 @@ export class AuthService {
   }
 
   /**
-   * Pré-contrôle avant `updateUser({ phone })` côté mobile :
-   * refuse si le compte a déjà un numéro, si le format est invalide,
-   * ou si le numéro est déjà pris par un autre utilisateur Nest.
+   * Pré-contrôle avant `updateUser({ phone })` côté mobile (ajout ou changement) :
+   * refuse si le format est invalide, si le numéro est déjà celui du compte,
+   * ou s’il est déjà pris par un autre utilisateur Nest.
    */
   async checkPhoneAvailable(
     userId: string,
     rawPhone: string
-  ): Promise<{ ok: true; phone: string }> {
+  ): Promise<{ ok: true; phone: string; mode: "add" | "change" }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException("Utilisateur introuvable");
-    }
-    if (user.phone) {
-      throw new BadRequestException(
-        "Un numéro est déjà associé à ce compte."
-      );
     }
 
     const phone = normalizePhone(rawPhone);
     if (!phone) {
       throw new BadRequestException("Numéro de téléphone invalide.");
+    }
+
+    if (user.phone && user.phone === phone) {
+      throw new BadRequestException(
+        "Ce numéro est déjà associé à ce compte."
+      );
     }
 
     const taken = await this.prisma.user.findUnique({ where: { phone } });
@@ -177,7 +178,11 @@ export class AuthService {
       );
     }
 
-    return { ok: true, phone };
+    return {
+      ok: true,
+      phone,
+      mode: user.phone ? "change" : "add"
+    };
   }
 
   /** Réactive automatiquement un compte dont la suspension temporaire est expirée. */

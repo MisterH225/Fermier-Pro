@@ -106,6 +106,16 @@ export function AccountSettingsPanel({
         <>
           <Text style={styles.meta}>{maskPhoneDisplay(user.phone)}</Text>
           <Text style={styles.phoneHint}>{t("addPhone.maskedHint")}</Text>
+          <Pressable
+            style={styles.changePhoneBtn}
+            onPress={goAddPhone}
+            accessibilityRole="button"
+            accessibilityLabel={t("addPhone.changeButton")}
+          >
+            <Text style={styles.changePhoneBtnLabel}>
+              {t("addPhone.changeButton")}
+            </Text>
+          </Pressable>
         </>
       ) : (
         <Pressable
@@ -271,6 +281,16 @@ const styles = StyleSheet.create({
   },
   addPhoneBtnLabel: {
     ...mobileTypography.body,
+    fontWeight: "700",
+    color: mobileColors.accent
+  },
+  changePhoneBtn: {
+    marginTop: mobileSpacing.sm,
+    alignSelf: "flex-start",
+    paddingVertical: mobileSpacing.xs
+  },
+  changePhoneBtnLabel: {
+    ...mobileTypography.meta,
     fontWeight: "700",
     color: mobileColors.accent
   },
