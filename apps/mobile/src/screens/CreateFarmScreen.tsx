@@ -3,7 +3,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { getUserFacingError } from "../lib/userFacingError";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,9 +16,16 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useModal } from "../components/modals/useModal";
 import { useActiveProject } from "../context/ActiveProjectContext";
 import { useSession } from "../context/SessionContext";
-import { createFarm, type CreateFarmPayload, type FarmDto } from "../lib/api";
+import {
+  createFarm,
+  fetchProducerMe,
+  isSubscriptionLimitError,
+  type CreateFarmPayload,
+  type FarmDto
+} from "../lib/api";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../theme/mobileTheme";
 import type { RootStackParamList } from "../types/navigation";
 import { useBottomInset } from "../hooks/useBottomInset";
@@ -36,7 +43,8 @@ const MODES = [
 export function CreateFarmScreen({ navigation }: Props) {
   const bottomInset = useBottomInset();
   const { t } = useTranslation();
-  const { accessToken, authMe } = useSession();
+  const { open } = useModal();
+  const { accessToken, authMe, activeProfileId } = useSession();
   const { setActiveFarm, refreshFarms } = useActiveProject();
   const queryClient = useQueryClient();
 
@@ -44,6 +52,12 @@ export function CreateFarmScreen({ navigation }: Props) {
     () => authMe?.profiles.find((p) => p.type === PRODUCER),
     [authMe?.profiles]
   );
+
+  const producerMeQ = useQuery({
+    queryKey: ["producer-me", activeProfileId],
+    queryFn: () => fetchProducerMe(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId)
+  });
 
   const [name, setName] = useState("");
   const [livestockMode, setLivestockMode] =
@@ -77,6 +91,17 @@ export function CreateFarmScreen({ navigation }: Props) {
       );
     },
     onError: (e: Error) => {
+      if (isSubscriptionLimitError(e) && e.code === "FARM_LIMIT_REACHED") {
+        open("upgrade-limit", {
+          code: e.code,
+          limit:
+            producerMeQ.data?.maxFarms ??
+            producerMeQ.data?.standardMaxFarms ??
+            null,
+          onUpgrade: () => navigation.navigate("ProducerSubscription")
+        });
+        return;
+      }
       Alert.alert("Création impossible", getUserFacingError(e, t));
     }
   });

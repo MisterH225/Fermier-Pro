@@ -18,6 +18,7 @@ export function MerchantProductFormScreen() {
       onSuccess={() => navigation.goBack()}
       onDeleted={() => navigation.goBack()}
       onNeedShop={() => navigation.navigate("MerchantShops")}
+      onUpgradeToPremium={() => navigation.navigate("MerchantSubscription")}
     />
   );
 }

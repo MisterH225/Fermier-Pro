@@ -2,7 +2,7 @@ import { MerchantProductDisabledReason } from "@prisma/client";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 
 describe("MerchantProfilesService.visibleProducts", () => {
-  const service = new MerchantProfilesService({} as never);
+  const service = new MerchantProfilesService({} as never, { limitsFromSettings: jest.fn(), resolveMaxShops: jest.fn(), resolveMaxProductsPerShop: jest.fn() } as never);
 
   it("conserve les produits non soft-supprimés (y compris disabledReason null)", () => {
     const products = [

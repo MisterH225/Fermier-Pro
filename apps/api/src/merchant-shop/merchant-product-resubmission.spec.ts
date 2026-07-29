@@ -56,7 +56,7 @@ describe("Merchant product resubmission", () => {
           count: jest.fn().mockResolvedValue(0)
         }
       };
-      const service = new MerchantProductsService(prisma as never, {} as never);
+      const service = new MerchantProductsService(prisma as never, {} as never, { assertProductPublish: jest.fn() } as never);
 
       const result = await service.resubmit(user, "prod-1");
 
@@ -80,7 +80,7 @@ describe("Merchant product resubmission", () => {
             .mockResolvedValue(productBase({ resubmissionCount: 2 }))
         }
       };
-      const service = new MerchantProductsService(prisma as never, {} as never);
+      const service = new MerchantProductsService(prisma as never, {} as never, { assertProductPublish: jest.fn() } as never);
 
       await expect(service.resubmit(user, "prod-1")).rejects.toBeInstanceOf(
         ForbiddenException
@@ -110,7 +110,8 @@ describe("Merchant product resubmission", () => {
         };
         const service = new MerchantProductsService(
           prisma as never,
-          profiles as never
+          profiles as never,
+          { assertProductPublish: jest.fn() } as never
         );
         await expect(service.publish(user, "prod-1")).rejects.toBeInstanceOf(
           ConflictException
@@ -121,7 +122,7 @@ describe("Merchant product resubmission", () => {
     it("le catalogue public n’inclut pas resubmission_review", async () => {
       const findMany = jest.fn().mockResolvedValue([]);
       const prisma = { merchantProduct: { findMany } };
-      const service = new MerchantProductsService(prisma as never, {} as never);
+      const service = new MerchantProductsService(prisma as never, {} as never, { assertProductPublish: jest.fn() } as never);
 
       await service.listCatalog();
 

@@ -21,8 +21,8 @@ import {
   daysBetweenUtc,
   startOfUtcDay
 } from "../merchant-shop/merchant-subscription.constants";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 import { resolveProducerPremiumBillingConfig } from "./producer-premium-billing-config";
-import { ProducerTeamAccessService } from "./producer-team-access.service";
 
 @Injectable()
 export class ProducerSubscriptionBillingService {
@@ -33,7 +33,7 @@ export class ProducerSubscriptionBillingService {
     private readonly gateway: GeniusPayMobileMoneyGateway,
     private readonly wallet: UserWalletService,
     private readonly yellika: YellikaSmsClient,
-    private readonly producerTeam: ProducerTeamAccessService
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   async getPremiumPriceXof(): Promise<number> {
@@ -52,7 +52,7 @@ export class ProducerSubscriptionBillingService {
     const cfg = await this.getBillingConfig();
     const existing = await this.prisma.producerProfile.findUnique({
       where: { id: profileId },
-      select: { promoPercentOffApplied: true }
+      select: { promoPercentOffApplied: true, userId: true }
     });
     const promoPercentOffApplied =
       existing?.promoPercentOffApplied ??
@@ -78,6 +78,9 @@ export class ProducerSubscriptionBillingService {
         promoPercentOffApplied
       }
     });
+    if (existing?.userId) {
+      await this.subscriptionLimits.restoreProducerPremium(existing.userId);
+    }
   }
 
   /**
@@ -158,6 +161,10 @@ export class ProducerSubscriptionBillingService {
       cfg.billingUnit,
       cfg.trialUnits
     );
+    const existing = await this.prisma.producerProfile.findUnique({
+      where: { id: profileId },
+      select: { userId: true }
+    });
     await this.prisma.producerProfile.update({
       where: { id: profileId },
       data: {
@@ -174,6 +181,9 @@ export class ProducerSubscriptionBillingService {
         suspensionReason: null
       }
     });
+    if (existing?.userId) {
+      await this.subscriptionLimits.restoreProducerPremium(existing.userId);
+    }
   }
 
   async createPendingInvoice(
@@ -915,7 +925,7 @@ export class ProducerSubscriptionBillingService {
       }
     });
 
-    await this.producerTeam.revokeTeamAccessForOwner(profile.user.id);
+    await this.subscriptionLimits.applyProducerDemotion(profile.user.id);
 
     await this.prisma.producerSubscriptionInvoice.updateMany({
       where: {
@@ -929,7 +939,7 @@ export class ProducerSubscriptionBillingService {
     if (phone) {
       await this.sendSmsSafe(
         phone,
-        "Fermier Pro: votre Premium producteur a expiré. Votre équipe a été retirée. Réabonnez-vous depuis l'application.",
+        "Fermier Pro: votre Premium producteur a expiré. Votre équipe a été suspendue et les projets excédentaires sont en lecture seule. Réabonnez-vous depuis l'application.",
         profile.id
       );
     }
@@ -993,6 +1003,10 @@ export class ProducerSubscriptionBillingService {
     const trialUnits = Math.max(1, units ?? cfg.trialUnits);
     const from = new Date();
     const trialEndsAt = addBillingPeriod(from, cfg.billingUnit, trialUnits);
+    const existing = await this.prisma.producerProfile.findUnique({
+      where: { id: profileId },
+      select: { userId: true }
+    });
     await this.prisma.producerProfile.update({
       where: { id: profileId },
       data: {
@@ -1007,6 +1021,9 @@ export class ProducerSubscriptionBillingService {
         graceEndsAt: null
       }
     });
+    if (existing?.userId) {
+      await this.subscriptionLimits.restoreProducerPremium(existing.userId);
+    }
   }
 
   async applyPromoOverride(profileId: string, percentOff: number | null) {

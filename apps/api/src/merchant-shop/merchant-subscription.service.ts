@@ -6,8 +6,6 @@ import {
 import type { User } from "@prisma/client";
 import {
   MarketplacePaymentMethod,
-  MerchantProductDisabledReason,
-  MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionPromoCodeType,
   MerchantSubscriptionTier
@@ -17,12 +15,12 @@ import { UserWalletService } from "../wallet/user-wallet.service";
 import type { ChooseMerchantSubscriptionDto } from "./dto/merchant-shop.dto";
 import { MerchantProfilesService } from "./merchant-profiles.service";
 import { MerchantSubscriptionBillingService } from "./merchant-subscription-billing.service";
-import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
 import {
   applyPromoPercent,
   startOfUtcDay
 } from "./merchant-subscription.constants";
 import { MerchantSubscriptionPromoCodesService } from "./merchant-subscription-promo-codes.service";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 
 @Injectable()
 export class MerchantSubscriptionService {
@@ -31,7 +29,8 @@ export class MerchantSubscriptionService {
     private readonly profiles: MerchantProfilesService,
     private readonly wallet: UserWalletService,
     private readonly billing: MerchantSubscriptionBillingService,
-    private readonly promoCodes: MerchantSubscriptionPromoCodesService
+    private readonly promoCodes: MerchantSubscriptionPromoCodesService,
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   private resolveCheckoutPrice(
@@ -269,44 +268,21 @@ export class MerchantSubscriptionService {
   async downgradeToFree(userId: string) {
     const profile = await this.prisma.merchantProfile.findUnique({
       where: { userId },
-      include: {
-        shops: {
-          include: {
-            products: {
-              where: { status: MerchantProductStatus.published },
-              orderBy: { createdAt: "asc" }
-            }
-          }
-        }
-      }
+      select: { id: true }
     });
     if (!profile) {
       return;
     }
 
-    const published = profile.shops.flatMap((s) => s.products);
-    const toDisable = published.slice(MERCHANT_FREE_MAX_ACTIVE_PRODUCTS);
-
-    await this.prisma.$transaction([
-      this.prisma.merchantProfile.update({
-        where: { userId },
-        data: {
-          subscriptionTier: MerchantSubscriptionTier.free,
-          subscriptionStatus: null,
-          graceEndsAt: null,
-          billingReminderKey: null
-        }
-      }),
-      ...toDisable.map((p) =>
-        this.prisma.merchantProduct.update({
-          where: { id: p.id },
-          data: {
-            status: MerchantProductStatus.disabled,
-            disabledAt: new Date(),
-            disabledReason: MerchantProductDisabledReason.downgrade
-          }
-        })
-      )
-    ]);
+    await this.prisma.merchantProfile.update({
+      where: { userId },
+      data: {
+        subscriptionTier: MerchantSubscriptionTier.free,
+        subscriptionStatus: null,
+        graceEndsAt: null,
+        billingReminderKey: null
+      }
+    });
+    await this.subscriptionLimits.applyMerchantDemotion(profile.id);
   }
 }

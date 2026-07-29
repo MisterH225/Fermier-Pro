@@ -262,9 +262,24 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
   };
 
   const openCancelSubscription = () => {
+    const shopsLimit =
+      meQ.data?.standardMaxShops ?? meQ.data?.maxShops ?? null;
+    const productsLimit =
+      meQ.data?.standardMaxProductsPerShop ??
+      meQ.data?.maxActiveProducts ??
+      null;
     Alert.alert(
       t("merchant.profile.cancelSubscriptionTitle"),
-      t("merchant.profile.cancelSubscriptionMessage"),
+      t("merchant.profile.cancelSubscriptionMessage", {
+        shops:
+          shopsLimit == null
+            ? t("subscriptionLimits.unlimited")
+            : shopsLimit,
+        products:
+          productsLimit == null
+            ? t("subscriptionLimits.unlimited")
+            : productsLimit
+      }),
       [
         { text: t("common.cancel"), style: "cancel" },
         {

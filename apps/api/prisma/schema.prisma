@@ -416,6 +416,8 @@ model Farm {
   status       FarmStatus         @default(active)
   /// Date d'archivage (si status = archived).
   archivedAt   DateTime?
+  /// Lecture seule après dépassement de limite d'abonnement (pas de suppression).
+  writeLockedAt DateTime?
   /// Ordre d'affichage dans la liste des projets (0 = premier).
   displayOrder Int                @default(0)
   createdAt    DateTime           @default(now())
@@ -2822,8 +2824,14 @@ model PlatformSettings {
   marketplaceWeightTolerancePercent Decimal @default(3) @db.Decimal(5, 2)
   /// Prix abonnement Premium commerçant (XOF), fixé par superadmin.
   merchantPremiumPriceXof Decimal @default(5000) @db.Decimal(14, 2)
-  /// Nombre max de boutiques par profil Premium commerçant (global, identique pour tous).
-  merchantPremiumMaxShops Int @default(3)
+  /// Limites d'abonnement (null = illimité).
+  producerStandardMaxFarms Int? @default(1)
+  producerPremiumMaxFarms Int?
+  merchantStandardMaxShops Int? @default(1)
+  merchantStandardMaxProductsPerShop Int? @default(3)
+  /// Nombre max de boutiques par profil Premium commerçant (null = illimité).
+  merchantPremiumMaxShops Int? @default(3)
+  merchantPremiumMaxProductsPerShop Int?
   /// Unité de périodicité Premium (heure / jour / mois).
   merchantPremiumBillingUnit MerchantPremiumBillingUnit @default(month)
   /// Intervalle de périodicité (ex. 1 mois, 7 jours).
@@ -3635,6 +3643,8 @@ model MerchantShop {
   locationLabel     String?
   /// Soft-delete : la boutique disparaît du compte commerçant et du feed.
   archivedAt        DateTime?
+  /// Lecture seule après dépassement de limite d'abonnement (pas de suppression).
+  writeLockedAt     DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   products          MerchantProduct[]

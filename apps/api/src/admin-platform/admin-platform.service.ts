@@ -1228,7 +1228,30 @@ export class AdminPlatformService {
         marketplaceWeightTolerancePercent:
           dto.marketplaceWeightTolerancePercent ?? 3,
         merchantPremiumPriceXof: dto.merchantPremiumPriceXof ?? 5000,
-        merchantPremiumMaxShops: dto.merchantPremiumMaxShops ?? 3,
+        merchantPremiumMaxShops:
+          dto.merchantPremiumMaxShops !== undefined
+            ? dto.merchantPremiumMaxShops
+            : 3,
+        merchantStandardMaxShops:
+          dto.merchantStandardMaxShops !== undefined
+            ? dto.merchantStandardMaxShops
+            : 1,
+        merchantStandardMaxProductsPerShop:
+          dto.merchantStandardMaxProductsPerShop !== undefined
+            ? dto.merchantStandardMaxProductsPerShop
+            : 3,
+        merchantPremiumMaxProductsPerShop:
+          dto.merchantPremiumMaxProductsPerShop !== undefined
+            ? dto.merchantPremiumMaxProductsPerShop
+            : null,
+        producerStandardMaxFarms:
+          dto.producerStandardMaxFarms !== undefined
+            ? dto.producerStandardMaxFarms
+            : 1,
+        producerPremiumMaxFarms:
+          dto.producerPremiumMaxFarms !== undefined
+            ? dto.producerPremiumMaxFarms
+            : null,
         merchantPremiumBillingUnit: dto.merchantPremiumBillingUnit ?? "month",
         merchantPremiumBillingInterval: dto.merchantPremiumBillingInterval ?? 1,
         merchantPremiumGraceDays: dto.merchantPremiumGraceDays ?? 7,
@@ -1313,6 +1336,27 @@ export class AdminPlatformService {
           : {}),
         ...(dto.merchantPremiumMaxShops !== undefined
           ? { merchantPremiumMaxShops: dto.merchantPremiumMaxShops }
+          : {}),
+        ...(dto.merchantStandardMaxShops !== undefined
+          ? { merchantStandardMaxShops: dto.merchantStandardMaxShops }
+          : {}),
+        ...(dto.merchantStandardMaxProductsPerShop !== undefined
+          ? {
+              merchantStandardMaxProductsPerShop:
+                dto.merchantStandardMaxProductsPerShop
+            }
+          : {}),
+        ...(dto.merchantPremiumMaxProductsPerShop !== undefined
+          ? {
+              merchantPremiumMaxProductsPerShop:
+                dto.merchantPremiumMaxProductsPerShop
+            }
+          : {}),
+        ...(dto.producerStandardMaxFarms !== undefined
+          ? { producerStandardMaxFarms: dto.producerStandardMaxFarms }
+          : {}),
+        ...(dto.producerPremiumMaxFarms !== undefined
+          ? { producerPremiumMaxFarms: dto.producerPremiumMaxFarms }
           : {}),
         ...(dto.merchantPremiumBillingUnit !== undefined
           ? { merchantPremiumBillingUnit: dto.merchantPremiumBillingUnit }

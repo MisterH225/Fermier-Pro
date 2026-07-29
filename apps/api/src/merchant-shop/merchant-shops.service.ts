@@ -1,11 +1,7 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { MERCHANT_ERROR } from "./merchant-shop.constants";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 import {
   archiveShopInTransaction,
   countBlockingOrdersForShop,
@@ -21,7 +17,8 @@ import type {
 export class MerchantShopsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly profiles: MerchantProfilesService
+    private readonly profiles: MerchantProfilesService,
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   async list(user: User) {
@@ -44,23 +41,7 @@ export class MerchantShopsService {
 
   async create(user: User, dto: CreateMerchantShopDto) {
     const profile = await this.profiles.requireProfile(user.id);
-    const settings = await this.prisma.platformSettings.findUnique({
-      where: { id: "default" }
-    });
-    const maxShops = this.profiles.maxShopsForTier(
-      profile.subscriptionTier,
-      settings?.merchantPremiumMaxShops ?? 3
-    );
-    const activeShopCount = profile.shops.filter(
-      (s) => s.archivedAt == null
-    ).length;
-    if (activeShopCount >= maxShops) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        code: MERCHANT_ERROR.SHOP_LIMIT,
-        message: "Limite de boutiques atteinte pour votre abonnement"
-      });
-    }
+    await this.subscriptionLimits.assertShopCreate(profile.id);
 
     const shop = await this.prisma.merchantShop.create({
       data: {

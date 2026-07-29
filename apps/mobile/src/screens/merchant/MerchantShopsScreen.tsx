@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell";
+import { useModal } from "../../components/modals/useModal";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchMerchantMe } from "../../lib/api";
@@ -28,6 +29,7 @@ export function MerchantShopsScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
+  const { open } = useModal();
   const { accessToken, activeProfileId } = useSession();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -50,22 +52,33 @@ export function MerchantShopsScreen() {
   const me = meQ.data;
   const shops = me?.shops ?? [];
   const hasShop = hasMerchantShop(me);
-  const canCreateShop = (me?.shopCount ?? 0) < (me?.maxShops ?? 1);
+  const canCreateShop =
+    me?.maxShops == null || (me?.shopCount ?? 0) < me.maxShops;
   const showInitialLoader = meQ.isLoading && !me;
   const showError = meQ.isError && !me;
+
+  const openCreateShop = () => {
+    if (!canCreateShop) {
+      open("upgrade-limit", {
+        code: "SHOP_LIMIT_REACHED",
+        limit: me?.maxShops ?? me?.standardMaxShops ?? null,
+        onUpgrade: () => navigation.navigate("MerchantSubscription")
+      });
+      return;
+    }
+    navigation.navigate("MerchantShop");
+  };
 
   const header = (
     <View style={styles.topBar}>
       <Text style={styles.title}>{t("merchant.shops.title")}</Text>
-      {canCreateShop ? (
-        <Pressable
-          style={styles.addBtn}
-          onPress={() => navigation.navigate("MerchantShop")}
-          testID="merchant-shops-create"
-        >
-          <Ionicons name="add" size={24} color={mobileColors.background} />
-        </Pressable>
-      ) : null}
+      <Pressable
+        style={styles.addBtn}
+        onPress={openCreateShop}
+        testID="merchant-shops-create"
+      >
+        <Ionicons name="add" size={24} color={mobileColors.background} />
+      </Pressable>
     </View>
   );
 
@@ -97,7 +110,7 @@ export function MerchantShopsScreen() {
             </Text>
             <Pressable
               style={styles.createPrimary}
-              onPress={() => navigation.navigate("MerchantShop")}
+              onPress={openCreateShop}
               testID="merchant-shops-empty-create"
             >
               <Text style={styles.createPrimaryTx}>

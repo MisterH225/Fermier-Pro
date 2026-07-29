@@ -18,7 +18,7 @@ import {
 import type { ChooseProducerSubscriptionDto } from "./dto/producer-subscription.dto";
 import { ProducerProfilesService } from "./producer-profiles.service";
 import { ProducerSubscriptionBillingService } from "./producer-subscription-billing.service";
-import { ProducerTeamAccessService } from "./producer-team-access.service";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 
 @Injectable()
 export class ProducerSubscriptionService {
@@ -27,7 +27,7 @@ export class ProducerSubscriptionService {
     private readonly profiles: ProducerProfilesService,
     private readonly wallet: UserWalletService,
     private readonly billing: ProducerSubscriptionBillingService,
-    private readonly teamAccess: ProducerTeamAccessService
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   private premiumRef(userId: string): string {
@@ -58,7 +58,7 @@ export class ProducerSubscriptionService {
             subscriptionChosenAt: new Date()
           }
         });
-        await this.teamAccess.revokeTeamAccessForOwner(user.id);
+        await this.subscriptionLimits.applyProducerDemotion(user.id);
       }
       return this.profiles.getMe(user);
     }

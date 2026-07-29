@@ -7,35 +7,109 @@ export function apiBaseUrl(): string {
   return resolveApiBaseUrl();
 }
 
+export type SubscriptionLimitErrorCode =
+  | "FARM_LIMIT_REACHED"
+  | "SHOP_LIMIT_REACHED"
+  | "PRODUCT_LIMIT_REACHED";
+
+export const SUBSCRIPTION_LIMIT_CODES: ReadonlySet<string> = new Set([
+  "FARM_LIMIT_REACHED",
+  "SHOP_LIMIT_REACHED",
+  "PRODUCT_LIMIT_REACHED"
+]);
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+
+  constructor(message: string, status: number, code: string | null = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export type ParsedApiErrorBody = {
+  message: string;
+  code: string | null;
+};
+
 /**
- * Extrait un message lisible d'une réponse API en erreur.
- * NestJS renvoie `{ "message": string | string[], "error": string, "statusCode": number }`.
- * On retourne uniquement la chaîne `message` (jointe si tableau), pour éviter l'affichage
- * du JSON brut dans les `Alert.alert(title, e.message)` côté app.
+ * Extrait message + code d'une réponse API en erreur.
+ * NestJS renvoie `{ "message": string | string[], "error": string, "statusCode": number, "code"?: string }`.
  */
-export function formatApiErrorBody(text: string, status: number, statusText: string): string {
+export function parseApiErrorBody(
+  text: string,
+  status: number,
+  statusText: string
+): ParsedApiErrorBody {
   const trimmed = text.trim();
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     try {
       const body = JSON.parse(trimmed) as {
         message?: string | string[];
         error?: string;
+        code?: string;
       };
+      const code =
+        typeof body?.code === "string" && body.code.trim().length > 0
+          ? body.code.trim()
+          : null;
       const m = body?.message;
       if (Array.isArray(m) && m.length > 0) {
-        return m.join(" · ");
+        return { message: m.join(" · "), code };
       }
       if (typeof m === "string" && m.trim().length > 0) {
-        return m;
+        return { message: m, code };
       }
       if (typeof body?.error === "string" && body.error.trim().length > 0) {
-        return body.error;
+        return { message: body.error, code };
       }
+      return {
+        message: trimmed || `${status} ${statusText}`.trim(),
+        code
+      };
     } catch {
       // pas du JSON exploitable — retombe sur le texte brut
     }
   }
-  return trimmed || `${status} ${statusText}`.trim();
+  return {
+    message: trimmed || `${status} ${statusText}`.trim(),
+    code: null
+  };
+}
+
+/**
+ * Extrait un message lisible d'une réponse API en erreur.
+ * On retourne uniquement la chaîne `message` (jointe si tableau), pour éviter l'affichage
+ * du JSON brut dans les `Alert.alert(title, e.message)` côté app.
+ */
+export function formatApiErrorBody(
+  text: string,
+  status: number,
+  statusText: string
+): string {
+  return parseApiErrorBody(text, status, statusText).message;
+}
+
+function throwApiError(text: string, status: number, statusText: string): never {
+  const parsed = parseApiErrorBody(text, status, statusText);
+  throw new ApiError(parsed.message, status, parsed.code);
+}
+
+export function getApiErrorCode(err: unknown): string | null {
+  if (err instanceof ApiError) {
+    return err.code;
+  }
+  return null;
+}
+
+export function isSubscriptionLimitError(
+  err: unknown
+): err is ApiError & { code: SubscriptionLimitErrorCode } {
+  const code = getApiErrorCode(err);
+  return code != null && SUBSCRIPTION_LIMIT_CODES.has(code);
 }
 
 export function apiAuthHeaders(
@@ -64,7 +138,7 @@ export async function apiGetJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+    throwApiError(text, res.status, res.statusText);
   }
   return JSON.parse(text) as T;
 }
@@ -90,7 +164,7 @@ export async function apiPostJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+    throwApiError(text, res.status, res.statusText);
   }
   return JSON.parse(text) as T;
 }
@@ -116,7 +190,7 @@ export async function apiPutJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+    throwApiError(text, res.status, res.statusText);
   }
   return JSON.parse(text) as T;
 }
@@ -142,7 +216,7 @@ export async function apiPatchJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+    throwApiError(text, res.status, res.statusText);
   }
   return JSON.parse(text) as T;
 }
@@ -163,7 +237,7 @@ export async function apiPostFormData<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+    throwApiError(text, res.status, res.statusText);
   }
   return JSON.parse(text) as T;
 }
@@ -186,11 +260,10 @@ export async function apiDeleteJson<T>(
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(formatApiErrorBody(text, res.status, res.statusText));
+    throwApiError(text, res.status, res.statusText);
   }
   if (!text.trim()) {
     return {} as T;
   }
   return JSON.parse(text) as T;
 }
-

@@ -18,15 +18,27 @@ type Props = {
   onSaved?: () => void;
 };
 
+function optionalLimit(value: number | null | undefined, fallback: number | null) {
+  if (value === null) return null;
+  if (value === undefined) return fallback;
+  return Number(value);
+}
+
 function pickProducerBilling(row: PlatformSettingsDto) {
   return {
     producerPremiumPriceXof: Number(row.producerPremiumPriceXof ?? 5000),
+    producerStandardMaxFarms: optionalLimit(row.producerStandardMaxFarms, 1),
+    producerPremiumMaxFarms: optionalLimit(row.producerPremiumMaxFarms, null),
     producerPremiumBillingUnit: row.producerPremiumBillingUnit ?? "month",
     producerPremiumBillingInterval: Number(
       row.producerPremiumBillingInterval ?? 1
     ),
     producerPremiumGraceDays: Number(row.producerPremiumGraceDays ?? 7)
   } satisfies Partial<PlatformSettingsDto>;
+}
+
+function limitInputValue(value: number | null | undefined): string {
+  return value == null ? "" : String(value);
 }
 
 export function ProducerPremiumBillingConfigPanel({
@@ -119,6 +131,52 @@ export function ProducerPremiumBillingConfigPanel({
           />
           <p className="text-xs text-muted-foreground">
             {t("fields.producerPremiumPriceXofHint")}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="producer-standard-max-farms">
+            {t("fields.producerStandardMaxFarms")}
+          </Label>
+          <Input
+            id="producer-standard-max-farms"
+            type="number"
+            min={1}
+            disabled={!canEdit}
+            placeholder={t("fields.limitUnlimitedPlaceholder")}
+            value={limitInputValue(form.producerStandardMaxFarms)}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              update(
+                "producerStandardMaxFarms",
+                raw === "" ? null : Math.max(1, Number(raw) || 1)
+              );
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("fields.producerStandardMaxFarmsHint")}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="producer-premium-max-farms">
+            {t("fields.producerPremiumMaxFarms")}
+          </Label>
+          <Input
+            id="producer-premium-max-farms"
+            type="number"
+            min={1}
+            disabled={!canEdit}
+            placeholder={t("fields.limitUnlimitedPlaceholder")}
+            value={limitInputValue(form.producerPremiumMaxFarms)}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              update(
+                "producerPremiumMaxFarms",
+                raw === "" ? null : Math.max(1, Number(raw) || 1)
+              );
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("fields.producerPremiumMaxFarmsHint")}
           </p>
         </div>
         <div className="space-y-2">

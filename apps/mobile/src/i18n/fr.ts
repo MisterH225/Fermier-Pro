@@ -2494,15 +2494,32 @@ export const fr = {
     },
     welcomeLine: "Bienvenue",
     settingsButton: "Paramètres",
+    projects: {
+      title: "Mes projets",
+      activeCountLimited: "{{count}} actif(s) / {{max}} max",
+      activeCountUnlimited: "{{count}} actif(s)",
+      limitReached:
+        "Limite de {{count}} projet(s) atteinte. Archivez un projet ou passez Premium.",
+      activeSection: "Projets actifs",
+      archivedSection: "Projets archivés",
+      newProject: "Nouveau projet"
+    },
     subscription: {
       title: "Premium équipe",
       subtitle: "Invite et gère ton équipe sur tes projets",
-      freeTitle: "Gratuit",
+      freeTitle: "Standard",
       freeSolo: "Propriétaire seul — pas d'équipe",
+      freeFarms: "{{count}} projet actif",
+      freeFarms_plural: "{{count}} projets actifs",
+      freeFarmsUnlimited: "Projets actifs illimités",
       freePrice: "0 XOF",
       premiumTitle: "Premium",
       premiumTeam: "Partenaires, vétos, techniciens, viewers",
       premiumQr: "QR et liens d'invitation",
+      premiumFarms: "{{count}} projet actif",
+      premiumFarms_plural: "{{count}} projets actifs",
+      premiumFarmsUnlimited: "Projets actifs illimités",
+      chooseLater: "Choisir plus tard",
       premiumPrice: "{{price}} XOF{{period}}",
       chooseFree: "Rester en solo",
       choosePremium: "Activer Premium équipe",
@@ -4397,14 +4414,21 @@ export const fr = {
       title: "Choisis ton abonnement",
       subtitle: "Débloque ta boutique sur le marketplace Fermier Pro",
       choosePlan: "Choisis ton plan",
-      freeTitle: "Free",
-      freeShop: "1 boutique",
-      freeProducts: "5 produits actifs max",
+      freeTitle: "Standard",
+      freeShop: "{{count}} boutique",
+      freeShop_plural: "{{count}} boutiques",
+      freeShopUnlimited: "Boutiques illimitées",
+      freeProducts: "{{count}} produits actifs max",
+      freeProducts_plural: "{{count}} produits actifs max",
+      freeProductsUnlimited: "Produits actifs illimités",
       freePrice: "Gratuit",
       freeCaption: "Idéal pour démarrer",
       premiumTitle: "Premium",
-      premiumProducts: "Produits illimités",
+      premiumProducts: "{{count}} produits actifs max",
+      premiumProducts_plural: "{{count}} produits actifs max",
+      premiumProductsUnlimited: "Produits illimités",
       premiumShops: "Jusqu'à {{count}} boutiques",
+      premiumShopsUnlimited: "Boutiques illimitées",
       premiumPrice: "{{price}} XOF{{period}}",
       premiumCaption: "Renouvellement automatique",
       chooseFree: "Choisir Free",
@@ -4577,7 +4601,8 @@ export const fr = {
       graceEnds: "Fin de grâce",
       cancelSubscription: "Annuler mon abonnement Premium",
       cancelSubscriptionTitle: "Annuler l'abonnement Premium ?",
-      cancelSubscriptionMessage: "Retour au Free : 1 boutique, 5 produits actifs max. Les produits en trop sont désactivés tout de suite.",
+      cancelSubscriptionMessage:
+        "Retour au Standard : {{shops}} boutique(s), {{products}} produit(s) actif(s) max. Les produits en trop sont désactivés tout de suite.",
       cancelSubscriptionConfirm: "Annuler l'abonnement",
       cancelSubscriptionSuccess: "Ton abonnement Premium a été annulé.",
       cancelSubscriptionError: "Impossible d'annuler l'abonnement. Réessaie dans un instant.",
@@ -4606,5 +4631,59 @@ export const fr = {
   },
   insights: {
     firstWeighing: "Première pesée enregistrée — le suivi GMQ commence."
+  },
+  subscriptionLimits: {
+    unlimited: "Illimité",
+    planChoice: {
+      title: "Choisissez votre formule",
+      subtitle: "Vous pourrez passer Premium plus tard.",
+      defaultBadge: "Par défaut",
+      standardTitle: "Standard",
+      standardPrice: "Gratuit",
+      premiumTitle: "Premium",
+      premiumPriceHint: "Payant",
+      chooseStandard: "Continuer en Standard",
+      choosePremium: "Voir Premium",
+      chooseLater: "Choisir plus tard"
+    },
+    producer: {
+      farms: "{{count}} projet actif",
+      farms_plural: "{{count}} projets actifs",
+      farmsUnlimited: "Projets actifs illimités",
+      solo: "Compte solo — pas d'équipe",
+      team: "Équipe et partenaires",
+      invites: "QR et liens d'invitation"
+    },
+    merchant: {
+      shops: "{{count}} boutique",
+      shops_plural: "{{count}} boutiques",
+      shopsUnlimited: "Boutiques illimitées",
+      products: "{{count}} produit actif / boutique",
+      products_plural: "{{count}} produits actifs / boutique",
+      productsUnlimited: "Produits actifs illimités"
+    },
+    upgrade: {
+      farmTitle: "Limite de projets atteinte",
+      shopTitle: "Limite de boutiques atteinte",
+      productTitle: "Limite de produits atteinte",
+      farmBody: "Votre formule Standard permet {{count}} projet actif.",
+      farmBody_plural: "Votre formule Standard permet {{count}} projets actifs.",
+      farmBodyGeneric: "Vous avez atteint la limite de projets de votre formule.",
+      shopBody: "Votre formule Standard permet {{count}} boutique.",
+      shopBody_plural: "Votre formule Standard permet {{count}} boutiques.",
+      shopBodyGeneric: "Vous avez atteint la limite de boutiques de votre formule.",
+      productBody: "Votre formule permet {{count}} produit actif par boutique.",
+      productBody_plural: "Votre formule permet {{count}} produits actifs par boutique.",
+      productBodyGeneric: "Vous avez atteint la limite de produits de votre formule.",
+      upgradeCta: "Passer Premium",
+      laterCta: "Plus tard"
+    },
+    writeLocked: {
+      farmBanner:
+        "Ce projet est en lecture seule après un changement de formule. Passez Premium pour le modifier à nouveau.",
+      shopBanner:
+        "Cette boutique est en lecture seule après un changement de formule. Passez Premium pour la modifier à nouveau.",
+      upgradeCta: "Passer Premium"
+    }
   }
 } as const;

@@ -80,7 +80,32 @@ export function PlatformSettingsPanel({
             next.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
           ),
           merchantPremiumPriceXof: Number(next.merchantPremiumPriceXof ?? 5000),
-          merchantPremiumMaxShops: Number(next.merchantPremiumMaxShops ?? 3),
+          merchantPremiumMaxShops:
+            next.merchantPremiumMaxShops === null
+              ? null
+              : Number(next.merchantPremiumMaxShops ?? 3),
+          merchantStandardMaxShops:
+            next.merchantStandardMaxShops === null
+              ? null
+              : Number(next.merchantStandardMaxShops ?? 1),
+          merchantStandardMaxProductsPerShop:
+            next.merchantStandardMaxProductsPerShop === null
+              ? null
+              : Number(next.merchantStandardMaxProductsPerShop ?? 3),
+          merchantPremiumMaxProductsPerShop:
+            next.merchantPremiumMaxProductsPerShop === null ||
+            next.merchantPremiumMaxProductsPerShop === undefined
+              ? null
+              : Number(next.merchantPremiumMaxProductsPerShop),
+          producerStandardMaxFarms:
+            next.producerStandardMaxFarms === null
+              ? null
+              : Number(next.producerStandardMaxFarms ?? 1),
+          producerPremiumMaxFarms:
+            next.producerPremiumMaxFarms === null ||
+            next.producerPremiumMaxFarms === undefined
+              ? null
+              : Number(next.producerPremiumMaxFarms),
           merchantPremiumBillingUnit: next.merchantPremiumBillingUnit ?? "month",
           merchantPremiumBillingInterval: Number(
             next.merchantPremiumBillingInterval ?? 1

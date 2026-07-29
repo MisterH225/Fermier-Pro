@@ -58,6 +58,10 @@ export class ProducerTeamAccessService {
     }
   }
 
+  /**
+   * Suspend team access without deleting memberships (archived=true).
+   * Invitations pending/accepted are expired.
+   */
   async revokeTeamAccessForOwner(userId: string): Promise<void> {
     const ownedFarms = await this.prisma.farm.findMany({
       where: { ownerId: userId },
@@ -69,11 +73,12 @@ export class ProducerTeamAccessService {
     }
 
     await this.prisma.$transaction([
-      this.prisma.farmMembership.deleteMany({
+      this.prisma.farmMembership.updateMany({
         where: {
           farmId: { in: farmIds },
           role: { not: MembershipRole.owner }
-        }
+        },
+        data: { archived: true }
       }),
       this.prisma.farmInvitation.updateMany({
         where: {
@@ -88,5 +93,26 @@ export class ProducerTeamAccessService {
         data: { status: FarmInvitationStatus.expired }
       })
     ]);
+  }
+
+  /** Restore memberships suspended by revokeTeamAccessForOwner / demotion. */
+  async restoreTeamAccessForOwner(userId: string): Promise<void> {
+    const ownedFarms = await this.prisma.farm.findMany({
+      where: { ownerId: userId },
+      select: { id: true }
+    });
+    const farmIds = ownedFarms.map((f) => f.id);
+    if (farmIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.farmMembership.updateMany({
+      where: {
+        farmId: { in: farmIds },
+        role: { not: MembershipRole.owner },
+        archived: true
+      },
+      data: { archived: false }
+    });
   }
 }

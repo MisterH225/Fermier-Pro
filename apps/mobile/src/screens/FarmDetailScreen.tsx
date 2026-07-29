@@ -10,6 +10,7 @@ import {
   View
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { WriteLockedBanner } from "../components/subscription/WriteLockedBanner";
 import { useSession } from "../context/SessionContext";
 import {
   buildFarmDetailMenuItems,
@@ -126,6 +127,12 @@ export function FarmDetailScreen({ route, navigation }: Props) {
       style={styles.scroll}
       contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
     >
+      {farm.writeLockedAt ? (
+        <WriteLockedBanner
+          role="producer"
+          onUpgrade={() => navigation.navigate("ProducerSubscription")}
+        />
+      ) : null}
       {menuRows
         .filter((row) => row.visible)
         .map((row) => {

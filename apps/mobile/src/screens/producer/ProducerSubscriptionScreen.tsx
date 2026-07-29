@@ -23,16 +23,22 @@ import {
   fetchUserWallet
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import { limitFeatureLine } from "../../lib/subscriptionLimitsUi";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography } from "../../theme/mobileTheme";
-
-type Props = {
-  onChosen: () => void | Promise<void>;
-  onCancel: () => void;
-};
 
 type Tier = "free" | "premium";
 type BillingUnit = "hour" | "day" | "month";
 type PaymentMethod = "wallet" | "mobile_money";
+
+type Props = {
+  skippable?: boolean;
+  /** Onboarding : avance si un tier est déjà enregistré. */
+  autoAdvanceIfTierChosen?: boolean;
+  initialTier?: Tier;
+  onSkip?: () => void;
+  onChosen: () => void | Promise<void>;
+  onCancel: () => void;
+};
 
 function billingPeriodSuffix(
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -58,7 +64,14 @@ function billingPeriodSuffix(
 /** Sticky footer CTA block height (matches MerchantSubscriptionScreen). */
 const STICKY_FOOTER_HEIGHT = 88;
 
-export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
+export function ProducerSubscriptionScreen({
+  skippable = false,
+  autoAdvanceIfTierChosen = false,
+  initialTier,
+  onSkip,
+  onChosen,
+  onCancel
+}: Props) {
   const { t } = useTranslation();
   const bottomChromePad = useBottomChromePad();
   const footerBottomPad = Math.max(bottomChromePad, mobileSpacing.md);
@@ -66,9 +79,10 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
   const { accessToken, activeProfileId, refreshAuthMe } = useSession();
   const queryClient = useQueryClient();
   const completingRef = useRef(false);
+  const advancedRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTier, setSelectedTier] = useState<Tier>("premium");
+  const [selectedTier, setSelectedTier] = useState<Tier>(initialTier ?? "premium");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile_money");
   const [pendingPayment, setPendingPayment] = useState<{
     providerRef: string;
@@ -96,6 +110,8 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
   const trialAvailable = Boolean(meQ.data?.trialAvailable);
   const trialUnits = meQ.data?.trialUnits ?? 7;
   const premiumPriceXof = meQ.data?.premiumPriceXof;
+  const standardMaxFarms = meQ.data?.standardMaxFarms ?? null;
+  const premiumMaxFarms = meQ.data?.premiumMaxFarms ?? null;
   const walletBalance = Number(walletQ.data?.balance ?? 0);
   const canPayWithWallet =
     premiumPriceXof != null && walletBalance >= premiumPriceXof;
@@ -107,6 +123,19 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
 
   const premiumPriceLabel =
     premiumPriceXof != null ? premiumPriceXof.toLocaleString("fr-FR") : null;
+
+  useEffect(() => {
+    if (!autoAdvanceIfTierChosen || advancedRef.current) return;
+    if (meQ.data?.subscriptionTier || meQ.data?.subscriptionChosenAt) {
+      advancedRef.current = true;
+      void onChosen();
+    }
+  }, [
+    autoAdvanceIfTierChosen,
+    meQ.data?.subscriptionTier,
+    meQ.data?.subscriptionChosenAt,
+    onChosen
+  ]);
 
   const completeIfPremium = useCallback(async () => {
     if (completingRef.current) return;
@@ -280,6 +309,13 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
                 onPress={() => setSelectedTier("free")}
               >
                 <Text style={styles.planTitle}>{t("producer.subscription.freeTitle")}</Text>
+                <Text style={styles.planFeature}>
+                  {limitFeatureLine(
+                    t,
+                    "producer.subscription.freeFarms",
+                    standardMaxFarms
+                  )}
+                </Text>
                 <Text style={styles.planFeature}>{t("producer.subscription.freeSolo")}</Text>
                 <Text style={styles.planPrice}>{t("producer.subscription.freePrice")}</Text>
               </Pressable>
@@ -288,6 +324,13 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
                 onPress={() => setSelectedTier("premium")}
               >
                 <Text style={styles.planTitle}>{t("producer.subscription.premiumTitle")}</Text>
+                <Text style={styles.planFeature}>
+                  {limitFeatureLine(
+                    t,
+                    "producer.subscription.premiumFarms",
+                    premiumMaxFarms
+                  )}
+                </Text>
                 <Text style={styles.planFeature}>{t("producer.subscription.premiumTeam")}</Text>
                 <Text style={styles.planFeature}>{t("producer.subscription.premiumQr")}</Text>
                 <Text style={styles.planPrice}>
@@ -327,6 +370,19 @@ export function ProducerSubscriptionScreen({ onChosen, onCancel }: Props) {
                   </Text>
                 </Pressable>
               </View>
+            ) : null}
+
+            {skippable && onSkip ? (
+              <Pressable
+                style={styles.skipBtn}
+                onPress={onSkip}
+                disabled={busy}
+                testID="producer-subscription-skip"
+              >
+                <Text style={styles.skipTx}>
+                  {t("subscriptionLimits.planChoice.chooseLater")}
+                </Text>
+              </Pressable>
             ) : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -436,6 +492,16 @@ const styles = StyleSheet.create({
   },
   secondaryBtnTxt: { ...mobileTypography.body, fontWeight: "700", color: mobileColors.accent },
   btnDisabled: { opacity: 0.6 },
+  skipBtn: {
+    alignItems: "center",
+    marginTop: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm
+  },
+  skipTx: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    textDecorationLine: "underline"
+  },
   error: { color: mobileColors.error, marginTop: mobileSpacing.md },
   pendingCard: {
     borderRadius: mobileRadius.lg,

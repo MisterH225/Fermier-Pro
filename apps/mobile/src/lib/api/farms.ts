@@ -16,6 +16,8 @@ export type FarmDto = {
   longitude: string | null;
   status: FarmStatus;
   archivedAt: string | null;
+  /** Présent si la ferme est en lecture seule après rétrogradation. */
+  writeLockedAt?: string | null;
   displayOrder: number;
   createdAt: string;
   updatedAt: string;

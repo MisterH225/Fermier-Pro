@@ -17,6 +17,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MerchantProductPhotoGrid } from "./MerchantProductPhotoGrid";
 import { PlatformFeePreview } from "../common/PlatformFeePreview";
+import { useModal } from "../modals/useModal";
 import { useSession } from "../../context/SessionContext";
 import {
   createMerchantProduct,
@@ -24,6 +25,7 @@ import {
   fetchMerchantCategories,
   fetchMerchantMe,
   fetchMerchantProducts,
+  isSubscriptionLimitError,
   publishMerchantProduct,
   resubmitMerchantProduct,
   updateMerchantProduct,
@@ -69,6 +71,8 @@ export type MerchantProductFormProps = {
   onNeedShop?: () => void;
   /** Publish bloqué faute d'abonnement (onboarding → revenir au choix de forfait). */
   onSubscriptionRequired?: () => void;
+  /** Limite atteinte → écran Premium (stack). */
+  onUpgradeToPremium?: () => void;
 };
 
 export function MerchantProductForm({
@@ -80,9 +84,11 @@ export function MerchantProductForm({
   onDeleted,
   onSkip,
   onNeedShop,
-  onSubscriptionRequired
+  onSubscriptionRequired,
+  onUpgradeToPremium
 }: MerchantProductFormProps) {
   const { t } = useTranslation();
+  const { open } = useModal();
   const { accessToken, activeProfileId, platformFees } = useSession();
   const queryClient = useQueryClient();
   const bottomInset = useBottomInset();
@@ -255,6 +261,20 @@ export function MerchantProductForm({
       await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
       await onSuccess(saved);
     } catch (e) {
+      if (isSubscriptionLimitError(e) && e.code === "PRODUCT_LIMIT_REACHED") {
+        const limit =
+          meQ.data?.maxActiveProducts ??
+          meQ.data?.standardMaxProductsPerShop ??
+          null;
+        const goPremium =
+          onUpgradeToPremium ?? onSubscriptionRequired ?? (() => undefined);
+        open("upgrade-limit", {
+          code: e.code,
+          limit,
+          onUpgrade: goPremium
+        });
+        return;
+      }
       const msg = formatApiError(e);
       const needsSub =
         msg.includes("SUBSCRIPTION_REQUIRED") ||

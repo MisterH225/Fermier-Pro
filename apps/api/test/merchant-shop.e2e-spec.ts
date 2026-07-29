@@ -142,24 +142,25 @@ describeOrSkip("Merchant shop (e2e)", () => {
     expect(row?.disabledReason).toBe("merchant_deleted");
   });
 
-  it("free bloque 6e produit actif", async () => {
+  it("free bloque produit au-delà de la limite standard", async () => {
     const published = await base.prisma.merchantProduct.count({
       where: {
         shopId: merchant.shopId,
         status: MerchantProductStatus.published
       }
     });
-    for (let i = published; i < 5; i += 1) {
+    // Limite Standard = 3 produits actifs / boutique (PlatformSettings).
+    for (let i = published; i < 3; i += 1) {
       const p = await createMerchantProduct(app, merchant, `LimitP${i}`);
       await publishProduct(app, merchant, p.body.id);
     }
-    const sixth = await createMerchantProduct(app, merchant, "LimitP6");
-    const blocked = await publishProduct(app, merchant, sixth.body.id);
+    const extra = await createMerchantProduct(app, merchant, "LimitPExtra");
+    const blocked = await publishProduct(app, merchant, extra.body.id);
     expect(blocked.status).toBe(403);
-    expect(blocked.body.code).toBe("ACTIVE_PRODUCT_LIMIT");
+    expect(blocked.body.code).toBe("PRODUCT_LIMIT_REACHED");
   });
 
-  it("downgrade premium→free garde 5 actifs", async () => {
+  it("downgrade premium→free garde 3 actifs", async () => {
     await base.prisma.merchantProfile.update({
       where: { userId: merchant.merchantUserId },
       data: { subscriptionTier: "premium" }
@@ -180,11 +181,11 @@ describeOrSkip("Merchant shop (e2e)", () => {
     const disabled = products.filter(
       (p) => p.status === MerchantProductStatus.disabled
     );
-    expect(published.length).toBe(5);
+    expect(published.length).toBe(3);
     expect(disabled.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("swap respecte limite 5 actifs", async () => {
+  it("swap respecte limite standard d'actifs", async () => {
     const disabled = await base.prisma.merchantProduct.findFirst({
       where: {
         shopId: merchant.shopId,
@@ -208,7 +209,7 @@ describeOrSkip("Merchant shop (e2e)", () => {
         status: MerchantProductStatus.published
       }
     });
-    expect(active).toBeLessThanOrEqual(5);
+    expect(active).toBeLessThanOrEqual(3);
   });
 
   it("catalog public : filtres, tri et pagination", async () => {
