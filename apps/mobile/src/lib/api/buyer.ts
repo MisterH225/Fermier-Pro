@@ -17,6 +17,54 @@ export type UpsertBuyerProfileBody = {
   onboardingComplete?: boolean;
 };
 
+export type BuyerDashboardProposalBucket = {
+  count: number;
+  amount: number;
+};
+
+export type BuyerDashboardProposalsDto = {
+  pending: BuyerDashboardProposalBucket;
+  countered: BuyerDashboardProposalBucket;
+  accepted: BuyerDashboardProposalBucket;
+  rejected: BuyerDashboardProposalBucket;
+};
+
+export type BuyerDashboardPeriodKey = "month" | "quarter" | "year";
+
+export type BuyerDashboardPeriodTotals = {
+  total: number;
+  previousTotal: number;
+  count: number;
+  previousCount: number;
+  deltaPct: number | null;
+};
+
+export type BuyerDashboardPurchasesDto = {
+  currency: string;
+  month: BuyerDashboardPeriodTotals;
+  quarter: BuyerDashboardPeriodTotals;
+  year: BuyerDashboardPeriodTotals;
+};
+
+export type BuyerDashboardCreditDueItemDto = {
+  offerId: string;
+  transactionId: string | null;
+  sellerName: string;
+  farmName: string | null;
+  listingTitle: string;
+  amountDue: number;
+  balanceDueAt: string | null;
+  overdue: boolean;
+  status: string;
+  currency: string;
+};
+
+export type BuyerDashboardCreditDuesDto = {
+  totalDue: number;
+  currency: string;
+  items: BuyerDashboardCreditDueItemDto[];
+};
+
 export type BuyerDashboardDto = {
   profile: {
     buyerType: string;
@@ -43,7 +91,15 @@ export type BuyerDashboardDto = {
     currency: string;
     monthCredits: number;
     monthDebits: number;
+    pendingBalance?: number;
+    availableBalance?: number;
   };
+  /** Additif — répartition des propositions. */
+  proposals?: BuyerDashboardProposalsDto;
+  /** Additif — totaux d'achats aboutis par période. */
+  purchases?: BuyerDashboardPurchasesDto;
+  /** Additif — soldes crédit dus (absent côté UI si items vides). */
+  creditDues?: BuyerDashboardCreditDuesDto;
 };
 export type BuyerProposalDto = {
   id: string;

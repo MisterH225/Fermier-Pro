@@ -18,6 +18,7 @@ import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypogra
 import { producerColors } from "../../theme/producerTheme";
 import { marketplaceColors } from "../../theme/marketplaceTheme";
 import { uiNamedColors } from "../../theme/uiNamedColors";
+import { DashboardPeriodPills } from "../common/DashboardPeriodPills";
 
 type Props = {
   data: FarmProfitabilityDashboardDto | undefined;
@@ -83,27 +84,15 @@ export function RentabilityHeroCard({
     >
       <View style={styles.headerRow}>
         <Text style={styles.title}>{t("profitability.heroTitle")}</Text>
-        <View style={styles.periodRow}>
-          {periods.map((p) => (
-            <Pressable
-              key={p.key}
-              style={[
-                styles.periodPill,
-                period === p.key && styles.periodPillOn
-              ]}
-              onPress={() => onPeriodChange?.(p.key)}
-            >
-              <Text
-                style={[
-                  styles.periodPillText,
-                  period === p.key && styles.periodPillTextOn
-                ]}
-              >
-                {p.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <DashboardPeriodPills
+          options={periods}
+          value={period}
+          onChange={(key) => onPeriodChange?.(key)}
+          activeBackground={mobileColors.textPrimary}
+          activeColor={mobileColors.background}
+          idleBackground="rgba(255,255,255,0.55)"
+          idleColor={mobileColors.textSecondary}
+        />
       </View>
 
       {insufficient ? (
@@ -202,20 +191,6 @@ const styles = StyleSheet.create({
     ...mobileTypography.cardTitle,
     fontWeight: "800"
   },
-  periodRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  periodPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: mobileRadius.pill,
-    backgroundColor: "rgba(255,255,255,0.55)"
-  },
-  periodPillOn: { backgroundColor: mobileColors.textPrimary },
-  periodPillText: {
-    ...mobileTypography.meta,
-    fontWeight: "600",
-    color: mobileColors.textSecondary
-  },
-  periodPillTextOn: { color: mobileColors.background },
   insufficient: {
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
