@@ -86,13 +86,25 @@ export class FarmAccessService {
     const farm = await this.prisma.farm.findFirst({
       where: {
         id: farmId,
-        OR: [{ ownerId: userId }, { memberships: { some: { userId } } }]
+        OR: [
+          { ownerId: userId },
+          { memberships: { some: { userId, archived: false } } }
+        ]
       }
     });
     if (!farm) {
       throw new NotFoundException("Ferme introuvable");
     }
     return farm;
+  }
+
+  private requiresWriteScope(required: string[]): boolean {
+    return required.some(
+      (r) =>
+        r === FARM_SCOPE.ALL ||
+        r === FARM_SCOPE.invitationsManage ||
+        r.endsWith(".write")
+    );
   }
 
   async getEffectiveFarmScopes(
@@ -104,7 +116,7 @@ export class FarmAccessService {
       return { farm, scopes: new Set([FARM_SCOPE.ALL]) };
     }
     const memberships = await this.prisma.farmMembership.findMany({
-      where: { farmId, userId }
+      where: { farmId, userId, archived: false }
     });
     const scopes = new Set<string>();
     for (const m of memberships) {
@@ -122,7 +134,12 @@ export class FarmAccessService {
     farmId: string,
     required: string[]
   ): Promise<void> {
-    const { scopes } = await this.getEffectiveFarmScopes(userId, farmId);
+    const { farm, scopes } = await this.getEffectiveFarmScopes(userId, farmId);
+    if (farm.writeLockedAt != null && this.requiresWriteScope(required)) {
+      throw new ForbiddenException(
+        "Projet en lecture seule (limite d'abonnement)."
+      );
+    }
     for (const r of required) {
       if (!scopeSatisfies(scopes, r)) {
         throw new ForbiddenException(`Permission manquante: ${r}`);

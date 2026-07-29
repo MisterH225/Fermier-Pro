@@ -36,7 +36,32 @@ function normalizeSettingsRow(row: PlatformSettingsDto): PlatformSettingsDto {
       row.marketplaceWeightArbitrationCumulativeMinDiffKg ?? 5
     ),
     merchantPremiumPriceXof: Number(row.merchantPremiumPriceXof ?? 5000),
-    merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3),
+    merchantPremiumMaxShops:
+      row.merchantPremiumMaxShops === null
+        ? null
+        : Number(row.merchantPremiumMaxShops ?? 3),
+    merchantStandardMaxShops:
+      row.merchantStandardMaxShops === null
+        ? null
+        : Number(row.merchantStandardMaxShops ?? 1),
+    merchantStandardMaxProductsPerShop:
+      row.merchantStandardMaxProductsPerShop === null
+        ? null
+        : Number(row.merchantStandardMaxProductsPerShop ?? 3),
+    merchantPremiumMaxProductsPerShop:
+      row.merchantPremiumMaxProductsPerShop === null ||
+      row.merchantPremiumMaxProductsPerShop === undefined
+        ? null
+        : Number(row.merchantPremiumMaxProductsPerShop),
+    producerStandardMaxFarms:
+      row.producerStandardMaxFarms === null
+        ? null
+        : Number(row.producerStandardMaxFarms ?? 1),
+    producerPremiumMaxFarms:
+      row.producerPremiumMaxFarms === null ||
+      row.producerPremiumMaxFarms === undefined
+        ? null
+        : Number(row.producerPremiumMaxFarms),
     merchantPremiumBillingUnit: row.merchantPremiumBillingUnit ?? "month",
     merchantPremiumBillingInterval: Number(
       row.merchantPremiumBillingInterval ?? 1

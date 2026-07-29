@@ -24,8 +24,7 @@ import { mapBatchCategoryKey } from "../cheptel/batch-category.util";
 import { activeNursingLitterBatchIds } from "../gestation/litter-weaning.util";
 import { countPlacementOccupancy } from "../housing/placement-occupancy.util";
 import { GeoRollupService } from "./geo/geo-rollup.service";
-
-const MAX_ACTIVE_FARMS_PER_USER = 3;
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 
 @Injectable()
 export class FarmsService {
@@ -36,18 +35,12 @@ export class FarmsService {
     private readonly invitations: InvitationsService,
     private readonly farmDeletion: FarmDeletionService,
     private readonly marketplaceLifecycle: FarmMarketplaceLifecycleService,
-    private readonly geoRollup: GeoRollupService
+    private readonly geoRollup: GeoRollupService,
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   async create(user: User, dto: CreateFarmDto): Promise<Farm> {
-    const activeFarmCount = await this.prisma.farm.count({
-      where: { ownerId: user.id, status: FarmStatus.active }
-    });
-    if (activeFarmCount >= MAX_ACTIVE_FARMS_PER_USER) {
-      throw new ForbiddenException(
-        `Limite de ${MAX_ACTIVE_FARMS_PER_USER} projets actifs atteinte. Archivez un projet pour en créer un nouveau.`
-      );
-    }
+    await this.subscriptionLimits.assertFarmCreate(user.id);
 
     const composedAddress = composeFarmAddress({
       address: dto.address,
@@ -873,14 +866,7 @@ export class FarmsService {
       throw new BadRequestException("Ce projet n'est pas archivé");
     }
 
-    const activeFarmCount = await this.prisma.farm.count({
-      where: { ownerId: user.id, status: FarmStatus.active }
-    });
-    if (activeFarmCount >= MAX_ACTIVE_FARMS_PER_USER) {
-      throw new ForbiddenException(
-        `Limite de ${MAX_ACTIVE_FARMS_PER_USER} projets actifs atteinte. Archivez un projet pour restaurer celui-ci.`
-      );
-    }
+    await this.subscriptionLimits.assertFarmCreate(user.id);
 
     let restoreNotices: Awaited<
       ReturnType<FarmMarketplaceLifecycleService["applyFarmRestored"]>

@@ -12,10 +12,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import {
-  MERCHANT_FREE_MAX_ACTIVE_PRODUCTS,
-  MERCHANT_FREE_MAX_SHOPS
-} from "./merchant-shop.constants";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 import type { PatchMerchantOnboardingDto } from "./dto/merchant-shop.dto";
 import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-config";
 import { shouldExposePendingSubscription } from "./merchant-pending-subscription.util";
@@ -23,7 +20,10 @@ import { applyPromoPercent } from "./merchant-subscription.constants";
 
 @Injectable()
 export class MerchantProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly subscriptionLimits: SubscriptionLimitsService
+  ) {}
 
   async ensureProfile(userId: string) {
     return this.prisma.merchantProfile.upsert({
@@ -70,19 +70,16 @@ export class MerchantProfilesService {
 
   maxShopsForTier(
     tier: MerchantSubscriptionTier | null,
-    premiumMaxShops: number
-  ): number {
-    if (tier === MerchantSubscriptionTier.premium) {
-      return Math.max(1, premiumMaxShops);
-    }
-    return MERCHANT_FREE_MAX_SHOPS;
+    limits: ReturnType<SubscriptionLimitsService["limitsFromSettings"]>
+  ): number | null {
+    return this.subscriptionLimits.resolveMaxShops(tier, limits);
   }
 
-  maxActiveProductsForTier(tier: MerchantSubscriptionTier | null): number | null {
-    if (tier === MerchantSubscriptionTier.premium) {
-      return null;
-    }
-    return MERCHANT_FREE_MAX_ACTIVE_PRODUCTS;
+  maxActiveProductsForTier(
+    tier: MerchantSubscriptionTier | null,
+    limits: ReturnType<SubscriptionLimitsService["limitsFromSettings"]>
+  ): number | null {
+    return this.subscriptionLimits.resolveMaxProductsPerShop(tier, limits);
   }
 
   async getMe(user: User) {
@@ -102,7 +99,8 @@ export class MerchantProfilesService {
     const settings = await this.prisma.platformSettings.findUnique({
       where: { id: "default" }
     });
-    const premiumMaxShops = settings?.merchantPremiumMaxShops ?? 3;
+    const limits = this.subscriptionLimits.limitsFromSettings(settings);
+    const premiumMaxShops = limits.merchantPremiumMaxShops;
     const billing = resolveMerchantPremiumBillingConfig(settings);
     const stickyPromo =
       profile.subscriptionTier === MerchantSubscriptionTier.premium
@@ -181,8 +179,11 @@ export class MerchantProfilesService {
       onboardingComplete: profile.onboardingComplete,
       shopCount: activeShops.length,
       activeProductCount,
-      maxShops: this.maxShopsForTier(profile.subscriptionTier, premiumMaxShops),
-      maxActiveProducts: this.maxActiveProductsForTier(profile.subscriptionTier),
+      maxShops: this.maxShopsForTier(profile.subscriptionTier, limits),
+      maxActiveProducts: this.maxActiveProductsForTier(
+        profile.subscriptionTier,
+        limits
+      ),
       premiumPriceXof: premiumPrice,
       premiumFullPriceXof: billing.fullPriceXof,
       premiumMaxShops,

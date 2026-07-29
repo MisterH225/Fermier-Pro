@@ -147,9 +147,20 @@ describeOrSkip("Producteur Premium — équipe (e2e)", () => {
     expect([200, 201]).toContain(cancelRes.status);
     expect(cancelRes.body?.teamPremiumActive).toBe(false);
 
-    const members = await ctx.prisma.farmMembership.findMany({
-      where: { farmId: ctx.farmId }
+    const activeMembers = await ctx.prisma.farmMembership.findMany({
+      where: { farmId: ctx.farmId, archived: false }
     });
-    expect(members.every((m) => m.role === MembershipRole.owner)).toBe(true);
+    expect(activeMembers.every((m) => m.role === MembershipRole.owner)).toBe(
+      true
+    );
+
+    const suspended = await ctx.prisma.farmMembership.findMany({
+      where: {
+        farmId: ctx.farmId,
+        role: { not: MembershipRole.owner },
+        archived: true
+      }
+    });
+    expect(suspended.length).toBeGreaterThanOrEqual(1);
   });
 });

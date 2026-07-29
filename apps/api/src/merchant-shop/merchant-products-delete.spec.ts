@@ -51,7 +51,8 @@ describe("MerchantProductsService.remove", () => {
 
     const service = new MerchantProductsService(
       prisma as never,
-      profiles as never
+      profiles as never,
+      { assertProductPublish: jest.fn() } as never
     );
     return { service, prisma };
   }

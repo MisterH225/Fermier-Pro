@@ -29,6 +29,7 @@ import { LivestockExitsModule } from "./livestock-exits/livestock-exits.module";
 import { MarketplaceModule } from "./marketplace/marketplace.module";
 import { PlatformSettingsModule } from "./platform-settings/platform-settings.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { SubscriptionLimitsModule } from "./subscription-limits/subscription-limits.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { PushNotificationsModule } from "./push-notifications/push-notifications.module";
 import { TasksModule } from "./tasks/tasks.module";
@@ -104,6 +105,7 @@ import { InsightsModule } from "./insights/insights.module";
     PrismaModule,
     AdminConsoleAuthModule,
     PlatformSettingsModule,
+    SubscriptionLimitsModule,
     CommonModule,
     ConfigClientModule,
     DashboardModule,

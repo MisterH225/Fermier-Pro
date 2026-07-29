@@ -10,7 +10,8 @@ import {
   Max,
   MaxLength,
   Min,
-  MinLength
+  MinLength,
+  ValidateIf
 } from "class-validator";
 import {
   MerchantPremiumBillingUnit,
@@ -130,10 +131,47 @@ export class UpdatePlatformSettingsDto {
   @Min(0)
   merchantPremiumPriceXof?: number;
 
+  /** null = unlimited */
   @IsOptional()
+  @ValidateIf((_, v) => v !== null)
   @IsInt()
   @Min(1)
-  merchantPremiumMaxShops?: number;
+  merchantPremiumMaxShops?: number | null;
+
+  /** null = unlimited */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(1)
+  merchantStandardMaxShops?: number | null;
+
+  /** null = unlimited */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(1)
+  merchantStandardMaxProductsPerShop?: number | null;
+
+  /** null = unlimited */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(1)
+  merchantPremiumMaxProductsPerShop?: number | null;
+
+  /** null = unlimited */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(1)
+  producerStandardMaxFarms?: number | null;
+
+  /** null = unlimited */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(1)
+  producerPremiumMaxFarms?: number | null;
 
   @IsOptional()
   @IsEnum(MerchantPremiumBillingUnit)

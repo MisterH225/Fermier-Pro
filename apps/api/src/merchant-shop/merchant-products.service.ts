@@ -13,9 +13,9 @@ import {
   Prisma
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 import {
   MERCHANT_ERROR,
-  MERCHANT_FREE_MAX_ACTIVE_PRODUCTS,
   MERCHANT_PRODUCT_MAX_RESUBMISSIONS,
   MERCHANT_SHOP_ARCHIVE_BLOCKING_STATUSES
 } from "./merchant-shop.constants";
@@ -44,7 +44,8 @@ type ProductStats = {
 export class MerchantProductsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly profiles: MerchantProfilesService
+    private readonly profiles: MerchantProfilesService,
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   private serializeProduct(
@@ -315,16 +316,7 @@ export class MerchantProductsService {
       );
     }
 
-    if (tier === MerchantSubscriptionTier.free) {
-      const activeCount = await this.countActiveProductsForUser(user.id);
-      if (activeCount >= MERCHANT_FREE_MAX_ACTIVE_PRODUCTS) {
-        throw new ForbiddenException({
-          statusCode: 403,
-          code: MERCHANT_ERROR.ACTIVE_PRODUCT_LIMIT,
-          message: "Limite de 5 produits actifs atteinte (abonnement Free)"
-        });
-      }
-    }
+    await this.subscriptionLimits.assertProductPublish(product.shopId, tier);
 
     if (product.stock <= 0) {
       throw new ForbiddenException("Stock insuffisant pour publication");
@@ -476,8 +468,6 @@ export class MerchantProductsService {
     }
 
     const product = await this.requireOwnedProduct(user.id, productId);
-    const profile = await this.profiles.requireProfile(user.id);
-    const shopIds = profile.shops.map((s) => s.id);
 
     if (product.status === MerchantProductStatus.published) {
       const updated = await this.prisma.merchantProduct.update({
@@ -499,16 +489,22 @@ export class MerchantProductsService {
       throw new ConflictException("Seuls les produits désactivés peuvent être réactivés");
     }
 
+    const limits = await this.subscriptionLimits.loadLimits();
+    const maxProducts = this.subscriptionLimits.resolveMaxProductsPerShop(
+      tier,
+      limits
+    );
+
     return this.prisma.$transaction(async (tx) => {
       const active = await tx.merchantProduct.findMany({
         where: {
-          shopId: { in: shopIds },
+          shopId: product.shopId,
           status: MerchantProductStatus.published
         },
         orderBy: { createdAt: "asc" }
       });
 
-      if (active.length >= MERCHANT_FREE_MAX_ACTIVE_PRODUCTS) {
+      if (maxProducts !== null && active.length >= maxProducts) {
         const oldest = active[0]!;
         await tx.merchantProduct.update({
           where: { id: oldest.id },
@@ -670,17 +666,6 @@ export class MerchantProductsService {
       sellerUserId: product.shop.merchantProfile.user.id,
       merchantName: product.shop.merchantProfile.user.fullName
     };
-  }
-
-  private async countActiveProductsForUser(userId: string) {
-    const profile = await this.profiles.requireProfile(userId);
-    const shopIds = profile.shops.map((s) => s.id);
-    return this.prisma.merchantProduct.count({
-      where: {
-        shopId: { in: shopIds },
-        status: MerchantProductStatus.published
-      }
-    });
   }
 
   private async requireOwnedShop(userId: string, shopId: string) {

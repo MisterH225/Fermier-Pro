@@ -1,6 +1,3 @@
-export const MERCHANT_FREE_MAX_SHOPS = 1;
-export const MERCHANT_FREE_MAX_ACTIVE_PRODUCTS = 5;
-
 /** Délai d'acceptation commerçant après paiement (24h). */
 export const MERCHANT_ORDER_CONFIRM_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 /** Fenêtre litige après livraison (48h). */
@@ -8,8 +5,12 @@ export const MERCHANT_ORDER_DISPUTE_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export const MERCHANT_ERROR = {
   SUBSCRIPTION_REQUIRED: "SUBSCRIPTION_REQUIRED",
+  /** @deprecated Prefer PRODUCT_LIMIT_REACHED from subscription-limits */
   ACTIVE_PRODUCT_LIMIT: "ACTIVE_PRODUCT_LIMIT",
+  /** @deprecated Prefer SHOP_LIMIT_REACHED from subscription-limits */
   SHOP_LIMIT: "SHOP_LIMIT",
+  SHOP_LIMIT_REACHED: "SHOP_LIMIT_REACHED",
+  PRODUCT_LIMIT_REACHED: "PRODUCT_LIMIT_REACHED",
   STOCK_UNAVAILABLE: "STOCK_UNAVAILABLE",
   CATEGORY_INACTIVE: "CATEGORY_INACTIVE",
   INVALID_TRANSITION: "INVALID_TRANSITION",

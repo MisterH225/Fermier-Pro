@@ -41,8 +41,15 @@ describe("MerchantShopsService.archiveShop", () => {
       countActiveProducts: jest.fn().mockReturnValue(0),
       maxShopsForTier: jest.fn().mockReturnValue(1)
     };
+    const subscriptionLimits = {
+      assertShopCreate: jest.fn().mockResolvedValue(undefined)
+    };
     return {
-      service: new MerchantShopsService(prisma as never, profiles as never),
+      service: new MerchantShopsService(
+        prisma as never,
+        profiles as never,
+        subscriptionLimits as never
+      ),
       prisma,
       shop
     };
@@ -100,7 +107,11 @@ describe("MerchantShopsService.list", () => {
       countActiveProducts: jest.fn().mockReturnValue(0),
       visibleProducts: jest.fn((products: unknown[]) => products)
     };
-    const service = new MerchantShopsService({} as never, profiles as never);
+    const service = new MerchantShopsService(
+      {} as never,
+      profiles as never,
+      { assertShopCreate: jest.fn() } as never
+    );
     const rows = await service.list({ id: "u1" } as never);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.id).toBe("a");

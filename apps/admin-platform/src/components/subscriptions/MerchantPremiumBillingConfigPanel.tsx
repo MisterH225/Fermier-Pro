@@ -18,10 +18,29 @@ type Props = {
   onSaved?: () => void;
 };
 
+function optionalLimit(value: number | null | undefined, fallback: number | null) {
+  if (value === null) return null;
+  if (value === undefined) return fallback;
+  return Number(value);
+}
+
+function limitInputValue(value: number | null | undefined): string {
+  return value == null ? "" : String(value);
+}
+
 function pickMerchantBilling(row: PlatformSettingsDto) {
   return {
     merchantPremiumPriceXof: Number(row.merchantPremiumPriceXof ?? 5000),
-    merchantPremiumMaxShops: Number(row.merchantPremiumMaxShops ?? 3),
+    merchantStandardMaxShops: optionalLimit(row.merchantStandardMaxShops, 1),
+    merchantStandardMaxProductsPerShop: optionalLimit(
+      row.merchantStandardMaxProductsPerShop,
+      3
+    ),
+    merchantPremiumMaxShops: optionalLimit(row.merchantPremiumMaxShops, 3),
+    merchantPremiumMaxProductsPerShop: optionalLimit(
+      row.merchantPremiumMaxProductsPerShop,
+      null
+    ),
     merchantPremiumBillingUnit: row.merchantPremiumBillingUnit ?? "month",
     merchantPremiumBillingInterval: Number(
       row.merchantPremiumBillingInterval ?? 1
@@ -124,6 +143,52 @@ export function MerchantPremiumBillingConfigPanel({
           </p>
         </div>
         <div className="space-y-2">
+          <Label htmlFor="merchant-standard-max-shops">
+            {t("fields.merchantStandardMaxShops")}
+          </Label>
+          <Input
+            id="merchant-standard-max-shops"
+            type="number"
+            min={1}
+            disabled={!canEdit}
+            placeholder={t("fields.limitUnlimitedPlaceholder")}
+            value={limitInputValue(form.merchantStandardMaxShops)}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              update(
+                "merchantStandardMaxShops",
+                raw === "" ? null : Math.max(1, Number(raw) || 1)
+              );
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("fields.merchantStandardMaxShopsHint")}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="merchant-standard-max-products">
+            {t("fields.merchantStandardMaxProductsPerShop")}
+          </Label>
+          <Input
+            id="merchant-standard-max-products"
+            type="number"
+            min={1}
+            disabled={!canEdit}
+            placeholder={t("fields.limitUnlimitedPlaceholder")}
+            value={limitInputValue(form.merchantStandardMaxProductsPerShop)}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              update(
+                "merchantStandardMaxProductsPerShop",
+                raw === "" ? null : Math.max(1, Number(raw) || 1)
+              );
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("fields.merchantStandardMaxProductsPerShopHint")}
+          </p>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="merchant-premium-shops">
             {t("fields.merchantPremiumMaxShops")}
           </Label>
@@ -133,13 +198,41 @@ export function MerchantPremiumBillingConfigPanel({
             min={1}
             max={50}
             disabled={!canEdit}
-            value={form.merchantPremiumMaxShops ?? 3}
-            onChange={(e) =>
-              update("merchantPremiumMaxShops", Number(e.target.value) || 1)
-            }
+            placeholder={t("fields.limitUnlimitedPlaceholder")}
+            value={limitInputValue(form.merchantPremiumMaxShops)}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              update(
+                "merchantPremiumMaxShops",
+                raw === "" ? null : Math.max(1, Number(raw) || 1)
+              );
+            }}
           />
           <p className="text-xs text-muted-foreground">
             {t("fields.merchantPremiumMaxShopsHint")}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="merchant-premium-max-products">
+            {t("fields.merchantPremiumMaxProductsPerShop")}
+          </Label>
+          <Input
+            id="merchant-premium-max-products"
+            type="number"
+            min={1}
+            disabled={!canEdit}
+            placeholder={t("fields.limitUnlimitedPlaceholder")}
+            value={limitInputValue(form.merchantPremiumMaxProductsPerShop)}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              update(
+                "merchantPremiumMaxProductsPerShop",
+                raw === "" ? null : Math.max(1, Number(raw) || 1)
+              );
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("fields.merchantPremiumMaxProductsPerShopHint")}
           </p>
         </div>
         <div className="space-y-2">

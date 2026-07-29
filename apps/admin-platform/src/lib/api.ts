@@ -205,7 +205,11 @@ export type PlatformSettingsDto = {
   marketplaceWeightArbitrationMinDiffKg?: number;
   marketplaceWeightArbitrationCumulativeMinDiffKg?: number;
   merchantPremiumPriceXof?: number;
-  merchantPremiumMaxShops?: number;
+  /** null = unlimited */
+  merchantPremiumMaxShops?: number | null;
+  merchantStandardMaxShops?: number | null;
+  merchantStandardMaxProductsPerShop?: number | null;
+  merchantPremiumMaxProductsPerShop?: number | null;
   merchantPremiumBillingUnit?: "hour" | "day" | "month";
   merchantPremiumBillingInterval?: number;
   merchantPremiumGraceDays?: number;
@@ -215,6 +219,8 @@ export type PlatformSettingsDto = {
   merchantPremiumPromoPercentOff?: number;
   merchantPremiumPromoEndsAt?: string | null;
   producerPremiumPriceXof?: number;
+  producerStandardMaxFarms?: number | null;
+  producerPremiumMaxFarms?: number | null;
   producerPremiumBillingUnit?: "hour" | "day" | "month";
   producerPremiumBillingInterval?: number;
   producerPremiumGraceDays?: number;

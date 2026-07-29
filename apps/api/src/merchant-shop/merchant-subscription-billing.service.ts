@@ -1,7 +1,5 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import {
-  MerchantProductDisabledReason,
-  MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionReminderStage,
   MerchantSubscriptionStatus,
@@ -13,7 +11,7 @@ import { YellikaSmsClient } from "../auth/sms/yellika-sms.client";
 import { GeniusPayMobileMoneyGateway } from "../marketplace/escrow/geniuspay/geniuspay-mobile-money.gateway";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserWalletService } from "../wallet/user-wallet.service";
-import { MERCHANT_FREE_MAX_ACTIVE_PRODUCTS } from "./merchant-shop.constants";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 import {
   MERCHANT_SUBSCRIPTION_GRACE_DAYS,
   addBillingPeriod,
@@ -34,7 +32,8 @@ export class MerchantSubscriptionBillingService {
     private readonly prisma: PrismaService,
     private readonly gateway: GeniusPayMobileMoneyGateway,
     private readonly wallet: UserWalletService,
-    private readonly yellika: YellikaSmsClient
+    private readonly yellika: YellikaSmsClient,
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   async getPremiumPriceXof(): Promise<number> {
@@ -79,6 +78,7 @@ export class MerchantSubscriptionBillingService {
         promoPercentOffApplied
       }
     });
+    await this.subscriptionLimits.restoreMerchantPremium(profileId);
   }
 
   /**
@@ -193,6 +193,7 @@ export class MerchantSubscriptionBillingService {
         suspensionReason: null
       }
     });
+    await this.subscriptionLimits.restoreMerchantPremium(profileId);
   }
 
   async createPendingInvoice(
@@ -921,54 +922,24 @@ export class MerchantSubscriptionBillingService {
       });
     }
 
-    const full = await this.prisma.merchantProfile.findUnique({
+    await this.prisma.merchantProfile.update({
       where: { id: profile.id },
-      include: {
-        shops: {
-          include: {
-            products: {
-              where: { status: MerchantProductStatus.published },
-              orderBy: { createdAt: "asc" }
-            }
-          }
-        }
+      data: {
+        subscriptionTier: MerchantSubscriptionTier.free,
+        subscriptionStatus: MerchantSubscriptionStatus.cancelled,
+        graceEndsAt: null,
+        billingReminderKey: null,
+        trialEndsAt: null,
+        cancelledAt: new Date(),
+        suspendedAt: null,
+        suspensionReason: null,
+        nextBillingAt: null,
+        // Remise code promo : ne survit pas à l'annulation
+        promoPercentOffApplied: null
       }
     });
-    if (!full) {
-      return;
-    }
 
-    const published = full.shops.flatMap((s) => s.products);
-    const toDisable = published.slice(MERCHANT_FREE_MAX_ACTIVE_PRODUCTS);
-
-    await this.prisma.$transaction([
-      this.prisma.merchantProfile.update({
-        where: { id: profile.id },
-        data: {
-          subscriptionTier: MerchantSubscriptionTier.free,
-          subscriptionStatus: MerchantSubscriptionStatus.cancelled,
-          graceEndsAt: null,
-          billingReminderKey: null,
-          trialEndsAt: null,
-          cancelledAt: new Date(),
-          suspendedAt: null,
-          suspensionReason: null,
-          nextBillingAt: null,
-          // Remise code promo : ne survit pas à l'annulation
-          promoPercentOffApplied: null
-        }
-      }),
-      ...toDisable.map((prod) =>
-        this.prisma.merchantProduct.update({
-          where: { id: prod.id },
-          data: {
-            status: MerchantProductStatus.disabled,
-            disabledAt: new Date(),
-            disabledReason: MerchantProductDisabledReason.downgrade
-          }
-        })
-      )
-    ]);
+    await this.subscriptionLimits.applyMerchantDemotion(profile.id);
 
     await this.prisma.merchantSubscriptionInvoice.updateMany({
       where: {
@@ -1060,6 +1031,7 @@ export class MerchantSubscriptionBillingService {
         graceEndsAt: null
       }
     });
+    await this.subscriptionLimits.restoreMerchantPremium(profileId);
   }
 
   async applyPromoOverride(profileId: string, percentOff: number | null) {
