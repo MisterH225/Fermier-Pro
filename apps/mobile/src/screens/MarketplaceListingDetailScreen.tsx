@@ -614,6 +614,7 @@ export function MarketplaceListingDetailScreen({
       <FarmInfoCard
         farmInfo={L.farmInfo}
         sellerProducerScore={L.sellerProducerScore}
+        sellerUserId={L.sellerUserId}
         onViewFarmListings={(farm) =>
           navigation.navigate("MarketplaceList", {
             searchQuery: farm.farmName

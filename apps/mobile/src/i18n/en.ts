@@ -4824,5 +4824,92 @@ export const en = {
         "This shop is read-only after a plan change. Go Premium to edit it again.",
       upgradeCta: "Go Premium"
     }
+  },
+  trustScore: {
+    sheetTitle: "Trust weather",
+    legendTitle: "Levels",
+    ratingsLabel: "Reviews",
+    headerFact: "{{count}} sales counted",
+    headerFactNone: "History still building",
+    notEnoughHistory: "Not enough history yet",
+    level: {
+      ensoleille: "Sunny",
+      eclaircies: "Partly sunny",
+      nuageux: "Cloudy",
+      orageux: "Stormy",
+      nouvelle: "New"
+    },
+    levelCriterion: {
+      ensoleille: "75% or more positive signals",
+      eclaircies: "55% to 74% positive signals",
+      nuageux: "35% to 54% positive signals",
+      orageux: "Under 35% positive signals",
+      nouvelle: "Recent profile — history still building"
+    },
+    evidence: {
+      ratio: "{{good}} of {{total}}",
+      duration: "{{minutes}} min on average",
+      count: "{{value}}",
+      rating: "{{average}} / 5 ({{count}} reviews)"
+    },
+    pillars: {
+      paymentReliability: "Payments kept",
+      receiptTimeliness: "On-time receipt",
+      disputeRecord: "Issues",
+      cancellationRate: "Cancellations",
+      ratings: "Reviews received",
+      orderFulfillment: "Orders fulfilled",
+      confirmationSpeed: "Confirmation speed",
+      dataRegularity: "Data regularity",
+      responsiveness: "Responsiveness",
+      commercialTrust: "Commercial trust",
+      appointmentHonor: "Appointments honored",
+      requestReactivity: "Request reactivity",
+      followUpActivity: "On-farm follow-up",
+      regularity: "Regularity",
+      buyer: {
+        ratings: "Seller reviews"
+      },
+      merchant: {
+        ratings: "Buyer reviews"
+      },
+      technician: {
+        ratings: "Producer reviews"
+      },
+      vet: {
+        ratings: "Reviews received"
+      },
+      producer: {
+        ratings: "Reviews received"
+      }
+    },
+    hints: {
+      paymentReliability: "Settle overdue balances to improve",
+      receiptTimeliness: "Confirm receipt as soon as goods arrive",
+      disputeRecord: "Close open issues quickly",
+      cancellationRate: "Avoid cancelling after acceptance",
+      orderFulfillment: "Fulfill accepted orders",
+      confirmationSpeed: "Confirm orders quickly",
+      dataRegularity: "Enter your data several times a week",
+      responsiveness: "Reply to offers within 48 h",
+      commercialTrust: "Keep sales with validated weights and no gaps",
+      ratings: "Reviews you receive move this pillar",
+      appointmentHonor: "Honor scheduled appointments",
+      requestReactivity: "Reply quickly to visit requests",
+      followUpActivity: "Log your farm interventions",
+      regularity: "Sign in regularly"
+    },
+    rate: {
+      buyerTitle: "Rate the buyer",
+      merchantTitle: "Rate the merchant",
+      technicianTitle: "Rate the technician",
+      farmTitle: "Rate the farm",
+      submit: "Submit",
+      skip: "Skip",
+      commentPlaceholder: "Private comment (optional)",
+      commentPrivateHint: "The comment stays private",
+      optional: "Optional",
+      starsHint: "Choose a rating from 1 to 5"
+    }
   }
 } as const;

@@ -4,7 +4,7 @@ import {
   type MeteoLevel
 } from "../../constants/meteoProfil";
 
-/** Profils qui ont un score météo exposé en v1 (producteur uniquement). */
+/** Profils qui ont un score météo exposé (header) — les 5 métiers dès que l'API existe. */
 export type MeteoProfileType =
   | "producer"
   | "buyer"
@@ -12,7 +12,13 @@ export type MeteoProfileType =
   | "vet"
   | "technician";
 
-const SCORED_PROFILE_TYPES = new Set<MeteoProfileType>(["producer"]);
+const SCORED_PROFILE_TYPES = new Set<MeteoProfileType>([
+  "producer",
+  "buyer",
+  "merchant",
+  "vet",
+  "technician"
+]);
 
 export function profileHasMeteoScore(profileType: MeteoProfileType): boolean {
   return SCORED_PROFILE_TYPES.has(profileType);

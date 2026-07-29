@@ -45,6 +45,7 @@ import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import type { RootStackParamList } from "../../types/navigation";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
+import { TrustMeteoBadge } from "../../components/meteo/TrustMeteoBadge";
 
 type Props = NativeStackScreenProps<RootStackParamList, "MerchantProductDetail">;
 
@@ -393,6 +394,13 @@ export function MerchantProductDetailScreen({ route }: Props) {
               <DetailRow
                 label={t("merchant.catalog.seller")}
                 value={product.merchantName}
+              />
+            ) : null}
+            {product.sellerUserId ? (
+              <TrustMeteoBadge
+                profileType="merchant"
+                userId={product.sellerUserId}
+                visibility="public"
               />
             ) : null}
             {product.shopLocation ? (

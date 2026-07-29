@@ -4825,5 +4825,92 @@ export const fr = {
         "Cette boutique est en lecture seule après un changement de formule. Passez Premium pour la modifier à nouveau.",
       upgradeCta: "Passer Premium"
     }
+  },
+  trustScore: {
+    sheetTitle: "Météo de confiance",
+    legendTitle: "Niveaux",
+    ratingsLabel: "Avis",
+    headerFact: "{{count}} ventes prises en compte",
+    headerFactNone: "Historique en construction",
+    notEnoughHistory: "Pas encore assez d'historique",
+    level: {
+      ensoleille: "Ensoleillé",
+      eclaircies: "Éclaircies",
+      nuageux: "Nuageux",
+      orageux: "Orageux",
+      nouvelle: "Nouveau"
+    },
+    levelCriterion: {
+      ensoleille: "75 % ou plus de signaux positifs",
+      eclaircies: "55 % à 74 % de signaux positifs",
+      nuageux: "35 % à 54 % de signaux positifs",
+      orageux: "Moins de 35 % de signaux positifs",
+      nouvelle: "Profil récent — historique en cours"
+    },
+    evidence: {
+      ratio: "{{good}} sur {{total}}",
+      duration: "{{minutes}} min en moyenne",
+      count: "{{value}}",
+      rating: "{{average}} / 5 ({{count}} avis)"
+    },
+    pillars: {
+      paymentReliability: "Paiements tenus",
+      receiptTimeliness: "Réception à l'heure",
+      disputeRecord: "Problèmes",
+      cancellationRate: "Annulations",
+      ratings: "Avis reçus",
+      orderFulfillment: "Commandes honorées",
+      confirmationSpeed: "Vitesse de confirmation",
+      dataRegularity: "Régularité des saisies",
+      responsiveness: "Réactivité",
+      commercialTrust: "Confiance commerciale",
+      appointmentHonor: "Rendez-vous honorés",
+      requestReactivity: "Réactivité aux demandes",
+      followUpActivity: "Suivi sur le terrain",
+      regularity: "Régularité",
+      buyer: {
+        ratings: "Avis des vendeurs"
+      },
+      merchant: {
+        ratings: "Avis des acheteurs"
+      },
+      technician: {
+        ratings: "Avis des producteurs"
+      },
+      vet: {
+        ratings: "Avis reçus"
+      },
+      producer: {
+        ratings: "Avis reçus"
+      }
+    },
+    hints: {
+      paymentReliability: "Réglez vos soldes en retard pour remonter",
+      receiptTimeliness: "Confirmez la réception dès la livraison",
+      disputeRecord: "Clôturez les problèmes ouverts rapidement",
+      cancellationRate: "Évitez d'annuler après acceptation",
+      orderFulfillment: "Honorez les commandes acceptées",
+      confirmationSpeed: "Confirmez les commandes rapidement",
+      dataRegularity: "Saisissez vos données plusieurs fois par semaine",
+      responsiveness: "Répondez aux offres sous 48 h",
+      commercialTrust: "Maintenez des ventes avec des poids validés sans écart",
+      ratings: "Les avis reçus font évoluer ce pilier",
+      appointmentHonor: "Honorez les rendez-vous planifiés",
+      requestReactivity: "Répondez vite aux demandes de visite",
+      followUpActivity: "Enregistrez vos interventions sur la ferme",
+      regularity: "Connectez-vous régulièrement"
+    },
+    rate: {
+      buyerTitle: "Noter l'acheteur",
+      merchantTitle: "Noter le commerçant",
+      technicianTitle: "Noter le technicien",
+      farmTitle: "Noter la ferme",
+      submit: "Envoyer",
+      skip: "Passer",
+      commentPlaceholder: "Commentaire privé (optionnel)",
+      commentPrivateHint: "Le commentaire reste privé",
+      optional: "Optionnel",
+      starsHint: "Choisissez une note de 1 à 5"
+    }
   }
 } as const;

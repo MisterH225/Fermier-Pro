@@ -55,6 +55,7 @@ import { welcomeFirstName } from "../../lib/userDisplay";
 import { buyerColors, buyerRadius, buyerShadow } from "../../theme/buyerTheme";
 import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { TrustMeteoBadge } from "../../components/meteo/TrustMeteoBadge";
 
 const AVATAR = 54;
 
@@ -540,6 +541,7 @@ export function BuyerAccountScreen() {
                   onTime: creditQ.data?.creditOnTimeCount ?? 0
                 })}
               </Text>
+              <TrustMeteoBadge profileType="buyer" visibility="self" />
             </>
           )}
         </View>

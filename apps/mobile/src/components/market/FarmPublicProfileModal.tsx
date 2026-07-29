@@ -4,10 +4,13 @@ import { BaseModal } from "../modals/BaseModal";
 import { PrimaryButton } from "../ui/PrimaryButton";
 import type { MarketplaceListingFarmInfo } from "../../lib/api";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { TrustMeteoBadge } from "../meteo/TrustMeteoBadge";
 
 type Props = {
   visible: boolean;
   farmInfo: MarketplaceListingFarmInfo | null;
+  /** userId producteur — pour trust-score public. */
+  sellerUserId?: string | null;
   onClose: () => void;
   onViewListings: () => void;
 };
@@ -15,6 +18,7 @@ type Props = {
 export function FarmPublicProfileModal({
   visible,
   farmInfo,
+  sellerUserId,
   onClose,
   onViewListings
 }: Props) {
@@ -55,6 +59,13 @@ export function FarmPublicProfileModal({
               ⭐ {farmInfo.farmRating.toFixed(1)} · {farmInfo.farmRatingCount}{" "}
               {t("marketScreen.detail.reviews")}
             </Text>
+          ) : null}
+          {sellerUserId ? (
+            <TrustMeteoBadge
+              profileType="producer"
+              userId={sellerUserId}
+              visibility="public"
+            />
           ) : null}
         </View>
       </View>
