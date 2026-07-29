@@ -4205,9 +4205,16 @@ export const fr = {
       viewProposals: "Voir →",
       showReviews: "Mes avis",
       hideReviews: "Masquer les avis",
+      loadError: "Impossible de charger les commandes.",
+      statusFallback: "En cours",
+      counterpartyFallback: "Utilisateur",
       type: {
         escrow: "Marketplace",
         shop: "Boutique"
+      },
+      itemSummary: {
+        escrow: "Commande marketplace",
+        shop: "Commande boutique"
       },
       segments: {
         action_required: "À agir",
@@ -4215,12 +4222,46 @@ export const fr = {
         disputed: "Problèmes",
         closed: "Terminées"
       },
+      empty: {
+        action_required: "Aucune action requise pour le moment.",
+        active: "Aucune commande en cours.",
+        disputed: "Aucun problème en cours.",
+        closed: "Aucune commande terminée."
+      },
       escrowStatus: {
-        PAYMENT_PENDING: "Paiement en attente"
+        OFFER_ACCEPTED: "Offre acceptée",
+        PAYMENT_PENDING: "Paiement en attente",
+        PAYMENT_HELD: "Paiement gardé",
+        PICKUP_PROPOSED: "Rendez-vous proposé",
+        PICKUP_SCHEDULED: "Rendez-vous confirmé",
+        SELLER_SHIPPED: "Remise confirmée",
+        BUYER_RECEIVED: "Réception confirmée",
+        DELIVERY_DISPUTED: "Problème de livraison",
+        WEIGHT_DECLARED: "Poids déclaré",
+        WEIGHT_COUNTER_DECLARED: "Écart de poids",
+        WEIGHT_DISPUTED: "Problème de poids",
+        WEIGHT_VALIDATED: "Poids confirmé",
+        TRANSACTION_CLOSED: "Vente conclue",
+        CANCELLED_BY_BUYER: "Annulée",
+        CANCELLED_BY_SELLER: "Annulée",
+        CANCELLED_SOLD_TO_OTHER: "Vendue ailleurs",
+        PAYMENT_FAILED: "Paiement échoué",
+        OFFER_EXPIRED: "Offre expirée"
       }
     },
     action: {
-      pay: "Payer"
+      pay: "Payer",
+      retryPayment: "Réessayer le paiement",
+      proposePickup: "Proposer un rendez-vous",
+      confirmPickup: "Confirmer le rendez-vous",
+      declareWeight: "Déclarer le poids",
+      validateWeight: "Valider le poids",
+      confirmShipment: "Confirmer la remise",
+      confirmReceipt: "Confirmer la réception",
+      confirmShopOrder: "Confirmer la commande",
+      shipShopOrder: "Lancer la livraison",
+      markShopDelivered: "Marquer comme livré",
+      generic: "Ouvrir la commande"
     }
   },
   merchant: {

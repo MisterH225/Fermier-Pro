@@ -85,7 +85,7 @@ export function DeadlineNotice({
       <Text style={[styles.deadline, { color: palette.warning }]}>
         {deadlineLine}
       </Text>
-      {outcomeKey ? (
+      {outcomeKey && i18n.exists(outcomeKey) ? (
         <Text style={[styles.outcome, { color: palette.textSecondary }]}>
           {t(outcomeKey)}
         </Text>

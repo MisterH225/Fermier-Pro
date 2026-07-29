@@ -24,8 +24,11 @@ export function OrderStatusBadge({
   palette = ordersPalette,
   label
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const colors = palette.badges[tone];
+  const resolvedLabel =
+    label ??
+    (i18n.exists(labelKey) ? t(labelKey) : t("orders.hub.statusFallback"));
 
   return (
     <View
@@ -41,7 +44,7 @@ export function OrderStatusBadge({
         style={[styles.label, { color: colors.foreground }]}
         numberOfLines={1}
       >
-        {label ?? t(labelKey)}
+        {resolvedLabel}
       </Text>
     </View>
   );

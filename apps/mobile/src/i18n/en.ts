@@ -4204,9 +4204,16 @@ export const en = {
       viewProposals: "View →",
       showReviews: "My reviews",
       hideReviews: "Hide reviews",
+      loadError: "Could not load orders.",
+      statusFallback: "In progress",
+      counterpartyFallback: "User",
       type: {
         escrow: "Marketplace",
         shop: "Shop"
+      },
+      itemSummary: {
+        escrow: "Marketplace order",
+        shop: "Shop order"
       },
       segments: {
         action_required: "Action needed",
@@ -4214,12 +4221,46 @@ export const en = {
         disputed: "Problems",
         closed: "Completed"
       },
+      empty: {
+        action_required: "No action needed right now.",
+        active: "No orders in progress.",
+        disputed: "No open issues.",
+        closed: "No completed orders."
+      },
       escrowStatus: {
-        PAYMENT_PENDING: "Payment pending"
+        OFFER_ACCEPTED: "Offer accepted",
+        PAYMENT_PENDING: "Payment pending",
+        PAYMENT_HELD: "Payment secured",
+        PICKUP_PROPOSED: "Pickup proposed",
+        PICKUP_SCHEDULED: "Pickup confirmed",
+        SELLER_SHIPPED: "Handover confirmed",
+        BUYER_RECEIVED: "Receipt confirmed",
+        DELIVERY_DISPUTED: "Delivery issue",
+        WEIGHT_DECLARED: "Weight declared",
+        WEIGHT_COUNTER_DECLARED: "Weight difference",
+        WEIGHT_DISPUTED: "Weight problem",
+        WEIGHT_VALIDATED: "Weight confirmed",
+        TRANSACTION_CLOSED: "Sale completed",
+        CANCELLED_BY_BUYER: "Cancelled",
+        CANCELLED_BY_SELLER: "Cancelled",
+        CANCELLED_SOLD_TO_OTHER: "Sold elsewhere",
+        PAYMENT_FAILED: "Payment failed",
+        OFFER_EXPIRED: "Offer expired"
       }
     },
     action: {
-      pay: "Pay"
+      pay: "Pay",
+      retryPayment: "Retry payment",
+      proposePickup: "Propose pickup",
+      confirmPickup: "Confirm pickup",
+      declareWeight: "Declare weight",
+      validateWeight: "Validate weight",
+      confirmShipment: "Confirm handover",
+      confirmReceipt: "Confirm receipt",
+      confirmShopOrder: "Confirm order",
+      shipShopOrder: "Start shipping",
+      markShopDelivered: "Mark as delivered",
+      generic: "Open order"
     }
   },
   merchant: {
