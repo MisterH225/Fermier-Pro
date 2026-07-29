@@ -7,7 +7,6 @@ import { fetchVetAppointments, type VetAppointmentDto } from "../../lib/api";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
 import { vetColors } from "../../theme/vetTheme";
 import type { RootStackParamList } from "../../types/navigation";
-import { producerColors } from "../../theme/producerTheme";
 
 const ACTION_STATUSES = new Set([
   "APPOINTMENT_REQUESTED",
@@ -184,6 +183,6 @@ const styles = StyleSheet.create({
   freeBadgeTx: {
     fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: producerColors.successDeep
+    color: mobileStatusSurfaces.successText
   }
 });
