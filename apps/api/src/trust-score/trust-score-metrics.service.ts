@@ -4,6 +4,8 @@ import {
   MarketplaceTransactionStatus,
   MerchantOrderDisputeStatus,
   MerchantOrderStatus,
+  TrustScoreLevel,
+  TrustScoreProfileType,
   VetAppointmentStatus
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -11,12 +13,15 @@ import { ProducerScoreMetricsService } from "../producer-score/producer-score-me
 import { scoreFromActiveDays } from "../producer-score/producer-score.util";
 import {
   TRUST_PILLAR_WEIGHTS,
-  TRUST_SCORE_BEHAVIOR_WINDOW_DAYS
+  TRUST_SCORE_BEHAVIOR_WINDOW_DAYS,
+  TRUST_SCORE_VERSION
 } from "./trust-score.constants";
 import {
   bayesianRatingScore,
   failureRateToScore,
   rateToScore,
+  rawRatingAverage,
+  type PillarEvidence,
   type PillarInput
 } from "./trust-score.util";
 
@@ -62,17 +67,32 @@ function scoreResponsivenessV2(input: {
 const MS_DAY = 86_400_000;
 
 /**
- * Collecte les signaux trust-score v2.
+ * Collecte les signaux trust-score v2 (+ preuves chiffrées E2).
  *
  * Litiges : seuls ceux RÉSOLUS CONTRE l'utilisateur comptent.
- * - Escrow livraison : resolved_buyer ⇒ contre vendeur ; resolved_vendor ⇒ contre acheteur.
- *   resolved_split / cancelled : PAS de perdant clair → exclus.
- * - Poids (WEIGHT_ARBITRATED) : la résolution n'encode PAS de perdant
- *   (fixe seulement arbitrationWeightKg) → exclus, pas d'heuristique.
- * - MerchantOrderDispute : resolved_buyer ⇒ contre vendeur ; resolved_seller ⇒ contre acheteur.
+ * User.reputationScore : EXCLU.
+ * Preuves : calculées sur la donnée brute — JAMAIS dérivées du score normalisé.
  *
- * User.reputationScore : EXCLU (pénalités d'annulation déjà mesurées ici ;
- * n'est PAS alimenté par les avis).
+ * Mapping preuves (commentaire PR) :
+ * | Profil | Pilier | Source | Preuve |
+ * | producer | dataRegularity | jours de saisie 30j | count (jours) |
+ * | producer | responsiveness | offres/crédit/chat | null (composite) |
+ * | producer | commercialTrust | avis+escrow+annul+poids | null (composite) ou rating si avis |
+ * | buyer | ratings | BuyerRating | rating avg+count |
+ * | buyer | paymentReliability | txs payment | ratio (ok / attempts) |
+ * | buyer | receiptTimeliness | shipped+received | ratio (à l'heure / expédiées) |
+ * | buyer | disputeRecord | litiges perdus | ratio (sans perte / txs) |
+ * | buyer | cancellationRate | CANCELLED_BY_BUYER | ratio (sans annul / txs) |
+ * | merchant | ratings | MerchantRating | rating |
+ * | merchant | orderFulfillment | orders honorées | ratio |
+ * | merchant | confirmationSpeed | confirmedAt-createdAt | duration (minutes) |
+ * | merchant | disputeRecord | litiges perdus | ratio |
+ * | vet | ratings | VetRating+ApptRating | rating |
+ * | vet | appointmentHonor | RDV honorés | ratio |
+ * | vet | requestReactivity | confirmedAt-requestedAt | duration |
+ * | technician | ratings | TechnicianRating | rating |
+ * | technician | followUpActivity | tasks+health | count |
+ * | technician | regularity | jours actifs 30j | count |
  */
 @Injectable()
 export class TrustScoreMetricsService {
@@ -85,6 +105,56 @@ export class TrustScoreMetricsService {
     return new Date(
       now.getTime() - TRUST_SCORE_BEHAVIOR_WINDOW_DAYS * MS_DAY
     );
+  }
+
+  /**
+   * Poids bayésien : un avis d'un compte « orageux » compte pour moitié.
+   */
+  private async stormyWeightsForAuthors(
+    authorIds: string[],
+    authorProfileType: TrustScoreProfileType
+  ): Promise<number[]> {
+    if (authorIds.length === 0) return [];
+    const unique = [...new Set(authorIds)];
+    const snaps = await this.prisma.trustScoreSnapshot.findMany({
+      where: {
+        userId: { in: unique },
+        profileType: authorProfileType,
+        scoreVersion: TRUST_SCORE_VERSION
+      },
+      orderBy: { computedAt: "desc" },
+      select: { userId: true, level: true }
+    });
+    const levelByUser = new Map<string, TrustScoreLevel>();
+    for (const s of snaps) {
+      if (!levelByUser.has(s.userId)) {
+        levelByUser.set(s.userId, s.level);
+      }
+    }
+    return authorIds.map((id) =>
+      levelByUser.get(id) === TrustScoreLevel.orageux ? 0.5 : 1
+    );
+  }
+
+  private ratingsPillar(
+    scores: number[],
+    weights: number[],
+    pillarWeight: number
+  ): PillarInput {
+    const bayes = bayesianRatingScore(scores, weights);
+    const avg = rawRatingAverage(scores);
+    const evidence: PillarEvidence =
+      avg != null
+        ? { kind: "rating", average: avg, count: scores.length }
+        : null;
+    return {
+      key: "ratings",
+      score: bayes,
+      weight: pillarWeight,
+      sampleSize: scores.length,
+      hasData: bayes != null,
+      evidence
+    };
   }
 
   async collectProducerPillars(
@@ -115,7 +185,6 @@ export class TrustScoreMetricsService {
       since
     );
 
-    // Réactivité SANS reputationScore (évite double comptage des annulations).
     const responsiveness = scoreResponsivenessV2({
       offersReceived: offerStats.offersReceived,
       offersRespondedWithin48h: offerStats.offersRespondedWithin48h,
@@ -125,7 +194,11 @@ export class TrustScoreMetricsService {
       chatRepliedWithin24h: chatStats.chatRepliedWithin24h
     });
 
-    const commercial = await this.collectProducerCommercial(userId, farmIds, since);
+    const commercial = await this.collectProducerCommercial(
+      userId,
+      farmIds,
+      since
+    );
 
     const weights = TRUST_PILLAR_WEIGHTS.producer;
     const pillars: PillarInput[] = [
@@ -134,7 +207,8 @@ export class TrustScoreMetricsService {
         score: scoreFromActiveDays(dataEntryDays, 20),
         weight: weights.dataRegularity,
         sampleSize: dataEntryDays,
-        hasData: dataEntryDays > 0 || farmIds.length > 0
+        hasData: dataEntryDays > 0 || farmIds.length > 0,
+        evidence: { kind: "count", value: dataEntryDays }
       },
       {
         key: "responsiveness",
@@ -148,18 +222,20 @@ export class TrustScoreMetricsService {
           offerStats.offersReceived +
             creditStats.creditBalancesTotal +
             chatStats.chatBuyerMessages >
-            0 || Boolean(user?.lastActiveAt)
+            0 || Boolean(user?.lastActiveAt),
+        // Composite multi-signaux — pas de preuve simple unique
+        evidence: null
       },
       {
         key: "commercialTrust",
         score: commercial.score,
         weight: weights.commercialTrust,
         sampleSize: commercial.sampleSize,
-        hasData: commercial.hasData
+        hasData: commercial.hasData,
+        evidence: commercial.evidence
       }
     ];
 
-    // Si régularité sans aucune saisie mais fermes actives → hasData true avec score bas.
     if (farmIds.length > 0 && dataEntryDays === 0) {
       pillars[0]!.hasData = true;
       pillars[0]!.score = scoreFromActiveDays(0, 20);
@@ -177,14 +253,17 @@ export class TrustScoreMetricsService {
     sampleSize: number;
     hasData: boolean;
     transactionCount: number;
+    evidence: PillarEvidence;
   }> {
     const [ratings, txs, lostDisputes] = await Promise.all([
       farmIds.length
         ? this.prisma.farmMarketRating.findMany({
             where: { farmId: { in: farmIds } },
-            select: { score: true }
+            select: { score: true, ratedByUserId: true }
           })
-        : Promise.resolve([] as Array<{ score: number }>),
+        : Promise.resolve(
+            [] as Array<{ score: number; ratedByUserId: string }>
+          ),
       this.prisma.marketplaceTransaction.findMany({
         where: {
           sellerUserId: userId,
@@ -206,7 +285,16 @@ export class TrustScoreMetricsService {
       })
     ]);
 
-    const ratingScore = bayesianRatingScore(ratings.map((r) => r.score));
+    const stormyW = await this.stormyWeightsForAuthors(
+      ratings.map((r) => r.ratedByUserId),
+      TrustScoreProfileType.buyer
+    );
+    const ratingScore = bayesianRatingScore(
+      ratings.map((r) => r.score),
+      stormyW
+    );
+    const ratingAvg = rawRatingAverage(ratings.map((r) => r.score));
+
     const closedStatuses: MarketplaceTransactionStatus[] = [
       MarketplaceTransactionStatus.TRANSACTION_CLOSED,
       MarketplaceTransactionStatus.BUYER_RECEIVED,
@@ -223,7 +311,6 @@ export class TrustScoreMetricsService {
     ).length;
     const cancelScore = failureRateToScore(sellerCancels, txs.length);
 
-    // Poids validés sans contre-déclaration acheteur ni ouverture de litige poids.
     const weightValidated = txs.filter((t) => t.weightValidatedAt != null);
     const withoutCounter = weightValidated.filter(
       (t) =>
@@ -243,12 +330,29 @@ export class TrustScoreMetricsService {
       components.push({ score: weightScore.score, w: 0.15 });
     }
 
+    // Preuve : si avis présents → rating ; sinon ratio escrow si disponible ; sinon null
+    let evidence: PillarEvidence = null;
+    if (ratingAvg != null) {
+      evidence = {
+        kind: "rating",
+        average: ratingAvg,
+        count: ratings.length
+      };
+    } else if (closed.length > 0) {
+      evidence = {
+        kind: "ratio",
+        good: closedWithoutLostDispute,
+        total: closed.length
+      };
+    }
+
     if (components.length === 0) {
       return {
         score: null,
         sampleSize: 0,
         hasData: false,
-        transactionCount: txs.length
+        transactionCount: txs.length,
+        evidence: null
       };
     }
     const tw = components.reduce((s, c) => s + c.w, 0);
@@ -259,7 +363,8 @@ export class TrustScoreMetricsService {
       score,
       sampleSize: ratings.length + txs.length,
       hasData: true,
-      transactionCount: txs.length
+      transactionCount: txs.length,
+      evidence
     };
   }
 
@@ -268,15 +373,26 @@ export class TrustScoreMetricsService {
     now = new Date()
   ): Promise<{ pillars: PillarInput[]; transactionCount: number }> {
     const since = this.behaviorSince(now);
-    const txs = await this.prisma.marketplaceTransaction.findMany({
-      where: { buyerUserId: userId, createdAt: { gte: since } },
-      select: {
-        status: true,
-        buyerReceivedAt: true,
-        sellerShippedAt: true,
-        offerExpiresAt: true
-      }
-    });
+    const [txs, ratings] = await Promise.all([
+      this.prisma.marketplaceTransaction.findMany({
+        where: { buyerUserId: userId, createdAt: { gte: since } },
+        select: {
+          status: true,
+          buyerReceivedAt: true,
+          sellerShippedAt: true,
+          offerExpiresAt: true
+        }
+      }),
+      this.prisma.buyerRating.findMany({
+        where: { buyerUserId: userId },
+        select: { score: true, ratedByUserId: true }
+      })
+    ]);
+
+    const stormyW = await this.stormyWeightsForAuthors(
+      ratings.map((r) => r.ratedByUserId),
+      TrustScoreProfileType.producer
+    );
 
     const paymentAttempts = txs.filter(
       (t) =>
@@ -292,14 +408,13 @@ export class TrustScoreMetricsService {
     const paymentFailed = paymentAttempts.filter(
       (t) => t.status === MarketplaceTransactionStatus.PAYMENT_FAILED
     ).length;
+    const paymentOk = paymentAttempts.length - paymentFailed;
     const payment = failureRateToScore(paymentFailed, paymentAttempts.length);
 
-    // Confirmations de réception dans les délais (14 j après expédition).
     const shipped = txs.filter((t) => t.sellerShippedAt != null);
     const onTimeReceipts = shipped.filter((t) => {
       if (!t.buyerReceivedAt || !t.sellerShippedAt) return false;
-      const deadline =
-        t.sellerShippedAt.getTime() + 14 * MS_DAY;
+      const deadline = t.sellerShippedAt.getTime() + 14 * MS_DAY;
       return t.buyerReceivedAt.getTime() <= deadline;
     }).length;
     const receipt = rateToScore(onTimeReceipts, shipped.length);
@@ -311,7 +426,6 @@ export class TrustScoreMetricsService {
         resolvedAt: { gte: since }
       }
     });
-    // Aussi litiges où l'acheteur est partie et a perdu (resolved_vendor).
     const disputesAgainstBuyer =
       await this.prisma.marketplaceDeliveryDispute.count({
         where: {
@@ -321,42 +435,65 @@ export class TrustScoreMetricsService {
         }
       });
     const disputeLost = Math.max(lostDisputes, disputesAgainstBuyer);
+    const disputeOk = Math.max(0, txs.length - disputeLost);
     const dispute = failureRateToScore(disputeLost, txs.length);
 
     const buyerCancels = txs.filter(
       (t) => t.status === MarketplaceTransactionStatus.CANCELLED_BY_BUYER
     ).length;
+    const cancelOk = Math.max(0, txs.length - buyerCancels);
     const cancel = failureRateToScore(buyerCancels, txs.length);
 
     const w = TRUST_PILLAR_WEIGHTS.buyer;
     const pillars: PillarInput[] = [
+      this.ratingsPillar(
+        ratings.map((r) => r.score),
+        stormyW,
+        w.ratings
+      ),
       {
         key: "paymentReliability",
         score: payment.score,
         weight: w.paymentReliability,
         sampleSize: paymentAttempts.length,
-        hasData: payment.hasData
+        hasData: payment.hasData,
+        evidence:
+          paymentAttempts.length > 0
+            ? { kind: "ratio", good: paymentOk, total: paymentAttempts.length }
+            : null
       },
       {
         key: "receiptTimeliness",
         score: receipt.score,
         weight: w.receiptTimeliness,
         sampleSize: shipped.length,
-        hasData: receipt.hasData
+        hasData: receipt.hasData,
+        evidence:
+          shipped.length > 0
+            ? { kind: "ratio", good: onTimeReceipts, total: shipped.length }
+            : null
       },
       {
         key: "disputeRecord",
         score: dispute.score,
         weight: w.disputeRecord,
         sampleSize: txs.length,
-        hasData: dispute.hasData
+        hasData: dispute.hasData,
+        evidence:
+          txs.length > 0
+            ? { kind: "ratio", good: disputeOk, total: txs.length }
+            : null
       },
       {
         key: "cancellationRate",
         score: cancel.score,
         weight: w.cancellationRate,
         sampleSize: txs.length,
-        hasData: cancel.hasData
+        hasData: cancel.hasData,
+        evidence:
+          txs.length > 0
+            ? { kind: "ratio", good: cancelOk, total: txs.length }
+            : null
       }
     ];
 
@@ -368,17 +505,27 @@ export class TrustScoreMetricsService {
     now = new Date()
   ): Promise<{ pillars: PillarInput[]; transactionCount: number }> {
     const since = this.behaviorSince(now);
-    const orders = await this.prisma.merchantOrder.findMany({
-      where: { sellerUserId: userId, createdAt: { gte: since } },
-      select: {
-        status: true,
-        createdAt: true,
-        confirmedAt: true,
-        shippedAt: true
-      }
-    });
+    const [orders, ratings] = await Promise.all([
+      this.prisma.merchantOrder.findMany({
+        where: { sellerUserId: userId, createdAt: { gte: since } },
+        select: {
+          status: true,
+          createdAt: true,
+          confirmedAt: true,
+          shippedAt: true
+        }
+      }),
+      this.prisma.merchantRating.findMany({
+        where: { merchantUserId: userId },
+        select: { score: true, ratedByUserId: true }
+      })
+    ]);
 
-    // Auto-annulation timeout pèse double dans le dénominateur effectif.
+    const stormyW = await this.stormyWeightsForAuthors(
+      ratings.map((r) => r.ratedByUserId),
+      TrustScoreProfileType.buyer
+    );
+
     let receivedWeight = 0;
     let honoredWeight = 0;
     for (const o of orders) {
@@ -402,6 +549,7 @@ export class TrustScoreMetricsService {
 
     const confirmable = orders.filter((o) => o.confirmedAt != null);
     let speedScore: number | null = null;
+    let avgMinutes: number | null = null;
     if (confirmable.length > 0) {
       const avgHours =
         confirmable.reduce((s, o) => {
@@ -409,7 +557,7 @@ export class TrustScoreMetricsService {
             (o.confirmedAt!.getTime() - o.createdAt.getTime()) / 3_600_000;
           return s + h;
         }, 0) / confirmable.length;
-      // ≤ 6 h → 100 ; ≥ 72 h → 20
+      avgMinutes = Math.round(avgHours * 60);
       speedScore = Math.max(
         20,
         Math.min(100, Math.round(100 - ((avgHours - 6) / 66) * 80))
@@ -423,30 +571,48 @@ export class TrustScoreMetricsService {
         resolvedAt: { gte: since }
       }
     });
+    const disputeOk = Math.max(0, orders.length - lostDisputes);
     const dispute = failureRateToScore(lostDisputes, orders.length);
 
     const w = TRUST_PILLAR_WEIGHTS.merchant;
     const pillars: PillarInput[] = [
+      this.ratingsPillar(
+        ratings.map((r) => r.score),
+        stormyW,
+        w.ratings
+      ),
       {
         key: "orderFulfillment",
         score: fulfillment.score,
         weight: w.orderFulfillment,
         sampleSize: orders.length,
-        hasData: fulfillment.hasData
+        hasData: fulfillment.hasData,
+        evidence:
+          receivedWeight > 0
+            ? { kind: "ratio", good: honoredWeight, total: receivedWeight }
+            : null
       },
       {
         key: "confirmationSpeed",
         score: speedScore,
         weight: w.confirmationSpeed,
         sampleSize: confirmable.length,
-        hasData: speedScore != null
+        hasData: speedScore != null,
+        evidence:
+          avgMinutes != null
+            ? { kind: "duration", averageMinutes: avgMinutes }
+            : null
       },
       {
         key: "disputeRecord",
         score: dispute.score,
         weight: w.disputeRecord,
         sampleSize: orders.length,
-        hasData: dispute.hasData
+        hasData: dispute.hasData,
+        evidence:
+          orders.length > 0
+            ? { kind: "ratio", good: disputeOk, total: orders.length }
+            : null
       }
     ];
 
@@ -469,11 +635,11 @@ export class TrustScoreMetricsService {
     const [vetRatings, apptRatings, appointments] = await Promise.all([
       this.prisma.vetRating.findMany({
         where: { vetId: vet.id },
-        select: { score: true }
+        select: { score: true, ratedByUserId: true }
       }),
       this.prisma.vetAppointmentRating.findMany({
         where: { vetProfileId: vet.id },
-        select: { rating: true }
+        select: { rating: true, producerUserId: true }
       }),
       this.prisma.vetAppointment.findMany({
         where: { vetUserId: userId, requestedAt: { gte: since } },
@@ -489,7 +655,16 @@ export class TrustScoreMetricsService {
       ...vetRatings.map((r) => r.score),
       ...apptRatings.map((r) => r.rating)
     ];
-    const ratingsScore = bayesianRatingScore(allRatings);
+    const authorIds = [
+      ...vetRatings.map((r) => r.ratedByUserId),
+      ...apptRatings.map((r) => r.producerUserId)
+    ];
+    const stormyW = await this.stormyWeightsForAuthors(
+      authorIds,
+      TrustScoreProfileType.producer
+    );
+    const ratingsScore = bayesianRatingScore(allRatings, stormyW);
+    const ratingAvg = rawRatingAverage(allRatings);
 
     const terminalStatuses: VetAppointmentStatus[] = [
       VetAppointmentStatus.APPOINTMENT_COMPLETED,
@@ -509,6 +684,7 @@ export class TrustScoreMetricsService {
 
     const confirmed = appointments.filter((a) => a.confirmedAt != null);
     let reactivity: number | null = null;
+    let avgMinutes: number | null = null;
     if (confirmed.length > 0) {
       const avgHours =
         confirmed.reduce((s, a) => {
@@ -516,6 +692,7 @@ export class TrustScoreMetricsService {
             (a.confirmedAt!.getTime() - a.requestedAt.getTime()) / 3_600_000;
           return s + h;
         }, 0) / confirmed.length;
+      avgMinutes = Math.round(avgHours * 60);
       reactivity = Math.max(
         20,
         Math.min(100, Math.round(100 - ((avgHours - 2) / 46) * 80))
@@ -529,21 +706,33 @@ export class TrustScoreMetricsService {
         score: ratingsScore,
         weight: w.ratings,
         sampleSize: allRatings.length,
-        hasData: ratingsScore != null
+        hasData: ratingsScore != null,
+        evidence:
+          ratingAvg != null
+            ? { kind: "rating", average: ratingAvg, count: allRatings.length }
+            : null
       },
       {
         key: "appointmentHonor",
         score: honor.score,
         weight: w.appointmentHonor,
         sampleSize: terminal.length,
-        hasData: honor.hasData
+        hasData: honor.hasData,
+        evidence:
+          terminal.length > 0
+            ? { kind: "ratio", good: honored, total: terminal.length }
+            : null
       },
       {
         key: "requestReactivity",
         score: reactivity,
         weight: w.requestReactivity,
         sampleSize: confirmed.length,
-        hasData: reactivity != null
+        hasData: reactivity != null,
+        evidence:
+          avgMinutes != null
+            ? { kind: "duration", averageMinutes: avgMinutes }
+            : null
       }
     ];
 
@@ -564,35 +753,47 @@ export class TrustScoreMetricsService {
     const memberIds = memberships.map((m) => m.id);
     const farmIds = memberships.map((m) => m.farmId);
 
-    const [tasksCompleted, healthRecords, activityLogs] = await Promise.all([
-      farmIds.length
-        ? this.prisma.farmTask.count({
-            where: {
-              farmId: { in: farmIds },
-              completedByUserId: userId,
-              completedAt: { gte: since }
-            }
-          })
-        : Promise.resolve(0),
-      farmIds.length
-        ? this.prisma.farmHealthRecord.count({
-            where: {
-              farmId: { in: farmIds },
-              recordedByUserId: userId,
-              createdAt: { gte: since }
-            }
-          })
-        : Promise.resolve(0),
-      memberIds.length
-        ? this.prisma.memberActivityLog.findMany({
-            where: { memberId: { in: memberIds }, createdAt: { gte: since30 } },
-            select: { createdAt: true }
-          })
-        : Promise.resolve([] as Array<{ createdAt: Date }>)
-    ]);
+    const [tasksCompleted, healthRecords, activityLogs, ratings] =
+      await Promise.all([
+        farmIds.length
+          ? this.prisma.farmTask.count({
+              where: {
+                farmId: { in: farmIds },
+                completedByUserId: userId,
+                completedAt: { gte: since }
+              }
+            })
+          : Promise.resolve(0),
+        farmIds.length
+          ? this.prisma.farmHealthRecord.count({
+              where: {
+                farmId: { in: farmIds },
+                recordedByUserId: userId,
+                createdAt: { gte: since }
+              }
+            })
+          : Promise.resolve(0),
+        memberIds.length
+          ? this.prisma.memberActivityLog.findMany({
+              where: {
+                memberId: { in: memberIds },
+                createdAt: { gte: since30 }
+              },
+              select: { createdAt: true }
+            })
+          : Promise.resolve([] as Array<{ createdAt: Date }>),
+        this.prisma.technicianRating.findMany({
+          where: { technicianUserId: userId },
+          select: { score: true, ratedByUserId: true }
+        })
+      ]);
+
+    const stormyW = await this.stormyWeightsForAuthors(
+      ratings.map((r) => r.ratedByUserId),
+      TrustScoreProfileType.producer
+    );
 
     const interventions = tasksCompleted + healthRecords;
-    // 10 interventions / 90 j → 100
     const activityScore =
       interventions > 0
         ? Math.min(100, Math.round((interventions / 10) * 100))
@@ -608,19 +809,27 @@ export class TrustScoreMetricsService {
 
     const w = TRUST_PILLAR_WEIGHTS.technician;
     const pillars: PillarInput[] = [
+      this.ratingsPillar(
+        ratings.map((r) => r.score),
+        stormyW,
+        w.ratings
+      ),
       {
         key: "followUpActivity",
         score: activityScore,
         weight: w.followUpActivity,
         sampleSize: interventions,
-        hasData: activityScore != null
+        hasData: activityScore != null,
+        evidence:
+          interventions > 0 ? { kind: "count", value: interventions } : null
       },
       {
         key: "regularity",
         score: regularity,
         weight: w.regularity,
         sampleSize: activeDays,
-        hasData: regularity != null
+        hasData: regularity != null,
+        evidence: activeDays > 0 ? { kind: "count", value: activeDays } : null
       }
     ];
 
@@ -635,21 +844,24 @@ export class TrustScoreMetricsService {
         score: null,
         weight: w.ratings,
         sampleSize: 0,
-        hasData: false
+        hasData: false,
+        evidence: null
       },
       {
         key: "appointmentHonor",
         score: null,
         weight: w.appointmentHonor,
         sampleSize: 0,
-        hasData: false
+        hasData: false,
+        evidence: null
       },
       {
         key: "requestReactivity",
         score: null,
         weight: w.requestReactivity,
         sampleSize: 0,
-        hasData: false
+        hasData: false,
+        evidence: null
       }
     ];
   }

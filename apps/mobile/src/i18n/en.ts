@@ -4887,7 +4887,7 @@ export const en = {
       paymentReliability: "Settle overdue balances to improve",
       receiptTimeliness: "Confirm receipt as soon as goods arrive",
       disputeRecord: "Close open issues quickly",
-      cancellationRate: "Avoid cancelling after acceptance",
+      cancellationRate: "Keep orders after acceptance",
       orderFulfillment: "Fulfill accepted orders",
       confirmationSpeed: "Confirm orders quickly",
       dataRegularity: "Enter your data several times a week",

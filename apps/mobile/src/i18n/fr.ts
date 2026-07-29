@@ -4888,7 +4888,7 @@ export const fr = {
       paymentReliability: "Réglez vos soldes en retard pour remonter",
       receiptTimeliness: "Confirmez la réception dès la livraison",
       disputeRecord: "Clôturez les problèmes ouverts rapidement",
-      cancellationRate: "Évitez d'annuler après acceptation",
+      cancellationRate: "Gardez les commandes après acceptation",
       orderFulfillment: "Honorez les commandes acceptées",
       confirmationSpeed: "Confirmez les commandes rapidement",
       dataRegularity: "Saisissez vos données plusieurs fois par semaine",
