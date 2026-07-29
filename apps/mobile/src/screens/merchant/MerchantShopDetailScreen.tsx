@@ -23,6 +23,7 @@ import {
   fetchMerchantProducts
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import { WriteLockedBanner } from "../../components/subscription/WriteLockedBanner";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -138,6 +139,12 @@ export function MerchantShopDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]} testID="merchant-shop-detail-screen">
       <View style={styles.header}>
+        {shop.writeLockedAt ? (
+          <WriteLockedBanner
+            role="merchant"
+            onUpgrade={() => navigation.navigate("MerchantSubscription")}
+          />
+        ) : null}
         <Text style={styles.shopName}>{shop.name}</Text>
         {shop.description ? (
           <Text style={styles.shopDesc}>{shop.description}</Text>

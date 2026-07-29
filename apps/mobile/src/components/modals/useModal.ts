@@ -5,7 +5,8 @@ import {
   type ConfirmDeleteModalPayload,
   type EditTransactionModalPayload,
   type SuccessModalPayload,
-  type TransactionModalPayload
+  type TransactionModalPayload,
+  type UpgradeLimitModalPayload
 } from "../../context/ModalContext";
 
 type OpenFn = {
@@ -13,6 +14,7 @@ type OpenFn = {
   (type: "edit-transaction", payload: EditTransactionModalPayload): void;
   (type: "success", payload: SuccessModalPayload): void;
   (type: "confirm-delete", payload: ConfirmDeleteModalPayload): void;
+  (type: "upgrade-limit", payload: UpgradeLimitModalPayload): void;
 };
 
 export function useModal() {

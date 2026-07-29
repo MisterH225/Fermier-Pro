@@ -9,7 +9,8 @@ import {
 import type {
   BatchListItem,
   FinanceCategoryDto,
-  FinanceMergedTransactionDto
+  FinanceMergedTransactionDto,
+  SubscriptionLimitErrorCode
 } from "../lib/api";
 
 export type TransactionModalPayload = {
@@ -50,11 +51,19 @@ export type ConfirmDeleteModalPayload = {
   onConfirm: () => void | Promise<void>;
 };
 
+export type UpgradeLimitModalPayload = {
+  code: SubscriptionLimitErrorCode;
+  /** Limite atteinte (valeur API) — null si inconnue / illimitée côté affichage générique. */
+  limit?: number | null;
+  onUpgrade: () => void;
+};
+
 export type AppModalState =
   | { type: "transaction"; payload: TransactionModalPayload }
   | { type: "edit-transaction"; payload: EditTransactionModalPayload }
   | { type: "success"; payload: SuccessModalPayload }
-  | { type: "confirm-delete"; payload: ConfirmDeleteModalPayload };
+  | { type: "confirm-delete"; payload: ConfirmDeleteModalPayload }
+  | { type: "upgrade-limit"; payload: UpgradeLimitModalPayload };
 
 type ModalContextValue = {
   current: AppModalState | null;

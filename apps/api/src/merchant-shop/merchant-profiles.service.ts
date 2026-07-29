@@ -121,6 +121,7 @@ export class MerchantProfilesService {
         locationLabel: shop.locationLabel,
         productCount: products.length,
         activeProductCount: this.countActiveProducts(products),
+        writeLockedAt: shop.writeLockedAt?.toISOString() ?? null,
         createdAt: shop.createdAt.toISOString()
       };
     });
@@ -184,6 +185,9 @@ export class MerchantProfilesService {
         profile.subscriptionTier,
         limits
       ),
+      standardMaxShops: limits.merchantStandardMaxShops,
+      standardMaxProductsPerShop: limits.merchantStandardMaxProductsPerShop,
+      premiumMaxProductsPerShop: limits.merchantPremiumMaxProductsPerShop,
       premiumPriceXof: premiumPrice,
       premiumFullPriceXof: billing.fullPriceXof,
       premiumMaxShops,

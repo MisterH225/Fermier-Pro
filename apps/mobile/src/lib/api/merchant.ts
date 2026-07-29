@@ -44,10 +44,15 @@ export type MerchantMeDto = {
   onboardingComplete: boolean;
   shopCount: number;
   activeProductCount: number;
-  maxShops: number;
+  /** Limite palier actuel — null = illimité. */
+  maxShops: number | null;
   maxActiveProducts: number | null;
   premiumPriceXof: number;
-  premiumMaxShops: number;
+  /** Limites formulaires (superadmin) — pour cartes comparatives. */
+  standardMaxShops?: number | null;
+  standardMaxProductsPerShop?: number | null;
+  premiumMaxShops: number | null;
+  premiumMaxProductsPerShop?: number | null;
   shops: Array<{
     id: string;
     name: string;
@@ -55,6 +60,7 @@ export type MerchantMeDto = {
     locationLabel: string | null;
     productCount: number;
     activeProductCount: number;
+    writeLockedAt?: string | null;
     createdAt: string;
   }>;
   needsShopNudge: boolean;

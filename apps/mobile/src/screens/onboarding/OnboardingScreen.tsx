@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getUserFacingError } from "../../lib/userFacingError";
 import {
@@ -15,16 +15,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SkipConfirmModal } from "../../components/onboarding/SkipConfirmModal";
 import { StepProgressBar } from "../../components/onboarding/StepProgressBar";
+import { OnboardingPlanChoiceStep } from "../../components/subscription/OnboardingPlanChoiceStep";
 import { useOnboardingResume } from "../../context/OnboardingResumeContext";
 import { useSession } from "../../context/SessionContext";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import {
+  chooseProducerSubscription,
+  fetchProducerMe,
   postOnboardingComplete,
   postOnboardingSkip
 } from "../../lib/api";
 import { useModal } from "../../components/modals/useModal";
 import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { ProducerSubscriptionScreen } from "../producer/ProducerSubscriptionScreen";
 import { Step1Project } from "./steps/Step1Project";
 import { Step2Breeders } from "./steps/Step2Breeders";
 import { Step3Production } from "./steps/Step3Production";
@@ -35,6 +39,8 @@ type Props = {
   onFinished: () => void;
 };
 
+type Phase = "loading" | "plan" | "premiumPay" | "form";
+
 export function OnboardingScreen({ onFinished }: Props) {
   const { t } = useTranslation();
   const scrollPad = useScrollBottomPad({ includeChrome: false });
@@ -43,11 +49,67 @@ export function OnboardingScreen({ onFinished }: Props) {
   const { open } = useModal();
   const ob = useOnboarding();
   const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [planBusy, setPlanBusy] = useState(false);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!accessToken || !activeProfileId) {
+        if (!cancelled) setPhase("plan");
+        return;
+      }
+      try {
+        const me = await fetchProducerMe(accessToken, activeProfileId);
+        if (cancelled) return;
+        if (me.subscriptionTier || me.subscriptionChosenAt) {
+          setPhase("form");
+        } else {
+          setPhase("plan");
+        }
+      } catch {
+        if (!cancelled) setPhase("plan");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, activeProfileId]);
+
+  const loadPlanLimits = useCallback(async () => {
+    if (!accessToken || !activeProfileId) {
+      return {};
+    }
+    const me = await fetchProducerMe(accessToken, activeProfileId);
+    return {
+      standardMaxFarms: me.standardMaxFarms ?? null,
+      premiumMaxFarms: me.premiumMaxFarms ?? null
+    };
+  }, [accessToken, activeProfileId]);
+
+  const chooseStandardAndContinue = async () => {
+    if (!accessToken || !activeProfileId) {
+      setPhase("form");
+      return;
+    }
+    setPlanBusy(true);
+    try {
+      await chooseProducerSubscription(accessToken, activeProfileId, {
+        tier: "free"
+      });
+      await refreshAuthMe();
+      setPhase("form");
+    } catch (e) {
+      Alert.alert(t("onboarding.errorTitle"), getUserFacingError(e, t));
+    } finally {
+      setPlanBusy(false);
+    }
+  };
 
   const skipMut = useMutation({
     mutationFn: () =>
@@ -100,6 +162,45 @@ export function OnboardingScreen({ onFinished }: Props) {
       ob.setStep((s) => s - 1);
     }
   };
+
+  if (phase === "loading") {
+    return (
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <View style={styles.loader}>
+          <ActivityIndicator color={mobileColors.accent} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (phase === "plan") {
+    return (
+      <OnboardingPlanChoiceStep
+        role="producer"
+        loadLimits={loadPlanLimits}
+        busy={planBusy}
+        onChooseStandard={chooseStandardAndContinue}
+        onChooseLater={chooseStandardAndContinue}
+        onChoosePremium={() => setPhase("premiumPay")}
+      />
+    );
+  }
+
+  if (phase === "premiumPay") {
+    return (
+      <ProducerSubscriptionScreen
+        skippable
+        autoAdvanceIfTierChosen
+        initialTier="premium"
+        onSkip={() => void chooseStandardAndContinue()}
+        onCancel={() => void chooseStandardAndContinue()}
+        onChosen={async () => {
+          await refreshAuthMe();
+          setPhase("form");
+        }}
+      />
+    );
+  }
 
   const busy = skipMut.isPending || completeMut.isPending;
   const isCompletion = ob.step === 4;
@@ -190,6 +291,7 @@ export function OnboardingScreen({ onFinished }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: mobileColors.canvas },
+  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   skipTop: {
     alignItems: "flex-end",
     paddingHorizontal: mobileSpacing.lg,
@@ -231,6 +333,10 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   primaryFull: { flex: 1 },
-  primaryText: { color: mobileColors.onAccent, fontWeight: "700", fontSize: mobileFontSize.lg },
+  primaryText: {
+    color: mobileColors.onAccent,
+    fontWeight: "700",
+    fontSize: mobileFontSize.lg
+  },
   disabled: { opacity: 0.5 }
 });

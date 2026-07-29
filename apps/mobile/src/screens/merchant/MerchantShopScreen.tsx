@@ -4,9 +4,14 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useModal } from "../../components/modals/useModal";
 import { useSession } from "../../context/SessionContext";
-import { createMerchantShop } from "../../lib/api";
+import {
+  createMerchantShop,
+  fetchMerchantMe,
+  isSubscriptionLimitError
+} from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
@@ -17,10 +22,17 @@ export function MerchantShopScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
+  const { open } = useModal();
   const { accessToken, activeProfileId } = useSession();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const meQ = useQuery({
+    queryKey: ["merchant-me", activeProfileId],
+    queryFn: () => fetchMerchantMe(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId)
+  });
 
   const submit = async () => {
     if (!accessToken || !activeProfileId || !name.trim()) return;
@@ -34,6 +46,14 @@ export function MerchantShopScreen() {
       await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
       navigation.replace("MerchantProductForm", { shopId: created.id });
     } catch (e) {
+      if (isSubscriptionLimitError(e) && e.code === "SHOP_LIMIT_REACHED") {
+        open("upgrade-limit", {
+          code: e.code,
+          limit: meQ.data?.maxShops ?? meQ.data?.standardMaxShops ?? null,
+          onUpgrade: () => navigation.navigate("MerchantSubscription")
+        });
+        return;
+      }
       setError(formatApiError(e));
     } finally {
       setBusy(false);

@@ -41,6 +41,13 @@ export type ProducerMeDto = {
     dueDate: string;
   } | null;
   premiumPriceXof: number;
+  /** Projets actifs (status=active). */
+  farmCount?: number;
+  /** Limite pour le palier actuel — null = illimité. */
+  maxFarms?: number | null;
+  /** Limites formulaires (superadmin) — pour cartes comparatives. */
+  standardMaxFarms?: number | null;
+  premiumMaxFarms?: number | null;
 };
 
 export function fetchProducerMe(

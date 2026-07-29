@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
+  FarmStatus,
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionTier
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { shouldExposePendingSubscription } from "../merchant-shop/merchant-pending-subscription.util";
 import { applyPromoPercent } from "../merchant-shop/merchant-subscription.constants";
+import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
 import { resolveProducerPremiumBillingConfig } from "./producer-premium-billing-config";
 import { ProducerTeamAccessService } from "./producer-team-access.service";
 
@@ -14,7 +16,8 @@ import { ProducerTeamAccessService } from "./producer-team-access.service";
 export class ProducerProfilesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly teamAccess: ProducerTeamAccessService
+    private readonly teamAccess: ProducerTeamAccessService,
+    private readonly subscriptionLimits: SubscriptionLimitsService
   ) {}
 
   async ensureProfile(userId: string) {
@@ -74,6 +77,10 @@ export class ProducerProfilesService {
       profile.subscriptionTier !== MerchantSubscriptionTier.premium;
 
     const teamPremiumActive = this.teamAccess.isPremiumActive(profile);
+    const limits = this.subscriptionLimits.limitsFromSettings(settings);
+    const farmCount = await this.prisma.farm.count({
+      where: { ownerId: user.id, status: FarmStatus.active }
+    });
 
     return {
       subscriptionTier: profile.subscriptionTier,
@@ -85,6 +92,13 @@ export class ProducerProfilesService {
       trialEndsAt: profile.trialEndsAt?.toISOString() ?? null,
       promoPercentOffApplied: stickyPromo,
       teamPremiumActive,
+      farmCount,
+      maxFarms: this.subscriptionLimits.resolveMaxFarms(
+        profile.subscriptionTier,
+        limits
+      ),
+      standardMaxFarms: limits.producerStandardMaxFarms,
+      premiumMaxFarms: limits.producerPremiumMaxFarms,
       pendingRenewal:
         pendingInvoice &&
         profile.subscriptionTier === MerchantSubscriptionTier.premium

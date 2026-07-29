@@ -13,11 +13,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MerchantProductForm } from "../../../components/merchant/MerchantProductForm";
+import { OnboardingPlanChoiceStep } from "../../../components/subscription/OnboardingPlanChoiceStep";
+import { useModal } from "../../../components/modals/useModal";
 import { useSession } from "../../../context/SessionContext";
 import {
   chooseMerchantSubscription,
   createMerchantShop,
   fetchMerchantMe,
+  isSubscriptionLimitError,
   patchMerchantOnboarding,
   type MerchantMeDto,
   type MerchantProductDto
@@ -37,8 +40,10 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
   const scrollPad = useScrollBottomPad({ includeChrome: false });
   const queryClient = useQueryClient();
+  const { open } = useModal();
   const { accessToken, activeProfileId, refreshAuthMe } = useSession();
   const [step, setStep] = useState(0);
+  const [premiumCheckout, setPremiumCheckout] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<MerchantMeDto | null>(null);
@@ -60,6 +65,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
 
   const resumeFromServer = useCallback(
     async (data: MerchantMeDto) => {
+      setPremiumCheckout(false);
       const next = resolveMerchantOnboardingStep(data);
       if (next === "finished") {
         if (!data.onboardingComplete && accessToken && activeProfileId) {
@@ -126,6 +132,42 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     }
   };
 
+  const chooseStandardAndContinue = async () => {
+    if (!accessToken || !activeProfileId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (!me?.subscriptionTier) {
+        await chooseMerchantSubscription(accessToken, activeProfileId, {
+          tier: "free"
+        });
+      }
+      const data = await loadMe();
+      if (data) {
+        await resumeFromServer(data);
+      }
+    } catch (e) {
+      setError(formatApiError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadPlanLimits = useCallback(async () => {
+    if (!accessToken || !activeProfileId) {
+      return {};
+    }
+    const data = await fetchMerchantMe(accessToken, activeProfileId);
+    setMe(data);
+    return {
+      standardMaxShops: data.standardMaxShops ?? data.maxShops ?? null,
+      standardMaxProductsPerShop:
+        data.standardMaxProductsPerShop ?? data.maxActiveProducts ?? null,
+      premiumMaxShops: data.premiumMaxShops ?? null,
+      premiumMaxProductsPerShop: data.premiumMaxProductsPerShop ?? null
+    };
+  }, [accessToken, activeProfileId]);
+
   const onCreateShop = async () => {
     if (!accessToken || !activeProfileId || !shopName.trim()) return;
     setBusy(true);
@@ -141,6 +183,17 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
         await resumeFromServer(data);
       }
     } catch (e) {
+      if (isSubscriptionLimitError(e) && e.code === "SHOP_LIMIT_REACHED") {
+        open("upgrade-limit", {
+          code: e.code,
+          limit: me?.maxShops ?? me?.standardMaxShops ?? null,
+          onUpgrade: () => {
+            setPremiumCheckout(true);
+            setStep(0);
+          }
+        });
+        return;
+      }
       setError(formatApiError(e));
     } finally {
       setBusy(false);
@@ -163,30 +216,28 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     }
   };
 
-  if (step === 0) {
+  if (step === 0 && premiumCheckout) {
     return (
       <MerchantSubscriptionScreen
         autoAdvanceIfTierChosen
         skippable
-        onSkip={async () => {
-          if (accessToken && activeProfileId && !me?.subscriptionTier) {
-            setBusy(true);
-            setError(null);
-            try {
-              await chooseMerchantSubscription(accessToken, activeProfileId, {
-                tier: "free"
-              });
-            } catch (e) {
-              setError(formatApiError(e));
-              setBusy(false);
-              return;
-            }
-            setBusy(false);
-          }
-          await onSubscriptionChosen();
-        }}
+        initialTier="premium"
+        onSkip={() => void chooseStandardAndContinue()}
         onChosen={onSubscriptionChosen}
-        onCancel={onCancel}
+        onCancel={() => void chooseStandardAndContinue()}
+      />
+    );
+  }
+
+  if (step === 0) {
+    return (
+      <OnboardingPlanChoiceStep
+        role="merchant"
+        loadLimits={loadPlanLimits}
+        busy={busy}
+        onChooseStandard={chooseStandardAndContinue}
+        onChooseLater={chooseStandardAndContinue}
+        onChoosePremium={() => setPremiumCheckout(true)}
       />
     );
   }
@@ -201,7 +252,10 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
         onSuccess={(product) => void onProductSuccess(product)}
         onSkip={() => void skipStep({ productSkipped: true })}
         onNeedShop={() => setStep(1)}
-        onSubscriptionRequired={() => setStep(0)}
+        onSubscriptionRequired={() => {
+          setPremiumCheckout(true);
+          setStep(0);
+        }}
       />
     );
   }

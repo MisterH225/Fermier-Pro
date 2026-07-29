@@ -2468,12 +2468,19 @@ export const en = {
     subscription: {
       title: "Team Premium",
       subtitle: "Invite and manage your farm team",
-      freeTitle: "Free",
+      freeTitle: "Standard",
       freeSolo: "Owner only — no team",
+      freeFarms: "{{count}} active project",
+      freeFarms_plural: "{{count}} active projects",
+      freeFarmsUnlimited: "Unlimited active projects",
       freePrice: "0 XOF",
       premiumTitle: "Premium",
       premiumTeam: "Partners, vets, technicians, viewers",
       premiumQr: "QR codes and invite links",
+      premiumFarms: "{{count}} active project",
+      premiumFarms_plural: "{{count}} active projects",
+      premiumFarmsUnlimited: "Unlimited active projects",
+      chooseLater: "Choose later",
       premiumPrice: "{{price}} XOF{{period}}",
       chooseFree: "Stay solo",
       choosePremium: "Enable Team Premium",
@@ -4368,14 +4375,21 @@ export const en = {
       title: "Choose your plan",
       subtitle: "Unlock your shop on the Fermier Pro marketplace",
       choosePlan: "Choose your plan",
-      freeTitle: "Free",
-      freeShop: "1 shop",
-      freeProducts: "5 active products max",
+      freeTitle: "Standard",
+      freeShop: "{{count}} shop",
+      freeShop_plural: "{{count}} shops",
+      freeShopUnlimited: "Unlimited shops",
+      freeProducts: "{{count}} active products max",
+      freeProducts_plural: "{{count}} active products max",
+      freeProductsUnlimited: "Unlimited active products",
       freePrice: "Free",
       freeCaption: "Great to get started",
       premiumTitle: "Premium",
-      premiumProducts: "Unlimited products",
+      premiumProducts: "{{count}} active products max",
+      premiumProducts_plural: "{{count}} active products max",
+      premiumProductsUnlimited: "Unlimited products",
       premiumShops: "Up to {{count}} shops",
+      premiumShopsUnlimited: "Unlimited shops",
       premiumPrice: "{{price}} XOF{{period}}",
       premiumCaption: "Auto-renewal",
       chooseFree: "Choose Free",
@@ -4577,5 +4591,59 @@ export const en = {
   },
   insights: {
     firstWeighing: "First weighing recorded — ADG tracking starts here."
+  },
+  subscriptionLimits: {
+    unlimited: "Unlimited",
+    planChoice: {
+      title: "Choose your plan",
+      subtitle: "You can upgrade to Premium later.",
+      defaultBadge: "Default",
+      standardTitle: "Standard",
+      standardPrice: "Free",
+      premiumTitle: "Premium",
+      premiumPriceHint: "Paid",
+      chooseStandard: "Continue with Standard",
+      choosePremium: "See Premium",
+      chooseLater: "Choose later"
+    },
+    producer: {
+      farms: "{{count}} active project",
+      farms_plural: "{{count}} active projects",
+      farmsUnlimited: "Unlimited active projects",
+      solo: "Solo account — no team",
+      team: "Team and partners",
+      invites: "QR codes and invite links"
+    },
+    merchant: {
+      shops: "{{count}} shop",
+      shops_plural: "{{count}} shops",
+      shopsUnlimited: "Unlimited shops",
+      products: "{{count}} active product / shop",
+      products_plural: "{{count}} active products / shop",
+      productsUnlimited: "Unlimited active products"
+    },
+    upgrade: {
+      farmTitle: "Project limit reached",
+      shopTitle: "Shop limit reached",
+      productTitle: "Product limit reached",
+      farmBody: "Your Standard plan allows {{count}} active project.",
+      farmBody_plural: "Your Standard plan allows {{count}} active projects.",
+      farmBodyGeneric: "You have reached your plan's project limit.",
+      shopBody: "Your Standard plan allows {{count}} shop.",
+      shopBody_plural: "Your Standard plan allows {{count}} shops.",
+      shopBodyGeneric: "You have reached your plan's shop limit.",
+      productBody: "Your plan allows {{count}} active product per shop.",
+      productBody_plural: "Your plan allows {{count}} active products per shop.",
+      productBodyGeneric: "You have reached your plan's product limit.",
+      upgradeCta: "Go Premium",
+      laterCta: "Later"
+    },
+    writeLocked: {
+      farmBanner:
+        "This project is read-only after a plan change. Go Premium to edit it again.",
+      shopBanner:
+        "This shop is read-only after a plan change. Go Premium to edit it again.",
+      upgradeCta: "Go Premium"
+    }
   }
 } as const;

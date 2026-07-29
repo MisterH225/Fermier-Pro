@@ -25,27 +25,28 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { openPaymentCheckout } from "../../lib/paymentCheckout";
+import { limitFeatureLine } from "../../lib/subscriptionLimitsUi";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
+
+type Tier = "free" | "premium";
 
 type Props = {
   skippable?: boolean;
   /** Onboarding uniquement : avance si un tier est déjà enregistré. */
   autoAdvanceIfTierChosen?: boolean;
+  /** Force l'affichage Premium (ex. depuis le choix de formule onboarding). */
+  initialTier?: Tier;
   onSkip?: () => void;
   onChosen: () => void | Promise<void>;
   onCancel: () => void;
 };
-
-type Tier = "free" | "premium";
 
 const FEATURES = [
   { key: "shop", emoji: "🏪" },
   { key: "products", emoji: "📦" },
   { key: "sales", emoji: "📈" }
 ] as const;
-
-const FREE_PLAN_KEYS = ["freeShop", "freeProducts"] as const;
 
 type BillingUnit = "hour" | "day" | "month";
 type PaymentMethod = "wallet" | "mobile_money";
@@ -121,6 +122,7 @@ function trialUnitLabel(
 
 export function MerchantSubscriptionScreen({
   skippable = false,
+  initialTier,
   autoAdvanceIfTierChosen = false,
   onSkip,
   onChosen,
@@ -139,7 +141,7 @@ export function MerchantSubscriptionScreen({
   const checkoutOpenedRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTier, setSelectedTier] = useState<Tier>("free");
+  const [selectedTier, setSelectedTier] = useState<Tier>(initialTier ?? "free");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile_money");
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
   const [promoCodeInput, setPromoCodeInput] = useState("");
@@ -173,7 +175,18 @@ export function MerchantSubscriptionScreen({
   });
 
   const premiumPriceXof = meQ.data?.premiumPriceXof;
-  const premiumMaxShops = meQ.data?.premiumMaxShops ?? 3;
+  const premiumMaxShops = meQ.data?.premiumMaxShops ?? null;
+  const premiumMaxProducts = meQ.data?.premiumMaxProductsPerShop ?? null;
+  const standardMaxShops =
+    meQ.data?.standardMaxShops ??
+    (meQ.data?.subscriptionTier === "premium" ? null : meQ.data?.maxShops) ??
+    null;
+  const standardMaxProducts =
+    meQ.data?.standardMaxProductsPerShop ??
+    (meQ.data?.subscriptionTier === "premium"
+      ? null
+      : meQ.data?.maxActiveProducts) ??
+    null;
   const billingUnit: BillingUnit = meQ.data?.billingUnit ?? "month";
   const billingInterval = meQ.data?.billingInterval ?? 1;
   const trialAvailable = Boolean(meQ.data?.trialAvailable);
@@ -205,8 +218,12 @@ export function MerchantSubscriptionScreen({
 
   const premiumFeatures = useMemo(() => {
     const lines = [
-      t("merchant.subscription.premiumShops", { count: premiumMaxShops }),
-      t("merchant.subscription.premiumProducts"),
+      limitFeatureLine(t, "merchant.subscription.premiumShops", premiumMaxShops),
+      limitFeatureLine(
+        t,
+        "merchant.subscription.premiumProducts",
+        premiumMaxProducts
+      ),
       billingPeriodFeature(t, billingUnit, billingInterval)
     ];
     if (promoEnabled && promoPercentOff > 0) {
@@ -237,6 +254,7 @@ export function MerchantSubscriptionScreen({
   }, [
     t,
     premiumMaxShops,
+    premiumMaxProducts,
     billingUnit,
     billingInterval,
     promoEnabled,
@@ -508,7 +526,10 @@ export function MerchantSubscriptionScreen({
               })
           : t("merchant.subscription.ctaPremiumLoading");
 
-  const freeFeatures = FREE_PLAN_KEYS.map((key) => t(`merchant.subscription.${key}`));
+  const freeFeatures = [
+    limitFeatureLine(t, "merchant.subscription.freeShop", standardMaxShops),
+    limitFeatureLine(t, "merchant.subscription.freeProducts", standardMaxProducts)
+  ];
 
   const handleFooterPress = () => {
     if (isWaitingForPayment) {
@@ -776,7 +797,9 @@ export function MerchantSubscriptionScreen({
             disabled={busy}
             testID="merchant-subscription-skip"
           >
-            <Text style={styles.skipTx}>{t("merchant.onboarding.skip")}</Text>
+            <Text style={styles.skipTx}>
+              {t("subscriptionLimits.planChoice.chooseLater")}
+            </Text>
           </Pressable>
         ) : null}
 

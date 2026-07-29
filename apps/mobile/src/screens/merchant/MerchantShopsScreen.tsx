@@ -50,7 +50,8 @@ export function MerchantShopsScreen() {
   const me = meQ.data;
   const shops = me?.shops ?? [];
   const hasShop = hasMerchantShop(me);
-  const canCreateShop = (me?.shopCount ?? 0) < (me?.maxShops ?? 1);
+  const canCreateShop =
+    me?.maxShops == null || (me?.shopCount ?? 0) < me.maxShops;
   const showInitialLoader = meQ.isLoading && !me;
   const showError = meQ.isError && !me;
 
