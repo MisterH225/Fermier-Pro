@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import {
+  COUNTERPARTY_VISIBLE_PILLARS,
   TRUST_SCORE_VERSION,
   isTrustScoreV2Active
 } from "./trust-score.constants";
@@ -21,6 +22,13 @@ import {
   type PillarView
 } from "./trust-score.util";
 
+export type TrustScoreVisibility = "self" | "counterpart" | "public";
+
+export type RatingSummaryView = {
+  average: number | null;
+  count: number;
+};
+
 export type TrustScoreMeView = {
   score: number;
   level: TrustScoreLevel;
@@ -32,6 +40,14 @@ export type TrustScoreMeView = {
   v2Active: boolean;
   sampleSizes: Record<string, number>;
   computedAt: string;
+  ratingsSummary: RatingSummaryView;
+  visibility: TrustScoreVisibility;
+};
+
+export type ShadowProfileBucket = {
+  profileType: TrustScoreProfileType;
+  snapshotCount: number;
+  v2Distribution: Record<string, number>;
 };
 
 export type ShadowReport = {
@@ -51,6 +67,8 @@ export type ShadowReport = {
     v2Score: number;
     delta: number;
   }>;
+  /** Distribution v2 par métier (mode ombre, sans servir). */
+  byProfile: ShadowProfileBucket[];
   notes: string[];
 };
 
@@ -67,6 +85,35 @@ export class TrustScoreService {
     userId: string,
     profileType: TrustScoreProfileType
   ): Promise<TrustScoreMeView> {
+    return this.getScoreView(userId, profileType, "self");
+  }
+
+  /**
+   * Vue contrepartie (transaction) : niveau + piliers pertinents uniquement.
+   */
+  async getCounterpart(
+    targetUserId: string,
+    profileType: TrustScoreProfileType
+  ): Promise<TrustScoreMeView> {
+    return this.getScoreView(targetUserId, profileType, "counterpart");
+  }
+
+  /**
+   * Consultation publique : niveau + moyenne/nombre d'avis.
+   * Preuves comportementales masquées.
+   */
+  async getPublic(
+    targetUserId: string,
+    profileType: TrustScoreProfileType
+  ): Promise<TrustScoreMeView> {
+    return this.getScoreView(targetUserId, profileType, "public");
+  }
+
+  private async getScoreView(
+    userId: string,
+    profileType: TrustScoreProfileType,
+    visibility: TrustScoreVisibility
+  ): Promise<TrustScoreMeView> {
     const latest = await this.prisma.trustScoreSnapshot.findFirst({
       where: { userId, profileType, scoreVersion: TRUST_SCORE_VERSION },
       orderBy: { computedAt: "desc" }
@@ -80,10 +127,33 @@ export class TrustScoreService {
       ? await this.recomputeAndSnapshot(userId, profileType)
       : latest;
 
-    const pillars = (snap.pillars as PillarView[]) ?? [];
+    let pillars = (snap.pillars as PillarView[]) ?? [];
     const sampleSizes =
       (snap.sampleSizes as Record<string, number>) ?? {};
     const isNew = snap.level === TrustScoreLevel.nouvelle;
+    const ratingsSummary = await this.ratingsSummaryFor(userId, profileType);
+
+    if (visibility === "counterpart") {
+      const allowed = new Set(COUNTERPARTY_VISIBLE_PILLARS[profileType]);
+      pillars = pillars.filter((p) => allowed.has(p.key));
+    } else if (visibility === "public") {
+      // Niveau + avis uniquement — pas de preuves comportementales
+      pillars = pillars
+        .filter((p) => p.key === "ratings" || p.key === "commercialTrust")
+        .map((p) => ({
+          ...p,
+          evidence:
+            p.evidence?.kind === "rating"
+              ? p.evidence
+              : ratingsSummary.count > 0
+                ? {
+                    kind: "rating" as const,
+                    average: ratingsSummary.average ?? 0,
+                    count: ratingsSummary.count
+                  }
+                : null
+        }));
+    }
 
     return {
       score: snap.score,
@@ -94,7 +164,88 @@ export class TrustScoreService {
       scoreVersion: snap.scoreVersion,
       v2Active: isTrustScoreV2Active(),
       sampleSizes,
-      computedAt: snap.computedAt.toISOString()
+      computedAt: snap.computedAt.toISOString(),
+      ratingsSummary,
+      visibility
+    };
+  }
+
+  private async ratingsSummaryFor(
+    userId: string,
+    profileType: TrustScoreProfileType
+  ): Promise<RatingSummaryView> {
+    if (profileType === TrustScoreProfileType.buyer) {
+      const agg = await this.prisma.buyerRating.aggregate({
+        where: { buyerUserId: userId },
+        _avg: { score: true },
+        _count: true
+      });
+      return {
+        average:
+          agg._avg.score != null
+            ? Number(Number(agg._avg.score).toFixed(2))
+            : null,
+        count: agg._count
+      };
+    }
+    if (profileType === TrustScoreProfileType.merchant) {
+      const agg = await this.prisma.merchantRating.aggregate({
+        where: { merchantUserId: userId },
+        _avg: { score: true },
+        _count: true
+      });
+      return {
+        average:
+          agg._avg.score != null
+            ? Number(Number(agg._avg.score).toFixed(2))
+            : null,
+        count: agg._count
+      };
+    }
+    if (profileType === TrustScoreProfileType.technician) {
+      const agg = await this.prisma.technicianRating.aggregate({
+        where: { technicianUserId: userId },
+        _avg: { score: true },
+        _count: true
+      });
+      return {
+        average:
+          agg._avg.score != null
+            ? Number(Number(agg._avg.score).toFixed(2))
+            : null,
+        count: agg._count
+      };
+    }
+    if (profileType === TrustScoreProfileType.vet) {
+      const vet = await this.prisma.vetProfile.findUnique({
+        where: { userId },
+        select: { ratingAvg: true, ratingCount: true }
+      });
+      return {
+        average:
+          vet?.ratingAvg != null ? Number(Number(vet.ratingAvg).toFixed(2)) : null,
+        count: vet?.ratingCount ?? 0
+      };
+    }
+    // producer — FarmMarketRating sur fermes
+    const farmIds = (
+      await this.prisma.farm.findMany({
+        where: { ownerId: userId },
+        select: { id: true }
+      })
+    ).map((f) => f.id);
+    if (farmIds.length === 0) return { average: null, count: 0 };
+    const agg = await this.prisma.farmMarketRating.aggregate({
+      where: { farmId: { in: farmIds } },
+      _avg: { score: true },
+      _count: true
+    });
+    return {
+      average:
+        agg._avg.score != null
+          ? Number(Number(agg._avg.score).toFixed(2))
+          : null,
+      count: agg._count
     };
   }
 
@@ -318,6 +469,8 @@ export class TrustScoreService {
 
     gaps.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
+    const byProfile = await this.shadowDistributionByProfile();
+
     return {
       generatedAt: new Date().toISOString(),
       scoreVersion: TRUST_SCORE_VERSION,
@@ -328,15 +481,47 @@ export class TrustScoreService {
       levelChangePercent:
         compared === 0 ? 0 : Math.round((changed / compared) * 1000) / 10,
       largestGaps: gaps.slice(0, 25),
+      byProfile,
       notes: [
         "Mode ombre : ce rapport ne modifie ni producer-score v1 ni l'éligibilité crédit.",
+        "TRUST_SCORE_V2_ACTIVE reste false — ne pas basculer sans validation du rapport.",
         "User.reputationScore exclu de la v2 (pénalités d'annulation ; pas d'avis).",
         "Litiges poids (WEIGHT_ARBITRATED) exclus : pas de perdant encodé.",
         "Litiges livraison split/cancelled exclus : pas de perdant clair.",
-        "Pas de modèle d'avis boutique merchant — pilier omis.",
-        "Pas d'avis acheteur alimentés en base — pilier omis."
+        "E1 : piliers ratings branchés (BuyerRating, MerchantRating, TechnicianRating).",
+        "E2 : preuves chiffrées dans pillars.evidence (seuil d'échantillon 5).",
+        "Le score informe sans contraindre (pas de blocage crédit / achat).",
+        "Commentaires d'avis privés — seul avg+count exposé publiquement."
       ]
     };
+  }
+
+  private async shadowDistributionByProfile(): Promise<ShadowProfileBucket[]> {
+    const types = Object.values(TrustScoreProfileType);
+    const buckets: ShadowProfileBucket[] = [];
+    for (const profileType of types) {
+      const snaps = await this.prisma.trustScoreSnapshot.findMany({
+        where: { profileType, scoreVersion: TRUST_SCORE_VERSION },
+        orderBy: { computedAt: "desc" },
+        select: { userId: true, level: true },
+        take: 20_000
+      });
+      const seen = new Set<string>();
+      const v2Distribution: Record<string, number> = {};
+      let snapshotCount = 0;
+      for (const s of snaps) {
+        if (seen.has(s.userId)) continue;
+        seen.add(s.userId);
+        snapshotCount += 1;
+        v2Distribution[s.level] = (v2Distribution[s.level] ?? 0) + 1;
+      }
+      buckets.push({
+        profileType,
+        snapshotCount,
+        v2Distribution
+      });
+    }
+    return buckets;
   }
 
   private async collectForProfile(

@@ -38,4 +38,6 @@ export * from "./api/predictions";
 export * from "./api/profitability";
 export * from "./api/historical-records";
 export * from "./api/insights";
+export * from "./api/trustScore";
+export * from "./api/crossRatings";
 

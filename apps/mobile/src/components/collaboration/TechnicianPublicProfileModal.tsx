@@ -6,6 +6,7 @@ import { PrimaryButton } from "../ui/PrimaryButton";
 import { SecondaryButton } from "../ui/SecondaryButton";
 import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { TrustMeteoBadge } from "../meteo/TrustMeteoBadge";
 type Props = {
   visible: boolean;
   tech: TechnicianProfileDto | null;
@@ -72,6 +73,13 @@ export function TechnicianPublicProfileModal({
           </Text>
           {tech.locationLabel ? (
             <Text style={styles.loc}>📍 {tech.locationLabel}</Text>
+          ) : null}
+          {tech.userId ? (
+            <TrustMeteoBadge
+              profileType="technician"
+              userId={tech.userId}
+              visibility="public"
+            />
           ) : null}
         </View>
       </View>

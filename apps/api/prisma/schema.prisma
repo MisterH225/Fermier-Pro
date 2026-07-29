@@ -244,6 +244,13 @@ model User {
   farmHealthRecordsRecorded FarmHealthRecord[] @relation("FarmHealthRecordRecorder")
   vaccineRecordsAdministered VaccineRecord[] @relation("VaccineRecordAdministeredBy")
   farmMarketRatingsGiven FarmMarketRating[] @relation("FarmMarketRatingAuthor")
+  buyerRatingsGiven     BuyerRating[] @relation("BuyerRatingAuthor")
+  buyerRatingsReceived  BuyerRating[] @relation("BuyerRatingTarget")
+  merchantRatingsGiven  MerchantRating[] @relation("MerchantRatingAuthor")
+  merchantRatingsReceived MerchantRating[] @relation("MerchantRatingTarget")
+  technicianRatingsGiven TechnicianRating[] @relation("TechnicianRatingAuthor")
+  technicianRatingsReceived TechnicianRating[] @relation("TechnicianRatingTarget")
+  crossRatingModerationActions CrossRatingModerationLog[] @relation("CrossRatingModerationAdmin")
   chatRoomMemberships ChatRoomMember[]
   chatMessagesSent    ChatMessage[]
   chatSecurityEvents  ChatSecurityEvent[]
@@ -456,6 +463,7 @@ model Farm {
   vaccineRecords        VaccineRecord[]
   vetRatingsReceived    VetRating[]
   marketRatingsReceived FarmMarketRating[]
+  technicianRatings    TechnicianRating[]
   smartAlerts          SmartAlert[]
   farmAlertSettings    FarmAlertSettings?
   farmReports          FarmReport[]
@@ -2091,6 +2099,7 @@ model MarketplaceTransaction {
   receipt                 MarketplaceTransactionReceipt?
   deliveryDisputes        MarketplaceDeliveryDispute[]
   pendingTransfers        MarketplacePendingTransfer[]
+  buyerRating             BuyerRating?
 
   @@index([listingId, status])
   @@index([buyerUserId, status])
@@ -2215,6 +2224,88 @@ model FarmMarketRating {
 
   @@unique([farmId, ratedByUserId])
   @@index([farmId])
+}
+
+/// Avis vendeur → acheteur (marketplace ou boutique), lié à une transaction aboutie.
+/// Commentaire privé (jamais exposé publiquement).
+model BuyerRating {
+  id                       String                   @id @default(cuid())
+  buyerUserId              String
+  buyer                    User                     @relation("BuyerRatingTarget", fields: [buyerUserId], references: [id], onDelete: Cascade)
+  ratedByUserId            String
+  rater                    User                     @relation("BuyerRatingAuthor", fields: [ratedByUserId], references: [id], onDelete: Cascade)
+  marketplaceTransactionId String?                  @unique
+  marketplaceTransaction   MarketplaceTransaction?  @relation(fields: [marketplaceTransactionId], references: [id], onDelete: Cascade)
+  merchantOrderId          String?                  @unique
+  merchantOrder            MerchantOrder?           @relation(fields: [merchantOrderId], references: [id], onDelete: Cascade)
+  score                    Int
+  /// Privé — visible uniquement par l'auteur et les admins.
+  comment                  String?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+
+  @@index([buyerUserId, createdAt(sort: Desc)])
+  @@index([ratedByUserId])
+}
+
+/// Avis acheteur → commerçant, lié à une commande boutique aboutie.
+/// Commentaire privé.
+model MerchantRating {
+  id              String        @id @default(cuid())
+  merchantUserId  String
+  merchant        User          @relation("MerchantRatingTarget", fields: [merchantUserId], references: [id], onDelete: Cascade)
+  ratedByUserId   String
+  rater           User          @relation("MerchantRatingAuthor", fields: [ratedByUserId], references: [id], onDelete: Cascade)
+  merchantOrderId String        @unique
+  merchantOrder   MerchantOrder @relation(fields: [merchantOrderId], references: [id], onDelete: Cascade)
+  score           Int
+  /// Privé — visible uniquement par l'auteur et les admins.
+  comment         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([merchantUserId, createdAt(sort: Desc)])
+  @@index([ratedByUserId])
+}
+
+/// Avis producteur → technicien (périodique : 1 / mois / couple / ferme).
+/// Commentaire privé.
+model TechnicianRating {
+  id               String   @id @default(cuid())
+  technicianUserId String
+  technician       User     @relation("TechnicianRatingTarget", fields: [technicianUserId], references: [id], onDelete: Cascade)
+  ratedByUserId    String
+  rater            User     @relation("TechnicianRatingAuthor", fields: [ratedByUserId], references: [id], onDelete: Cascade)
+  farmId           String
+  farm             Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  /// Clé de période UTC "YYYY-MM" — unicité mensuelle.
+  periodYearMonth  String
+  score            Int
+  /// Privé — visible uniquement par l'auteur et les admins.
+  comment          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([technicianUserId, ratedByUserId, farmId, periodYearMonth])
+  @@index([technicianUserId, createdAt(sort: Desc)])
+  @@index([ratedByUserId])
+  @@index([farmId])
+}
+
+/// Journal suppression d'avis croisé par admin.
+model CrossRatingModerationLog {
+  id             String   @id @default(cuid())
+  /// buyer | merchant | technician
+  ratingType     String
+  ratingId       String
+  adminUserId    String
+  admin          User     @relation("CrossRatingModerationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  reason         String
+  ratingSnapshot Json
+  deletedAt      DateTime @default(now())
+
+  @@index([ratingType, ratingId])
+  @@index([adminUserId, deletedAt(sort: Desc)])
 }
 
 model AnimalWeight {
@@ -3742,6 +3833,8 @@ model MerchantOrder {
   walletEntries       UserWalletEntry[]
   dispute             MerchantOrderDispute?
   events              MerchantOrderEvent[]
+  buyerRating         BuyerRating?
+  merchantRating      MerchantRating?
 
   @@index([buyerUserId, createdAt(sort: Desc)])
   @@index([sellerUserId, createdAt(sort: Desc)])

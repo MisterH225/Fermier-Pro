@@ -63,6 +63,7 @@ import { ProfitabilityModule } from "./profitability/profitability.module";
 import { HistoricalRecordsModule } from "./historical-records/historical-records.module";
 import { MerchantShopModule } from "./merchant-shop/merchant-shop.module";
 import { TrustScoreModule } from "./trust-score/trust-score.module";
+import { CrossRatingsModule } from "./cross-ratings/cross-ratings.module";
 import { InsightsModule } from "./insights/insights.module";
 
 @Module({
@@ -152,6 +153,7 @@ import { InsightsModule } from "./insights/insights.module";
     ProducerSubscriptionModule,
     MerchantShopModule,
     TrustScoreModule,
+    CrossRatingsModule,
     InsightsModule
   ],
   controllers: [AppController],

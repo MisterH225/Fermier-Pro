@@ -10,12 +10,15 @@ import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFont
 type Props = {
   farmInfo: MarketplaceListingFarmInfo | null | undefined;
   sellerProducerScore?: ProducerScoreDto | null;
+  /** userId producteur pour trust-score public. */
+  sellerUserId?: string | null;
   onViewFarmListings: (farmInfo: MarketplaceListingFarmInfo) => void;
 };
 
 export function FarmInfoCard({
   farmInfo,
   sellerProducerScore,
+  sellerUserId,
   onViewFarmListings
 }: Props) {
   const { t } = useTranslation();
@@ -89,6 +92,7 @@ export function FarmInfoCard({
       <FarmPublicProfileModal
         visible={modalOpen}
         farmInfo={farmInfo}
+        sellerUserId={sellerUserId}
         onClose={() => setModalOpen(false)}
         onViewListings={() => {
           setModalOpen(false);

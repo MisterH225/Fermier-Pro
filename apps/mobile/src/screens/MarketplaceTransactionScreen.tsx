@@ -37,6 +37,10 @@ import {
 import { MarketplaceTransactionOverview } from "../components/marketplace/transaction/MarketplaceTransactionOverview";
 import { MarketplaceTransactionStatusNotice } from "../components/marketplace/transaction/MarketplaceTransactionStatusNotice";
 import { TransactionReceiptCard } from "../components/marketplace/TransactionReceiptCard";
+import {
+  CrossRatingModal,
+  type CrossRatingTarget
+} from "../components/meteo/CrossRatingModal";
 import { useBottomInset } from "../hooks/useBottomInset";
 import { useSession } from "../context/SessionContext";
 import { formatRatePercentLabel } from "../lib/platformFees";
@@ -50,6 +54,7 @@ import {
   declareMarketplaceWeight,
   declareSellerMarketplaceWeight,
   ensureDirectChatRoom,
+  fetchMarketplaceListing,
   fetchMarketplaceTransaction,
   fetchBuyerWallet,
   initiateMarketplacePayment,
@@ -59,6 +64,10 @@ import {
   validateMarketplaceWeight,
   type MarketplaceTransactionDto
 } from "../lib/api";
+import {
+  markCrossRatingDismissed,
+  wasCrossRatingDismissed
+} from "../lib/crossRatingPrompt";
 import {
   marketplaceActionErrorMessage,
   projectMarketplaceFinalAmount
@@ -139,6 +148,11 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<CrossRatingTarget | null>(
+    null
+  );
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const ratingPrompted = useRef(false);
   const [paymentMethod, setPaymentMethod] =
     useState<MarketplacePaymentMethodChoice>("mobile_money");
   const userPickedPaymentMethod = useRef(false);
@@ -173,6 +187,65 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
     void qc.invalidateQueries({ queryKey: ["buyerWalletEntries"] });
     invalidateBuyerDashboardQueries(qc);
   };
+
+  useEffect(() => {
+    const tx = q.data;
+    const myId = authMe?.user.id;
+    if (
+      !tx ||
+      !myId ||
+      !accessToken ||
+      tx.status !== "TRANSACTION_CLOSED" ||
+      ratingPrompted.current
+    ) {
+      return;
+    }
+    ratingPrompted.current = true;
+    const isBuyer = myId === tx.buyerUserId;
+    const isSeller = myId === tx.sellerUserId;
+    void (async () => {
+      const storageKind = isSeller
+        ? "buyer"
+        : isBuyer
+          ? "farm"
+          : null;
+      if (!storageKind) return;
+      const dismissed = await wasCrossRatingDismissed(
+        storageKind,
+        transactionId
+      );
+      if (dismissed) return;
+      if (isSeller) {
+        setRatingTarget({
+          kind: "buyer",
+          marketplaceTransactionId: transactionId
+        });
+        setRatingOpen(true);
+        return;
+      }
+      if (isBuyer) {
+        try {
+          const listing = await fetchMarketplaceListing(
+            accessToken,
+            tx.listingId,
+            activeProfileId
+          );
+          const farmId = listing.farmInfo?.farmId;
+          if (!farmId) return;
+          setRatingTarget({ kind: "farm", farmId });
+          setRatingOpen(true);
+        } catch {
+          // pas de notation si la ferme est introuvable
+        }
+      }
+    })();
+  }, [
+    q.data,
+    authMe?.user.id,
+    accessToken,
+    activeProfileId,
+    transactionId
+  ]);
 
   const payMut = useMutation({
     mutationFn: async () => {
@@ -1098,6 +1171,23 @@ export function MarketplaceTransactionScreen({ route, navigation }: Props) {
           onConfirm={(payload) => transferMut.mutate(payload)}
         />
       ) : null}
+      <CrossRatingModal
+        visible={ratingOpen}
+        target={ratingTarget}
+        onClose={() => setRatingOpen(false)}
+        onSubmitted={() => {
+          void markCrossRatingDismissed(
+            ratingTarget?.kind === "buyer" ? "buyer" : "farm",
+            transactionId
+          );
+        }}
+        onSkipped={() => {
+          void markCrossRatingDismissed(
+            ratingTarget?.kind === "buyer" ? "buyer" : "farm",
+            transactionId
+          );
+        }}
+      />
     </ScrollView>
     </KeyboardAvoidingView>
   );

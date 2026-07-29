@@ -28,6 +28,18 @@ jest.mock("../../../hooks/useMeteoScore", () => ({
   })
 }));
 
+jest.mock("../../../hooks/useTrustScore", () => ({
+  useTrustScore: () => ({
+    data: null,
+    isPending: false,
+    isFetching: false
+  })
+}));
+
+jest.mock("../TrustMeteoSheet", () => ({
+  TrustMeteoSheet: () => null
+}));
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean })
   .IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -79,21 +91,17 @@ describe("meteoHeaderModel", () => {
     expect(p.accessibilityLabel).toBe("Météo de confiance : Nouveau");
   });
 
-  it("seuls les profils avec score exposent l'icône (v1 = producteur)", () => {
+  it("tous les profils exposent l'icône header (API trust-score)", () => {
     expect(profileHasMeteoScore("producer")).toBe(true);
-    expect(profileHasMeteoScore("buyer")).toBe(false);
-    expect(profileHasMeteoScore("merchant")).toBe(false);
-    expect(profileHasMeteoScore("vet")).toBe(false);
-    expect(profileHasMeteoScore("technician")).toBe(false);
+    expect(profileHasMeteoScore("buyer")).toBe(true);
+    expect(profileHasMeteoScore("merchant")).toBe(true);
+    expect(profileHasMeteoScore("vet")).toBe(true);
+    expect(profileHasMeteoScore("technician")).toBe(true);
   });
 });
 
 describe("MeteoHeaderButton", () => {
-  beforeEach(() => {
-    mockNav.navigate.mockClear();
-  });
-
-  it("navigue vers ProducerScoreDashboard au tap", () => {
+  it("ouvre le sheet au tap (pas de navigation)", () => {
     const renderer = render(
       React.createElement(MeteoHeaderButton, { profileType: "producer" })
     );
@@ -101,15 +109,15 @@ describe("MeteoHeaderButton", () => {
     act(() => {
       pressable.props.onPress?.();
     });
-    expect(mockNav.navigate).toHaveBeenCalledWith("ProducerScoreDashboard");
+    expect(mockNav.navigate).not.toHaveBeenCalled();
     unmount(renderer);
   });
 
-  it("n'affiche rien pour un profil sans score", () => {
+  it("affiche aussi pour un profil non-producteur", () => {
     const renderer = render(
       React.createElement(MeteoHeaderButton, { profileType: "buyer" })
     );
-    expect(renderer.toJSON()).toBeNull();
+    expect(findByTestId(renderer, "meteo-header-button")).toBeTruthy();
     unmount(renderer);
   });
 

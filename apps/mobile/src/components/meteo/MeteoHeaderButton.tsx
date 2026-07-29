@@ -1,5 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -9,33 +8,39 @@ import {
   type ViewStyle
 } from "react-native";
 import { useMeteoScore } from "../../hooks/useMeteoScore";
+import { useTrustScore } from "../../hooks/useTrustScore";
 import { mobileSpacing, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
-import type { RootStackParamList } from "../../types/navigation";
+import type { TrustScoreProfileType } from "../../lib/api/trustScore";
 import {
   profileHasMeteoScore,
   resolveMeteoHeaderPresentation,
   type MeteoProfileType
 } from "./meteoHeaderModel";
+import { TrustMeteoSheet } from "./TrustMeteoSheet";
 
 type Props = {
-  /** Profil actif — détermine si un score existe (v1 = producteur seulement). */
+  /** Profil actif — détermine si un score existe. */
   profileType: MeteoProfileType;
   iconColor?: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * Icône météo de confiance dans le header — calquée sur NotificationsHeaderButton.
- * Tap → écran de détail ProducerScoreDashboard (même destination que l'ancienne carte).
+ * Icône météo de confiance dans le header.
+ * Tap → TrustMeteoSheet (ombre v2 possible même si header reste sur v1).
  */
 export function MeteoHeaderButton({
   profileType,
   iconColor,
   style
 }: Props) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const scoreQ = useMeteoScore(profileType);
+  const trustQ = useTrustScore({
+    profileType: profileType as TrustScoreProfileType,
+    visibility: "self",
+    enabled: sheetOpen
+  });
 
   if (!profileHasMeteoScore(profileType)) {
     return null;
@@ -52,23 +57,31 @@ export function MeteoHeaderButton({
     : iconColor ?? presentation.tint;
 
   return (
-    <Pressable
-      onPress={() => navigation.navigate("ProducerScoreDashboard")}
-      style={({ pressed }) => [styles.btn, style, pressed && { opacity: 0.85 }]}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      accessibilityRole="button"
-      accessibilityLabel={presentation.accessibilityLabel}
-      testID="meteo-header-button"
-    >
-      <View
-        style={[
-          styles.iconWrap,
-          { backgroundColor: `${presentation.tint}33` }
-        ]}
+    <>
+      <Pressable
+        onPress={() => setSheetOpen(true)}
+        style={({ pressed }) => [styles.btn, style, pressed && { opacity: 0.85 }]}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel={presentation.accessibilityLabel}
+        testID="meteo-header-button"
       >
-        <Text style={[styles.icon, { color: tint }]}>{presentation.icon}</Text>
-      </View>
-    </Pressable>
+        <View
+          style={[
+            styles.iconWrap,
+            { backgroundColor: `${presentation.tint}33` }
+          ]}
+        >
+          <Text style={[styles.icon, { color: tint }]}>{presentation.icon}</Text>
+        </View>
+      </Pressable>
+      <TrustMeteoSheet
+        visible={sheetOpen}
+        trust={trustQ.data}
+        loading={trustQ.isPending || trustQ.isFetching}
+        onClose={() => setSheetOpen(false)}
+      />
+    </>
   );
 }
 

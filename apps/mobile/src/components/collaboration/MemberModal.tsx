@@ -25,6 +25,11 @@ import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFont
 import { useModal } from "../modals/useModal";
 import { BaseModal } from "./BaseModal";
 import { MemberAvatar } from "./MemberAvatar";
+import {
+  CrossRatingModal,
+  type CrossRatingTarget
+} from "../meteo/CrossRatingModal";
+import { TrustMeteoBadge } from "../meteo/TrustMeteoBadge";
 
 type Props = {
   visible: boolean;
@@ -42,11 +47,16 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const [editMode, setEditMode] = useState(false);
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
   const [permissions, setPermissions] = useState<InvitationPermissions>({});
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<CrossRatingTarget | null>(
+    null
+  );
 
   useEffect(() => {
     if (!visible) {
       setEditMode(false);
       setRevokeConfirmOpen(false);
+      setRatingOpen(false);
     }
   }, [visible]);
 
@@ -120,8 +130,10 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
   const roleLabel = ROLE_DISPLAY_FR[member.role] ?? member.role;
   const currentPerms = scopesToPermissions(member.scopes ?? []);
   const isOwner = member.role === "owner";
+  const isTechnician = member.role === "technician";
 
   return (
+    <>
     <BaseModal
       visible={visible}
       title={displayName}
@@ -144,6 +156,13 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
                 {roleLabel}
               </Text>
             </View>
+            {isTechnician && member.userId ? (
+              <TrustMeteoBadge
+                profileType="technician"
+                userId={member.userId}
+                visibility="public"
+              />
+            ) : null}
           </View>
         </View>
 
@@ -216,6 +235,30 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
           </Pressable>
         ) : null}
 
+        {isTechnician && !editMode ? (
+          <Pressable
+            onPress={() => {
+              setRatingTarget({
+                kind: "technician",
+                technicianUserId: member.userId,
+                farmId
+              });
+              setRatingOpen(true);
+            }}
+            style={styles.editBtn}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="star-outline"
+              size={16}
+              color={mobileColors.accent}
+            />
+            <Text style={styles.editBtnTxt}>
+              {t("trustScore.rate.technicianTitle")}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {!isOwner ? (
           revokeConfirmOpen ? (
             <View style={styles.revokeConfirmBox}>
@@ -265,6 +308,12 @@ export function MemberModal({ visible, member, farmId, onClose }: Props) {
           )
         ) : null}
     </BaseModal>
+    <CrossRatingModal
+      visible={ratingOpen}
+      target={ratingTarget}
+      onClose={() => setRatingOpen(false)}
+    />
+    </>
   );
 }
 

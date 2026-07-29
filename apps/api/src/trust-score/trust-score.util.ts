@@ -5,8 +5,17 @@ import {
   NEW_PROFILE_MAX_AGE_DAYS,
   NEW_PROFILE_MIN_TRANSACTIONS,
   TRUST_LEVEL_THRESHOLDS,
-  TRUST_PILLAR_HINT_KEYS
+  TRUST_PILLAR_HINT_KEYS,
+  getTrustEvidenceMinSample
 } from "./trust-score.constants";
+
+/** Preuve chiffrée calculée à la source — jamais dérivée du score normalisé. */
+export type PillarEvidence =
+  | { kind: "ratio"; good: number; total: number }
+  | { kind: "duration"; averageMinutes: number }
+  | { kind: "count"; value: number }
+  | { kind: "rating"; average: number; count: number }
+  | null;
 
 export type PillarInput = {
   key: string;
@@ -15,6 +24,8 @@ export type PillarInput = {
   weight: number;
   sampleSize: number;
   hasData: boolean;
+  /** Preuve brute ; filtrée à la publication selon le seuil d'échantillon. */
+  evidence?: PillarEvidence;
 };
 
 export type PillarView = {
@@ -23,6 +34,8 @@ export type PillarView = {
   weight: number;
   sampleSize: number;
   hintKey: string;
+  /** null si sous le seuil ou non exprimable simplement. */
+  evidence: PillarEvidence;
 };
 
 export type AggregatedTrustScore = {
@@ -37,17 +50,52 @@ const MS_PER_DAY = 86_400_000;
 
 /**
  * Moyenne bayésienne des avis (échelle 1–5) :
- * (C×m + Σnotes) ÷ (C + n) avec m=3.5, C=5.
- * Un profil à 2 avis 5★ ne peut pas être extrême.
+ * (C×m + Σ(note×w)) ÷ (C + Σw) avec m=3.5, C=5.
+ * Poids optionnels (ex. 0.5 pour un auteur « orageux »).
  * Retourne un score 0–100 (moyenne × 20).
  */
-export function bayesianRatingScore(ratings: number[]): number | null {
+export function bayesianRatingScore(
+  ratings: number[],
+  weights?: number[]
+): number | null {
+  if (ratings.length === 0) return null;
+  const ws =
+    weights && weights.length === ratings.length
+      ? weights
+      : ratings.map(() => 1);
+  const weightedSum = ratings.reduce(
+    (a, r, i) => a + r * (ws[i] ?? 1),
+    0
+  );
+  const weightTotal = ws.reduce((a, w) => a + w, 0);
+  if (weightTotal <= 0) return null;
+  const avg =
+    (BAYESIAN_PRIOR_STRENGTH * BAYESIAN_PRIOR_MEAN + weightedSum) /
+    (BAYESIAN_PRIOR_STRENGTH + weightTotal);
+  return clampScore(avg * 20);
+}
+
+/**
+ * Moyenne arithmétique brute (pour evidence.rating) — distincte du score bayésien.
+ */
+export function rawRatingAverage(ratings: number[]): number | null {
   if (ratings.length === 0) return null;
   const sum = ratings.reduce((a, b) => a + b, 0);
-  const avg =
-    (BAYESIAN_PRIOR_STRENGTH * BAYESIAN_PRIOR_MEAN + sum) /
-    (BAYESIAN_PRIOR_STRENGTH + ratings.length);
-  return clampScore(avg * 20);
+  return Math.round((sum / ratings.length) * 100) / 100;
+}
+
+/**
+ * Publie une preuve seulement au-delà du seuil d'échantillon.
+ * Sous le seuil → null (l'UI affiche « Pas encore assez d'historique »).
+ */
+export function publishEvidence(
+  evidence: PillarEvidence | undefined,
+  sampleSize: number,
+  minSample = getTrustEvidenceMinSample()
+): PillarEvidence {
+  if (evidence == null) return null;
+  if (sampleSize < minSample) return null;
+  return evidence;
 }
 
 /**
@@ -217,6 +265,7 @@ function toPillarView(p: PillarInput, effectiveWeight: number): PillarView {
     score: p.score ?? 50,
     weight: Math.round(effectiveWeight * 1000) / 1000,
     sampleSize: p.sampleSize,
-    hintKey: TRUST_PILLAR_HINT_KEYS[p.key] ?? `trustScore.hints.${p.key}`
+    hintKey: TRUST_PILLAR_HINT_KEYS[p.key] ?? `trustScore.hints.${p.key}`,
+    evidence: publishEvidence(p.evidence, p.sampleSize)
   };
 }

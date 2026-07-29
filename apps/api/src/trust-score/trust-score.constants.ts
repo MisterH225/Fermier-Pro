@@ -1,11 +1,10 @@
-import type { TrustScoreProfileType } from "@prisma/client";
-
 /** Version de formule — incrémenter à chaque changement de poids/signaux. */
-export const TRUST_SCORE_VERSION = 2;
+export const TRUST_SCORE_VERSION = 3;
 
 /**
  * Flag runtime : tant que false, mobile + crédit consomment le score producteur v1.
  * La bascule crédit est volontairement hors périmètre de ce module.
+ * Le score v2 informe sans contraindre (pas de blocage crédit / achat).
  */
 export function isTrustScoreV2Active(): boolean {
   const raw = (process.env.TRUST_SCORE_V2_ACTIVE ?? "false").trim().toLowerCase();
@@ -27,8 +26,23 @@ export const NEW_PROFILE_MAX_AGE_DAYS = 30;
 export const NEW_PROFILE_MIN_TRANSACTIONS = 3;
 
 /**
+ * Seuil de publication des preuves chiffrées (E2).
+ * En dessous : « Pas encore assez d'historique » — aucun chiffre inventé.
+ * Surcharge possible via TRUST_EVIDENCE_MIN_SAMPLE.
+ */
+export function getTrustEvidenceMinSample(): number {
+  const raw = (process.env.TRUST_EVIDENCE_MIN_SAMPLE ?? "5").trim();
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 1 ? n : 5;
+}
+
+/** Délai max de modification d'un avis (jours). */
+export const RATING_EDIT_WINDOW_DAYS = 7;
+
+/**
  * Poids des piliers par profil — ajustables.
  * Un pilier sans données a son poids redistribué (voir redistributeWeights).
+ * E1 : pilier ratings ajouté pour buyer / merchant / technician.
  */
 export const TRUST_PILLAR_WEIGHTS = {
   producer: {
@@ -44,17 +58,19 @@ export const TRUST_PILLAR_WEIGHTS = {
     commercialTrust: 0.4
   },
   buyer: {
-    paymentReliability: 0.3,
-    receiptTimeliness: 0.25,
-    disputeRecord: 0.25,
-    cancellationRate: 0.2
-    // Pas d'avis acheteur en base (BuyerProfile.ratingAvg non alimenté) — omis.
+    /** Avis vendeurs (BuyerRating) — bayésien. */
+    ratings: 0.3,
+    paymentReliability: 0.21,
+    receiptTimeliness: 0.175,
+    disputeRecord: 0.175,
+    cancellationRate: 0.14
   },
   merchant: {
-    orderFulfillment: 0.4,
-    confirmationSpeed: 0.25,
-    disputeRecord: 0.35
-    // Pas de modèle d'avis boutique (MerchantProductRating inexistant) — omis.
+    /** Avis acheteurs (MerchantRating) — bayésien. */
+    ratings: 0.3,
+    orderFulfillment: 0.28,
+    confirmationSpeed: 0.175,
+    disputeRecord: 0.245
   },
   vet: {
     ratings: 0.45,
@@ -62,11 +78,13 @@ export const TRUST_PILLAR_WEIGHTS = {
     requestReactivity: 0.2
   },
   technician: {
-    followUpActivity: 0.6,
-    regularity: 0.4
+    /** Avis producteurs (TechnicianRating) — bayésien. L'activité seule ne suffit plus. */
+    ratings: 0.5,
+    followUpActivity: 0.3,
+    regularity: 0.2
   }
 } as const satisfies Record<
-  TrustScoreProfileType,
+  import("@prisma/client").TrustScoreProfileType,
   Record<string, number>
 >;
 
@@ -77,7 +95,7 @@ export type TrustPillarKey =
   | keyof typeof TRUST_PILLAR_WEIGHTS.vet
   | keyof typeof TRUST_PILLAR_WEIGHTS.technician;
 
-/** Clés i18n de conseil d'amélioration par pilier. */
+/** Clés i18n de conseil d'amélioration par pilier (faits concrets, jamais de jugement). */
 export const TRUST_PILLAR_HINT_KEYS: Record<string, string> = {
   dataRegularity: "trustScore.hints.dataRegularity",
   responsiveness: "trustScore.hints.responsiveness",
@@ -93,6 +111,32 @@ export const TRUST_PILLAR_HINT_KEYS: Record<string, string> = {
   requestReactivity: "trustScore.hints.requestReactivity",
   followUpActivity: "trustScore.hints.followUpActivity",
   regularity: "trustScore.hints.regularity"
+};
+
+/**
+ * Piliers visibles pour une contrepartie en transaction
+ * (pas les preuves hors sujet hors relation commerciale).
+ */
+export const COUNTERPARTY_VISIBLE_PILLARS: Record<
+  import("@prisma/client").TrustScoreProfileType,
+  readonly string[]
+> = {
+  buyer: [
+    "paymentReliability",
+    "receiptTimeliness",
+    "disputeRecord",
+    "cancellationRate",
+    "ratings"
+  ],
+  merchant: [
+    "orderFulfillment",
+    "confirmationSpeed",
+    "disputeRecord",
+    "ratings"
+  ],
+  producer: ["commercialTrust", "responsiveness"],
+  vet: ["ratings", "appointmentHonor", "requestReactivity"],
+  technician: ["ratings", "followUpActivity", "regularity"]
 };
 
 /** Seuils de niveau météo (hors état "nouvelle"). */

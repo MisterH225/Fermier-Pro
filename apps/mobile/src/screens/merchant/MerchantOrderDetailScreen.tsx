@@ -3,7 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -20,6 +20,10 @@ import { MerchantOrderContactCard } from "../../components/merchant/orders/Merch
 import { MerchantOrderDeliveryCard } from "../../components/merchant/orders/MerchantOrderDeliveryCard";
 import { MerchantOrderProgressStepper } from "../../components/merchant/orders/MerchantOrderProgressStepper";
 import { MerchantOrderTrackingHeader } from "../../components/merchant/orders/MerchantOrderTrackingHeader";
+import {
+  CrossRatingModal,
+  type CrossRatingTarget
+} from "../../components/meteo/CrossRatingModal";
 import {
   DeadlineNotice
 } from "../../components/orders";
@@ -38,6 +42,10 @@ import {
   type MerchantOrderDto
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import {
+  markCrossRatingDismissed,
+  wasCrossRatingDismissed
+} from "../../lib/crossRatingPrompt";
 import { mobileSpacing, mobileFontSize, mobileStatusSurfaces } from "../../theme/mobileTheme";
 import { uiNamedColors } from "../../theme/uiNamedColors";
 import type { RootStackParamList } from "../../types/navigation";
@@ -53,6 +61,11 @@ export function MerchantOrderDetailScreen({ route }: Props) {
   const bottomInset = useBottomInset();
   const palette = useOrderPalette();
   const [busy, setBusy] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<CrossRatingTarget | null>(
+    null
+  );
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const ratingPrompted = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const activityY = useRef(0);
 
@@ -62,6 +75,38 @@ export function MerchantOrderDetailScreen({ route }: Props) {
       fetchMerchantOrder(accessToken!, route.params.orderId, activeProfileId),
     enabled: Boolean(accessToken)
   });
+
+  useEffect(() => {
+    const order = q.data;
+    const myId = authMe?.user.id;
+    if (
+      !order ||
+      !myId ||
+      order.status !== "completed" ||
+      ratingPrompted.current
+    ) {
+      return;
+    }
+    ratingPrompted.current = true;
+    const isSeller = myId === order.sellerUserId;
+    const isBuyer = myId === order.buyerUserId;
+    const storageKind = isSeller ? "buyer" : isBuyer ? "merchant" : null;
+    if (!storageKind) return;
+    void (async () => {
+      const dismissed = await wasCrossRatingDismissed(
+        storageKind,
+        order.id
+      );
+      if (dismissed) return;
+      if (isSeller) {
+        setRatingTarget({ kind: "buyer", merchantOrderId: order.id });
+        setRatingOpen(true);
+      } else if (isBuyer) {
+        setRatingTarget({ kind: "merchant", merchantOrderId: order.id });
+        setRatingOpen(true);
+      }
+    })();
+  }, [q.data, authMe?.user.id]);
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
@@ -479,6 +524,23 @@ export function MerchantOrderDetailScreen({ route }: Props) {
           <MerchantOrderActivitySheet order={order} palette={palette} />
         </View>
       </ScrollView>
+      <CrossRatingModal
+        visible={ratingOpen}
+        target={ratingTarget}
+        onClose={() => setRatingOpen(false)}
+        onSubmitted={() => {
+          void markCrossRatingDismissed(
+            ratingTarget?.kind === "buyer" ? "buyer" : "merchant",
+            route.params.orderId
+          );
+        }}
+        onSkipped={() => {
+          void markCrossRatingDismissed(
+            ratingTarget?.kind === "buyer" ? "buyer" : "merchant",
+            route.params.orderId
+          );
+        }}
+      />
     </SafeAreaView>
   );
 }

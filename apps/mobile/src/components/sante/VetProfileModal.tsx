@@ -15,6 +15,7 @@ import { mobileColors, mobileSpacing, mobileTypography, mobileRadius, mobileFont
 import { BaseModal } from "../modals/BaseModal";
 import { useRolePalette } from "../../hooks/useRolePalette";
 import { uiNamedColors } from "../../theme/uiNamedColors";
+import { TrustMeteoBadge } from "../meteo/TrustMeteoBadge";
 
 type Props = {
   visible: boolean;
@@ -216,6 +217,13 @@ export function VetProfileModal({
                 : t("health.vetSearch.unavailable")}
             </Text>
           </View>
+          {profile.userId ? (
+            <TrustMeteoBadge
+              profileType="vet"
+              userId={profile.userId}
+              visibility="public"
+            />
+          ) : null}
           <Text style={styles.meta}>{profile.primarySpecialty}</Text>
           {profile.otherSpecialties?.length ? (
             <Text style={styles.meta}>
