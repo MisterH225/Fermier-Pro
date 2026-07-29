@@ -34,7 +34,8 @@ export const fr = {
       network: "Connexion impossible. Vérifie ton réseau et réessaie.",
       unauthorized: "Session expirée. Reconnecte-toi.",
       forbidden: "Tu n'as pas les droits pour cette action.",
-      notFound: "Élément introuvable."
+      notFound: "Élément introuvable.",
+      saveFailed: "Enregistrement impossible. Réessaie."
     }
   },
   cgu: {
@@ -286,7 +287,20 @@ export const fr = {
     profileSuspendedTitle: "Profil suspendu",
     profileSuspendedDefault: "Ce profil n'est plus accessible.",
     switchProfileHint: "Changez de profil dans les paramètres si vous en avez un autre.",
-    contactSupport: "Contacter le support"
+    contactSupport: "Contacter le support",
+    blockedTitle: "Contenu bloqué"
+  },
+  feed: {
+    like: "J’aime",
+    likes: "{{count}} j’aime",
+    reply: "Répondre",
+    replyPlaceholder: "Écrire une réponse…",
+    commentPlaceholder: "Écrire un commentaire…",
+    comments: "Commentaires",
+    mostRecent: "Plus récents",
+    commentBlocked: "Commentaire indisponible",
+    loadError: "Impossible de charger le fil.",
+    statusError: "Impossible de publier. Réessaie."
   },
   adminMessages: {
     title: "Messages de l'administration",
@@ -1059,6 +1073,7 @@ export const fr = {
       durationHint: "Durée appliquée lors de la publication.",
       durationDays: "{{count}} jours",
       draftHint: "Brouillon : invisible jusqu'à publication.",
+      draftSuccess: "Brouillon enregistré.",
       footerNote: "L'annonce est créée en brouillon. Publie-la depuis le détail pour la rendre visible.",
       errors: {
         titleRequired: "Le titre est obligatoire.",
@@ -1079,7 +1094,15 @@ export const fr = {
     publishing: "Publication…",
     publishSuccess: "Annonce publiée — visible sur le marché.",
     editForm: {
-      success: "Annonce mise à jour."
+      success: "Annonce mise à jour.",
+      titleModal: "Modifier l’annonce",
+      submit: "Enregistrer",
+      errorTitle: "Modification impossible",
+      closedListing: "Cette annonce est clôturée — modification impossible.",
+      sectionDuration: "Durée sur le marché",
+      expiresAt: "Expire le {{date}}",
+      extendToggle: "Prolonger la durée",
+      extendHint: "Ajoute des jours de visibilité après enregistrement."
     }
   },
   pigPriceIndex: {
@@ -1126,9 +1149,9 @@ export const fr = {
       disputed: "Problème"
     },
     steps: {
-      received: "Prise en charge",
-      in_transit: "En transit",
-      delivered: "Livré"
+      received: "Commandée",
+      in_transit: "En livraison",
+      delivered: "Livrée"
     }
   },
   smartAlerts: {
@@ -1987,6 +2010,8 @@ export const fr = {
     navGestation: "Gestations",
     navWeight: "Poids & GMQ",
     navHistory: "Historique",
+    requalificationBanner:
+      "Une requalification de cette loge est recommandée (seuil démarrage / type d’usage).",
     totalHeadcount: "Effectif total",
     kpiSectionTitle: "Indicateurs clés",
     kpiBreedingFemales: "Reproductrices",
@@ -2144,6 +2169,7 @@ export const fr = {
       createMissing: "Bâtiment et nom requis.",
       barn: "Bâtiment",
       penName: "Nom de la loge",
+      penCodeOptional: "Code loge (optionnel)",
       capacity: "Capacité max",
       capacityLine: "{{occ}} / {{cap}} places",
       editCapacityTitle: "Modifier la capacité",
@@ -2207,6 +2233,11 @@ export const fr = {
       noPen: "Sans loge",
       sexMale: "Verrat",
       sexFemale: "Truie",
+      sex: {
+        male: "Mâle",
+        female: "Femelle",
+        unknown: "Non renseigné"
+      },
       create: {
         title: "Nouvel animal",
         category: "Catégorie",
@@ -2826,6 +2857,7 @@ export const fr = {
   financeScreen: {
     tabOverview: "Vue d’ensemble",
     tabRentability: "Rentabilité",
+    newTransaction: "Nouveau mouvement",
     balance: "Solde (cumul)",
     revenuesMonth: "Revenus (mois)",
     expensesMonth: "Dépenses (mois)",
@@ -3906,6 +3938,9 @@ export const fr = {
       insufficientBalance: "Solde insuffisant ({{amount}})",
       mobileMoneyHint: "Orange Money, MTN, Wave…",
       paymentMethod: "Mode de paiement",
+      topUp: {
+        insufficientBalance: "Solde insuffisant. Recharge ton solde pour payer."
+      },
       entry: {
         topUp: "Recharge mobile money",
         withdraw: "Retrait mobile money",
@@ -4465,7 +4500,7 @@ export const fr = {
         copied: "Numéro de suivi copié"
       },
       progress: {
-        received: "Reçue",
+        received: "Commandée",
         in_transit: "En livraison",
         delivered: "Livrée"
       },

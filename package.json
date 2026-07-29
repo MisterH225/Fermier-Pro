@@ -39,6 +39,7 @@
     "test:e2e": "npm run test:e2e --workspace @fermier/api",
     "test:unit": "npm run test:unit --workspace @fermier/api",
     "ci:quality": "npm run prisma:generate && npm run lint:api && npm run build:api && npm run test:unit && npm run typecheck:mobile && npm run typecheck:admin",
+    "check:i18n": "npx tsx scripts/check-i18n.ts",
     "ota:preview": "bash scripts/ota-preview.sh",
     "ota:production": "bash scripts/ota-production.sh"
   },
