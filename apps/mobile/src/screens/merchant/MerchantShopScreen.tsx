@@ -13,7 +13,8 @@ import {
   isSubscriptionLimitError
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
-import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
+import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
+import { mobileColors, mobileSpacing, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
 
 type CreatedShop = { id: string; name: string };
@@ -86,16 +87,16 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
-    borderRadius: mobileRadius.md,
+    borderRadius: merchantRadius.button,
     padding: mobileSpacing.md,
     backgroundColor: mobileColors.background
   },
   btn: {
-    backgroundColor: mobileColors.accent,
+    backgroundColor: merchantColors.primary,
     padding: mobileSpacing.md,
-    borderRadius: mobileRadius.md,
+    borderRadius: merchantRadius.button,
     alignItems: "center"
   },
-  btnTx: { color: mobileColors.background, fontWeight: "700" },
+  btnTx: { color: merchantColors.onPrimary, fontWeight: "700" },
   err: { color: mobileColors.error }
 });
