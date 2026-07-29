@@ -1,3 +1,4 @@
+# Dernière release OTA preview : 2026-07-29T15:17Z — trust score avis croisés + météo explicite #279
 # Dernière release OTA preview : 2026-07-29T13:55Z — palettes par rôle + écrans partagés #277
 # Dernière release OTA preview : 2026-07-29T13:17Z — fix texte brut commandes boutique/marketplace #275
 # Dernière release OTA preview : 2026-07-29T12:55Z — dashboard + finance acheteur + fix commandes À agir #272 #273 #274
