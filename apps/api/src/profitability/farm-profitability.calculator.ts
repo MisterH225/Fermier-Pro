@@ -442,11 +442,9 @@ export async function calculateFarmProfitability(
   });
 
   const dataQuality = resolveDataQuality({
-    hasRevenues:
-      realizedRevenues > 0 || historicalSummary.recordsCount > 0,
-    hasCosts:
-      direct + indirect > 0 || historicalSummary.recordsCount > 0,
-    hasKg: realizedKg > 0 || kgProjected != null || kgAllTime > 0,
+    hasRevenues: realizedRevenues > 0,
+    hasCosts: direct + indirect > 0,
+    hasKg: realizedKg > 0 || kgProjected != null,
     period
   });
 

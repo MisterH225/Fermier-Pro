@@ -4263,7 +4263,7 @@ export const fr = {
     costBreakdown: "Répartition des coûts",
     revenueVsCosts: "Revenus vs Coûts",
     includesPreAppHistory:
-      "Totaux app + historique pré-app — même calcul que la carte Vue d'ensemble.",
+      "Filtre « Tout » : totaux du projet + historique pré-app.",
     noBatches: "Aucune bande enregistrée.",
     realized: "✅ Réalisé",
     projected: "🔮 Prévisionnel",

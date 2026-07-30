@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -23,7 +23,6 @@ import {
   fetchBatchProfitabilityList,
   fetchFarmProfitability,
   fetchProfitabilityInsights,
-  type ProfitabilityMetricsDto,
   type ProfitabilityPeriodKey,
   type ProfitabilityViewMode
 } from "../../lib/api";
@@ -55,36 +54,6 @@ const PERIODS: ProfitabilityPeriodKey[] = [
   "all_time"
 ];
 
-function combineMetrics(
-  a: ProfitabilityMetricsDto,
-  b: ProfitabilityMetricsDto
-): ProfitabilityMetricsDto {
-  const revenues = (a.revenues ?? 0) + (b.revenues ?? 0);
-  const costsDirect = (a.costsDirect ?? 0) + (b.costsDirect ?? 0);
-  const costsIndirect = (a.costsIndirect ?? 0) + (b.costsIndirect ?? 0);
-  const costsTotal = costsDirect + costsIndirect;
-  const kg =
-    (a.kgProduced ?? 0) + (b.kgProduced ?? 0) > 0
-      ? (a.kgProduced ?? 0) + (b.kgProduced ?? 0)
-      : null;
-  const grossMargin = revenues - costsDirect;
-  const netMargin = revenues - costsTotal;
-  return {
-    revenues,
-    costsDirect,
-    costsIndirect,
-    costsTotal,
-    grossMargin,
-    grossMarginPct: revenues > 0 ? (grossMargin / revenues) * 100 : null,
-    netMargin,
-    netMarginPct: revenues > 0 ? (netMargin / revenues) * 100 : null,
-    costPerKg: kg != null && kg > 0 ? costsTotal / kg : null,
-    roi: costsTotal > 0 ? (netMargin / costsTotal) * 100 : null,
-    breakevenPricePerKg: kg != null && kg > 0 ? costsTotal / kg : null,
-    kgProduced: kg
-  };
-}
-
 export function RentabilityScreen({
   farmId,
   accessToken,
@@ -93,10 +62,9 @@ export function RentabilityScreen({
 }: Props) {
   const { t } = useTranslation();
   const scrollPad = useScrollBottomPad();
-  const [period, setPeriod] = useState<ProfitabilityPeriodKey>("all_time");
+  const [period, setPeriod] = useState<ProfitabilityPeriodKey>("current_month");
   const [viewMode, setViewMode] = useState<ProfitabilityViewMode>("realized");
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [didPreferHistorical, setDidPreferHistorical] = useState(false);
 
   const farmQ = useQuery({
     queryKey: ["farmProfitability", farmId, period, activeProfileId],
@@ -118,38 +86,20 @@ export function RentabilityScreen({
 
   const data = farmQ.data;
   const hasHistorical = (data?.historicalPeriod?.recordsCount ?? 0) > 0;
-
-  // Dès qu'un historique pré-app existe : Tout + Réalisé (aligné carte Vue d'ensemble).
-  useEffect(() => {
-    if (!data || didPreferHistorical) return;
-    if ((data.historicalPeriod?.recordsCount ?? 0) > 0) {
-      setPeriod("all_time");
-      setViewMode("realized");
-      setDidPreferHistorical(true);
-    }
-  }, [data, didPreferHistorical]);
+  /** Pré-app only in totals when period is « Tout » (API folds it into realized). */
+  const includesPreApp = hasHistorical && period === "all_time";
 
   const metrics = useMemo(() => {
     if (!data) return null;
     if (viewMode === "projected") return data.projected;
-    // Même source que la carte Vue d'ensemble dès qu'il y a du pré-app.
-    if (hasHistorical && data.lifetime) {
-      if (viewMode === "realized") return data.lifetime;
-      return combineMetrics(data.lifetime, data.projected);
-    }
     if (viewMode === "realized") return data.realized;
     return data.combined;
-  }, [data, viewMode, hasHistorical]);
+  }, [data, viewMode]);
 
   const costBreakdown = useMemo(() => {
     if (!data) return [];
-    if (hasHistorical && viewMode !== "projected") {
-      return data.lifetimeCostBreakdown?.length
-        ? data.lifetimeCostBreakdown
-        : data.costBreakdown;
-    }
     return data.costBreakdown;
-  }, [data, hasHistorical, viewMode]);
+  }, [data]);
 
   const revCostLines = useMemo(() => {
     if (!data?.monthlySeries?.length) return [];
@@ -204,7 +154,7 @@ export function RentabilityScreen({
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: scrollPad }}>
       <ScreenSection title={t("profitability.globalTitle")} plain>
-        {hasHistorical ? (
+        {includesPreApp ? (
           <Text style={styles.historicalBanner}>
             {t("profitability.includesPreAppHistory")}
           </Text>
@@ -249,7 +199,7 @@ export function RentabilityScreen({
           )}
         </View>
 
-        {data?.dataQuality === "insufficient" && !hasHistorical ? (
+        {data?.dataQuality === "insufficient" && !includesPreApp ? (
           <Text style={styles.insufficient}>
             {data.dataQualityMessage ?? t("profitability.insufficientData")}
           </Text>

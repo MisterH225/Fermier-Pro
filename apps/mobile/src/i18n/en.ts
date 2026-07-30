@@ -4257,7 +4257,7 @@ export const en = {
     costBreakdown: "Cost breakdown",
     revenueVsCosts: "Revenue vs costs",
     includesPreAppHistory:
-      "App totals + pre-app history — same calculation as the Overview card.",
+      "“All time” filter: project totals + pre-app history.",
     noBatches: "No batches recorded.",
     realized: "✅ Realized",
     projected: "🔮 Projected",
