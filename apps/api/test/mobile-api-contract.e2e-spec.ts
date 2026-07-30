@@ -782,6 +782,7 @@ describeOrSkip("Contrat API mobile (e2e)", () => {
     expect(profit.status).toBe(200);
     expect(profit.body?.historicalPeriod).toBeDefined();
     expect(profit.body?.lifetime).toBeDefined();
+    expect(Array.isArray(profit.body?.monthlySeries)).toBe(true);
 
     await request(app.getHttpServer())
       .delete(

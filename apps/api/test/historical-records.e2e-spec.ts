@@ -231,7 +231,20 @@ describeOrSkip("Historique pré-app — dépenses & revenus antérieurs (e2e)", 
     expect(res.body?.historicalPeriod?.netResult).toBe(225_000);
     expect(res.body?.lifetime?.revenues).toBeGreaterThanOrEqual(400_000);
     expect(res.body?.lifetime?.costsTotal).toBeGreaterThanOrEqual(175_000);
-    expect(res.body?.netMargin).toBe(res.body?.lifetime?.netMargin);
+    // Période par défaut = mois : KPI = réalisé de la fenêtre (sans pré-app).
+    expect(res.body?.netMargin).toBe(res.body?.realized?.netMargin);
+    expect(Array.isArray(res.body?.monthlySeries)).toBe(true);
+    expect(res.body.monthlySeries).toHaveLength(12);
+
+    // Filtre « Tout » : réalisé inclut le pré-app (= lifetime).
+    const allTime = await request(app.getHttpServer())
+      .get(
+        `/api/v1/farms/${ctx.farmId}/profitability/dashboard?period=all_time`
+      )
+      .set("Authorization", `Bearer ${ctx.token}`);
+    expect(allTime.status).toBe(200);
+    expect(allTime.body?.netMargin).toBe(allTime.body?.realized?.netMargin);
+    expect(allTime.body?.netMargin).toBe(allTime.body?.lifetime?.netMargin);
   });
 
   it("n'impacte pas le solde wallet utilisateur", async () => {
