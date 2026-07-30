@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -12,6 +13,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { User } from "@prisma/client";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import {
+  AddFeatureFlagTestAccountDto,
   DisablePlatformModuleDto,
   ReactivatePlatformModuleDto
 } from "./dto/platform-feature-flags.dto";
@@ -39,6 +41,37 @@ export class AdminFeatureFlagsController {
   @Get(":moduleId/preview-disable")
   previewDisable(@Param("moduleId") moduleId: string) {
     return this.flags.previewDisable(this.parseModuleId(moduleId));
+  }
+
+  @Get(":moduleId/test-accounts")
+  listTestAccounts(@Param("moduleId") moduleId: string) {
+    return this.flags.listTestAccounts(this.parseModuleId(moduleId));
+  }
+
+  @Post(":moduleId/test-accounts")
+  addTestAccount(
+    @Param("moduleId") moduleId: string,
+    @CurrentUser() user: User,
+    @Body() dto: AddFeatureFlagTestAccountDto
+  ) {
+    return this.flags.addTestAccount(
+      this.parseModuleId(moduleId),
+      dto.userId,
+      user.id
+    );
+  }
+
+  @Delete(":moduleId/test-accounts/:userId")
+  removeTestAccount(
+    @Param("moduleId") moduleId: string,
+    @Param("userId") userId: string,
+    @CurrentUser() user: User
+  ) {
+    return this.flags.removeTestAccount(
+      this.parseModuleId(moduleId),
+      userId,
+      user.id
+    );
   }
 
   @Post(":moduleId/disable")

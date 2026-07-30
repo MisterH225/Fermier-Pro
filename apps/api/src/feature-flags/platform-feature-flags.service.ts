@@ -12,7 +12,9 @@ import {
   CORE_PRODUCER_MODULE,
   MODULE_ENABLE_PREREQUISITES,
   PLATFORM_MODULE_IDS,
+  PLATFORM_MODULE_META,
   collectCascadeTargets,
+  isModuleDefaultOff,
   type PlatformModuleId
 } from "./platform-modules.constants";
 import type { ClientFeatureKey } from "../config-client/feature-flags.service";
@@ -30,6 +32,23 @@ export type PlatformModulePublicDto = {
   scheduledReactivation: string | null;
 };
 
+export type FeatureFlagTestAccountDto = {
+  id: string;
+  moduleId: string;
+  userId: string;
+  addedBy: string | null;
+  createdAt: string;
+};
+
+/**
+ * Résolution « module actif pour un user » :
+ *   actif global
+ *   OU (user dans FeatureFlagTestAccount ET prérequis actifs pour ce user).
+ *
+ * L'allow-list contourne uniquement l'activation globale — pas les prérequis.
+ * Ex. un compte de test de feed_composition doit aussi avoir marketplace+mills
+ * actifs pour lui (globalement ou via allow-list). Documenté ici et sur le modèle Prisma.
+ */
 @Injectable()
 export class PlatformFeatureFlagsService {
   private cache: PlatformFeatureFlag[] | null = null;
@@ -60,18 +79,53 @@ export class PlatformFeatureFlagsService {
     return map;
   }
 
+  /** État global (sans allow-list ni prérequis runtime). */
   isModuleActiveFromRows(
     moduleId: PlatformModuleId,
     rows: PlatformFeatureFlag[]
   ): boolean {
     if (moduleId === CORE_PRODUCER_MODULE) return true;
     const row = rows.find((r) => r.moduleId === moduleId);
-    return row?.isActive ?? true;
+    if (!row) {
+      return !isModuleDefaultOff(moduleId);
+    }
+    return row.isActive;
   }
 
   async isModuleActive(moduleId: PlatformModuleId): Promise<boolean> {
     const rows = await this.loadAll();
     return this.isModuleActiveFromRows(moduleId, rows);
+  }
+
+  /**
+   * Résolution effective pour un utilisateur.
+   * - Actif global → true (comportement historique inchangé).
+   * - Sinon, allow-list de test + prérequis récursifs pour ce user.
+   */
+  async isModuleActiveForUser(
+    moduleId: PlatformModuleId,
+    userId?: string | null,
+    visiting: Set<PlatformModuleId> = new Set()
+  ): Promise<boolean> {
+    if (moduleId === CORE_PRODUCER_MODULE) return true;
+    if (visiting.has(moduleId)) return false;
+    visiting.add(moduleId);
+
+    const rows = await this.loadAll();
+    if (this.isModuleActiveFromRows(moduleId, rows)) {
+      return true;
+    }
+    if (!userId) return false;
+    if (!(await this.isUserOnTestAllowList(moduleId, userId))) {
+      return false;
+    }
+
+    const prereqs = MODULE_ENABLE_PREREQUISITES[moduleId] ?? [];
+    for (const prereq of prereqs) {
+      const ok = await this.isModuleActiveForUser(prereq, userId, visiting);
+      if (!ok) return false;
+    }
+    return true;
   }
 
   async isClientFeatureActive(
@@ -140,8 +194,14 @@ export class PlatformFeatureFlagsService {
           disableReason: input.reason,
           reactivatedAt: null,
           reactivatedById: null,
-          userMessageFr: target === moduleId ? input.userMessageFr ?? null : targetRow.userMessageFr,
-          userMessageEn: target === moduleId ? input.userMessageEn ?? null : targetRow.userMessageEn,
+          userMessageFr:
+            target === moduleId
+              ? input.userMessageFr ?? null
+              : targetRow.userMessageFr,
+          userMessageEn:
+            target === moduleId
+              ? input.userMessageEn ?? null
+              : targetRow.userMessageEn,
           scheduledReactivation:
             target === moduleId ? input.scheduledReactivation ?? null : null
         }
@@ -210,13 +270,26 @@ export class PlatformFeatureFlagsService {
 
   async listAdminModules() {
     const rows = await this.loadAll();
-    return rows.map((row) => ({
-      ...this.toPublicDto(row),
-      disabledAt: row.disabledAt?.toISOString() ?? null,
-      disableReason: row.disableReason,
-      reactivatedAt: row.reactivatedAt?.toISOString() ?? null,
-      waitlistCount: 0 as number
-    }));
+    const counts = await this.prisma.featureFlagTestAccount.groupBy({
+      by: ["moduleId"],
+      _count: { _all: true }
+    });
+    const countMap = new Map(
+      counts.map((c) => [c.moduleId, c._count._all] as const)
+    );
+    return rows.map((row) => {
+      const meta = PLATFORM_MODULE_META[row.moduleId as PlatformModuleId];
+      return {
+        ...this.toPublicDto(row),
+        moduleName: meta?.moduleName ?? row.moduleName,
+        description: meta?.description ?? null,
+        disabledAt: row.disabledAt?.toISOString() ?? null,
+        disableReason: row.disableReason,
+        reactivatedAt: row.reactivatedAt?.toISOString() ?? null,
+        waitlistCount: 0 as number,
+        testAccountCount: countMap.get(row.moduleId) ?? 0
+      };
+    });
   }
 
   async listHistory(moduleId: PlatformModuleId, limit = 50) {
@@ -238,17 +311,120 @@ export class PlatformFeatureFlagsService {
     return { ok: true as const };
   }
 
+  async listTestAccounts(
+    moduleId: PlatformModuleId
+  ): Promise<FeatureFlagTestAccountDto[]> {
+    await this.findModuleOrThrow(moduleId);
+    const rows = await this.prisma.featureFlagTestAccount.findMany({
+      where: { moduleId },
+      orderBy: { createdAt: "desc" }
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      moduleId: r.moduleId,
+      userId: r.userId,
+      addedBy: r.addedBy,
+      createdAt: r.createdAt.toISOString()
+    }));
+  }
+
+  async addTestAccount(
+    moduleId: PlatformModuleId,
+    userId: string,
+    addedBy: string
+  ) {
+    await this.findModuleOrThrow(moduleId);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`Utilisateur inconnu : ${userId}`);
+    }
+
+    const existing = await this.prisma.featureFlagTestAccount.findUnique({
+      where: { moduleId_userId: { moduleId, userId } }
+    });
+    if (existing) {
+      throw new BadRequestException(
+        "Ce compte est déjà dans l'allow-list de test de ce module"
+      );
+    }
+
+    const created = await this.prisma.featureFlagTestAccount.create({
+      data: { moduleId, userId, addedBy }
+    });
+    await this.prisma.featureFlagHistory.create({
+      data: {
+        moduleId,
+        action: FeatureFlagHistoryAction.test_account_added,
+        performedById: addedBy,
+        reason: `Compte de test ajouté : ${userId}`,
+        affectedDataSummary: { userId }
+      }
+    });
+
+    return {
+      id: created.id,
+      moduleId: created.moduleId,
+      userId: created.userId,
+      addedBy: created.addedBy,
+      createdAt: created.createdAt.toISOString()
+    } satisfies FeatureFlagTestAccountDto;
+  }
+
+  async removeTestAccount(
+    moduleId: PlatformModuleId,
+    userId: string,
+    performedById: string
+  ) {
+    await this.findModuleOrThrow(moduleId);
+    const existing = await this.prisma.featureFlagTestAccount.findUnique({
+      where: { moduleId_userId: { moduleId, userId } }
+    });
+    if (!existing) {
+      throw new NotFoundException(
+        "Compte de test introuvable pour ce module"
+      );
+    }
+
+    await this.prisma.featureFlagTestAccount.delete({
+      where: { id: existing.id }
+    });
+    await this.prisma.featureFlagHistory.create({
+      data: {
+        moduleId,
+        action: FeatureFlagHistoryAction.test_account_removed,
+        performedById,
+        reason: `Compte de test retiré : ${userId}`,
+        affectedDataSummary: { userId }
+      }
+    });
+
+    return { ok: true as const };
+  }
+
+  private async isUserOnTestAllowList(
+    moduleId: PlatformModuleId,
+    userId: string
+  ): Promise<boolean> {
+    const row = await this.prisma.featureFlagTestAccount.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+      select: { id: true }
+    });
+    return row != null;
+  }
+
   private async loadAll(): Promise<PlatformFeatureFlag[]> {
     const now = Date.now();
     if (this.cache && now < this.cacheExpiresAt) {
       await this.applyScheduledReactivations(this.cache);
       return this.cache;
     }
-    const rows = await this.prisma.platformFeatureFlag.findMany({
+    let rows = await this.prisma.platformFeatureFlag.findMany({
       orderBy: { moduleName: "asc" }
     });
     if (rows.length === 0) {
-      return this.bootstrapDefaults();
+      rows = await this.bootstrapDefaults();
+    } else {
+      rows = await this.ensureMissingModules(rows);
     }
     await this.applyScheduledReactivations(rows);
     this.cache = rows;
@@ -257,14 +433,45 @@ export class PlatformFeatureFlagsService {
   }
 
   private async bootstrapDefaults(): Promise<PlatformFeatureFlag[]> {
-    const seed = PLATFORM_MODULE_IDS.map((moduleId) => ({
-      moduleId,
-      moduleName: moduleId,
-      canDisable: moduleId !== CORE_PRODUCER_MODULE,
-      isActive: true
-    }));
+    const seed = PLATFORM_MODULE_IDS.map((moduleId) => {
+      const meta = PLATFORM_MODULE_META[moduleId];
+      return {
+        moduleId,
+        moduleName: meta?.moduleName ?? moduleId,
+        icon: meta?.icon ?? null,
+        canDisable: moduleId !== CORE_PRODUCER_MODULE,
+        isActive: !isModuleDefaultOff(moduleId)
+      };
+    });
     await this.prisma.platformFeatureFlag.createMany({
       data: seed,
+      skipDuplicates: true
+    });
+    return this.prisma.platformFeatureFlag.findMany({
+      orderBy: { moduleName: "asc" }
+    });
+  }
+
+  /** Insère les modules déclarés absents de la table (ex. nouveaux IDs). */
+  private async ensureMissingModules(
+    rows: PlatformFeatureFlag[]
+  ): Promise<PlatformFeatureFlag[]> {
+    const present = new Set(rows.map((r) => r.moduleId));
+    const missing = PLATFORM_MODULE_IDS.filter((id) => !present.has(id));
+    if (missing.length === 0) return rows;
+
+    await this.prisma.platformFeatureFlag.createMany({
+      data: missing.map((moduleId) => {
+        const meta = PLATFORM_MODULE_META[moduleId];
+        return {
+          moduleId,
+          moduleName: meta?.moduleName ?? moduleId,
+          icon: meta?.icon ?? null,
+          canDisable: moduleId !== CORE_PRODUCER_MODULE,
+          isActive:
+            moduleId === CORE_PRODUCER_MODULE || !isModuleDefaultOff(moduleId)
+        };
+      }),
       skipDuplicates: true
     });
     return this.prisma.platformFeatureFlag.findMany({
@@ -311,10 +518,11 @@ export class PlatformFeatureFlagsService {
   }
 
   private toPublicDto(row: PlatformFeatureFlag): PlatformModulePublicDto {
+    const meta = PLATFORM_MODULE_META[row.moduleId as PlatformModuleId];
     return {
       moduleId: row.moduleId as PlatformModuleId,
-      moduleName: row.moduleName,
-      icon: row.icon,
+      moduleName: meta?.moduleName ?? row.moduleName,
+      icon: row.icon ?? meta?.icon ?? null,
       isActive: row.moduleId === CORE_PRODUCER_MODULE ? true : row.isActive,
       canDisable: row.canDisable,
       userMessageFr: row.userMessageFr,
@@ -330,6 +538,7 @@ export class PlatformFeatureFlagsService {
   }
 
   private async findModuleOrThrow(moduleId: PlatformModuleId) {
+    await this.loadAll();
     const row = await this.findModule(moduleId);
     if (!row) {
       throw new NotFoundException(`Module inconnu : ${moduleId}`);

@@ -2176,6 +2176,7 @@ export function adminVetAssist(
 export type AdminPlatformModuleDto = {
   moduleId: string;
   moduleName: string;
+  description?: string | null;
   icon: string | null;
   isActive: boolean;
   canDisable: boolean;
@@ -2186,6 +2187,7 @@ export type AdminPlatformModuleDto = {
   disableReason: string | null;
   reactivatedAt: string | null;
   waitlistCount: number;
+  testAccountCount: number;
 };
 
 export type FeatureFlagDisablePreviewDto = {
@@ -2195,6 +2197,14 @@ export type FeatureFlagDisablePreviewDto = {
     moduleId: string;
     tables: Array<{ tableName: string; count: number }>;
   }>;
+};
+
+export type FeatureFlagTestAccountDto = {
+  id: string;
+  moduleId: string;
+  userId: string;
+  addedBy: string | null;
+  createdAt: string;
 };
 
 export function fetchAdminFeatureFlags(token: string) {
@@ -2229,6 +2239,37 @@ export function reactivateFeatureFlag(
     `/admin/feature-flags/${moduleId}/reactivate`,
     token,
     { method: "POST", body: JSON.stringify(body ?? {}) }
+  );
+}
+
+export function fetchFeatureFlagTestAccounts(token: string, moduleId: string) {
+  return apiFetch<FeatureFlagTestAccountDto[]>(
+    `/admin/feature-flags/${moduleId}/test-accounts`,
+    token
+  );
+}
+
+export function addFeatureFlagTestAccount(
+  token: string,
+  moduleId: string,
+  userId: string
+) {
+  return apiFetch<FeatureFlagTestAccountDto>(
+    `/admin/feature-flags/${moduleId}/test-accounts`,
+    token,
+    { method: "POST", body: JSON.stringify({ userId }) }
+  );
+}
+
+export function removeFeatureFlagTestAccount(
+  token: string,
+  moduleId: string,
+  userId: string
+) {
+  return apiFetch<{ ok: true }>(
+    `/admin/feature-flags/${moduleId}/test-accounts/${encodeURIComponent(userId)}`,
+    token,
+    { method: "DELETE" }
   );
 }
 

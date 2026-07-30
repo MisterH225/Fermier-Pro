@@ -1102,7 +1102,16 @@
     "reason": "Motif (obligatoire à la désactivation)",
     "userMessage": "Message utilisateur (FR)",
     "cancel": "Annuler",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "testAccounts": "Comptes de test",
+    "testAccountsCount": "{count} compte(s) de test",
+    "testAccountsHint": "Ces comptes voient le module même s'il est OFF global (les prérequis restent exigés).",
+    "testAccountUserId": "ID utilisateur",
+    "addTestAccount": "Ajouter",
+    "removeTestAccount": "Retirer",
+    "manageTestAccounts": "Comptes de test",
+    "testAccountsEmpty": "Aucun compte de test.",
+    "testAccountAddError": "Impossible d'ajouter ce compte."
   },
   "common": {
     "loading": "Chargement…",

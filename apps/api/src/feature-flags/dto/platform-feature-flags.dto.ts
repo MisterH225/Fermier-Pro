@@ -33,3 +33,9 @@ export class NotifyModuleReactivationDto {
   @MaxLength(500)
   note?: string;
 }
+
+export class AddFeatureFlagTestAccountDto {
+  @IsString()
+  @MaxLength(128)
+  userId!: string;
+}
