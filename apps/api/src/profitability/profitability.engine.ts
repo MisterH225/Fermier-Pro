@@ -120,14 +120,11 @@ export class ProfitabilityEngine {
     const hasHistoricalFallback = farm.historicalPeriod.recordsCount > 0;
     let dataQuality = farm.dataQuality;
     let dataQualityMessage = farm.dataQualityMessage;
-    if (farm.dataQuality === "insufficient" && hasHistoricalFallback) {
-      dataQuality = "partial";
+    if (hasHistoricalFallback) {
+      dataQuality =
+        farm.dataQuality === "insufficient" ? "partial" : farm.dataQuality;
       dataQualityMessage =
-        period === "current_quarter"
-          ? "Données historiques affichées — aucune transaction sur le trimestre calendaire en cours."
-          : period === "current_month"
-            ? "Données historiques affichées — aucune transaction ce mois-ci."
-            : "Données historiques affichées — période sélectionnée sans transactions récentes.";
+        "Rentabilité globale (app + historique pré-app). Les filtres de période n'affectent pas ces totaux.";
     }
 
     return {

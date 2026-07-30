@@ -4256,6 +4256,8 @@ export const en = {
     market: "Market",
     costBreakdown: "Cost breakdown",
     revenueVsCosts: "Revenue vs costs",
+    includesPreAppHistory:
+      "App totals + pre-app history — same calculation as the Overview card.",
     noBatches: "No batches recorded.",
     realized: "✅ Realized",
     projected: "🔮 Projected",

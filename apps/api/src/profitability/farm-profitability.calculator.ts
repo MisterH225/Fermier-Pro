@@ -38,6 +38,16 @@ function emptyMetrics(): ProfitabilityMetrics {
   };
 }
 
+/** Exposé pour tests unitaires (dénominateur lifetime). */
+export function buildMetricsForTest(params: {
+  revenues: number;
+  costsDirect: number;
+  costsIndirect: number;
+  kgProduced: number | null;
+}): ProfitabilityMetrics {
+  return buildMetrics(params);
+}
+
 function buildMetrics(params: {
   revenues: number;
   costsDirect: number;
@@ -333,21 +343,29 @@ export async function calculateFarmProfitability(
     ? dec(profitabilitySettings.marketPricePerKg)
     : null;
 
-  const [expenseByKey, revenuesRealized, kgRealized, kgProjected, monthlySeries, historicalSummary, historicalExpenseByKey, allTimeBounds] =
-    await Promise.all([
-      sumExpensesByCategoryKey(prisma, farmId, bounds, categoryMap),
-      sumRevenues(prisma, farmId, bounds),
-      sumKgSold(prisma, farmId, bounds),
-      estimateKgProjected(prisma, farmId),
-      buildMonthlySeries(prisma, farmId, 6),
-      getHistoricalSummary(prisma, farmId),
-      getHistoricalExpenseByFinanceKey(prisma, farmId),
-      Promise.resolve(resolvePeriodBounds("all_time"))
-    ]);
-
-  const [allTimeRevenues, allTimeExpenseByKey] = await Promise.all([
+  const allTimeBounds = resolvePeriodBounds("all_time");
+  const [
+    expenseByKey,
+    revenuesRealized,
+    kgRealized,
+    kgProjected,
+    monthlySeries,
+    historicalSummary,
+    historicalExpenseByKey,
+    allTimeRevenues,
+    allTimeExpenseByKey,
+    kgAllTime
+  ] = await Promise.all([
+    sumExpensesByCategoryKey(prisma, farmId, bounds, categoryMap),
+    sumRevenues(prisma, farmId, bounds),
+    sumKgSold(prisma, farmId, bounds),
+    estimateKgProjected(prisma, farmId),
+    buildMonthlySeries(prisma, farmId, 6),
+    getHistoricalSummary(prisma, farmId),
+    getHistoricalExpenseByFinanceKey(prisma, farmId),
     sumRevenues(prisma, farmId, allTimeBounds),
-    sumExpensesByCategoryKey(prisma, farmId, allTimeBounds, categoryMap)
+    sumExpensesByCategoryKey(prisma, farmId, allTimeBounds, categoryMap),
+    sumKgSold(prisma, farmId, allTimeBounds)
   ]);
 
   const lifetimeExpenseByKey = new Map(allTimeExpenseByKey);
@@ -356,19 +374,42 @@ export async function calculateFarmProfitability(
   }
   const lifetimeRevenues = allTimeRevenues + historicalSummary.totalIncome;
   const lifetimeSplit = splitCosts(lifetimeExpenseByKey);
+  /** Coût/kg lifetime : coûts totaux (app + pré-app) / kg vendus app tous temps — jamais les kg de la période. */
   const lifetime = buildMetrics({
     revenues: lifetimeRevenues,
     costsDirect: lifetimeSplit.direct,
     costsIndirect: lifetimeSplit.indirect,
-    kgProduced: kgRealized > 0 ? kgRealized : null
+    kgProduced: kgAllTime > 0 ? kgAllTime : null
   });
 
-  const { direct, indirect, breakdown } = splitCosts(expenseByKey);
+  /**
+   * Sur « Tout », le réalisé inclut l'historique pré-app (même vérité que lifetime /
+   * carte Vue d'ensemble). Sur les autres périodes, le réalisé reste borné à la fenêtre.
+   */
+  const includeHistoricalInRealized =
+    period === "all_time" && historicalSummary.recordsCount > 0;
+
+  let realizedRevenues = revenuesRealized;
+  let realizedExpenseByKey = expenseByKey;
+  let realizedKg = kgRealized;
+  if (includeHistoricalInRealized) {
+    realizedRevenues = revenuesRealized + historicalSummary.totalIncome;
+    realizedExpenseByKey = new Map(expenseByKey);
+    for (const [key, amount] of historicalExpenseByKey) {
+      realizedExpenseByKey.set(
+        key,
+        (realizedExpenseByKey.get(key) ?? 0) + amount
+      );
+    }
+    realizedKg = kgAllTime;
+  }
+
+  const { direct, indirect, breakdown } = splitCosts(realizedExpenseByKey);
   const realized = buildMetrics({
-    revenues: revenuesRealized,
+    revenues: realizedRevenues,
     costsDirect: direct,
     costsIndirect: indirect,
-    kgProduced: kgRealized > 0 ? kgRealized : null
+    kgProduced: realizedKg > 0 ? realizedKg : null
   });
 
   let projectedRevenues = projectedPred.revenue;
@@ -401,9 +442,11 @@ export async function calculateFarmProfitability(
   });
 
   const dataQuality = resolveDataQuality({
-    hasRevenues: revenuesRealized > 0,
-    hasCosts: direct + indirect > 0,
-    hasKg: kgRealized > 0 || kgProjected != null,
+    hasRevenues:
+      realizedRevenues > 0 || historicalSummary.recordsCount > 0,
+    hasCosts:
+      direct + indirect > 0 || historicalSummary.recordsCount > 0,
+    hasKg: realizedKg > 0 || kgProjected != null || kgAllTime > 0,
     period
   });
 
@@ -442,6 +485,7 @@ export async function calculateFarmProfitability(
       recordsCount: historicalSummary.recordsCount
     },
     lifetime,
+    lifetimeCostBreakdown: lifetimeSplit.breakdown,
     costBreakdown: breakdown,
     monthlySeries,
     trendVsPreviousPeriod: {

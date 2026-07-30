@@ -62,8 +62,10 @@ export type FarmProfitabilityResult = {
     netResult: number;
     recordsCount: number;
   };
-  /** Métriques globales = période app (cumul) + historique pré-app. */
+  /** Métriques globales = app (tous temps) + historique pré-app. */
   lifetime: ProfitabilityMetrics;
+  /** Répartition des coûts sur lifetime (app + pré-app). */
+  lifetimeCostBreakdown: CostBreakdownItem[];
   costBreakdown: CostBreakdownItem[];
   monthlySeries: MonthlyRevCostPoint[];
   trendVsPreviousPeriod: {

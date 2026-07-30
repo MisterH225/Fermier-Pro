@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -23,6 +23,7 @@ import {
   fetchBatchProfitabilityList,
   fetchFarmProfitability,
   fetchProfitabilityInsights,
+  type ProfitabilityMetricsDto,
   type ProfitabilityPeriodKey,
   type ProfitabilityViewMode
 } from "../../lib/api";
@@ -54,6 +55,36 @@ const PERIODS: ProfitabilityPeriodKey[] = [
   "all_time"
 ];
 
+function combineMetrics(
+  a: ProfitabilityMetricsDto,
+  b: ProfitabilityMetricsDto
+): ProfitabilityMetricsDto {
+  const revenues = (a.revenues ?? 0) + (b.revenues ?? 0);
+  const costsDirect = (a.costsDirect ?? 0) + (b.costsDirect ?? 0);
+  const costsIndirect = (a.costsIndirect ?? 0) + (b.costsIndirect ?? 0);
+  const costsTotal = costsDirect + costsIndirect;
+  const kg =
+    (a.kgProduced ?? 0) + (b.kgProduced ?? 0) > 0
+      ? (a.kgProduced ?? 0) + (b.kgProduced ?? 0)
+      : null;
+  const grossMargin = revenues - costsDirect;
+  const netMargin = revenues - costsTotal;
+  return {
+    revenues,
+    costsDirect,
+    costsIndirect,
+    costsTotal,
+    grossMargin,
+    grossMarginPct: revenues > 0 ? (grossMargin / revenues) * 100 : null,
+    netMargin,
+    netMarginPct: revenues > 0 ? (netMargin / revenues) * 100 : null,
+    costPerKg: kg != null && kg > 0 ? costsTotal / kg : null,
+    roi: costsTotal > 0 ? (netMargin / costsTotal) * 100 : null,
+    breakevenPricePerKg: kg != null && kg > 0 ? costsTotal / kg : null,
+    kgProduced: kg
+  };
+}
+
 export function RentabilityScreen({
   farmId,
   accessToken,
@@ -62,9 +93,10 @@ export function RentabilityScreen({
 }: Props) {
   const { t } = useTranslation();
   const scrollPad = useScrollBottomPad();
-  const [period, setPeriod] = useState<ProfitabilityPeriodKey>("current_month");
-  const [viewMode, setViewMode] = useState<ProfitabilityViewMode>("combined");
+  const [period, setPeriod] = useState<ProfitabilityPeriodKey>("all_time");
+  const [viewMode, setViewMode] = useState<ProfitabilityViewMode>("realized");
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [didPreferHistorical, setDidPreferHistorical] = useState(false);
 
   const farmQ = useQuery({
     queryKey: ["farmProfitability", farmId, period, activeProfileId],
@@ -85,12 +117,39 @@ export function RentabilityScreen({
   });
 
   const data = farmQ.data;
+  const hasHistorical = (data?.historicalPeriod?.recordsCount ?? 0) > 0;
+
+  // Dès qu'un historique pré-app existe : Tout + Réalisé (aligné carte Vue d'ensemble).
+  useEffect(() => {
+    if (!data || didPreferHistorical) return;
+    if ((data.historicalPeriod?.recordsCount ?? 0) > 0) {
+      setPeriod("all_time");
+      setViewMode("realized");
+      setDidPreferHistorical(true);
+    }
+  }, [data, didPreferHistorical]);
+
   const metrics = useMemo(() => {
     if (!data) return null;
-    if (viewMode === "realized") return data.realized;
     if (viewMode === "projected") return data.projected;
+    // Même source que la carte Vue d'ensemble dès qu'il y a du pré-app.
+    if (hasHistorical && data.lifetime) {
+      if (viewMode === "realized") return data.lifetime;
+      return combineMetrics(data.lifetime, data.projected);
+    }
+    if (viewMode === "realized") return data.realized;
     return data.combined;
-  }, [data, viewMode]);
+  }, [data, viewMode, hasHistorical]);
+
+  const costBreakdown = useMemo(() => {
+    if (!data) return [];
+    if (hasHistorical && viewMode !== "projected") {
+      return data.lifetimeCostBreakdown?.length
+        ? data.lifetimeCostBreakdown
+        : data.costBreakdown;
+    }
+    return data.costBreakdown;
+  }, [data, hasHistorical, viewMode]);
 
   const revCostLines = useMemo(() => {
     if (!data?.monthlySeries?.length) return [];
@@ -145,6 +204,12 @@ export function RentabilityScreen({
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: scrollPad }}>
       <ScreenSection title={t("profitability.globalTitle")} plain>
+        {hasHistorical ? (
+          <Text style={styles.historicalBanner}>
+            {t("profitability.includesPreAppHistory")}
+          </Text>
+        ) : null}
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.pillRow}>
             {PERIODS.map((p) => (
@@ -184,7 +249,7 @@ export function RentabilityScreen({
           )}
         </View>
 
-        {data?.dataQuality === "insufficient" ? (
+        {data?.dataQuality === "insufficient" && !hasHistorical ? (
           <Text style={styles.insufficient}>
             {data.dataQualityMessage ?? t("profitability.insufficientData")}
           </Text>
@@ -249,23 +314,23 @@ export function RentabilityScreen({
           </View>
         ) : null}
 
-        {data ? (
+        {data && metrics ? (
           <View style={styles.sectionGap}>
             <BreakevenCard
               data={data}
               currencySymbol={currencySymbol}
-              viewMode={viewMode}
+              metrics={metrics}
             />
           </View>
         ) : null}
 
-        {data?.costBreakdown?.length ? (
+        {costBreakdown.length ? (
           <View style={styles.sectionGap}>
             <Text style={styles.chartTitle}>
               {t("profitability.costBreakdown")}
             </Text>
             <FinanceDonutChart
-              slices={data.costBreakdown.map((c, i) => ({
+              slices={costBreakdown.map((c, i) => ({
                 label: c.label,
                 value: c.amount,
                 display: `${roundCoerced(c.pct) ?? 0}%`,
@@ -348,6 +413,15 @@ export function RentabilityScreen({
 
 const styles = StyleSheet.create({
   loader: { marginTop: mobileSpacing.xl },
+  historicalBanner: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    backgroundColor: mobileColors.surfaceMuted,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: mobileSpacing.sm
+  },
   pillRow: { flexDirection: "row", gap: 8, paddingBottom: mobileSpacing.sm },
   pill: {
     paddingHorizontal: 12,
@@ -397,10 +471,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: mobileRadius.md,
     borderWidth: 2,
-    backgroundColor: mobileColors.surface,
-    minWidth: 100
+    marginRight: 8
   },
-  batchPillOn: { backgroundColor: uiNamedColors.cF0FDF4 },
+  batchPillOn: { backgroundColor: mobileColors.surfaceMuted },
   batchPillText: { ...mobileTypography.meta, fontWeight: "700" },
-  batchPillPct: { ...mobileTypography.meta, fontWeight: "800", marginTop: 2 }
+  batchPillPct: { ...mobileTypography.meta, fontWeight: "700", marginTop: 2 }
 });
