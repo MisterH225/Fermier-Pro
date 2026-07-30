@@ -360,7 +360,7 @@ export async function calculateFarmProfitability(
     sumRevenues(prisma, farmId, bounds),
     sumKgSold(prisma, farmId, bounds),
     estimateKgProjected(prisma, farmId),
-    buildMonthlySeries(prisma, farmId, 6),
+    buildMonthlySeries(prisma, farmId, 12),
     getHistoricalSummary(prisma, farmId),
     getHistoricalExpenseByFinanceKey(prisma, farmId),
     sumRevenues(prisma, farmId, allTimeBounds),

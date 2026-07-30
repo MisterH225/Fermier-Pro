@@ -4262,6 +4262,10 @@ export const fr = {
     market: "Marché",
     costBreakdown: "Répartition des coûts",
     revenueVsCosts: "Revenus vs Coûts",
+    monthlyTrend: "Suivi mensuel de la rentabilité",
+    monthlyTrendHint:
+      "Marge nette, revenus et coûts mois par mois (données app).",
+    noMonthlyData: "Pas encore de données mensuelles.",
     includesPreAppHistory:
       "Filtre « Tout » : totaux du projet + historique pré-app.",
     noBatches: "Aucune bande enregistrée.",

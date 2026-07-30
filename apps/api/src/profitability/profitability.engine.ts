@@ -136,7 +136,8 @@ export class ProfitabilityEngine {
       realized: farm.realized,
       projected: farm.projected,
       historicalPeriod: farm.historicalPeriod,
-      lifetime: farm.lifetime
+      lifetime: farm.lifetime,
+      monthlySeries: farm.monthlySeries
     };
   }
 

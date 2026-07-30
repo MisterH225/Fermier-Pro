@@ -14,11 +14,11 @@ import {
   cheptelKpiGridStyles
 } from "../cheptel/overview/CheptelStyleKpiCard";
 import { FinanceDonutChart } from "../finance/FinanceDonutChart";
-import { SmartChart } from "../charts";
 import { ScreenSection } from "../layout/ScreenSection";
 import { BatchProfitabilityCard } from "./BatchProfitabilityCard";
 import { BreakevenCard } from "./BreakevenCard";
 import { ProfitabilityInsightsCard } from "./ProfitabilityInsightsCard";
+import { ProfitabilityMonthlyChart } from "./ProfitabilityMonthlyChart";
 import {
   fetchBatchProfitabilityList,
   fetchFarmProfitability,
@@ -100,39 +100,6 @@ export function RentabilityScreen({
     if (!data) return [];
     return data.costBreakdown;
   }, [data]);
-
-  const revCostLines = useMemo(() => {
-    if (!data?.monthlySeries?.length) return [];
-    return [
-      {
-        key: "revenues",
-        label: t("profitability.revenues"),
-        color: mobileColors.success,
-        data: data.monthlySeries.map((m) => ({
-          month: m.month,
-          value: m.revenuesRealized
-        }))
-      },
-      {
-        key: "costs",
-        label: t("profitability.costs"),
-        color: mobileColors.error,
-        data: data.monthlySeries.map((m) => ({
-          month: m.month,
-          value: m.costsTotal
-        }))
-      },
-      {
-        key: "margin",
-        label: t("profitability.netMargin"),
-        color: mobileColors.accent,
-        data: data.monthlySeries.map((m) => ({
-          month: m.month,
-          value: m.netMargin
-        }))
-      }
-    ];
-  }, [data?.monthlySeries, t]);
 
   const batchComparison = useMemo(() => {
     const rows = batchesQ.data ?? [];
@@ -290,14 +257,12 @@ export function RentabilityScreen({
           </View>
         ) : null}
 
-        {revCostLines.length > 0 ? (
-          <View style={styles.sectionGap}>
-            <Text style={styles.chartTitle}>
-              {t("profitability.revenueVsCosts")}
-            </Text>
-            <SmartChart lines={revCostLines} compact height={180} />
-          </View>
-        ) : null}
+        <View style={styles.sectionGap}>
+          <ProfitabilityMonthlyChart
+            series={data?.monthlySeries}
+            currencySymbol={currencySymbol}
+          />
+        </View>
       </ScreenSection>
 
       <ScreenSection title={t("profitability.byBatchTitle")} plain>

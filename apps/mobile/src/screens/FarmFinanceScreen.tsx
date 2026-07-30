@@ -47,6 +47,7 @@ import {
 } from "../components/cheptel/overview/CheptelStyleKpiCard";
 import { RentabilityHeroCard } from "../components/profitability/RentabilityHeroCard";
 import { RentabilityScreen } from "../components/profitability/RentabilityScreen";
+import { ProfitabilityMonthlyChart } from "../components/profitability/ProfitabilityMonthlyChart";
 import { KpiGridSkeleton, ListSkeleton } from "../components/common/SkeletonBlocks";
 import { EventList, type EventItem } from "../components/lists";
 import { useModal } from "../components/modals/useModal";
@@ -1164,6 +1165,10 @@ export function FarmFinanceScreen({ route, navigation }: Props) {
                       period={profitabilityPeriod}
                       onPeriodChange={setProfitabilityPeriod}
                       onPressDetail={() => setFinanceTab("rentabilite")}
+                    />
+                    <ProfitabilityMonthlyChart
+                      series={profitabilityDashQ.data?.monthlySeries}
+                      currencySymbol={curSym}
                     />
                     <Pressable
                       style={styles.historicalBtn}
