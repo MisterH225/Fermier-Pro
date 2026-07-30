@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (eed2c08d) — trust score #279 + i18n #276",
-  "updatedAt": "2026-07-29T15:19Z",
+  "message": "OTA preview (3cfebb66) — alignement rentabilité pré-app #282",
+  "updatedAt": "2026-07-30T12:31Z",
   "channels": ["preview"],
-  "updateGroupId": "360712b3-a564-4d6f-8042-b55213ab9ebf",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/360712b3-a564-4d6f-8042-b55213ab9ebf"
+  "updateGroupId": "5e320f4a-f3ea-40ca-8abe-960f02f9655b",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/5e320f4a-f3ea-40ca-8abe-960f02f9655b"
 }
