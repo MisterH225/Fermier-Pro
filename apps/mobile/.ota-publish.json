@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (3cfebb66) — alignement rentabilité pré-app #282",
-  "updatedAt": "2026-07-30T12:31Z",
+  "message": "OTA preview (7eefa087) — filtres période rentabilité + suivi mensuel #284",
+  "updatedAt": "2026-07-30T13:37Z",
   "channels": ["preview"],
-  "updateGroupId": "5e320f4a-f3ea-40ca-8abe-960f02f9655b",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/5e320f4a-f3ea-40ca-8abe-960f02f9655b"
+  "updateGroupId": "7e3d69f9-b772-454f-a52d-af1e1fd0f752",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/7e3d69f9-b772-454f-a52d-af1e1fd0f752"
 }
