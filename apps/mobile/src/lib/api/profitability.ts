@@ -29,6 +29,13 @@ export type ProfitabilityMetricsDto = {
   kgProduced: number | null;
 };
 
+export type CostBreakdownDto = {
+  key: string;
+  label: string;
+  amount: number;
+  pct: number;
+};
+
 export type FarmProfitabilityDto = {
   farmId: string;
   period: ProfitabilityPeriodKey;
@@ -41,12 +48,16 @@ export type FarmProfitabilityDto = {
   realized: ProfitabilityMetricsDto;
   projected: ProfitabilityMetricsDto;
   combined: ProfitabilityMetricsDto;
-  costBreakdown: Array<{
-    key: string;
-    label: string;
-    amount: number;
-    pct: number;
-  }>;
+  /** App (tous temps) + historique pré-app — même source que la carte Vue d'ensemble. */
+  lifetime: ProfitabilityMetricsDto;
+  historicalPeriod: {
+    income: number;
+    expense: number;
+    netResult: number;
+    recordsCount: number;
+  };
+  lifetimeCostBreakdown: CostBreakdownDto[];
+  costBreakdown: CostBreakdownDto[];
   monthlySeries: Array<{
     month: string;
     revenuesRealized: number;

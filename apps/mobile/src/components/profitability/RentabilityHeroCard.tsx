@@ -101,6 +101,12 @@ export function RentabilityHeroCard({
         </Text>
       ) : (
         <>
+          {(data.historicalPeriod?.recordsCount ?? 0) > 0 ? (
+            <Text style={styles.preAppHint}>
+              {data.dataQualityMessage ??
+                t("profitability.includesPreAppHistory")}
+            </Text>
+          ) : null}
           <Text style={[styles.mainValue, { color: accent }]}>
             {netMargin != null
               ? formatMoney(netMargin, data.currency, currencySymbol)
@@ -195,6 +201,11 @@ const styles = StyleSheet.create({
     ...mobileTypography.body,
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.md
+  },
+  preAppHint: {
+    ...mobileTypography.meta,
+    color: mobileColors.textSecondary,
+    marginTop: mobileSpacing.sm
   },
   mainValue: {
     fontSize: mobileFontSize.xxl,

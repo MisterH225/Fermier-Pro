@@ -4262,6 +4262,8 @@ export const fr = {
     market: "Marché",
     costBreakdown: "Répartition des coûts",
     revenueVsCosts: "Revenus vs Coûts",
+    includesPreAppHistory:
+      "Totaux app + historique pré-app — même calcul que la carte Vue d'ensemble.",
     noBatches: "Aucune bande enregistrée.",
     realized: "✅ Réalisé",
     projected: "🔮 Prévisionnel",

@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
-import type { FarmProfitabilityDto } from "../../lib/api";
+import type {
+  FarmProfitabilityDto,
+  ProfitabilityMetricsDto
+} from "../../lib/api";
 import { coerceFiniteNumber, roundCoerced } from "../../lib/coerceNumber";
 import {
   mobileColors,
@@ -12,17 +15,12 @@ import {
 type Props = {
   data: FarmProfitabilityDto;
   currencySymbol: string;
-  viewMode: "realized" | "projected" | "combined";
+  /** Métriques déjà résolues (lifetime / réalisé / combiné) — source unique avec les KPI. */
+  metrics: ProfitabilityMetricsDto;
 };
 
-export function BreakevenCard({ data, currencySymbol, viewMode }: Props) {
+export function BreakevenCard({ data, currencySymbol, metrics }: Props) {
   const { t } = useTranslation();
-  const metrics =
-    viewMode === "projected"
-      ? data.projected
-      : viewMode === "combined"
-        ? data.combined
-        : data.realized;
 
   const breakeven = coerceFiniteNumber(metrics.breakevenPricePerKg);
   const market = coerceFiniteNumber(data.marketPricePerKg);
