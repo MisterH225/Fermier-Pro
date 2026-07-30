@@ -5,9 +5,13 @@ import {
   ServiceUnavailableException
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import type { Request } from "express";
+import type { User } from "@prisma/client";
 import { PlatformFeatureFlagsService } from "./platform-feature-flags.service";
 import { PLATFORM_MODULE_METADATA } from "./require-platform-module.decorator";
 import type { PlatformModuleId } from "./platform-modules.constants";
+
+type AuthedRequest = Request & { user?: User };
 
 @Injectable()
 export class PlatformModuleEnabledGuard implements CanActivate {
@@ -24,7 +28,12 @@ export class PlatformModuleEnabledGuard implements CanActivate {
     if (!moduleId) {
       return true;
     }
-    const active = await this.platformFlags.isModuleActive(moduleId);
+    const req = context.switchToHttp().getRequest<AuthedRequest>();
+    const userId = req.user?.id;
+    const active = await this.platformFlags.isModuleActiveForUser(
+      moduleId,
+      userId
+    );
     if (active) {
       return true;
     }

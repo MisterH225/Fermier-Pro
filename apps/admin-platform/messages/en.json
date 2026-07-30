@@ -1736,5 +1736,31 @@
     "invoiceInspectionProviderStatus": "GeniusPay status: {status}",
     "invoiceInspectionAmount": "GeniusPay amount: {amount} {currency}",
     "invoiceInspectionCheckedAt": "Checked at {date}"
+  },
+  "modules": {
+    "title": "Platform modules",
+    "subtitle": "Enable or disable business modules for all users.",
+    "gridTitle": "Available modules",
+    "active": "Active",
+    "inactive": "Inactive",
+    "disable": "Disable",
+    "reactivate": "Reactivate",
+    "disableTitle": "Disable {name}",
+    "reactivateTitle": "Reactivate {name}",
+    "impact": "Affected data:",
+    "cascade": "Modules disabled in cascade",
+    "reason": "Reason (required to disable)",
+    "userMessage": "User message (FR)",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "testAccounts": "Test accounts",
+    "testAccountsCount": "{count} test account(s)",
+    "testAccountsHint": "These accounts see the module even when it is globally OFF (prerequisites still apply).",
+    "testAccountUserId": "User ID",
+    "addTestAccount": "Add",
+    "removeTestAccount": "Remove",
+    "manageTestAccounts": "Test accounts",
+    "testAccountsEmpty": "No test accounts.",
+    "testAccountAddError": "Could not add this account."
   }
 }

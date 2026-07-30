@@ -209,6 +209,7 @@ model User {
   withdrawalReviews     WithdrawalRequest[] @relation("WithdrawalReviewer")
   producerProfile       ProducerProfile?
   reactivationWaitlist  ReactivationWaitlist[]
+  featureFlagTestAccounts FeatureFlagTestAccount[]
   memberships           FarmMembership[]
   ownedFarms            Farm[]               @relation("FarmOwner")
   farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
@@ -3162,6 +3163,8 @@ enum FeatureFlagHistoryAction {
   disabled
   reactivated
   scheduled
+  test_account_added
+  test_account_removed
 }
 
 enum TechnicianFormationType {
@@ -3464,6 +3467,22 @@ model ReactivationWaitlist {
 
   @@unique([moduleId, userId])
   @@index([moduleId])
+}
+
+/// Allow-list de comptes de test : active un module pour un user même s'il est OFF global.
+/// Contourne uniquement l'activation globale — les prérequis MODULE_ENABLE_PREREQUISITES
+/// restent exigés à la résolution (voir PlatformFeatureFlagsService.isModuleActiveForUser).
+model FeatureFlagTestAccount {
+  id        String   @id @default(cuid())
+  moduleId  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedBy   String?
+  createdAt DateTime @default(now())
+
+  @@unique([moduleId, userId])
+  @@index([moduleId])
+  @@index([userId])
 }
 
 /// Cache des prévisions IA prédictives — une ligne par ferme.
