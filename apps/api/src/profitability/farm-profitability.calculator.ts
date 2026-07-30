@@ -360,7 +360,7 @@ export async function calculateFarmProfitability(
     sumRevenues(prisma, farmId, bounds),
     sumKgSold(prisma, farmId, bounds),
     estimateKgProjected(prisma, farmId),
-    buildMonthlySeries(prisma, farmId, 6),
+    buildMonthlySeries(prisma, farmId, 12),
     getHistoricalSummary(prisma, farmId),
     getHistoricalExpenseByFinanceKey(prisma, farmId),
     sumRevenues(prisma, farmId, allTimeBounds),
@@ -442,11 +442,9 @@ export async function calculateFarmProfitability(
   });
 
   const dataQuality = resolveDataQuality({
-    hasRevenues:
-      realizedRevenues > 0 || historicalSummary.recordsCount > 0,
-    hasCosts:
-      direct + indirect > 0 || historicalSummary.recordsCount > 0,
-    hasKg: realizedKg > 0 || kgProjected != null || kgAllTime > 0,
+    hasRevenues: realizedRevenues > 0,
+    hasCosts: direct + indirect > 0,
+    hasKg: realizedKg > 0 || kgProjected != null,
     period
   });
 

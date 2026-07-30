@@ -92,40 +92,17 @@ export class ProfitabilityEngine {
         (a.realized.netMarginPct ?? -Infinity)
     );
 
-    const netMargin =
-      farm.historicalPeriod.recordsCount > 0
-        ? farm.lifetime.netMargin
-        : farm.realized.netMargin;
-    const netMarginPct =
-      farm.historicalPeriod.recordsCount > 0
-        ? farm.lifetime.netMarginPct
-        : farm.realized.netMarginPct;
-    const grossMargin =
-      farm.historicalPeriod.recordsCount > 0
-        ? farm.lifetime.grossMargin
-        : farm.realized.grossMargin;
-    const grossMarginPct =
-      farm.historicalPeriod.recordsCount > 0
-        ? farm.lifetime.grossMarginPct
-        : farm.realized.grossMarginPct;
-    const costPerKg =
-      farm.historicalPeriod.recordsCount > 0
-        ? farm.lifetime.costPerKg
-        : farm.realized.costPerKg;
-    const breakevenPricePerKg =
-      farm.historicalPeriod.recordsCount > 0
-        ? farm.lifetime.breakevenPricePerKg
-        : farm.realized.breakevenPricePerKg;
+    // Mois / trimestre / année = réalisé de la période seule.
+    // Le pré-app n'entre que via period=all_time (déjà fusionné dans realized côté calculator).
+    const netMargin = farm.realized.netMargin;
+    const netMarginPct = farm.realized.netMarginPct;
+    const grossMargin = farm.realized.grossMargin;
+    const grossMarginPct = farm.realized.grossMarginPct;
+    const costPerKg = farm.realized.costPerKg;
+    const breakevenPricePerKg = farm.realized.breakevenPricePerKg;
 
-    const hasHistoricalFallback = farm.historicalPeriod.recordsCount > 0;
-    let dataQuality = farm.dataQuality;
-    let dataQualityMessage = farm.dataQualityMessage;
-    if (hasHistoricalFallback) {
-      dataQuality =
-        farm.dataQuality === "insufficient" ? "partial" : farm.dataQuality;
-      dataQualityMessage =
-        "Rentabilité globale (app + historique pré-app). Les filtres de période n'affectent pas ces totaux.";
-    }
+    const dataQuality = farm.dataQuality;
+    const dataQualityMessage = farm.dataQualityMessage;
 
     return {
       period,
@@ -159,7 +136,8 @@ export class ProfitabilityEngine {
       realized: farm.realized,
       projected: farm.projected,
       historicalPeriod: farm.historicalPeriod,
-      lifetime: farm.lifetime
+      lifetime: farm.lifetime,
+      monthlySeries: farm.monthlySeries
     };
   }
 

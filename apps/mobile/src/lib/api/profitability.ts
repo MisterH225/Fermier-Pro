@@ -131,6 +131,13 @@ export type FarmProfitabilityDashboardDto = {
     recordsCount: number;
   };
   lifetime: ProfitabilityMetricsDto;
+  /** Suivi mois par mois (12 derniers mois, données app). */
+  monthlySeries: Array<{
+    month: string;
+    revenuesRealized: number;
+    costsTotal: number;
+    netMargin: number;
+  }>;
 };
 
 export type ProfitabilityInsightDto = {

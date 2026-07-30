@@ -4256,8 +4256,11 @@ export const en = {
     market: "Market",
     costBreakdown: "Cost breakdown",
     revenueVsCosts: "Revenue vs costs",
+    monthlyTrend: "Monthly profitability trend",
+    monthlyTrendHint: "Net margin, revenue and costs month by month (app data).",
+    noMonthlyData: "No monthly data yet.",
     includesPreAppHistory:
-      "App totals + pre-app history — same calculation as the Overview card.",
+      "“All time” filter: project totals + pre-app history.",
     noBatches: "No batches recorded.",
     realized: "✅ Realized",
     projected: "🔮 Projected",
