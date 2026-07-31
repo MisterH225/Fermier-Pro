@@ -1740,6 +1740,10 @@ export const fr = {
     },
     screenTitles: {
       feedStock: "Aliment",
+      feedHub: "Aliment",
+      feedComposition: "Composition",
+      feedCompositionsList: "Mes compositions",
+      feedCompositionDetail: "Composition",
       communityFeed: "Com",
       notifications: "Notifications",
       reports: "Rapports",

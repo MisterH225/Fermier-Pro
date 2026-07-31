@@ -1739,6 +1739,10 @@ export const en = {
     },
     screenTitles: {
       feedStock: "Feed",
+      feedHub: "Feed",
+      feedComposition: "Formulation",
+      feedCompositionsList: "Saved formulas",
+      feedCompositionDetail: "Formula",
       communityFeed: "Com",
       notifications: "Notifications",
       reports: "Reports",

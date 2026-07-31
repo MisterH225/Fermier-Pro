@@ -60,6 +60,9 @@ function navigateFarmDetailRow(
     case "FarmFeedStock":
       navigation.navigate("FarmFeedStock", row.params);
       return;
+    case "FarmFeedHub":
+      navigation.navigate("FarmFeedHub", row.params);
+      return;
     default: {
       const _exhaustive: never = row;
       void _exhaustive;
@@ -70,7 +73,8 @@ function navigateFarmDetailRow(
 export function FarmDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { farmId, farmName } = route.params;
-  const { accessToken, activeProfileId, clientFeatures } = useSession();
+  const { accessToken, activeProfileId, clientFeatures, platformModules } =
+    useSession();
   const qc = useQueryClient();
   const scrollPad = useScrollBottomPad();
 
@@ -119,7 +123,10 @@ export function FarmDetailScreen({ route, navigation }: Props) {
     menu,
     farmId,
     farmName,
-    effectiveScopes: farm.effectiveScopes
+    effectiveScopes: farm.effectiveScopes,
+    feedCompositionActive: platformModules.some(
+      (m) => m.moduleId === "feed_composition" && m.isActive
+    )
   });
 
   return (

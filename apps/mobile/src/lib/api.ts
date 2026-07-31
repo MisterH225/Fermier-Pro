@@ -13,6 +13,7 @@ export * from "./api/chat";
 export * from "./api/farm-members";
 export * from "./api/invitations";
 export * from "./api/feed-stock";
+export * from "./api/feed-composition";
 export * from "./api/farms";
 export * from "./api/cheptel";
 export * from "./api/livestockExits";

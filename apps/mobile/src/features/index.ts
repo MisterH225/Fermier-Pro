@@ -4,6 +4,7 @@
  */
 export * from "./chat";
 export * from "./feed-stock";
+export * from "./feed-composition";
 export * from "./finance";
 export * from "./farms";
 export * from "./housing";

@@ -139,8 +139,10 @@ export class FeedFormulationEngine {
         const price =
           candidates.find((c) => c.feedIngredientId === feedIngredientId)
             ?.pricePerKg ?? 0;
+        const name = input.nutritionById[feedIngredientId]?.canonicalName;
         return {
           feedIngredientId,
+          ...(name ? { canonicalName: name } : {}),
           quantityKg: round(quantityKg, QTY_DIGITS),
           proportionPct: round(p * 100, 4),
           costContribution: round(quantityKg * price, COST_DIGITS)

@@ -55,6 +55,8 @@ export type FormulateInput = {
 
 export type RationLine = {
   feedIngredientId: string;
+  /** Nom affichable (catalogue) — renseigné par le moteur quand dispo. */
+  canonicalName?: string;
   quantityKg: number;
   proportionPct: number;
   costContribution: number;
