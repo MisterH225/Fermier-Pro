@@ -26,15 +26,31 @@ import { FeedFormulationService } from "../feed-formulation.service";
 import type {
   ApplyCompositionAdjustmentDto,
   ProposeCompositionAdjustmentDto,
+  RejectCompositionAdjustmentDto,
   RequestVetReviewDto,
   SaveCompositionDto,
   VetReviewCompositionDto
 } from "./dto/feed-composition.dto";
+import { FeedRequirementProfilesService } from "../feed-requirement-profiles.service";
 import { IngredientAvailabilityService } from "./ingredient-availability.service";
 import {
   REFERENCE_PRICE_PER_KG,
   THEORETICAL_MAX_AVAILABLE_KG
 } from "./reference-prices";
+
+type DeviationFromCurrent = {
+  crudeProteinPct: number;
+  metabolizableEnergyKcal: number;
+  lysinePct: number;
+  methioninePct: number;
+  calciumPct: number;
+  phosphorusPct: number;
+  crudeFiberPct: number;
+  energyChangePct: number | null;
+  /** true si l'énergie dépasse le plafond anti-gras du stade. */
+  fatRiskAlert: boolean;
+  energyCapKcal: number | null;
+};
 
 @Injectable()
 export class SavedCompositionsService {
@@ -44,7 +60,8 @@ export class SavedCompositionsService {
     private readonly notifications: UserNotificationsService,
     private readonly chat: ChatService,
     private readonly formulation: FeedFormulationService,
-    private readonly availability: IngredientAvailabilityService
+    private readonly availability: IngredientAvailabilityService,
+    private readonly profiles: FeedRequirementProfilesService
   ) {}
 
   async save(user: User, dto: SaveCompositionDto) {
@@ -291,8 +308,33 @@ export class SavedCompositionsService {
   }
 
   /**
+   * Prévisualise un ajustement (moteur) sans persister — pour confirmation véto.
+   */
+  async previewVetAdjustment(
+    user: User,
+    compositionId: string,
+    dto: ProposeCompositionAdjustmentDto
+  ) {
+    const row = await this.requireAssociatedVet(user, compositionId);
+    if (row.status !== "vet_review") {
+      throw new BadRequestException(
+        "La composition doit être en revue pour proposer un ajustement"
+      );
+    }
+    const computed = await this.computeSubstitutionAdjustment(row, dto, user.id);
+    return {
+      feasible: computed.result.feasible,
+      formulation: computed.result,
+      deviationFromCurrent: computed.deviation,
+      fatRiskAlert: computed.deviation.fatRiskAlert,
+      infeasibilityReasons: computed.result.infeasibilityReasons
+    };
+  }
+
+  /**
    * Véto propose un ajustement : moteur recomputeWithSubstitution,
-   * puis carte dans le fil (jamais de quantités inventées).
+   * enregistre CompositionAdjustmentProposal, carte dans le fil.
+   * Jamais de quantités inventées. Infaisable → erreur claire, pas de proposition.
    */
   async proposeAdjustment(
     user: User,
@@ -313,80 +355,58 @@ export class SavedCompositionsService {
       );
     }
 
-    const params = (row.inputParams ?? {}) as Record<string, unknown>;
-    const animalCount = Number(params.animalCount);
-    const avgWeightKg = Number(params.avgWeightKg);
-    const durationDays = Number(params.durationDays);
-    if (!(animalCount > 0) || !(avgWeightKg > 0) || !(durationDays > 0)) {
-      throw new BadRequestException(
-        "Paramètres d'entrée incomplets — reformulez d'abord la ration"
-      );
-    }
-
-    const millId =
-      typeof params.millId === "string"
-        ? params.millId
-        : row.millProfileId ?? undefined;
-    const avail = await this.availability.resolve(millId);
-    const addFromAvail = avail.availableIngredients.find(
-      (a) => a.feedIngredientId === dto.addIngredientId
-    );
-    let addIngredient = addFromAvail;
-    if (!addIngredient) {
-      const ing = await this.prisma.feedIngredient.findUnique({
-        where: { id: dto.addIngredientId },
-        select: { id: true, category: true, isActive: true }
+    const computed = await this.computeSubstitutionAdjustment(row, dto, user.id);
+    if (!computed.result.feasible) {
+      throw new BadRequestException({
+        code: "ADJUSTMENT_INFEASIBLE",
+        message:
+          "Cet ajustement rend le mélange infaisable avec les intrants disponibles. " +
+          "Choisissez un autre substitut, ou gardez la ration actuelle.",
+        infeasibilityReasons: computed.result.infeasibilityReasons
       });
-      if (!ing?.isActive) {
-        throw new BadRequestException("Intrant substitut introuvable");
-      }
-      addIngredient = {
-        feedIngredientId: dto.addIngredientId,
-        pricePerKg:
-          dto.addPricePerKg != null && dto.addPricePerKg > 0
-            ? dto.addPricePerKg
-            : REFERENCE_PRICE_PER_KG[ing.category] ?? 300,
-        maxAvailableKg:
-          dto.addMaxAvailableKg != null && dto.addMaxAvailableKg > 0
-            ? dto.addMaxAvailableKg
-            : THEORETICAL_MAX_AVAILABLE_KG
-      };
-    } else if (dto.addPricePerKg != null && dto.addPricePerKg > 0) {
-      addIngredient = {
-        ...addIngredient,
-        pricePerKg: dto.addPricePerKg,
-        maxAvailableKg:
-          dto.addMaxAvailableKg != null && dto.addMaxAvailableKg > 0
-            ? dto.addMaxAvailableKg
-            : addIngredient.maxAvailableKg
-      };
     }
 
-    const result = await this.formulation.recomputeWithSubstitution(
-      {
-        stage: row.stage,
-        animalCount,
-        avgWeightKg,
-        avgAgeWeeks:
-          params.avgAgeWeeks != null ? Number(params.avgAgeWeeks) : undefined,
-        durationDays,
-        availableIngredients: avail.availableIngredients
-      },
-      dto.removeIngredientId,
-      addIngredient,
-      user.id
-    );
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { vetConsultationId: true }
+    });
 
-    const card = this.buildCardFromFormulation(row, result, {
+    const proposal = await this.prisma.compositionAdjustmentProposal.create({
+      data: {
+        savedCompositionId: row.id,
+        proposedByUserId: user.id,
+        vetConsultationId: room?.vetConsultationId ?? null,
+        kind: "substitute_ingredient",
+        payload: {
+          removeIngredientId: dto.removeIngredientId,
+          addIngredientId: dto.addIngredientId,
+          comment: dto.comment?.trim() || null
+        } as Prisma.InputJsonValue,
+        resultRation: computed.result.ration as unknown as Prisma.InputJsonValue,
+        nutritionResult: (computed.result.nutritionResult ??
+          null) as Prisma.InputJsonValue,
+        deviationFromCurrent: computed.deviation as unknown as Prisma.InputJsonValue,
+        status: "proposed"
+      }
+    });
+
+    const card = this.buildCardFromFormulation(row, computed.result, {
       variant: "adjustment",
       proposedByUserId: user.id,
-      note: dto.comment?.trim() || null
+      note: dto.comment?.trim() || null,
+      proposalId: proposal.id,
+      fatRiskAlert: computed.deviation.fatRiskAlert
     });
     const msg = await this.chat.postCompositionCardMessage(
       roomId,
       user.id,
       card
     );
+
+    await this.prisma.compositionAdjustmentProposal.update({
+      where: { id: proposal.id },
+      data: { chatMessageId: msg.id }
+    });
 
     await this.notifications.notify(
       row.createdByUserId,
@@ -396,20 +416,28 @@ export class SavedCompositionsService {
       {
         type: "feed_composition_adjustment",
         farmId: row.farmId,
+        farmName: (await this.farmName(row.farmId)) ?? "—",
         compositionId: row.id,
         roomId,
-        messageId: msg.id
+        messageId: msg.id,
+        proposalId: proposal.id
       }
     );
 
     return {
+      proposalId: proposal.id,
       messageId: msg.id,
-      formulation: result,
+      formulation: computed.result,
+      deviationFromCurrent: computed.deviation,
+      fatRiskAlert: computed.deviation.fatRiskAlert,
       card
     };
   }
 
-  /** Producteur applique une version proposée (carte chat) comme composition courante. */
+  /**
+   * Producteur applique une proposition → remplace la ration, reste en vet_review.
+   * Autres propositions ouvertes → superseded. Pas d'auto-validation.
+   */
   async applyAdjustment(
     user: User,
     compositionId: string,
@@ -420,70 +448,159 @@ export class SavedCompositionsService {
       throw new BadRequestException("Composition déjà validée");
     }
 
-    const msg = await this.prisma.chatMessage.findUnique({
-      where: { id: dto.messageId },
-      include: { room: true }
-    });
-    if (!msg || msg.room.savedCompositionId !== row.id) {
-      throw new NotFoundException("Version proposée introuvable");
+    const proposal = await this.resolveProposal(row.id, dto);
+    if (proposal.status !== "proposed") {
+      throw new BadRequestException(
+        "Cette proposition n'est plus ouverte (déjà appliquée, refusée ou remplacée)"
+      );
     }
-    const card = parseFeedCompositionCardBody(msg.body);
-    if (!card || card.compositionId !== row.id) {
-      throw new BadRequestException("Message invalide — pas une carte composition");
-    }
-    if (!card.feasible) {
+    if (!Array.isArray(proposal.resultRation) || proposal.resultRation.length === 0) {
       throw new BadRequestException(
         "Cette version n'est pas faisable — ne peut pas être appliquée"
       );
     }
 
-    const updated = await this.prisma.savedComposition.update({
-      where: { id: row.id },
-      data: {
-        ration: card.ration as Prisma.InputJsonValue,
-        nutritionResult: (card.nutritionResult ??
-          null) as Prisma.InputJsonValue,
-        totalCostXof: card.totalCostXof,
-        // Ration changée → invalider l'explication mise en cache.
-        explanation: Prisma.DbNull,
-        status: "vet_review",
-        vetComment: null,
-        vetReviewedBy: null,
-        vetReviewedAt: null
-      }
-    });
+    const ration = proposal.resultRation as Prisma.InputJsonValue;
+    const nutritionResult = (proposal.nutritionResult ??
+      null) as Prisma.InputJsonValue;
+    const totalCost = this.totalCostFromRation(proposal.resultRation);
 
-    const roomId = msg.roomId;
-    const appliedCard = this.buildCardFromSaved(updated, {
-      variant: "initial",
-      proposedByUserId: user.id,
-      note: "Version appliquée — renvoyée pour validation"
-    });
-    await this.chat.postCompositionCardMessage(roomId, user.id, appliedCard);
-
-    const room = await this.prisma.chatRoom.findUnique({
-      where: { id: roomId },
-      select: { vetConsultationId: true, members: { select: { userId: true } } }
-    });
-    const vetIds = (room?.members ?? [])
-      .map((m) => m.userId)
-      .filter((id) => id !== user.id);
-    for (const vetId of vetIds) {
-      await this.notifications.notify(
-        vetId,
-        "Nouvelle version à valider",
-        "Le producteur a appliqué votre ajustement — merci de revoir la ration.",
-        {
-          type: "feed_composition_vet_review",
-          farmId: row.farmId,
-          compositionId: row.id,
-          roomId
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.savedComposition.update({
+        where: { id: row.id },
+        data: {
+          ration,
+          nutritionResult,
+          totalCostXof: totalCost,
+          explanation: Prisma.DbNull,
+          // Reste en revue — le véto doit re-valider explicitement.
+          status: "vet_review",
+          vetComment: null,
+          vetReviewedBy: null,
+          vetReviewedAt: null
         }
-      );
+      });
+
+      await tx.compositionAdjustmentProposal.update({
+        where: { id: proposal.id },
+        data: {
+          status: "applied",
+          previousRation: row.ration as Prisma.InputJsonValue,
+          previousNutritionResult: (row.nutritionResult ??
+            null) as Prisma.InputJsonValue,
+          previousTotalCostXof: row.totalCostXof
+        }
+      });
+
+      await tx.compositionAdjustmentProposal.updateMany({
+        where: {
+          savedCompositionId: row.id,
+          status: "proposed",
+          id: { not: proposal.id }
+        },
+        data: { status: "superseded" }
+      });
+
+      return next;
+    });
+
+    const roomId =
+      (await this.chat.findCompositionRoomId(row.id)) ??
+      (proposal.chatMessageId
+        ? (
+            await this.prisma.chatMessage.findUnique({
+              where: { id: proposal.chatMessageId },
+              select: { roomId: true }
+            })
+          )?.roomId
+        : null);
+
+    if (roomId) {
+      const appliedCard = this.buildCardFromSaved(updated, {
+        variant: "initial",
+        proposedByUserId: user.id,
+        note: "Version appliquée — en attente de validation du véto"
+      });
+      await this.chat.postCompositionCardMessage(roomId, user.id, appliedCard);
+
+      const room = await this.prisma.chatRoom.findUnique({
+        where: { id: roomId },
+        select: { members: { select: { userId: true } } }
+      });
+      const vetIds = (room?.members ?? [])
+        .map((m) => m.userId)
+        .filter((id) => id !== user.id);
+      for (const vetId of vetIds) {
+        await this.notifications.notify(
+          vetId,
+          "Proposition d'ajustement appliquée",
+          "Le producteur a appliqué votre ajustement — merci de revoir et valider la ration.",
+          {
+            type: "feed_composition_vet_review",
+            farmId: row.farmId,
+            farmName: (await this.farmName(row.farmId)) ?? "—",
+            compositionId: row.id,
+            roomId,
+            proposalId: proposal.id
+          }
+        );
+      }
     }
 
     return this.toDtoWithLinks(updated);
   }
+
+  /** Producteur refuse une proposition — status rejected + message dans le fil. */
+  async rejectAdjustment(
+    user: User,
+    compositionId: string,
+    proposalId: string,
+    dto: RejectCompositionAdjustmentDto
+  ) {
+    const row = await this.requireOwnedOrMember(user, compositionId);
+    const proposal = await this.prisma.compositionAdjustmentProposal.findFirst({
+      where: { id: proposalId, savedCompositionId: row.id }
+    });
+    if (!proposal) {
+      throw new NotFoundException("Proposition introuvable");
+    }
+    if (proposal.status !== "proposed") {
+      throw new BadRequestException(
+        "Cette proposition n'est plus ouverte"
+      );
+    }
+
+    await this.prisma.compositionAdjustmentProposal.update({
+      where: { id: proposal.id },
+      data: { status: "rejected" }
+    });
+
+    const roomId = await this.chat.findCompositionRoomId(row.id);
+    if (roomId) {
+      const note =
+        dto.comment?.trim() ||
+        "Proposition d'ajustement refusée — on garde la ration actuelle.";
+      await this.chat.createMessage(user.id, roomId, note);
+    }
+
+    await this.notifications.notify(
+      proposal.proposedByUserId,
+      "Proposition d'ajustement refusée",
+      dto.comment?.trim() ||
+        "Le producteur a refusé votre proposition d'ajustement.",
+      {
+        type: "feed_composition_adjustment_rejected",
+        farmId: row.farmId,
+        farmName: (await this.farmName(row.farmId)) ?? "—",
+        compositionId: row.id,
+        proposalId: proposal.id,
+        ...(roomId ? { roomId } : {})
+      }
+    );
+
+    return { proposalId: proposal.id, status: "rejected" as const };
+  }
+
 
   /** Catalogue intrants actifs (recherche pour ajustement véto). */
   async searchIngredients(user: User, q: string) {
@@ -586,12 +703,255 @@ export class SavedCompositionsService {
     return this.requireReadable(user, id);
   }
 
+  /**
+   * Recalcule via recomputeWithSubstitution — seule voie d'ajustement supportée.
+   * (Pas d'API moteur pour adjust_constraint / cible nutritionnelle.)
+   */
+  private async computeSubstitutionAdjustment(
+    row: SavedComposition,
+    dto: ProposeCompositionAdjustmentDto,
+    userId: string
+  ): Promise<{
+    result: SubstitutionResult;
+    deviation: DeviationFromCurrent;
+  }> {
+    if (dto.removeIngredientId === dto.addIngredientId) {
+      throw new BadRequestException(
+        "L'intrant retiré et le substitut doivent être différents"
+      );
+    }
+
+    const params = (row.inputParams ?? {}) as Record<string, unknown>;
+    const animalCount = Number(params.animalCount);
+    const avgWeightKg = Number(params.avgWeightKg);
+    const durationDays = Number(params.durationDays);
+    if (!(animalCount > 0) || !(avgWeightKg > 0) || !(durationDays > 0)) {
+      throw new BadRequestException(
+        "Paramètres d'entrée incomplets — reformulez d'abord la ration"
+      );
+    }
+
+    const millId =
+      typeof params.millId === "string"
+        ? params.millId
+        : row.millProfileId ?? undefined;
+    const avail = await this.availability.resolve(millId);
+    const addFromAvail = avail.availableIngredients.find(
+      (a) => a.feedIngredientId === dto.addIngredientId
+    );
+    let addIngredient = addFromAvail;
+    if (!addIngredient) {
+      const ing = await this.prisma.feedIngredient.findUnique({
+        where: { id: dto.addIngredientId },
+        select: { id: true, category: true, isActive: true }
+      });
+      if (!ing?.isActive) {
+        throw new BadRequestException("Intrant substitut introuvable");
+      }
+      addIngredient = {
+        feedIngredientId: dto.addIngredientId,
+        pricePerKg:
+          dto.addPricePerKg != null && dto.addPricePerKg > 0
+            ? dto.addPricePerKg
+            : REFERENCE_PRICE_PER_KG[ing.category] ?? 300,
+        maxAvailableKg:
+          dto.addMaxAvailableKg != null && dto.addMaxAvailableKg > 0
+            ? dto.addMaxAvailableKg
+            : THEORETICAL_MAX_AVAILABLE_KG
+      };
+    } else if (dto.addPricePerKg != null && dto.addPricePerKg > 0) {
+      addIngredient = {
+        ...addIngredient,
+        pricePerKg: dto.addPricePerKg,
+        maxAvailableKg:
+          dto.addMaxAvailableKg != null && dto.addMaxAvailableKg > 0
+            ? dto.addMaxAvailableKg
+            : addIngredient.maxAvailableKg
+      };
+    }
+
+    // Garantit que l'intrant retiré est bien dans le pool (sinon le moteur ignore).
+    const availableIngredients = [...avail.availableIngredients];
+    if (
+      !availableIngredients.some(
+        (a) => a.feedIngredientId === dto.removeIngredientId
+      )
+    ) {
+      // Autorise quand même le retrait d'une ligne de la ration courante.
+      availableIngredients.push({
+        feedIngredientId: dto.removeIngredientId,
+        pricePerKg: 300,
+        maxAvailableKg: THEORETICAL_MAX_AVAILABLE_KG
+      });
+    }
+
+    const result = await this.formulation.recomputeWithSubstitution(
+      {
+        stage: row.stage,
+        animalCount,
+        avgWeightKg,
+        avgAgeWeeks:
+          params.avgAgeWeeks != null ? Number(params.avgAgeWeeks) : undefined,
+        durationDays,
+        availableIngredients
+      },
+      dto.removeIngredientId,
+      addIngredient,
+      userId
+    );
+
+    const deviation = await this.buildDeviationFromCurrent(row, result);
+    return { result, deviation };
+  }
+
+  private async buildDeviationFromCurrent(
+    row: SavedComposition,
+    result: SubstitutionResult
+  ): Promise<DeviationFromCurrent> {
+    const profile = await this.profiles.getActiveByStage(row.stage);
+    const energyCap = profile.maxMetabolizableEnergyKcal;
+    const delta = result.nutritionDelta;
+    const newEnergy = result.nutritionResult?.metabolizableEnergyKcal ?? null;
+    const fatRiskAlert =
+      energyCap != null &&
+      newEnergy != null &&
+      newEnergy > energyCap + 1e-4;
+
+    if (delta) {
+      return {
+        ...delta,
+        fatRiskAlert,
+        energyCapKcal: energyCap
+      };
+    }
+
+    // Fallback : comparer à la nutrition sauvegardée si le moteur n'a pas de delta.
+    const current =
+      row.nutritionResult && typeof row.nutritionResult === "object"
+        ? (row.nutritionResult as Record<string, number>)
+        : null;
+    const next = result.nutritionResult;
+    if (!current || !next) {
+      return {
+        crudeProteinPct: 0,
+        metabolizableEnergyKcal: 0,
+        lysinePct: 0,
+        methioninePct: 0,
+        calciumPct: 0,
+        phosphorusPct: 0,
+        crudeFiberPct: 0,
+        energyChangePct: null,
+        fatRiskAlert,
+        energyCapKcal: energyCap
+      };
+    }
+    const energyChangePct =
+      Number(current.metabolizableEnergyKcal) > 0
+        ? ((next.metabolizableEnergyKcal -
+            Number(current.metabolizableEnergyKcal)) /
+            Number(current.metabolizableEnergyKcal)) *
+          100
+        : null;
+    return {
+      crudeProteinPct:
+        next.crudeProteinPct - Number(current.crudeProteinPct || 0),
+      metabolizableEnergyKcal:
+        next.metabolizableEnergyKcal -
+        Number(current.metabolizableEnergyKcal || 0),
+      lysinePct: next.lysinePct - Number(current.lysinePct || 0),
+      methioninePct: next.methioninePct - Number(current.methioninePct || 0),
+      calciumPct: next.calciumPct - Number(current.calciumPct || 0),
+      phosphorusPct: next.phosphorusPct - Number(current.phosphorusPct || 0),
+      crudeFiberPct: next.crudeFiberPct - Number(current.crudeFiberPct || 0),
+      energyChangePct,
+      fatRiskAlert,
+      energyCapKcal: energyCap
+    };
+  }
+
+  private async resolveProposal(
+    compositionId: string,
+    dto: ApplyCompositionAdjustmentDto
+  ) {
+    if (dto.proposalId) {
+      const p = await this.prisma.compositionAdjustmentProposal.findFirst({
+        where: { id: dto.proposalId, savedCompositionId: compositionId }
+      });
+      if (!p) throw new NotFoundException("Proposition introuvable");
+      return p;
+    }
+    if (dto.messageId) {
+      const byMsg = await this.prisma.compositionAdjustmentProposal.findFirst({
+        where: {
+          savedCompositionId: compositionId,
+          chatMessageId: dto.messageId
+        }
+      });
+      if (byMsg) return byMsg;
+
+      // Legacy : carte chat sans ligne proposal (avant modèle).
+      const msg = await this.prisma.chatMessage.findUnique({
+        where: { id: dto.messageId },
+        include: { room: true }
+      });
+      if (!msg || msg.room.savedCompositionId !== compositionId) {
+        throw new NotFoundException("Version proposée introuvable");
+      }
+      const card = parseFeedCompositionCardBody(msg.body);
+      if (!card || card.compositionId !== compositionId) {
+        throw new BadRequestException(
+          "Message invalide — pas une carte composition"
+        );
+      }
+      if (!card.feasible) {
+        throw new BadRequestException(
+          "Cette version n'est pas faisable — ne peut pas être appliquée"
+        );
+      }
+      // Matérialise une proposal éphémère pour unifier le flux apply.
+      return this.prisma.compositionAdjustmentProposal.create({
+        data: {
+          savedCompositionId: compositionId,
+          proposedByUserId: card.proposedByUserId,
+          kind: "substitute_ingredient",
+          payload: { legacyMessageId: dto.messageId } as Prisma.InputJsonValue,
+          resultRation: card.ration as unknown as Prisma.InputJsonValue,
+          nutritionResult: (card.nutritionResult ??
+            null) as Prisma.InputJsonValue,
+          deviationFromCurrent: (card.nutritionDelta ??
+            null) as Prisma.InputJsonValue,
+          status: "proposed",
+          chatMessageId: dto.messageId
+        }
+      });
+    }
+    throw new BadRequestException("proposalId ou messageId requis");
+  }
+
+  private totalCostFromRation(ration: unknown): number {
+    if (!Array.isArray(ration)) return 0;
+    return ration.reduce(
+      (s, l) => s + (Number((l as { costContribution?: number }).costContribution) || 0),
+      0
+    );
+  }
+
+  private async farmName(farmId: string): Promise<string | null> {
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: { name: true }
+    });
+    return farm?.name ?? null;
+  }
+
   private buildCardFromSaved(
     row: SavedComposition,
     meta: {
       variant: FeedCompositionCardPayload["variant"];
       proposedByUserId: string;
       note?: string | null;
+      proposalId?: string | null;
+      fatRiskAlert?: boolean;
     }
   ): FeedCompositionCardPayload {
     const ration = Array.isArray(row.ration)
@@ -623,6 +983,8 @@ export class SavedCompositionsService {
       deviations: [],
       infeasibilityReasons: [],
       nutritionDelta: null,
+      proposalId: meta.proposalId ?? null,
+      fatRiskAlert: meta.fatRiskAlert ?? false,
       versionId: randomUUID(),
       proposedByUserId: meta.proposedByUserId,
       note: meta.note ?? null
@@ -636,6 +998,8 @@ export class SavedCompositionsService {
       variant: FeedCompositionCardPayload["variant"];
       proposedByUserId: string;
       note?: string | null;
+      proposalId?: string | null;
+      fatRiskAlert?: boolean;
     }
   ): FeedCompositionCardPayload {
     const delta =
@@ -663,6 +1027,8 @@ export class SavedCompositionsService {
       deviations: result.deviations,
       infeasibilityReasons: result.infeasibilityReasons,
       nutritionDelta: delta,
+      proposalId: meta.proposalId ?? null,
+      fatRiskAlert: meta.fatRiskAlert ?? false,
       versionId: randomUUID(),
       proposedByUserId: meta.proposedByUserId,
       note: meta.note ?? null

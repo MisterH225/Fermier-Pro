@@ -3684,10 +3684,57 @@ model SavedComposition {
   updatedAt        DateTime                @updatedAt
   /// Salons chat de revue véto (kind=feed_composition).
   chatRooms        ChatRoom[]
+  /// Propositions d'ajustement véto (recalcul moteur).
+  adjustmentProposals CompositionAdjustmentProposal[]
 
   @@index([farmId, createdAt(sort: Desc)])
   @@index([farmId, status])
   @@index([createdByUserId])
+}
+
+/// Type d'ajustement véto — seul substitute_ingredient est supporté par le moteur.
+/// adjust_constraint (ex. relever une cible Ca) n'est PAS exposé : le moteur
+/// n'a pas d'API de reformulation par contrainte ajustée.
+enum CompositionAdjustmentKind {
+  substitute_ingredient
+}
+
+enum CompositionAdjustmentStatus {
+  proposed
+  applied
+  rejected
+  superseded
+}
+
+/// Proposition d'ajustement véto — ration TOUJOURS recalculée par le moteur
+/// (recomputeWithSubstitution). Aucune quantité saisie à la main.
+model CompositionAdjustmentProposal {
+  id                   String                        @id @default(cuid())
+  savedCompositionId   String
+  savedComposition     SavedComposition              @relation(fields: [savedCompositionId], references: [id], onDelete: Cascade)
+  proposedByUserId     String
+  vetConsultationId    String?
+  kind                 CompositionAdjustmentKind     @default(substitute_ingredient)
+  /// { removeIngredientId, addIngredientId } pour substitute_ingredient.
+  payload              Json
+  /// Sortie moteur (lignes de ration).
+  resultRation         Json
+  nutritionResult      Json?
+  /// Écart nutritionnel vs ration courante (+ fatRiskAlert, energyCap…).
+  deviationFromCurrent Json?
+  status               CompositionAdjustmentStatus   @default(proposed)
+  /// Message chat portant la carte structurée.
+  chatMessageId        String?
+  /// Snapshot de la ration avant application (trace).
+  previousRation       Json?
+  previousNutritionResult Json?
+  previousTotalCostXof Decimal?                      @db.Decimal(14, 2)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  @@index([savedCompositionId, status])
+  @@index([savedCompositionId, createdAt(sort: Desc)])
+  @@index([proposedByUserId])
 }
 
 /// Cache des prévisions IA prédictives — une ligne par ferme.

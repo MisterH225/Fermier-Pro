@@ -21,6 +21,7 @@ import {
   getFeedComposition,
   listFarmCompositionVeterinarians,
   postFeedCompositionExplain,
+  previewCompositionAdjustment,
   proposeCompositionAdjustment,
   requestCompositionVetReview,
   reviewFeedComposition,
@@ -501,6 +502,17 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
         submitting={adjustMut.isPending}
         tone={tone}
         onClose={() => setAdjustOpen(false)}
+        onPreview={async (body) => {
+          if (!accessToken) {
+            throw new Error("Session expirée");
+          }
+          return previewCompositionAdjustment(
+            accessToken,
+            compositionId,
+            body,
+            activeProfileId
+          );
+        }}
         onSubmit={(body) => adjustMut.mutate(body)}
       />
     </>
