@@ -25,7 +25,7 @@ import { SavedCompositionsService } from "./saved-compositions.service";
 
 /**
  * Endpoints composition d'aliments (flag feed_composition).
- * Clé Anthropic serveur-only — jamais exposée au mobile.
+ * Clé Gemini serveur-only (`GEMINI_API_KEY`) — jamais exposée au mobile.
  */
 @Controller("feed-composition")
 @RequirePlatformModule("feed_composition")
@@ -36,7 +36,7 @@ export class FeedCompositionController {
     private readonly saved: SavedCompositionsService
   ) {}
 
-  /** Agent conversationnel (Anthropic + outils → FeedFormulationService). */
+  /** Agent conversationnel (Gemini + function calling → FeedFormulationService). */
   @Post("assist")
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   assistChat(

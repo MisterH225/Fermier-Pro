@@ -1,17 +1,17 @@
 import { ProductionStage } from "@prisma/client";
-import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+import type { GeminiFunctionDeclaration } from "../../../ai/ai-gemini.service";
 
 const STAGE_ENUM = Object.values(ProductionStage);
 
-/** Outils Anthropic — l'IA ne calcule jamais elle-même. */
-export const FORMULATION_TOOLS: Tool[] = [
+/** Déclarations d'outils Gemini — l'IA ne calcule jamais elle-même. */
+export const FORMULATION_TOOLS: GeminiFunctionDeclaration[] = [
   {
     name: "formulate_ration",
     description:
       "Calcule une ration au moindre coût pour un stade de production. " +
       "Obligatoire pour toute quantité / coût / nutrition. " +
       "Ne pas inventer de chiffres — toujours appeler cet outil.",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         stage: {
@@ -49,7 +49,7 @@ export const FORMULATION_TOOLS: Tool[] = [
     description:
       "Relance la formulation en retirant un intrant et en autorisant un substitut. " +
       "Renvoie aussi l'écart nutritionnel (ex. hausse d'énergie / risque de gras).",
-    input_schema: {
+    parameters: {
       type: "object",
       properties: {
         stage: { type: "string", enum: STAGE_ENUM },

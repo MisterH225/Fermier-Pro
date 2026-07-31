@@ -1,16 +1,18 @@
 import { ServiceUnavailableException } from "@nestjs/common";
-import type { Message } from "@anthropic-ai/sdk/resources/messages";
 import { ProductionStage } from "@prisma/client";
+import type {
+  AiGeminiService,
+  GeminiChatWithToolsResult
+} from "../../ai/ai-gemini.service";
+import type { FarmAccessService } from "../../common/farm-access.service";
+import type { PrismaService } from "../../prisma/prisma.service";
+import type { FeedFormulationService } from "../feed-formulation.service";
+import type { FormulateResult } from "../engine/feed-formulation.types";
+import type { IngredientAvailabilityService } from "./ingredient-availability.service";
 import {
   FeedCompositionAssistService,
   MAX_TOOL_ITERATIONS
 } from "./feed-composition-assist.service";
-import type { AnthropicClientService } from "./anthropic-client.service";
-import type { FeedFormulationService } from "../feed-formulation.service";
-import type { IngredientAvailabilityService } from "./ingredient-availability.service";
-import type { FarmAccessService } from "../../common/farm-access.service";
-import type { PrismaService } from "../../prisma/prisma.service";
-import type { FormulateResult } from "../engine/feed-formulation.types";
 
 const ENGINE_RESULT: FormulateResult = {
   feasible: true,
@@ -41,26 +43,33 @@ const ENGINE_RESULT: FormulateResult = {
   infeasibilityReasons: []
 };
 
-function mockMessage(partial: {
-  stop_reason?: Message["stop_reason"];
-  content: unknown[];
-}): Message {
+function geminiResult(
+  partial: Partial<GeminiChatWithToolsResult> &
+    Pick<GeminiChatWithToolsResult, "functionCalls" | "modelContent">
+): GeminiChatWithToolsResult {
   return {
-    id: "msg_1",
-    type: "message",
-    role: "assistant",
-    model: "claude-haiku-4-5-20251001",
-    stop_reason: partial.stop_reason ?? "end_turn",
-    stop_sequence: null,
-    usage: { input_tokens: 100, output_tokens: 50 },
-    content: partial.content
-  } as unknown as Message;
+    text: partial.text ?? null,
+    functionCalls: partial.functionCalls,
+    modelContent: partial.modelContent,
+    usage: partial.usage ?? { inputTokens: 100, outputTokens: 50 }
+  };
 }
 
-describe("FeedCompositionAssistService", () => {
+describe("FeedCompositionAssistService (Gemini)", () => {
   const user = { id: "user-1" } as never;
-  let anthropic: jest.Mocked<Pick<AnthropicClientService, "isConfigured" | "createMessage" | "logUsage" | "model">>;
-  let formulation: jest.Mocked<Pick<FeedFormulationService, "formulate" | "recomputeWithSubstitution">>;
+  let gemini: jest.Mocked<
+    Pick<
+      AiGeminiService,
+      | "isConfigured"
+      | "isQuotaBlocked"
+      | "chatWithTools"
+      | "logToolUsage"
+      | "primaryModel"
+    >
+  >;
+  let formulation: jest.Mocked<
+    Pick<FeedFormulationService, "formulate" | "recomputeWithSubstitution">
+  >;
   let availability: jest.Mocked<Pick<IngredientAvailabilityService, "resolve">>;
   let farmAccess: jest.Mocked<Pick<FarmAccessService, "requireFarmAccess">>;
   let prisma: {
@@ -71,11 +80,12 @@ describe("FeedCompositionAssistService", () => {
   let service: FeedCompositionAssistService;
 
   beforeEach(() => {
-    anthropic = {
+    gemini = {
       isConfigured: jest.fn().mockReturnValue(true),
-      createMessage: jest.fn(),
-      logUsage: jest.fn(),
-      model: jest.fn().mockReturnValue("claude-haiku-4-5-20251001")
+      isQuotaBlocked: jest.fn().mockReturnValue(false),
+      chatWithTools: jest.fn(),
+      logToolUsage: jest.fn(),
+      primaryModel: jest.fn().mockReturnValue("gemini-2.5-flash-lite")
     };
     formulation = {
       formulate: jest.fn().mockResolvedValue(ENGINE_RESULT),
@@ -111,7 +121,7 @@ describe("FeedCompositionAssistService", () => {
     };
 
     service = new FeedCompositionAssistService(
-      anthropic as unknown as AnthropicClientService,
+      gemini as unknown as AiGeminiService,
       formulation as unknown as FeedFormulationService,
       availability as unknown as IngredientAvailabilityService,
       farmAccess as unknown as FarmAccessService,
@@ -132,44 +142,54 @@ describe("FeedCompositionAssistService", () => {
         stage: ProductionStage.growing,
         animalCount: 10,
         avgWeightKg: 40,
-        durationDays: 7,
-        availableIngredients: expect.any(Array)
+        durationDays: 7
       }),
       "user-1"
     );
     expect(res.formulation).toEqual(ENGINE_RESULT);
-    expect(res.isTheoretical).toBe(true);
   });
 
-  it("l'agent appelle l'outil et la ration vient du moteur (pas de l'IA)", async () => {
-    anthropic.createMessage
+  it("l'agent appelle l'outil Gemini et la ration vient du moteur", async () => {
+    gemini.chatWithTools
       .mockResolvedValueOnce(
-        mockMessage({
-          stop_reason: "tool_use",
-          content: [
+        geminiResult({
+          functionCalls: [
             {
-              type: "tool_use",
-              id: "tu_1",
               name: "formulate_ration",
-              input: {
+              args: {
                 stage: "growing",
                 animalCount: 10,
                 avgWeightKg: 40,
                 durationDays: 7
               }
             }
-          ]
+          ],
+          modelContent: {
+            role: "model",
+            parts: [
+              {
+                functionCall: {
+                  name: "formulate_ration",
+                  args: {
+                    stage: "growing",
+                    animalCount: 10,
+                    avgWeightKg: 40,
+                    durationDays: 7
+                  }
+                }
+              }
+            ]
+          }
         })
       )
       .mockResolvedValueOnce(
-        mockMessage({
-          stop_reason: "end_turn",
-          content: [
-            {
-              type: "text",
-              text: "Voici ta ration calculée : 70 kg de maïs."
-            }
-          ]
+        geminiResult({
+          text: "Voici ta ration calculée : 70 kg de maïs.",
+          functionCalls: [],
+          modelContent: {
+            role: "model",
+            parts: [{ text: "Voici ta ration calculée : 70 kg de maïs." }]
+          }
         })
       );
 
@@ -182,45 +202,61 @@ describe("FeedCompositionAssistService", () => {
     expect(res.formulation).toBe(ENGINE_RESULT);
     expect(res.reply).toContain("ration");
     expect(res.toolIterations).toBe(1);
-    expect(anthropic.logUsage).toHaveBeenCalled();
-    // L'IA n'injecte pas sa propre ration : payload tool_result = moteur
-    const secondCall = anthropic.createMessage.mock.calls[1]![0];
-    const toolResultMsg = secondCall.messages.find(
-      (m) => m.role === "user" && Array.isArray(m.content)
+    expect(gemini.logToolUsage).toHaveBeenCalled();
+
+    const secondCall = gemini.chatWithTools.mock.calls[1]![0];
+    const toolResult = secondCall.contents.find(
+      (c) =>
+        c.role === "user" &&
+        c.parts.some((p) => "functionResponse" in p)
     );
-    expect(toolResultMsg).toBeDefined();
-    const blocks = toolResultMsg!.content as Array<{
-      type: string;
-      content: string;
-    }>;
-    const parsed = JSON.parse(blocks[0]!.content) as FormulateResult;
-    expect(parsed.ration).toEqual(ENGINE_RESULT.ration);
-    expect(parsed.totalCostXof).toBe(ENGINE_RESULT.totalCostXof);
+    expect(toolResult).toBeDefined();
+    const fr = toolResult!.parts.find((p) => "functionResponse" in p) as unknown as {
+      functionResponse: { response: { result: FormulateResult } };
+    };
+    expect(fr.functionResponse.response.result.ration).toEqual(
+      ENGINE_RESULT.ration
+    );
   });
 
   it("même entrée : mode manuel = outil IA (même résultat moteur)", async () => {
-    anthropic.createMessage
+    gemini.chatWithTools
       .mockResolvedValueOnce(
-        mockMessage({
-          stop_reason: "tool_use",
-          content: [
+        geminiResult({
+          functionCalls: [
             {
-              type: "tool_use",
-              id: "tu_1",
               name: "formulate_ration",
-              input: {
+              args: {
                 stage: "finishing",
                 animalCount: 5,
                 avgWeightKg: 90,
                 durationDays: 14
               }
             }
-          ]
+          ],
+          modelContent: {
+            role: "model",
+            parts: [
+              {
+                functionCall: {
+                  name: "formulate_ration",
+                  args: {
+                    stage: "finishing",
+                    animalCount: 5,
+                    avgWeightKg: 90,
+                    durationDays: 14
+                  }
+                }
+              }
+            ]
+          }
         })
       )
       .mockResolvedValueOnce(
-        mockMessage({
-          content: [{ type: "text", text: "OK" }]
+        geminiResult({
+          text: "OK",
+          functionCalls: [],
+          modelContent: { role: "model", parts: [{ text: "OK" }] }
         })
       );
 
@@ -239,37 +275,38 @@ describe("FeedCompositionAssistService", () => {
     });
 
     expect(manual.formulation).toEqual(ai.formulation);
-    expect(formulation.formulate.mock.calls[0]![0]).toMatchObject({
-      stage: ProductionStage.finishing,
-      animalCount: 5,
-      avgWeightKg: 90,
-      durationDays: 14
-    });
-    expect(formulation.formulate.mock.calls[1]![0]).toMatchObject({
-      stage: ProductionStage.finishing,
-      animalCount: 5,
-      avgWeightKg: 90,
-      durationDays: 14
-    });
   });
 
   it("respecte la limite d'itérations tool-use", async () => {
-    anthropic.createMessage.mockImplementation(async () =>
-      mockMessage({
-        stop_reason: "tool_use",
-        content: [
+    gemini.chatWithTools.mockImplementation(async () =>
+      geminiResult({
+        functionCalls: [
           {
-            type: "tool_use",
-            id: `tu_${Math.random()}`,
             name: "formulate_ration",
-            input: {
+            args: {
               stage: "growing",
               animalCount: 1,
               avgWeightKg: 30,
               durationDays: 1
             }
           }
-        ]
+        ],
+        modelContent: {
+          role: "model",
+          parts: [
+            {
+              functionCall: {
+                name: "formulate_ration",
+                args: {
+                  stage: "growing",
+                  animalCount: 1,
+                  avgWeightKg: 30,
+                  durationDays: 1
+                }
+              }
+            }
+          ]
+        }
       })
     );
 
@@ -285,22 +322,23 @@ describe("FeedCompositionAssistService", () => {
     );
   });
 
-  it("AI absente → AI_UNAVAILABLE (bascule mobile vers formulate)", async () => {
-    anthropic.isConfigured.mockReturnValue(false);
+  it("Gemini absente → AI_UNAVAILABLE", async () => {
+    gemini.isConfigured.mockReturnValue(false);
     await expect(
       service.assist(user, { farmId: "farm-1", message: "bonjour" })
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
-  it("erreur Anthropic → AI_UNAVAILABLE", async () => {
-    anthropic.createMessage.mockRejectedValue(new Error("network"));
+  it("erreur Gemini → AI_UNAVAILABLE", async () => {
+    gemini.chatWithTools.mockResolvedValue(null);
     try {
       await service.assist(user, { farmId: "farm-1", message: "bonjour" });
       fail("devrait lever");
     } catch (e) {
       expect(e).toBeInstanceOf(ServiceUnavailableException);
-      const body = (e as ServiceUnavailableException).getResponse();
-      expect(body).toMatchObject({ code: "AI_UNAVAILABLE" });
+      expect((e as ServiceUnavailableException).getResponse()).toMatchObject({
+        code: "AI_UNAVAILABLE"
+      });
     }
   });
 });

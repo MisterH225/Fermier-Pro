@@ -38,10 +38,12 @@ l’interface `SolverPort` permet de changer sans toucher au moteur.
 
 | Endpoint | Rôle |
 |----------|------|
-| `POST /feed-composition/assist` | Agent Anthropic (outils → même moteur) |
+| `POST /feed-composition/assist` | Agent Gemini (function calling → même moteur) |
 | `POST /feed-composition/formulate` | Mode sans IA (même résultats) |
 | `POST /feed-composition/compositions` | Enregistrer une composition |
 | `…/request-vet-review` / `…/vet-review` | Validation véto associé |
 
-Env : `ANTHROPIC_API_KEY` (serveur only), `ANTHROPIC_MODEL` (défaut Haiku économique),
-`ANTHROPIC_TIMEOUT_MS`. Max **3** itérations tool-use / requête.
+Réutilise la config Gemini existante : `GEMINI_API_KEY` (serveur only),
+`GEMINI_MODEL` (défaut `gemini-2.5-flash-lite`), `GEMINI_QUOTA_COOLDOWN_MS`.
+Max **3** itérations tool-use / requête. Si Gemini indisponible → `503 AI_UNAVAILABLE`
+(fallback mobile vers `/formulate`).

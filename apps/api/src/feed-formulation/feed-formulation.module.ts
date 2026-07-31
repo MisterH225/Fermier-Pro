@@ -1,4 +1,5 @@
 import { Module, forwardRef } from "@nestjs/common";
+import { AiModule } from "../ai/ai.module";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { AuthModule } from "../auth/auth.module";
 import { CommonModule } from "../common/common.module";
@@ -7,7 +8,6 @@ import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.modu
 import { PrismaModule } from "../prisma/prisma.module";
 import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { AdminFeedRequirementProfilesController } from "./admin-feed-requirement-profiles.controller";
-import { AnthropicClientService } from "./assist/anthropic-client.service";
 import { FeedCompositionAssistService } from "./assist/feed-composition-assist.service";
 import { FeedCompositionController } from "./assist/feed-composition.controller";
 import { IngredientAvailabilityService } from "./assist/ingredient-availability.service";
@@ -21,7 +21,7 @@ import { SOLVER_PORT } from "./solver/solver.port";
  * Module « Composition d'aliments » (flag feed_composition).
  * - CRUD superadmin profils de besoins
  * - Moteur de formulation (interne)
- * - Agent Anthropic + mode dégradé + SavedComposition (J3)
+ * - Agent Gemini + mode dégradé + SavedComposition (J3)
  */
 @Module({
   imports: [
@@ -30,7 +30,8 @@ import { SOLVER_PORT } from "./solver/solver.port";
     forwardRef(() => AuthModule),
     FeatureFlagsModule,
     FeedIngredientsModule,
-    UserNotificationsModule
+    UserNotificationsModule,
+    AiModule
   ],
   controllers: [
     AdminFeedRequirementProfilesController,
@@ -42,7 +43,6 @@ import { SOLVER_PORT } from "./solver/solver.port";
     JavascriptLpSolver,
     { provide: SOLVER_PORT, useExisting: JavascriptLpSolver },
     SuperAdminGuard,
-    AnthropicClientService,
     IngredientAvailabilityService,
     FeedCompositionAssistService,
     SavedCompositionsService

@@ -15,6 +15,40 @@ type CallModelResult = {
   quotaExceeded: boolean;
 };
 
+/** Contenu conversationnel Gemini (user / model). */
+export type GeminiContent = {
+  role: "user" | "model";
+  parts: GeminiPart[];
+};
+
+export type GeminiPart =
+  | { text: string }
+  | { functionCall: { name: string; args?: Record<string, unknown> } }
+  | {
+      functionResponse: {
+        name: string;
+        response: Record<string, unknown>;
+      };
+    };
+
+export type GeminiFunctionDeclaration = {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+};
+
+export type GeminiFunctionCall = {
+  name: string;
+  args: Record<string, unknown>;
+};
+
+export type GeminiChatWithToolsResult = {
+  text: string | null;
+  functionCalls: GeminiFunctionCall[];
+  modelContent: GeminiContent;
+  usage: { inputTokens: number; outputTokens: number };
+};
+
 @Injectable()
 export class AiGeminiService {
   private readonly logger = new Logger(AiGeminiService.name);
@@ -24,6 +58,11 @@ export class AiGeminiService {
 
   isConfigured(): boolean {
     return Boolean(this.config.get<string>("GEMINI_API_KEY")?.trim());
+  }
+
+  /** Modèle effectif (primaire) — pour logs coût. */
+  primaryModel(): string {
+    return this.config.get<string>("GEMINI_MODEL")?.trim() || DEFAULT_MODEL;
   }
 
   /** Pause les appels Gemini après dépassement de quota (évite le spam Railway). */
@@ -123,6 +162,169 @@ export class AiGeminiService {
       this.markQuotaExceeded();
     }
     return null;
+  }
+
+  /**
+   * Dialogue + function calling (outils).
+   * Utilisé par l'agent composition d'aliments — les calculs restent côté serveur.
+   */
+  async chatWithTools(params: {
+    system: string;
+    contents: GeminiContent[];
+    tools: GeminiFunctionDeclaration[];
+    maxOutputTokens?: number;
+    timeoutMs?: number;
+  }): Promise<GeminiChatWithToolsResult | null> {
+    if (this.isQuotaBlocked()) {
+      return null;
+    }
+    const apiKey = this.config.get<string>("GEMINI_API_KEY")?.trim();
+    if (!apiKey) {
+      return null;
+    }
+
+    let sawQuotaError = false;
+    for (const model of this.modelChain()) {
+      const result = await this.callModelWithTools(apiKey, model, params);
+      if (result.ok) {
+        return result.value;
+      }
+      if (result.quotaExceeded) {
+        sawQuotaError = true;
+      }
+    }
+    if (sawQuotaError) {
+      this.markQuotaExceeded();
+    }
+    return null;
+  }
+
+  /** Log usage tokens sans PII. */
+  logToolUsage(
+    usage: { inputTokens: number; outputTokens: number },
+    meta: { toolIterations: number }
+  ): void {
+    this.logger.log(
+      JSON.stringify({
+        event: "gemini_usage",
+        model: this.primaryModel(),
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        toolIterations: meta.toolIterations
+      })
+    );
+  }
+
+  private async callModelWithTools(
+    apiKey: string,
+    model: string,
+    params: {
+      system: string;
+      contents: GeminiContent[];
+      tools: GeminiFunctionDeclaration[];
+      maxOutputTokens?: number;
+      timeoutMs?: number;
+    }
+  ): Promise<
+    | { ok: true; value: GeminiChatWithToolsResult }
+    | { ok: false; quotaExceeded: boolean }
+  > {
+    const controller = new AbortController();
+    const timeout = params.timeoutMs ?? TIMEOUT_MS * 2;
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: params.system }] },
+          contents: params.contents,
+          tools: [{ functionDeclarations: params.tools }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: params.maxOutputTokens ?? 1024
+          }
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        const quotaExceeded = this.isQuotaError(res.status, errText);
+        this.logger.warn(
+          `Gemini tools ${model} HTTP ${res.status}${quotaExceeded ? " (quota)" : ""}: ${errText.slice(0, 180)}`
+        );
+        return { ok: false, quotaExceeded };
+      }
+
+      const body = (await res.json()) as {
+        candidates?: {
+          content?: {
+            role?: string;
+            parts?: Array<{
+              text?: string;
+              functionCall?: {
+                name?: string;
+                args?: Record<string, unknown>;
+              };
+            }>;
+          };
+        }[];
+        usageMetadata?: {
+          promptTokenCount?: number;
+          candidatesTokenCount?: number;
+        };
+      };
+
+      const parts = body.candidates?.[0]?.content?.parts ?? [];
+      const textParts = parts
+        .map((p) => p.text?.trim())
+        .filter((t): t is string => Boolean(t));
+      const functionCalls: GeminiFunctionCall[] = [];
+      for (const p of parts) {
+        if (p.functionCall?.name) {
+          functionCalls.push({
+            name: p.functionCall.name,
+            args: p.functionCall.args ?? {}
+          });
+        }
+      }
+
+      const modelContent: GeminiContent = {
+        role: "model",
+        parts: parts.map((p) => {
+          if (p.functionCall?.name) {
+            return {
+              functionCall: {
+                name: p.functionCall.name,
+                args: p.functionCall.args ?? {}
+              }
+            };
+          }
+          return { text: p.text ?? "" };
+        })
+      };
+
+      return {
+        ok: true,
+        value: {
+          text: textParts.join("\n").trim() || null,
+          functionCalls,
+          modelContent,
+          usage: {
+            inputTokens: body.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0
+          }
+        }
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Gemini tools ${model} indisponible: ${msg}`);
+      return { ok: false, quotaExceeded: false };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async callModel(

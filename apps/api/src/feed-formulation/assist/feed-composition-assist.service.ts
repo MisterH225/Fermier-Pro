@@ -3,12 +3,12 @@ import {
   Logger,
   ServiceUnavailableException
 } from "@nestjs/common";
-import type {
-  MessageParam,
-  ToolResultBlockParam,
-  ToolUseBlock
-} from "@anthropic-ai/sdk/resources/messages";
 import { ProductionStage, type User } from "@prisma/client";
+import {
+  AiGeminiService,
+  type GeminiContent,
+  type GeminiFunctionCall
+} from "../../ai/ai-gemini.service";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { FeedFormulationService } from "../feed-formulation.service";
@@ -18,7 +18,6 @@ import type {
   FormulateResult,
   SubstitutionResult
 } from "../engine/feed-formulation.types";
-import { AnthropicClientService } from "./anthropic-client.service";
 import type {
   AssistFeedCompositionDto,
   FormulateFeedCompositionDto
@@ -55,15 +54,15 @@ export type ManualFormulateResponse = {
 };
 
 /**
- * Orchestration agent Anthropic + moteur FeedFormulationService.
- * L'IA n'est jamais source de calcul.
+ * Orchestration agent Gemini + moteur FeedFormulationService.
+ * L'IA n'est jamais source de calcul (function calling uniquement).
  */
 @Injectable()
 export class FeedCompositionAssistService {
   private readonly logger = new Logger(FeedCompositionAssistService.name);
 
   constructor(
-    private readonly anthropic: AnthropicClientService,
+    private readonly gemini: AiGeminiService,
     private readonly formulation: FeedFormulationService,
     private readonly availability: IngredientAvailabilityService,
     private readonly farmAccess: FarmAccessService,
@@ -100,23 +99,23 @@ export class FeedCompositionAssistService {
   ): Promise<AssistResponse> {
     await this.farmAccess.requireFarmAccess(user.id, dto.farmId);
 
-    if (!this.anthropic.isConfigured()) {
+    if (!this.gemini.isConfigured() || this.gemini.isQuotaBlocked()) {
       throw new ServiceUnavailableException({
         code: "AI_UNAVAILABLE",
         message:
-          "Assistant IA indisponible (clé Anthropic absente). Utilisez POST /feed-composition/formulate."
+          "Assistant IA indisponible (Gemini). Utilisez POST /feed-composition/formulate."
       });
     }
 
     const farmContext = await this.buildFarmContext(dto);
     const system = buildFeedCompositionSystemPrompt(farmContext);
 
-    const messages: MessageParam[] = [
+    const contents: GeminiContent[] = [
       ...(dto.history ?? []).map((h) => ({
-        role: h.role as "user" | "assistant",
-        content: h.content
+        role: (h.role === "assistant" ? "model" : "user") as "user" | "model",
+        parts: [{ text: h.content }]
       })),
-      { role: "user", content: dto.message }
+      { role: "user", parts: [{ text: dto.message }] }
     ];
 
     let toolIterations = 0;
@@ -128,27 +127,29 @@ export class FeedCompositionAssistService {
 
     try {
       for (let i = 0; i <= MAX_TOOL_ITERATIONS; i++) {
-        const response = await this.anthropic.createMessage({
+        const response = await this.gemini.chatWithTools({
           system,
-          messages,
+          contents,
           tools: FORMULATION_TOOLS
         });
-        inputTokens += response.usage?.input_tokens ?? 0;
-        outputTokens += response.usage?.output_tokens ?? 0;
 
-        const toolUses = response.content.filter(
-          (b): b is ToolUseBlock => b.type === "tool_use"
-        );
+        if (!response) {
+          throw new Error("Gemini a renvoyé une réponse vide");
+        }
 
-        if (toolUses.length === 0 || response.stop_reason === "end_turn") {
-          const reply = extractText(response.content);
-          this.anthropic.logUsage(
+        inputTokens += response.usage.inputTokens;
+        outputTokens += response.usage.outputTokens;
+
+        const toolUses = response.functionCalls;
+
+        if (toolUses.length === 0) {
+          this.gemini.logToolUsage(
             { inputTokens, outputTokens },
             { toolIterations }
           );
           return {
             reply:
-              reply ||
+              response.text ||
               "Je n'ai pas pu formuler de réponse. Réessaie avec le stade, l'effectif et le poids.",
             formulation: lastFormulation,
             isTheoretical,
@@ -162,20 +163,19 @@ export class FeedCompositionAssistService {
         if (toolIterations >= MAX_TOOL_ITERATIONS) {
           this.logger.warn(
             JSON.stringify({
-              event: "anthropic_tool_iteration_cap",
+              event: "gemini_tool_iteration_cap",
               toolIterations,
               inputTokens,
               outputTokens
             })
           );
-          const reply = extractText(response.content);
-          this.anthropic.logUsage(
+          this.gemini.logToolUsage(
             { inputTokens, outputTokens },
             { toolIterations }
           );
           return {
             reply:
-              reply ||
+              response.text ||
               "Limite d'étapes atteinte. Utilise le formulaire manuel si besoin (mode sans IA).",
             formulation: lastFormulation,
             isTheoretical,
@@ -187,38 +187,32 @@ export class FeedCompositionAssistService {
           };
         }
 
-        messages.push({
-          role: "assistant",
-          content: response.content
-        });
+        contents.push(response.modelContent);
 
-        const toolResults: ToolResultBlockParam[] = [];
+        const functionResponseParts: GeminiContent["parts"] = [];
         for (const tu of toolUses) {
           toolIterations += 1;
-          const executed = await this.executeTool(
-            user.id,
-            tu,
-            dto.millId
-          );
+          const executed = await this.executeTool(user.id, tu, dto.millId);
           if (executed.formulation) {
             lastFormulation = executed.formulation;
           }
           isTheoretical = executed.isTheoretical;
           millProfileId = executed.millProfileId;
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: tu.id,
-            content: JSON.stringify(executed.payload)
+          functionResponseParts.push({
+            functionResponse: {
+              name: tu.name,
+              response: { result: executed.payload } as Record<string, unknown>
+            }
           });
         }
 
-        messages.push({ role: "user", content: toolResults });
+        contents.push({ role: "user", parts: functionResponseParts });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(
         JSON.stringify({
-          event: "anthropic_error",
+          event: "gemini_error",
           error: msg.slice(0, 200),
           toolIterations
         })
@@ -230,7 +224,7 @@ export class FeedCompositionAssistService {
       });
     }
 
-    this.anthropic.logUsage(
+    this.gemini.logToolUsage(
       { inputTokens, outputTokens },
       { toolIterations }
     );
@@ -248,7 +242,7 @@ export class FeedCompositionAssistService {
 
   private async executeTool(
     userId: string,
-    toolUse: ToolUseBlock,
+    toolUse: GeminiFunctionCall,
     defaultMillId?: string
   ): Promise<{
     payload: unknown;
@@ -265,7 +259,7 @@ export class FeedCompositionAssistService {
       };
     }
 
-    const input = (toolUse.input ?? {}) as Record<string, unknown>;
+    const input = toolUse.args ?? {};
     const stage = parseStage(input.stage);
     if (!stage) {
       return {
@@ -286,11 +280,7 @@ export class FeedCompositionAssistService {
         ? input.millId.trim()
         : defaultMillId;
 
-    if (
-      !(animalCount > 0) ||
-      !(avgWeightKg > 0) ||
-      !(durationDays > 0)
-    ) {
+    if (!(animalCount > 0) || !(avgWeightKg > 0) || !(durationDays > 0)) {
       return {
         payload: {
           error: "animalCount, avgWeightKg et durationDays doivent être > 0"
@@ -331,7 +321,6 @@ export class FeedCompositionAssistService {
       };
     }
 
-    // recompute_with_substitution
     const removeIngredientId = String(input.removeIngredientId ?? "");
     const addIngredientId = String(input.addIngredientId ?? "");
     if (!removeIngredientId || !addIngredientId) {
@@ -408,7 +397,9 @@ export class FeedCompositionAssistService {
     };
   }
 
-  private async buildFarmContext(dto: AssistFeedCompositionDto): Promise<string> {
+  private async buildFarmContext(
+    dto: AssistFeedCompositionDto
+  ): Promise<string> {
     const farm = await this.prisma.farm.findUnique({
       where: { id: dto.farmId },
       select: { id: true, name: true, speciesFocus: true }
@@ -422,20 +413,12 @@ export class FeedCompositionAssistService {
       `Espèce : ${farm?.speciesFocus ?? "porcin"}`,
       `Effectif animaux (approx.) : ${animalCount}`,
       dto.stageHint ? `Stade suggéré : ${dto.stageHint}` : null,
-      dto.millId ? `Moulin ciblé : ${dto.millId}` : "Aucun moulin ciblé (prix de référence possibles)."
+      dto.millId
+        ? `Moulin ciblé : ${dto.millId}`
+        : "Aucun moulin ciblé (prix de référence possibles)."
     ];
     return lines.filter(Boolean).join("\n");
   }
-}
-
-function extractText(
-  content: Array<{ type: string; text?: string }>
-): string {
-  return content
-    .filter((b) => b.type === "text" && typeof b.text === "string")
-    .map((b) => b.text!)
-    .join("\n")
-    .trim();
 }
 
 function parseStage(value: unknown): ProductionStage | null {
