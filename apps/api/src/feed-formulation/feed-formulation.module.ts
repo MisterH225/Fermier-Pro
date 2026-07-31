@@ -2,6 +2,7 @@ import { Module, forwardRef } from "@nestjs/common";
 import { AiModule } from "../ai/ai.module";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { AuthModule } from "../auth/auth.module";
+import { ChatModule } from "../chat/chat.module";
 import { CommonModule } from "../common/common.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.module";
@@ -31,7 +32,8 @@ import { SOLVER_PORT } from "./solver/solver.port";
     FeatureFlagsModule,
     FeedIngredientsModule,
     UserNotificationsModule,
-    AiModule
+    AiModule,
+    forwardRef(() => ChatModule)
   ],
   controllers: [
     AdminFeedRequirementProfilesController,

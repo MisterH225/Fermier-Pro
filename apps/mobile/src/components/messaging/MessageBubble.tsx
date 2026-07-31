@@ -3,9 +3,14 @@ import type { ChatMessageDto } from "../../lib/api";
 import { parseChatImageMessage } from "../../lib/chatImageMessage";
 import { parseFarmInvitationMessage } from "../../lib/farmInvitationMessage";
 import { parseMarketplaceOfferMessage } from "../../lib/marketplaceOfferMessage";
+import {
+  parseFeedCompositionCardMessage,
+  type FeedCompositionCardPayload
+} from "../../lib/feedCompositionChatMessage";
 import { InviteCardInChat } from "./InviteCardInChat";
 import { formatPrivacyDisplayName } from "../../lib/userDisplay";
 import { ProposalCardInChat } from "./ProposalCardInChat";
+import { CompositionCardInChat } from "./CompositionCardInChat";
 import { useRolePalette } from "../../hooks/useRolePalette";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize, mobileStatusSurfaces } from "../../theme/mobileTheme";
 import { merchantColors } from "../../theme/merchantTheme";
@@ -35,9 +40,20 @@ function isSystemLike(body: string): boolean {
 type Props = {
   message: ChatMessageDto;
   isMine: boolean;
+  /** Producteur : appliquer une version proposée dans le fil composition. */
+  onApplyCompositionAdjustment?: (
+    messageId: string,
+    payload: FeedCompositionCardPayload
+  ) => void;
+  showApplyComposition?: boolean;
 };
 
-export function MessageBubble({ message, isMine }: Props) {
+export function MessageBubble({
+  message,
+  isMine,
+  onApplyCompositionAdjustment,
+  showApplyComposition
+}: Props) {
   const palette = useRolePalette();
   const body = message.body?.trim() ?? "";
   const invite = parseFarmInvitationMessage(body);
@@ -47,6 +63,18 @@ export function MessageBubble({ message, isMine }: Props) {
   const offer = parseMarketplaceOfferMessage(body);
   if (offer) {
     return <ProposalCardInChat payload={offer} isMine={isMine} />;
+  }
+  const composition = parseFeedCompositionCardMessage(body);
+  if (composition) {
+    return (
+      <CompositionCardInChat
+        payload={composition}
+        isMine={isMine}
+        messageId={message.id}
+        showApply={Boolean(showApplyComposition && !isMine)}
+        onApply={onApplyCompositionAdjustment}
+      />
+    );
   }
   const chatImage = parseChatImageMessage(body);
   if (chatImage) {

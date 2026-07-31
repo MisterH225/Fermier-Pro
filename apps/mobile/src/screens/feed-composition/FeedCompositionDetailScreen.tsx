@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,12 +11,15 @@ import {
   View
 } from "react-native";
 import { CompositionDisclaimer } from "../../components/feed-composition/CompositionDisclaimer";
+import { ProposeAdjustmentModal } from "../../components/feed-composition/ProposeAdjustmentModal";
 import { FormulationResultCard } from "../../components/feed-composition/FormulationResultCard";
 import { useSession } from "../../context/SessionContext";
 import {
   getFeedComposition,
   listFarmCompositionVeterinarians,
+  proposeCompositionAdjustment,
   requestCompositionVetReview,
+  reviewFeedComposition,
   type FeedFormulateResultDto,
   type FeedNutritionResultDto
 } from "../../lib/api";
@@ -31,15 +35,18 @@ import {
   mobileColors,
   mobileFontSize,
   mobileRadius,
-  mobileSpacing
+  mobileSpacing,
+  mobileStatusSurfaces
 } from "../../theme/mobileTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FeedCompositionDetail">;
 
-export function FeedCompositionDetailScreen({ route }: Props) {
-  const { farmId, compositionId } = route.params;
-  const { accessToken, activeProfileId } = useSession();
+export function FeedCompositionDetailScreen({ navigation, route }: Props) {
+  const { farmId, farmName, compositionId } = route.params;
+  const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
+  const myId = authMe?.user.id;
+  const [adjustOpen, setAdjustOpen] = useState(false);
 
   const detailQ = useQuery({
     queryKey: ["feed-composition", compositionId],
@@ -59,7 +66,16 @@ export function FeedCompositionDetailScreen({ route }: Props) {
     enabled: Boolean(accessToken)
   });
 
-  const vetMut = useMutation({
+  const isAssociatedVet = Boolean(
+    myId && vetsQ.data?.some((v) => v.userId === myId)
+  );
+
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["feed-composition", compositionId] });
+    void qc.invalidateQueries({ queryKey: ["feed-compositions", farmId] });
+  };
+
+  const sendMut = useMutation({
     mutationFn: () =>
       requestCompositionVetReview(
         accessToken!,
@@ -67,10 +83,78 @@ export function FeedCompositionDetailScreen({ route }: Props) {
         {},
         activeProfileId
       ),
+    onSuccess: (row) => {
+      invalidate();
+      Alert.alert("Envoyé", "Discussion ouverte avec votre vétérinaire.", [
+        {
+          text: "Ouvrir le fil",
+          onPress: () => {
+            if (row.chatRoomId) {
+              navigation.navigate("ChatRoom", {
+                roomId: row.chatRoomId,
+                headline: "Composition — avis véto",
+                farmId
+              });
+            }
+          }
+        },
+        { text: "OK" }
+      ]);
+    },
+    onError: (err) => Alert.alert("Erreur", formatApiError(err))
+  });
+
+  const reviewMut = useMutation({
+    mutationFn: (decision: "approve" | "request_changes") =>
+      reviewFeedComposition(
+        accessToken!,
+        compositionId,
+        { decision },
+        activeProfileId
+      ),
+    onSuccess: (row) => {
+      invalidate();
+      Alert.alert(
+        row.status === "validated" ? "Validée" : "Demande envoyée",
+        row.status === "validated"
+          ? "La composition est validée."
+          : "Le producteur a été notifié."
+      );
+    },
+    onError: (err) => Alert.alert("Erreur", formatApiError(err))
+  });
+
+  const adjustMut = useMutation({
+    mutationFn: (body: {
+      removeIngredientId: string;
+      addIngredientId: string;
+      comment?: string;
+    }) =>
+      proposeCompositionAdjustment(
+        accessToken!,
+        compositionId,
+        body,
+        activeProfileId
+      ),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["feed-composition", compositionId] });
-      void qc.invalidateQueries({ queryKey: ["feed-compositions", farmId] });
-      Alert.alert("Envoyé", "Le vétérinaire a été notifié.");
+      setAdjustOpen(false);
+      invalidate();
+      const roomId = detailQ.data?.chatRoomId;
+      Alert.alert("Ajustement proposé", "La nouvelle version est dans le fil.", [
+        {
+          text: "Voir le fil",
+          onPress: () => {
+            if (roomId) {
+              navigation.navigate("ChatRoom", {
+                roomId,
+                headline: "Composition — avis véto",
+                farmId
+              });
+            }
+          }
+        },
+        { text: "OK" }
+      ]);
     },
     onError: (err) => Alert.alert("Erreur", formatApiError(err))
   });
@@ -93,7 +177,8 @@ export function FeedCompositionDetailScreen({ route }: Props) {
   }
 
   const ration = asRationLines(row.ration);
-  const nutrition = (row.nutritionResult ?? null) as FeedNutritionResultDto | null;
+  const nutrition = (row.nutritionResult ??
+    null) as FeedNutritionResultDto | null;
   const totalCost =
     typeof row.totalCostXof === "string"
       ? Number(row.totalCostXof)
@@ -117,8 +202,9 @@ export function FeedCompositionDetailScreen({ route }: Props) {
   };
 
   const hasVets = (vetsQ.data?.length ?? 0) > 0;
-  const canRequestVet =
-    hasVets && (row.status === "draft" || row.status === "vet_review");
+  const canDiscuss =
+    Boolean(row.chatRoomId) &&
+    (row.status === "vet_review" || row.status === "validated");
 
   return (
     <ScrollView
@@ -132,6 +218,16 @@ export function FeedCompositionDetailScreen({ route }: Props) {
         {statusLabelFr(row.status)} · {formatXof(row.totalCostXof)} ·{" "}
         {new Date(row.createdAt).toLocaleDateString("fr-FR")}
       </Text>
+
+      {row.status === "validated" && row.vetReviewedAt ? (
+        <View style={styles.validatedBanner} testID="validated-banner">
+          <Text style={styles.validatedText}>
+            Validée par {row.vetReviewedByName ?? "votre vétérinaire"} le{" "}
+            {new Date(row.vetReviewedAt).toLocaleDateString("fr-FR")}
+          </Text>
+        </View>
+      ) : null}
+
       {row.vetComment ? (
         <Text style={styles.vetComment}>Avis véto : {row.vetComment}</Text>
       ) : null}
@@ -142,11 +238,11 @@ export function FeedCompositionDetailScreen({ route }: Props) {
         isTheoretical={row.isTheoretical}
       />
 
-      {canRequestVet && row.status === "draft" ? (
+      {hasVets && row.status === "draft" ? (
         <Pressable
           style={styles.secondaryBtn}
-          onPress={() => vetMut.mutate()}
-          disabled={vetMut.isPending}
+          onPress={() => sendMut.mutate()}
+          disabled={sendMut.isPending}
           testID="detail-send-to-vet"
         >
           <Text style={styles.secondaryBtnLabel}>
@@ -155,7 +251,70 @@ export function FeedCompositionDetailScreen({ route }: Props) {
         </Pressable>
       ) : null}
 
-      {/* J4 : commande moulin — bouton visible mais désactivé tant que le flux n’existe pas. */}
+      {canDiscuss ? (
+        <Pressable
+          style={styles.primaryBtn}
+          testID="discuss-with-vet"
+          onPress={() =>
+            navigation.navigate("ChatRoom", {
+              roomId: row.chatRoomId!,
+              headline: "Composition — avis véto",
+              farmId
+            })
+          }
+        >
+          <Text style={styles.primaryBtnLabel}>
+            Discuter avec mon vétérinaire
+          </Text>
+        </Pressable>
+      ) : null}
+
+      {isAssociatedVet && row.status === "vet_review" ? (
+        <View style={styles.vetActions}>
+          <Pressable
+            style={styles.primaryBtn}
+            testID="vet-approve"
+            onPress={() => reviewMut.mutate("approve")}
+            disabled={reviewMut.isPending}
+          >
+            <Text style={styles.primaryBtnLabel}>Valider cette composition</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryBtn}
+            testID="vet-request-changes"
+            onPress={() => reviewMut.mutate("request_changes")}
+            disabled={reviewMut.isPending}
+          >
+            <Text style={styles.secondaryBtnLabel}>
+              Demander des ajustements
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondaryBtn}
+            testID="vet-propose-adjustment"
+            onPress={() => setAdjustOpen(true)}
+          >
+            <Text style={styles.secondaryBtnLabel}>
+              Proposer un ajustement (moteur)
+            </Text>
+          </Pressable>
+          {row.chatRoomId ? (
+            <Pressable
+              style={styles.linkBtn}
+              onPress={() =>
+                navigation.navigate("ChatRoom", {
+                  roomId: row.chatRoomId!,
+                  headline: `Composition — ${farmName || "ferme"}`,
+                  farmId
+                })
+              }
+            >
+              <Text style={styles.linkLabel}>Ouvrir le fil de discussion</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
       {row.status === "validated" ? (
         <Pressable
           style={[styles.primaryBtn, styles.disabledBtn]}
@@ -166,6 +325,14 @@ export function FeedCompositionDetailScreen({ route }: Props) {
           <Text style={styles.primaryBtnLabel}>Commander — bientôt</Text>
         </Pressable>
       ) : null}
+
+      <ProposeAdjustmentModal
+        visible={adjustOpen}
+        ration={ration}
+        submitting={adjustMut.isPending}
+        onClose={() => setAdjustOpen(false)}
+        onSubmit={(body) => adjustMut.mutate(body)}
+      />
     </ScrollView>
   );
 }
@@ -193,6 +360,16 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     fontWeight: "600"
   },
+  validatedBanner: {
+    backgroundColor: mobileStatusSurfaces.successBg,
+    borderRadius: mobileRadius.md,
+    padding: mobileSpacing.md
+  },
+  validatedText: {
+    color: mobileStatusSurfaces.successText,
+    fontWeight: "800",
+    fontSize: mobileFontSize.sm
+  },
   vetComment: {
     fontSize: mobileFontSize.sm,
     color: mobileColors.textPrimary,
@@ -200,6 +377,7 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md
   },
+  vetActions: { gap: mobileSpacing.sm },
   primaryBtn: {
     backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.md,
@@ -209,7 +387,8 @@ const styles = StyleSheet.create({
   disabledBtn: { opacity: 0.45 },
   primaryBtnLabel: {
     color: mobileColors.onAccent,
-    fontWeight: "800"
+    fontWeight: "800",
+    textAlign: "center"
   },
   secondaryBtn: {
     borderWidth: 1,
@@ -222,5 +401,11 @@ const styles = StyleSheet.create({
     color: mobileColors.accent,
     fontWeight: "700",
     textAlign: "center"
+  },
+  linkBtn: { paddingVertical: 8, alignItems: "center" },
+  linkLabel: {
+    color: mobileColors.accent,
+    fontWeight: "700",
+    fontSize: mobileFontSize.sm
   }
 });

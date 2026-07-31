@@ -997,6 +997,8 @@ model VetConsultation {
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
   attachments      VetConsultationAttachment[]
+  /// Salons chat liés (ex. revue composition d'aliment).
+  chatRooms        ChatRoom[]
 
   @@index([farmId, status])
   @@index([farmId, openedAt])
@@ -2439,6 +2441,8 @@ model MemberActivityLog {
 enum ChatRoomKind {
   farm
   direct
+  /// Discussion producteur ↔ véto autour d'une SavedComposition (J3).
+  feed_composition
 }
 
 enum ChatMessageModificationType {
@@ -2465,6 +2469,12 @@ model ChatRoom {
   /// Produit boutique commerçant lié à la négociation (chat acheteur ↔ vendeur).
   merchantProductId     String?
   merchantProduct       MerchantProduct?    @relation(fields: [merchantProductId], references: [id], onDelete: SetNull)
+  /// Composition d'aliment en revue véto (kind=feed_composition).
+  savedCompositionId    String?
+  savedComposition      SavedComposition?   @relation(fields: [savedCompositionId], references: [id], onDelete: SetNull)
+  /// Dossier VetConsultation de suivi (kind=feed_composition).
+  vetConsultationId     String?
+  vetConsultation       VetConsultation?    @relation(fields: [vetConsultationId], references: [id], onDelete: SetNull)
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   members               ChatRoomMember[]
@@ -2473,6 +2483,8 @@ model ChatRoom {
   @@index([kind])
   @@index([marketplaceListingId])
   @@index([merchantProductId])
+  @@index([savedCompositionId])
+  @@index([vetConsultationId])
 }
 
 model ChatRoomMember {
@@ -3656,6 +3668,8 @@ model SavedComposition {
   isTheoretical    Boolean                 @default(false)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
+  /// Salons chat de revue véto (kind=feed_composition).
+  chatRooms        ChatRoom[]
 
   @@index([farmId, createdAt(sort: Desc)])
   @@index([farmId, status])

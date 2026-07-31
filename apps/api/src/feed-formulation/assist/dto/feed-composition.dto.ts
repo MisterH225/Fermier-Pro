@@ -142,3 +142,38 @@ export class VetReviewCompositionDto {
   @MaxLength(4000)
   comment?: string;
 }
+
+/** Ajustement véto — passe toujours par le moteur (substitution). */
+export class ProposeCompositionAdjustmentDto {
+  @IsString()
+  @MinLength(1)
+  removeIngredientId!: string;
+
+  @IsString()
+  @MinLength(1)
+  addIngredientId!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  addPricePerKg?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  addMaxAvailableKg?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  comment?: string;
+}
+
+/** Producteur applique une version proposée (carte chat). */
+export class ApplyCompositionAdjustmentDto {
+  @IsString()
+  @MinLength(1)
+  messageId!: string;
+}

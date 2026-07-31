@@ -14,8 +14,10 @@ import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
 import {
+  ApplyCompositionAdjustmentDto,
   AssistFeedCompositionDto,
   FormulateFeedCompositionDto,
+  ProposeCompositionAdjustmentDto,
   RequestVetReviewDto,
   SaveCompositionDto,
   VetReviewCompositionDto
@@ -35,6 +37,21 @@ export class FeedCompositionController {
     private readonly assist: FeedCompositionAssistService,
     private readonly saved: SavedCompositionsService
   ) {}
+
+  /** File d'attente véto : compositions en revue sur ses fermes. */
+  @Get("vet/pending-reviews")
+  listPendingForVet(@CurrentUser() user: User) {
+    return this.saved.listPendingForVeterinarian(user);
+  }
+
+  /** Recherche catalogue intrants (ajustement véto). */
+  @Get("ingredients")
+  searchIngredients(
+    @CurrentUser() user: User,
+    @Query("q") q?: string
+  ) {
+    return this.saved.searchIngredients(user, q ?? "");
+  }
 
   /** Agent conversationnel (Gemini + function calling → FeedFormulationService). */
   @Post("assist")
@@ -99,5 +116,26 @@ export class FeedCompositionController {
     @Body() dto: VetReviewCompositionDto
   ) {
     return this.saved.vetReview(user, id, dto);
+  }
+
+  /** Véto : ajustement via moteur (substitution) + carte dans le fil. */
+  @Post("compositions/:id/propose-adjustment")
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  proposeAdjustment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ProposeCompositionAdjustmentDto
+  ) {
+    return this.saved.proposeAdjustment(user, id, dto);
+  }
+
+  /** Producteur : appliquer une version proposée (message chat). */
+  @Post("compositions/:id/apply-adjustment")
+  applyAdjustment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ApplyCompositionAdjustmentDto
+  ) {
+    return this.saved.applyAdjustment(user, id, dto);
   }
 }
