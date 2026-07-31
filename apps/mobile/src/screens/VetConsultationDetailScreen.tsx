@@ -56,6 +56,10 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
         queryKey: ["vetConsultation", farmId, consultationId]
       });
       void qc.invalidateQueries({ queryKey: ["vetConsultations", farmId] });
+      // Annulation d'un dossier composition → retire la carte « à valider »
+      void qc.invalidateQueries({ queryKey: ["vet-pending-compositions"] });
+      void qc.invalidateQueries({ queryKey: ["feed-composition"] });
+      void qc.invalidateQueries({ queryKey: ["feed-compositions"] });
     },
     onError: (e: Error) => {
       Alert.alert("Mise à jour impossible", getUserFacingError(e, t));

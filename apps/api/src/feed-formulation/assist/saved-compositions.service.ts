@@ -118,6 +118,11 @@ export class SavedCompositionsService {
     if (row.status === "validated") {
       throw new BadRequestException("Composition déjà validée");
     }
+    if (row.status === "vet_review") {
+      throw new BadRequestException(
+        "Composition déjà en revue vétérinaire — attendez la réponse ou l'annulation du dossier"
+      );
+    }
 
     const vets = await this.prisma.farmMembership.findMany({
       where: {

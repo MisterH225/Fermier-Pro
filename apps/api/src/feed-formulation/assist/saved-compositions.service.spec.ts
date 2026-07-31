@@ -218,6 +218,33 @@ describe("SavedCompositionsService", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it("déjà en revue → BadRequest (pas de double envoi)", async () => {
+    prisma.savedComposition.findUnique.mockResolvedValue({
+      ...baseRow,
+      status: "vet_review"
+    });
+    await expect(
+      service.requestVetReview(user, "comp-1", {})
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.vetConsultation.create).not.toHaveBeenCalled();
+  });
+
+  it("après retour en draft → peut re-soumettre", async () => {
+    prisma.savedComposition.findUnique.mockResolvedValue({
+      ...baseRow,
+      status: "draft"
+    });
+    prisma.farmMembership.findMany.mockResolvedValue([{ userId: "vet-1" }]);
+    prisma.savedComposition.update.mockResolvedValue({
+      ...baseRow,
+      status: "vet_review"
+    });
+
+    const out = await service.requestVetReview(user, "comp-1", {});
+    expect(out.status).toBe("vet_review");
+    expect(prisma.vetConsultation.create).toHaveBeenCalled();
+  });
+
   it("véto non associé → Forbidden sur validation", async () => {
     prisma.savedComposition.findUnique.mockResolvedValue({
       ...baseRow,
