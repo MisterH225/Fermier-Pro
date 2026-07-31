@@ -13,6 +13,7 @@
     "auditLogs": "Admin log",
     "map": "Health map",
     "marketplace": "Marketplace",
+    "subscriptions": "Subscriptions",
     "merchantSubscriptions": "Merchant subscriptions",
     "producerSubscriptions": "Producer subscriptions",
     "producerScores": "Producer scores",

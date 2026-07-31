@@ -8,7 +8,7 @@ import { ShellLoading } from "@/components/layout/PageSkeleton";
 import { useAdminRealtime } from "@/lib/useAdminRealtime";
 import { useAdminAccess } from "@/lib/admin-access-context";
 import { hasMenuAccess } from "@/lib/admin-permissions";
-import { NAV_ITEMS } from "@/components/layout/nav-config";
+import { NAV_ENTRIES, filterNavEntries } from "@/components/layout/nav-config";
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -61,8 +61,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     return <ShellLoading />;
   }
 
-  const visibleNavItems = NAV_ITEMS.filter((item) =>
-    hasMenuAccess(profile, item.key, "read")
+  const visibleNavEntries = filterNavEntries(NAV_ENTRIES, (key) =>
+    hasMenuAccess(profile, key, "read")
   );
 
   return (
@@ -78,7 +78,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             ? profile.institutionLabel ?? "Institution"
             : "SuperAdmin"
         }
-        navItems={visibleNavItems}
+        navEntries={visibleNavEntries}
         onLogout={logout}
       />
       <main className="w-full px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8">
