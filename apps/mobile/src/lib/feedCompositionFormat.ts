@@ -100,6 +100,8 @@ export function asRationLines(ration: unknown): FeedRationLineDto[] {
 
 /**
  * Message clair pour cas infaisable — jamais un tableau vide trompeur.
+ * Si l’API renvoie déjà un message actionnable (nutriment + type d’intrant),
+ * on l’affiche tel quel ; le libellé générique « combinaison incompatible » est remplacé.
  */
 export function buildInfeasibilityMessage(
   reasons: string[] | undefined
@@ -108,16 +110,26 @@ export function buildInfeasibilityMessage(
   if (cleaned.length === 0) {
     return (
       "Avec les matières premières dispo, on n’arrive pas à faire un bon mélange pour vos porcs. " +
-      "Ajoutez d’autres produits (tourteau, farine de poisson…) ou regardez un aliment du commerce."
+      "Ajoutez une source de matière grasse (huile), un tourteau ou une farine de poisson, " +
+      "ou utilisez un aliment du commerce adapté."
     );
   }
   const first = cleaned[0]
     .replace(/protéine brute/gi, "protéines")
     .replace(/énergie métabolisable/gi, "énergie")
-    .replace(/intrants disponibles/gi, "produits disponibles");
+    .replace(/intrants disponibles/gi, "produits disponibles")
+    .replace(
+      /Combinaison de contraintes incompatible.*/i,
+      "les besoins de ce stade ne peuvent pas être atteints avec vos produits — " +
+        "ajoutez une source manquante (huile, tourteau…), ou utilisez un aliment du commerce adapté"
+    );
+  // Message API déjà actionnable (nomme nutriment + type d’intrant).
+  if (/ajoutez|aliment du commerce|stock insuffisant/i.test(first)) {
+    return first.endsWith(".") ? first : `${first}.`;
+  }
   return (
     `On n’y arrive pas avec ce que vous avez : ${first}. ` +
-    "Essayez un autre produit dans le mélange, ou un aliment du commerce."
+    "Essayez un autre produit dans le mélange, ou un aliment du commerce adapté."
   );
 }
 

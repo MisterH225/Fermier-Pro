@@ -111,6 +111,50 @@ export const FEED_INGREDIENTS_SEED: FeedIngredientSeed[] = [
     dryMatterPct: 75,
     notes: "Feedipedia — mélasse de canne (indicatif)"
   },
+  {
+    canonicalName: "Huile de palme",
+    aliases: [
+      "huile palme",
+      "palm oil",
+      "huile végétale",
+      "huile vegetale",
+      "matière grasse",
+      "matiere grasse"
+    ],
+    category: "byproduct",
+    crudeProteinPct: 0,
+    metabolizableEnergyKcal: 8800,
+    lysinePct: 0,
+    methioninePct: 0,
+    calciumPct: 0,
+    phosphorusPct: 0,
+    crudeFiberPct: 0,
+    fatPct: 99.5,
+    dryMatterPct: 99.5,
+    notes:
+      "Feedipedia — huile de palme (indicatif, à valider). Source concentrée de matière grasse pour densifier l'énergie (truie allaitante, etc.)."
+  },
+  {
+    canonicalName: "Son de riz gras",
+    aliases: [
+      "full fat rice bran",
+      "son riz gras",
+      "son de riz gras",
+      "rice bran full fat"
+    ],
+    category: "byproduct",
+    crudeProteinPct: 13,
+    metabolizableEnergyKcal: 3000,
+    lysinePct: 0.55,
+    methioninePct: 0.25,
+    calciumPct: 0.1,
+    phosphorusPct: 1.4,
+    crudeFiberPct: 8,
+    fatPct: 18,
+    dryMatterPct: 90,
+    notes:
+      "Feedipedia — son de riz gras / non dégraissé (indicatif, à valider). Distinct du son de riz standard (plus gras, plus énergétique)."
+  },
 
   // —— Protéines végétales ——
   {

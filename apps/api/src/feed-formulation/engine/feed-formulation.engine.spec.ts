@@ -101,17 +101,18 @@ const NUTRI: Record<string, IngredientNutrition> = {
     phosphorusPct: 0,
     crudeFiberPct: 0
   },
-  /** Huile très énergétique — pour forcer le plafond anti-gras. */
+  /** Huile de palme — densifie l'énergie (truie allaitante) / plafond anti-gras. */
   oil: {
     feedIngredientId: "oil",
-    canonicalName: "Huile végétale",
+    canonicalName: "Huile de palme",
     crudeProteinPct: 0,
-    metabolizableEnergyKcal: 8500,
+    metabolizableEnergyKcal: 8800,
     lysinePct: 0,
     methioninePct: 0,
     calciumPct: 0,
     phosphorusPct: 0,
-    crudeFiberPct: 0
+    crudeFiberPct: 0,
+    fatPct: 99.5
   },
   cmv: {
     feedIngredientId: "cmv",
@@ -337,6 +338,12 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
       expect(result.ration).toEqual([]);
       expect(result.nutritionResult).toBeNull();
       expect(result.infeasibilityReasons.join(" ")).toMatch(/protéine|lysine/i);
+      expect(result.infeasibilityReasons.join(" ")).toMatch(
+        /tourteau|farine de poisson|aliment du commerce/i
+      );
+      expect(result.infeasibilityReasons.join(" ")).not.toMatch(
+        /combinaison de contraintes incompatible/i
+      );
     });
 
     it("stock total insuffisant → message stock", () => {
@@ -350,6 +357,53 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
       expect(result.feasible).toBe(false);
       expect(result.ration).toEqual([]);
       expect(result.infeasibilityReasons.join(" ")).toMatch(/stock|insuffisant/i);
+    });
+
+    it("truie allaitante sans huile → diagnostic énergie actionnable", () => {
+      const result = engine.formulate(
+        baseInput("lactating_sow", {
+          animalCount: 5,
+          avgWeightKg: 120,
+          availableIngredients: availableAll([
+            "corn",
+            "soy",
+            "bran",
+            "fish",
+            "oyster",
+            "dcp",
+            "lys",
+            "met",
+            "cmv",
+            "salt"
+          ])
+        })
+      );
+      expect(result.feasible).toBe(false);
+      expect(result.ration).toEqual([]);
+      const joined = result.infeasibilityReasons.join(" ");
+      expect(joined).toMatch(/énergie/i);
+      expect(joined).toMatch(/matière grasse|huile/i);
+      expect(joined).toMatch(/aliment du commerce/i);
+      expect(joined).not.toMatch(/combinaison de contraintes incompatible/i);
+    });
+  });
+
+  describe("truie allaitante — huile de palme", () => {
+    it("faisable avec huile : énergie ≥ 3250 et fibres ≤ 6", () => {
+      const result = engine.formulate(
+        baseInput("lactating_sow", {
+          animalCount: 5,
+          avgWeightKg: 120,
+          durationDays: 7
+        })
+      );
+      expect(result.infeasibilityReasons).toEqual([]);
+      expect(result.feasible).toBe(true);
+      expect(result.nutritionResult).not.toBeNull();
+      const n = result.nutritionResult!;
+      expect(n.metabolizableEnergyKcal).toBeGreaterThanOrEqual(3250 - 1e-4);
+      expect(n.crudeFiberPct).toBeLessThanOrEqual(6 + 1e-4);
+      expect(n.crudeProteinPct).toBeGreaterThanOrEqual(16 - 1e-4);
     });
   });
 

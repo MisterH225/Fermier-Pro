@@ -128,6 +128,23 @@ describe("feedCompositionFormat", () => {
     expect(msg).toMatch(/aliment du commerce/i);
   });
 
+  it("affiche tel quel un diagnostic actionnable (énergie / huile)", () => {
+    const api =
+      "L'énergie nécessaire pour ce stade ne peut pas être atteinte avec vos intrants — ajoutez une source de matière grasse (huile), ou utilisez un aliment du commerce adapté.";
+    const msg = buildInfeasibilityMessage([api]);
+    expect(msg).toMatch(/énergie/i);
+    expect(msg).toMatch(/matière grasse|huile/i);
+    expect(msg).not.toMatch(/combinaison de contraintes/i);
+  });
+
+  it("remplace le message générique combinaison incompatible", () => {
+    const msg = buildInfeasibilityMessage([
+      "Combinaison de contraintes incompatible avec les intrants, stocks et taux fixes disponibles."
+    ]);
+    expect(msg).toMatch(/huile|tourteau|aliment du commerce/i);
+    expect(msg).not.toMatch(/combinaison de contraintes incompatible/i);
+  });
+
   it("porc sans graisse respecté en finition", () => {
     expect(respectsLeanPorkGoal(feasible, "finishing")).toBe(true);
     expect(respectsLeanPorkGoal(feasible, "growing")).toBe(false);
