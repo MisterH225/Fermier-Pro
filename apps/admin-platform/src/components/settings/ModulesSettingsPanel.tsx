@@ -45,7 +45,7 @@ export function ModulesSettingsPanel() {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"disable" | "reactivate" | "testAccounts" | null>(null);
   const [testAccounts, setTestAccounts] = useState<FeatureFlagTestAccountDto[]>([]);
-  const [testUserId, setTestUserId] = useState("");
+  const [testIdentifier, setTestIdentifier] = useState("");
   const [testError, setTestError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -84,7 +84,7 @@ export function ModulesSettingsPanel() {
     if (!token) return;
     setSelected(mod);
     setMode("testAccounts");
-    setTestUserId("");
+    setTestIdentifier("");
     setTestError(null);
     setPreview(null);
     const rows = await fetchFeatureFlagTestAccounts(token, mod.moduleId);
@@ -122,12 +122,16 @@ export function ModulesSettingsPanel() {
   };
 
   const addTestAccount = async () => {
-    if (!token || !selected || !testUserId.trim()) return;
+    if (!token || !selected || !testIdentifier.trim()) return;
     setBusy(true);
     setTestError(null);
     try {
-      await addFeatureFlagTestAccount(token, selected.moduleId, testUserId.trim());
-      setTestUserId("");
+      await addFeatureFlagTestAccount(
+        token,
+        selected.moduleId,
+        testIdentifier.trim()
+      );
+      setTestIdentifier("");
       const rows = await fetchFeatureFlagTestAccounts(token, selected.moduleId);
       setTestAccounts(rows);
       await load();
@@ -235,13 +239,14 @@ export function ModulesSettingsPanel() {
               <p className="text-sm text-muted-foreground">{t("testAccountsHint")}</p>
               <div className="flex gap-2">
                 <Input
-                  value={testUserId}
-                  onChange={(e) => setTestUserId(e.target.value)}
-                  placeholder={t("testAccountUserId")}
+                  value={testIdentifier}
+                  onChange={(e) => setTestIdentifier(e.target.value)}
+                  placeholder={t("testAccountIdentifier")}
+                  autoComplete="off"
                 />
                 <Button
                   type="button"
-                  disabled={busy || !testUserId.trim()}
+                  disabled={busy || !testIdentifier.trim()}
                   onClick={() => void addTestAccount()}
                 >
                   {t("addTestAccount")}
@@ -257,9 +262,11 @@ export function ModulesSettingsPanel() {
                   {testAccounts.map((row) => (
                     <li
                       key={row.id}
-                      className="flex items-center justify-between gap-2 font-mono"
+                      className="flex items-center justify-between gap-2"
                     >
-                      <span className="truncate">{row.userId}</span>
+                      <span className="truncate" title={row.userId}>
+                        {row.label || row.email || row.phone || row.userId}
+                      </span>
                       <Button
                         type="button"
                         variant="ghost"

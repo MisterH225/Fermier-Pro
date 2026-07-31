@@ -34,8 +34,9 @@ export class NotifyModuleReactivationDto {
   note?: string;
 }
 
+/** Email ou numéro de téléphone du compte à ajouter à l'allow-list. */
 export class AddFeatureFlagTestAccountDto {
   @IsString()
-  @MaxLength(128)
-  userId!: string;
+  @MaxLength(255)
+  identifier!: string;
 }

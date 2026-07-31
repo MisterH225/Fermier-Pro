@@ -56,7 +56,7 @@ export class AdminFeatureFlagsController {
   ) {
     return this.flags.addTestAccount(
       this.parseModuleId(moduleId),
-      dto.userId,
+      dto.identifier,
       user.id
     );
   }
