@@ -15,6 +15,16 @@ import { AppService } from "./app.service";
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  /**
+   * Liveness Railway : toujours 200 dès que Nest écoute (sans DB).
+   * Configuré via `railway.json` → `healthcheckPath`.
+   */
+  @Get("health/live")
+  live() {
+    return this.appService.live();
+  }
+
+  /** Readiness : 503 si la base est indisponible (monitors /ops). */
   @Get("health")
   async health() {
     const result = await this.appService.health();
