@@ -510,6 +510,39 @@ export function navigateFromGenericPushData(
   }
 
   if (
+    type === "feed_composition_vet_review" ||
+    type === "feed_composition_vet_reviewed" ||
+    type === "feed_composition_adjustment" ||
+    type === "feed_composition_validated"
+  ) {
+    const roomId = str(data.roomId);
+    if (roomId) {
+      nav.navigate("ChatRoom", {
+        roomId,
+        headline: "Composition — avis véto",
+        farmId: str(data.farmId) ?? undefined
+      });
+      return true;
+    }
+    const compositionId = str(data.compositionId);
+    const farmId = str(data.farmId);
+    if (compositionId && farmId) {
+      nav.navigate("FeedCompositionDetail", {
+        farmId,
+        farmName: str(data.farmName) ?? "—",
+        compositionId
+      });
+      return true;
+    }
+    return false;
+  }
+
+  if (type === "chat_message" && str(data.roomId)) {
+    nav.navigate("ChatRoom", { roomId: str(data.roomId)! });
+    return true;
+  }
+
+  if (
     type.startsWith("marketplace_") &&
     str(data.transactionId)
   ) {

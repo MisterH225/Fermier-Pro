@@ -36,9 +36,24 @@ export type ChatRoomListItem = {
   directKey: string | null;
   title: string | null;
   marketplaceListingId?: string | null;
+  savedCompositionId?: string | null;
+  vetConsultationId?: string | null;
   unreadCount?: number;
   farm?: { id: string; name: string } | null;
   marketplaceListing?: ChatListingSummary | null;
+  savedComposition?: {
+    id: string;
+    stage: string;
+    status: string;
+    farmId: string;
+    totalCostXof: number;
+  } | null;
+  vetConsultation?: {
+    id: string;
+    subject: string;
+    status: string;
+    farmId: string;
+  } | null;
   messages?: ChatMessagePreview[];
   members?: ChatRoomMemberPreview[];
 };

@@ -20,6 +20,12 @@ import {
   parseMarketplaceOfferMessageBody,
   type MarketplaceOfferChatPayload
 } from "./chat-offer-message";
+import {
+  buildFeedCompositionCardBody,
+  feedCompositionCardPreview,
+  parseFeedCompositionCardBody,
+  type FeedCompositionCardPayload
+} from "./chat-composition-message";
 import { ChatPhoneSecurityService } from "./chat-phone-security.service";
 
 function directKeyForPair(userIdA: string, userIdB: string): string {
@@ -51,6 +57,16 @@ function directKeyForMerchantProduct(
   return `merchant-product:${productId}:${pair}`;
 }
 
+/** Clé unique producteur↔véto pour une composition. */
+function directKeyForComposition(
+  userIdA: string,
+  userIdB: string,
+  compositionId: string
+): string {
+  const pair = [userIdA, userIdB].sort().join("_");
+  return `composition:${compositionId}:${pair}`;
+}
+
 const ROOM_LIST_INCLUDE = {
   farm: { select: { id: true, name: true } },
   marketplaceListing: {
@@ -71,6 +87,23 @@ const ROOM_LIST_INCLUDE = {
       price: true,
       currency: true,
       photoUrls: true
+    }
+  },
+  savedComposition: {
+    select: {
+      id: true,
+      stage: true,
+      status: true,
+      farmId: true,
+      totalCostXof: true
+    }
+  },
+  vetConsultation: {
+    select: {
+      id: true,
+      subject: true,
+      status: true,
+      farmId: true
     }
   },
   members: {
@@ -140,9 +173,12 @@ export class ChatService {
       return null;
     }
     const offer = parseMarketplaceOfferMessageBody(msg.body);
+    const composition = parseFeedCompositionCardBody(msg.body);
     const previewBody = offer
       ? marketplaceOfferMessagePreview(offer)
-      : msg.body;
+      : composition
+        ? feedCompositionCardPreview(composition)
+        : msg.body;
     return {
       id: msg.id,
       body: previewBody,
@@ -185,8 +221,27 @@ export class ChatService {
       directKey: room.directKey,
       title: room.title,
       marketplaceListingId: room.marketplaceListingId,
+      savedCompositionId: room.savedCompositionId,
+      vetConsultationId: room.vetConsultationId,
       farm: room.farm,
       marketplaceListing: this.mapListingSummary(room.marketplaceListing),
+      savedComposition: room.savedComposition
+        ? {
+            id: room.savedComposition.id,
+            stage: room.savedComposition.stage,
+            status: room.savedComposition.status,
+            farmId: room.savedComposition.farmId,
+            totalCostXof: Number(room.savedComposition.totalCostXof)
+          }
+        : null,
+      vetConsultation: room.vetConsultation
+        ? {
+            id: room.vetConsultation.id,
+            subject: room.vetConsultation.subject,
+            status: room.vetConsultation.status,
+            farmId: room.vetConsultation.farmId
+          }
+        : null,
       unreadCount,
       members: room.members.map((m) => ({
         userId: m.userId,
@@ -545,6 +600,120 @@ export class ChatService {
         sender: { select: { id: true, fullName: true } }
       }
     });
+  }
+
+  /**
+   * Salon dédié producteur ↔ véto pour une SavedComposition.
+   * kind=feed_composition, ancré savedCompositionId + vetConsultationId.
+   */
+  async ensureCompositionReviewRoom(params: {
+    producerUserId: string;
+    veterinarianUserId: string;
+    compositionId: string;
+    consultationId: string;
+    title: string;
+  }) {
+    const {
+      producerUserId,
+      veterinarianUserId,
+      compositionId,
+      consultationId,
+      title
+    } = params;
+    if (producerUserId === veterinarianUserId) {
+      throw new BadRequestException("Salon composition invalide");
+    }
+    const key = directKeyForComposition(
+      producerUserId,
+      veterinarianUserId,
+      compositionId
+    );
+
+    let room = await this.prisma.chatRoom.findUnique({
+      where: { directKey: key }
+    });
+    if (!room) {
+      try {
+        room = await this.prisma.chatRoom.create({
+          data: {
+            kind: ChatRoomKind.feed_composition,
+            directKey: key,
+            title,
+            savedCompositionId: compositionId,
+            vetConsultationId: consultationId,
+            members: {
+              create: [
+                { userId: producerUserId },
+                { userId: veterinarianUserId }
+              ]
+            }
+          }
+        });
+      } catch {
+        room = await this.prisma.chatRoom.findUnique({
+          where: { directKey: key }
+        });
+        if (!room) {
+          throw new BadRequestException("Création du salon composition impossible");
+        }
+      }
+    } else {
+      await this.prisma.chatRoom.update({
+        where: { id: room.id },
+        data: {
+          savedCompositionId: compositionId,
+          vetConsultationId: consultationId,
+          title
+        }
+      });
+      for (const uid of [producerUserId, veterinarianUserId]) {
+        await this.prisma.chatRoomMember.upsert({
+          where: { roomId_userId: { roomId: room.id, userId: uid } },
+          create: { roomId: room.id, userId: uid },
+          update: {}
+        });
+      }
+    }
+    return this.loadRoomForUser(producerUserId, room.id);
+  }
+
+  async postCompositionCardMessage(
+    roomId: string,
+    senderId: string,
+    payload: FeedCompositionCardPayload
+  ) {
+    await this.assertRoomMember(senderId, roomId);
+    const body = buildFeedCompositionCardBody(payload);
+    const msg = await this.prisma.chatMessage.create({
+      data: {
+        roomId,
+        senderUserId: senderId,
+        body
+      },
+      include: {
+        sender: { select: { id: true, fullName: true } }
+      }
+    });
+    this.notifyPeersOfNewMessage(
+      senderId,
+      roomId,
+      feedCompositionCardPreview(payload)
+    );
+    return msg;
+  }
+
+  async findCompositionRoomId(
+    compositionId: string
+  ): Promise<string | null> {
+    const room = await this.prisma.chatRoom.findFirst({
+      where: {
+        kind: ChatRoomKind.feed_composition,
+        savedCompositionId: compositionId
+      },
+      select: { id: true },
+      orderBy: { createdAt: "desc" }
+    });
+    return room?.id ?? null;
   }
 
   /** Met à jour le statut des cartes proposition JSON dans les salons. */
