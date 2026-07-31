@@ -572,8 +572,8 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     <ChatModuleGate>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 24}
       >
         {liveStrip ? (
           liveStrip.kind === "pill" ? (

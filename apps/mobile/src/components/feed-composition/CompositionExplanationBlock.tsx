@@ -1,7 +1,10 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import type { CompositionExplanationDto } from "../../lib/api/feed-composition";
 import {
-  mobileColors,
+  compositionUiColors,
+  type CompositionUiTone
+} from "../../theme/compositionUiTone";
+import {
   mobileFontSize,
   mobileRadius,
   mobileSpacing,
@@ -11,6 +14,7 @@ import {
 type Props = {
   explanation: CompositionExplanationDto | null;
   loading?: boolean;
+  tone?: CompositionUiTone;
 };
 
 /**
@@ -19,13 +23,18 @@ type Props = {
  */
 export function CompositionExplanationBlock({
   explanation,
-  loading
+  loading,
+  tone = "producer"
 }: Props) {
+  const ui = compositionUiColors(tone);
+
   if (loading && !explanation) {
     return (
       <View style={styles.wrap} testID="composition-explanation-loading">
-        <ActivityIndicator color={mobileColors.accent} />
-        <Text style={styles.loadingText}>On prépare l’explication…</Text>
+        <ActivityIndicator color={ui.accent} />
+        <Text style={[styles.loadingText, { color: ui.textSecondary }]}>
+          On prépare l’explication…
+        </Text>
       </View>
     );
   }
@@ -34,37 +43,55 @@ export function CompositionExplanationBlock({
 
   return (
     <View style={styles.wrap} testID="composition-explanation">
-      <Text style={styles.sectionTitle}>Ce dont vos animaux ont besoin</Text>
-      <Text style={styles.body} testID="explanation-stage-needs">
+      <Text style={[styles.sectionTitle, { color: ui.textPrimary }]}>
+        Ce dont vos animaux ont besoin
+      </Text>
+      <Text
+        style={[styles.body, { color: ui.textPrimary }]}
+        testID="explanation-stage-needs"
+      >
         {explanation.stageNeeds}
       </Text>
 
-      <Text style={styles.sectionTitle}>Pourquoi ce mélange</Text>
+      <Text style={[styles.sectionTitle, { color: ui.textPrimary }]}>
+        Pourquoi ce mélange
+      </Text>
       {explanation.ingredientJustifications.map((j) => (
         <View
           key={j.feedIngredientId}
-          style={styles.ingredientRow}
+          style={[styles.ingredientRow, { borderBottomColor: ui.border }]}
           testID={`explanation-ingredient-${j.feedIngredientId}`}
         >
-          <Text style={styles.ingredientName}>{j.name}</Text>
-          <Text style={styles.body}>{j.text}</Text>
+          <Text style={[styles.ingredientName, { color: ui.textPrimary }]}>
+            {j.name}
+          </Text>
+          <Text style={[styles.body, { color: ui.textPrimary }]}>{j.text}</Text>
         </View>
       ))}
 
-      <View style={styles.energyBox} testID="explanation-energy">
-        <Text style={styles.energyLabel}>Valeur énergétique totale</Text>
-        <Text style={styles.energyValue}>
+      <View
+        style={[styles.energyBox, { backgroundColor: ui.accentSoft }]}
+        testID="explanation-energy"
+      >
+        <Text style={[styles.energyLabel, { color: ui.textSecondary }]}>
+          Valeur énergétique totale
+        </Text>
+        <Text style={[styles.energyValue, { color: ui.textPrimary }]}>
           {explanation.energyKcalPerKg.toLocaleString("fr-FR", {
             maximumFractionDigits: 0
           })}{" "}
           kcal/kg
         </Text>
-        <Text style={styles.body}>{explanation.energyComment}</Text>
+        <Text style={[styles.body, { color: ui.textPrimary }]}>
+          {explanation.energyComment}
+        </Text>
       </View>
 
       {explanation.notableDeviations.length > 0 ? (
         <View style={styles.devBox} testID="explanation-deviations">
-          <Text style={styles.sectionTitle}>Points à surveiller</Text>
+          <Text style={[styles.sectionTitle, { color: ui.textPrimary }]}>
+            Points à surveiller
+          </Text>
           {explanation.notableDeviations.map((line, i) => (
             <Text key={`dev-${i}`} style={styles.devLine}>
               • {line}
@@ -74,7 +101,10 @@ export function CompositionExplanationBlock({
       ) : null}
 
       {explanation.source === "factual_fallback" ? (
-        <Text style={styles.fallbackHint} testID="explanation-fallback-hint">
+        <Text
+          style={[styles.fallbackHint, { color: ui.textSecondary }]}
+          testID="explanation-fallback-hint"
+        >
           Explication simplifiée (assistant indisponible).
         </Text>
       ) : null}
@@ -88,35 +118,29 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.sm
   },
   loadingText: {
-    color: mobileColors.textSecondary,
     fontSize: mobileFontSize.sm,
     marginTop: 4
   },
   sectionTitle: {
     fontSize: mobileFontSize.md,
     fontWeight: "700",
-    color: mobileColors.textPrimary,
     marginTop: mobileSpacing.xs
   },
   body: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textPrimary,
     lineHeight: 20,
     fontWeight: "500"
   },
   ingredientRow: {
     gap: 2,
     paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   ingredientName: {
     fontSize: mobileFontSize.sm,
-    fontWeight: "700",
-    color: mobileColors.textPrimary
+    fontWeight: "700"
   },
   energyBox: {
-    backgroundColor: mobileColors.accentSoft,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     gap: 4,
@@ -124,13 +148,11 @@ const styles = StyleSheet.create({
   },
   energyLabel: {
     fontSize: mobileFontSize.sm,
-    fontWeight: "600",
-    color: mobileColors.textSecondary
+    fontWeight: "600"
   },
   energyValue: {
     fontSize: mobileFontSize.xxl,
-    fontWeight: "800",
-    color: mobileColors.textPrimary
+    fontWeight: "800"
   },
   devBox: {
     backgroundColor: mobileStatusSurfaces.warningBg,
@@ -146,7 +168,6 @@ const styles = StyleSheet.create({
   },
   fallbackHint: {
     fontSize: mobileFontSize.xs,
-    color: mobileColors.textSecondary,
     fontStyle: "italic"
   }
 });
