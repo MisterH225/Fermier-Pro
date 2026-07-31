@@ -28,6 +28,8 @@ function row(overrides: Record<string, unknown> = {}) {
     isActive: true,
     isPremix: false,
     notes: null,
+    imageUrl: null,
+    iconKey: "cereal",
     reviewedAt: null,
     reviewedBy: null,
     createdBy: "admin",

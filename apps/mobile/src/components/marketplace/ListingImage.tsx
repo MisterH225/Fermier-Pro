@@ -9,6 +9,7 @@ import {
   type ViewStyle
 } from "react-native";
 import { DefaultPigImage } from "../common/DefaultPigImage";
+import { FeedIngredientIcon } from "../merchant/FeedIngredientIcon";
 import { pickListingImageUrl } from "../../lib/resolveListingImage";
 import { mobileColors, mobileRadius } from "../../theme/mobileTheme";
 
@@ -62,6 +63,29 @@ export function ListingImage({
           borderTopRightRadius: borderRadius.topRight ?? 0
         };
 
+  const iconPhotos = Array.isArray(photos)
+    ? photos.filter((u): u is string => typeof u === "string")
+    : [];
+  const hasIngredientIcon = iconPhotos.some((u) =>
+    u.startsWith("fermier-icon:")
+  );
+
+  if ((!uri || failed) && hasIngredientIcon) {
+    return (
+      <View
+        style={[
+          styles.wrap,
+          styles.iconWrap,
+          { height },
+          radiusStyle,
+          style
+        ]}
+      >
+        <FeedIngredientIcon photoUrls={iconPhotos} size={Math.min(72, height * 0.45)} />
+      </View>
+    );
+  }
+
   if (!uri || failed) {
     return (
       <View style={[styles.wrap, { height }, radiusStyle, style]}>
@@ -100,6 +124,10 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: mobileColors.surfaceMuted,
     overflow: "hidden"
+  },
+  iconWrap: {
+    alignItems: "center",
+    justifyContent: "center"
   },
   image: {
     width: "100%"

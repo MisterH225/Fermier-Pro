@@ -4448,7 +4448,13 @@ export const en = {
     },
     products: {
       title: "My products",
+      newTitle: "New product",
       catalogTitle: "Catalog",
+      kindIngredient: "Ingredient",
+      kindOther: "Other product",
+      kindFilterAll: "All",
+      kindFilterIngredients: "Ingredients",
+      kindFilterOther: "Other",
       edit: "Edit",
       publish: "Publish",
       unpublish: "Unpublish",
@@ -4636,7 +4642,9 @@ export const en = {
       title: "My ingredients",
       subtitle:
         "Declare ingredient prices and stock. Enable wholesale to list them on the market.",
-      dashboardCta: "Manage prices, stock and wholesale",
+      dashboardCta: "See my products and ingredients",
+      unifiedHint:
+        "Pick an ingredient from the catalog. The app sets the price for market and composition.",
       unavailable: "Available to mills when the module is active.",
       addOffer: "Add ingredient",
       cancelForm: "Close form",

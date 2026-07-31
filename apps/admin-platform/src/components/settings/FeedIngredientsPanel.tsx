@@ -80,7 +80,9 @@ const EMPTY_FORM: FeedIngredientWriteBody = {
   crudeFiberPct: 0,
   fatPct: 0,
   dryMatterPct: 90,
-  notes: ""
+  notes: "",
+  imageUrl: "",
+  iconKey: "cereal"
 };
 
 function nutritionFromRow(row: AdminFeedIngredientDto): NutritionDraft {
@@ -270,7 +272,9 @@ export function FeedIngredientsPanel() {
           .split(",")
           .map((a) => a.trim())
           .filter(Boolean),
-        notes: form.notes?.trim() || undefined
+        notes: form.notes?.trim() || undefined,
+        imageUrl: form.imageUrl?.trim() || null,
+        iconKey: form.iconKey?.trim() || form.category
       });
       setForm(EMPTY_FORM);
       setAliasesText("");
@@ -617,6 +621,30 @@ export function FeedIngredientsPanel() {
                   }
                   rows={2}
                 />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="fi-iconKey">Pictogramme (iconKey)</Label>
+                  <Input
+                    id="fi-iconKey"
+                    value={form.iconKey ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, iconKey: e.target.value }))
+                    }
+                    placeholder="cereal, plant_protein…"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="fi-imageUrl">Image (URL)</Label>
+                  <Input
+                    id="fi-imageUrl"
+                    value={form.imageUrl ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, imageUrl: e.target.value }))
+                    }
+                    placeholder="https://…"
+                  />
+                </div>
               </div>
               {createError ? (
                 <p className="text-sm text-destructive">{createError}</p>

@@ -180,7 +180,11 @@ export class VetReviewCompositionDto {
   comment?: string;
 }
 
-/** Ajustement véto — passe toujours par le moteur (substitution). */
+/**
+ * Ajustement véto — passe TOUJOURS par le moteur (substitution d'intrant).
+ * Aucune quantité saisie : remove + add uniquement.
+ * Note : adjust_constraint n'est pas supporté par le moteur actuel.
+ */
 export class ProposeCompositionAdjustmentDto {
   @IsString()
   @MinLength(1)
@@ -208,11 +212,25 @@ export class ProposeCompositionAdjustmentDto {
   comment?: string;
 }
 
-/** Producteur applique une version proposée (carte chat). */
+/** Producteur applique une version proposée (legacy : via message chat). */
 export class ApplyCompositionAdjustmentDto {
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  messageId!: string;
+  messageId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  proposalId?: string;
+}
+
+/** Producteur refuse une proposition d'ajustement. */
+export class RejectCompositionAdjustmentDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  comment?: string;
 }
 
 /** @deprecated alias — préférer `RationLineDto`. */

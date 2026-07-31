@@ -16,9 +16,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
-import type { FeedRationLineDto } from "../../lib/api/feed-composition";
+import type {
+  FeedFormulateResultDto,
+  FeedRationLineDto
+} from "../../lib/api/feed-composition";
 import { apiGetJson } from "../../lib/api/http";
-import { formatPct, rationLineName } from "../../lib/feedCompositionFormat";
+import { formatApiError } from "../../lib/apiErrors";
+import {
+  formatPct,
+  formatXof,
+  rationLineName
+} from "../../lib/feedCompositionFormat";
 import {
   compositionUiColors,
   type CompositionUiTone
@@ -35,10 +43,31 @@ type IngredientHit = {
   category: string;
 };
 
+export type AdjustmentPreview = {
+  feasible: boolean;
+  formulation: FeedFormulateResultDto;
+  deviationFromCurrent: {
+    crudeProteinPct: number;
+    metabolizableEnergyKcal: number;
+    lysinePct: number;
+    energyChangePct: number | null;
+    fatRiskAlert: boolean;
+    energyCapKcal: number | null;
+  };
+  fatRiskAlert: boolean;
+  infeasibilityReasons: string[];
+};
+
 type Props = {
   visible: boolean;
   ration: FeedRationLineDto[];
   onClose: () => void;
+  /** Recalcule via le moteur — sans envoyer. */
+  onPreview: (args: {
+    removeIngredientId: string;
+    addIngredientId: string;
+  }) => Promise<AdjustmentPreview>;
+  /** Confirme l'envoi de la proposition. */
   onSubmit: (args: {
     removeIngredientId: string;
     addIngredientId: string;
@@ -52,6 +81,7 @@ export function ProposeAdjustmentModal({
   visible,
   ration,
   onClose,
+  onPreview,
   onSubmit,
   submitting,
   tone = "producer"
@@ -65,6 +95,9 @@ export function ProposeAdjustmentModal({
   const [addId, setAddId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [comment, setComment] = useState("");
+  const [preview, setPreview] = useState<AdjustmentPreview | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) {
@@ -72,6 +105,9 @@ export function ProposeAdjustmentModal({
       setAddId(null);
       setQ("");
       setComment("");
+      setPreview(null);
+      setPreviewError(null);
+      setPreviewing(false);
     }
   }, [visible]);
 
@@ -86,7 +122,9 @@ export function ProposeAdjustmentModal({
     enabled: Boolean(accessToken && visible && q.trim().length >= 1)
   });
 
-  const canSubmit = Boolean(removeId && addId && removeId !== addId);
+  const canRecalc = Boolean(removeId && addId && removeId !== addId);
+  const canConfirm =
+    Boolean(preview?.feasible) && canRecalc && !submitting && !previewing;
 
   const hits = useMemo(
     () => (searchQ.data ?? []).filter((h) => h.id !== removeId),
@@ -94,12 +132,30 @@ export function ProposeAdjustmentModal({
   );
 
   const scrollFocusedIntoView = () => {
-    // Android : laisse le clavier s’ouvrir puis remonte le sheet.
     requestAnimationFrame(() => {
       setTimeout(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       }, Platform.OS === "android" ? 120 : 40);
     });
+  };
+
+  const runPreview = async () => {
+    if (!removeId || !addId) return;
+    setPreviewing(true);
+    setPreviewError(null);
+    setPreview(null);
+    try {
+      const result = await onPreview({
+        removeIngredientId: removeId,
+        addIngredientId: addId
+      });
+      setPreview(result);
+      scrollFocusedIntoView();
+    } catch (err) {
+      setPreviewError(formatApiError(err));
+    } finally {
+      setPreviewing(false);
+    }
   };
 
   return (
@@ -137,7 +193,7 @@ export function ProposeAdjustmentModal({
             </Text>
             <Text style={[styles.hint, { color: ui.textSecondary }]}>
               Enlevez un produit et choisissez-en un autre. L’appli recalcule
-              toute seule — pas à la main.
+              toute seule — pas à la main. Vérifiez le résultat avant d’envoyer.
             </Text>
 
             <Text style={[styles.label, { color: ui.textSecondary }]}>
@@ -157,7 +213,10 @@ export function ProposeAdjustmentModal({
                         borderColor: ui.accent
                       }
                     ]}
-                    onPress={() => setRemoveId(l.feedIngredientId)}
+                    onPress={() => {
+                      setRemoveId(l.feedIngredientId);
+                      setPreview(null);
+                    }}
                   >
                     <Text
                       style={[
@@ -184,7 +243,10 @@ export function ProposeAdjustmentModal({
               placeholder="Chercher un intrant (ex. soja)"
               placeholderTextColor={ui.textSecondary}
               value={q}
-              onChangeText={setQ}
+              onChangeText={(t) => {
+                setQ(t);
+                setPreview(null);
+              }}
               onFocus={scrollFocusedIntoView}
               testID="adjust-search"
             />
@@ -206,7 +268,10 @@ export function ProposeAdjustmentModal({
                         { borderBottomColor: ui.border },
                         on && { backgroundColor: ui.accentSoft }
                       ]}
-                      onPress={() => setAddId(item.id)}
+                      onPress={() => {
+                        setAddId(item.id);
+                        setPreview(null);
+                      }}
                     >
                       <Text
                         style={[styles.hitText, { color: ui.textPrimary }]}
@@ -226,6 +291,79 @@ export function ProposeAdjustmentModal({
               />
             )}
 
+            <Pressable
+              style={[
+                styles.recalcBtn,
+                { borderColor: ui.accent },
+                (!canRecalc || previewing) && styles.disabled
+              ]}
+              disabled={!canRecalc || previewing}
+              testID="adjust-recalculate"
+              onPress={() => void runPreview()}
+            >
+              <Text style={[styles.recalcLabel, { color: ui.accent }]}>
+                {previewing ? "Recalcul…" : "Recalculer"}
+              </Text>
+            </Pressable>
+
+            {previewError ? (
+              <Text style={styles.error} testID="adjust-preview-error">
+                {previewError}
+              </Text>
+            ) : null}
+
+            {preview ? (
+              <View style={styles.previewBox} testID="adjust-preview">
+                {!preview.feasible ? (
+                  <Text style={styles.error}>
+                    Cet ajustement rend le mélange infaisable avec les intrants
+                    disponibles.
+                    {preview.infeasibilityReasons[0]
+                      ? ` ${preview.infeasibilityReasons[0]}`
+                      : ""}
+                  </Text>
+                ) : (
+                  <>
+                    <Text
+                      style={[styles.previewTitle, { color: ui.textPrimary }]}
+                    >
+                      Nouveau mélange ·{" "}
+                      {formatXof(preview.formulation.totalCostXof)}
+                    </Text>
+                    {(preview.formulation.ration ?? []).slice(0, 6).map((l) => (
+                      <Text
+                        key={l.feedIngredientId}
+                        style={[styles.previewLine, { color: ui.textSecondary }]}
+                      >
+                        {rationLineName(l)} · {formatPct(l.proportionPct)}
+                      </Text>
+                    ))}
+                    <Text
+                      style={[styles.previewDelta, { color: ui.textPrimary }]}
+                    >
+                      Énergie :{" "}
+                      {preview.deviationFromCurrent.energyChangePct != null
+                        ? `${preview.deviationFromCurrent.energyChangePct.toFixed(1)} %`
+                        : "—"}
+                      {" · "}
+                      Protéines :{" "}
+                      {preview.deviationFromCurrent.crudeProteinPct >= 0
+                        ? "+"
+                        : ""}
+                      {preview.deviationFromCurrent.crudeProteinPct.toFixed(2)}{" "}
+                      pts
+                    </Text>
+                    {preview.fatRiskAlert ? (
+                      <Text style={styles.fatRisk} testID="adjust-fat-risk">
+                        Risque de gras : l’énergie dépasse le plafond de ce
+                        stade.
+                      </Text>
+                    ) : null}
+                  </>
+                )}
+              </View>
+            ) : null}
+
             <Text style={[styles.label, { color: ui.textSecondary }]}>
               Commentaire (optionnel)
             </Text>
@@ -243,7 +381,7 @@ export function ProposeAdjustmentModal({
               value={comment}
               onChangeText={setComment}
               onFocus={scrollFocusedIntoView}
-              placeholder="Ex. : baisse le tourteau, ajoute du calcium"
+              placeholder="Ex. : plus de soja pour les protéines"
               placeholderTextColor={ui.textSecondary}
               testID="adjust-comment"
             />
@@ -261,12 +399,12 @@ export function ProposeAdjustmentModal({
                 style={[
                   styles.submit,
                   { backgroundColor: ui.accent },
-                  (!canSubmit || submitting) && styles.disabled
+                  (!canConfirm || submitting) && styles.disabled
                 ]}
-                disabled={!canSubmit || submitting}
+                disabled={!canConfirm || submitting}
                 testID="adjust-submit"
                 onPress={() => {
-                  if (!removeId || !addId) return;
+                  if (!removeId || !addId || !preview?.feasible) return;
                   onSubmit({
                     removeIngredientId: removeId,
                     addIngredientId: addId,
@@ -275,7 +413,7 @@ export function ProposeAdjustmentModal({
                 }}
               >
                 <Text style={[styles.submitLabel, { color: ui.onAccent }]}>
-                  {submitting ? "Calcul…" : "Proposer"}
+                  {submitting ? "Envoi…" : "Envoyer au producteur"}
                 </Text>
               </Pressable>
             </View>
@@ -336,6 +474,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth
   },
   hitText: { fontWeight: "600" },
+  recalcBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: mobileRadius.md,
+    borderWidth: 1.5
+  },
+  recalcLabel: { fontWeight: "800" },
+  previewBox: {
+    marginTop: 4,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    gap: 4
+  },
+  previewTitle: { fontWeight: "800", fontSize: mobileFontSize.md },
+  previewLine: { fontSize: mobileFontSize.sm },
+  previewDelta: { marginTop: 4, fontWeight: "600", fontSize: mobileFontSize.sm },
+  fatRisk: {
+    marginTop: 4,
+    color: "#B45309",
+    fontWeight: "700",
+    fontSize: mobileFontSize.sm
+  },
+  error: {
+    color: "#B91C1C",
+    fontWeight: "600",
+    fontSize: mobileFontSize.sm
+  },
   actions: { flexDirection: "row", gap: 12, marginTop: 12 },
   cancel: {
     flex: 1,

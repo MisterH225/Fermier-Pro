@@ -2305,6 +2305,8 @@ export type AdminFeedIngredientDto = {
   dryMatterPct: number;
   isActive: boolean;
   notes: string | null;
+  imageUrl: string | null;
+  iconKey: string | null;
   reviewedAt: string | null;
   reviewedBy: string | null;
   createdAt: string;
@@ -2325,6 +2327,8 @@ export type FeedIngredientWriteBody = {
   fatPct: number;
   dryMatterPct: number;
   notes?: string;
+  imageUrl?: string | null;
+  iconKey?: string | null;
 };
 
 export function fetchAdminFeedIngredients(

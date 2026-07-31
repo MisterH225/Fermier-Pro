@@ -20,17 +20,23 @@ import { MerchantProductsRestockSection } from "../../components/merchant/Mercha
 import { MerchantProductsSalesSection } from "../../components/merchant/MerchantProductsSalesSection";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
+import { FeedIngredientIcon } from "../../components/merchant/FeedIngredientIcon";
 import {
+  deactivateMillIngredientOffer,
   deleteMerchantProduct,
   fetchMerchantMe,
   fetchMerchantProducts,
   fetchMerchantSellerOrders,
+  fetchMillIngredientOffers,
   publishMerchantProduct,
   swapMerchantProductActive,
   unpublishMerchantProduct,
-  type MerchantProductDto
+  updateMillIngredientOffer,
+  type MerchantProductDto,
+  type MillIngredientOfferDto
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import { canAccessMillFeatures } from "../../lib/merchantKind";
 import { hasMerchantShop } from "../../lib/merchantShop";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileColors, mobileRadius, mobileFontSize } from "../../theme/mobileTheme";
@@ -43,6 +49,8 @@ type StatusFilter =
   | "draft"
   | "moderated_removed"
   | "resubmission_review";
+
+type KindFilter = "all" | "ingredients" | "other";
 
 const FILTERS: StatusFilter[] = [
   "all",
@@ -61,8 +69,9 @@ export function MerchantProductsScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
   const queryClient = useQueryClient();
-  const { accessToken, activeProfileId } = useSession();
+  const { accessToken, activeProfileId, platformModules } = useSession();
   const [filter, setFilter] = useState<StatusFilter>("all");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [refreshing, setRefreshing] = useState(false);
 
   const cardWidth = useMemo(() => {
@@ -76,10 +85,21 @@ export function MerchantProductsScreen() {
     enabled: Boolean(accessToken && activeProfileId)
   });
 
+  const millOk = canAccessMillFeatures(
+    platformModules,
+    meQ.data?.merchantKind
+  );
+
   const productsQ = useQuery({
     queryKey: ["merchant-products", activeProfileId],
     queryFn: () => fetchMerchantProducts(accessToken!, activeProfileId!),
     enabled: Boolean(accessToken && activeProfileId)
+  });
+
+  const offersQ = useQuery({
+    queryKey: ["mill-offers", activeProfileId],
+    queryFn: () => fetchMillIngredientOffers(accessToken!, activeProfileId!),
+    enabled: Boolean(accessToken && activeProfileId && millOk)
   });
 
   const ordersQ = useQuery({
@@ -88,14 +108,30 @@ export function MerchantProductsScreen() {
     enabled: Boolean(accessToken && activeProfileId)
   });
 
+  const linkedProductIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const o of offersQ.data ?? []) {
+      if (o.merchantProductId) ids.add(o.merchantProductId);
+    }
+    return ids;
+  }, [offersQ.data]);
+
   const filtered = useMemo(() => {
-    const items = productsQ.data ?? [];
+    let items = productsQ.data ?? [];
+    if (millOk && kindFilter === "other") {
+      items = items.filter((p) => !linkedProductIds.has(p.id));
+    }
+    if (millOk && kindFilter === "ingredients") {
+      // Les intrants publics sont aussi des produits liés — on affiche la liste d'offres.
+      return [];
+    }
     if (filter === "all") return items;
     return items.filter((p) => p.status === filter);
-  }, [productsQ.data, filter]);
+  }, [productsQ.data, filter, millOk, kindFilter, linkedProductIds]);
 
   const invalidate = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["merchant-products", activeProfileId] });
+    await queryClient.invalidateQueries({ queryKey: ["mill-offers", activeProfileId] });
     await queryClient.invalidateQueries({ queryKey: ["merchant-me", activeProfileId] });
     await queryClient.invalidateQueries({ queryKey: ["merchant-dashboard", activeProfileId] });
     await queryClient.invalidateQueries({
@@ -213,17 +249,37 @@ export function MerchantProductsScreen() {
     ]
   );
 
+  const openCreate = useCallback(() => {
+    navigation.navigate("MerchantProductForm", {
+      shopId: defaultShopId,
+      createKind: millOk && kindFilter === "ingredients" ? "ingredient" : "product"
+    });
+  }, [navigation, defaultShopId, millOk, kindFilter]);
+
+  const toggleOfferPublic = useMutation({
+    mutationFn: (offer: MillIngredientOfferDto) =>
+      updateMillIngredientOffer(accessToken!, activeProfileId!, offer.id, {
+        isPubliclyListed: !offer.isPubliclyListed
+      }),
+    onSuccess: () => void invalidate(),
+    onError: (e) => Alert.alert(formatApiError(e))
+  });
+
+  const deactivateOffer = useMutation({
+    mutationFn: (offerId: string) =>
+      deactivateMillIngredientOffer(accessToken!, activeProfileId!, offerId),
+    onSuccess: () => void invalidate(),
+    onError: (e) => Alert.alert(formatApiError(e))
+  });
+
   const header = (
     <View style={styles.topBar}>
       <Text style={styles.title}>{t("merchant.products.title")}</Text>
       {hasShop ? (
         <Pressable
           style={styles.addBtn}
-          onPress={() =>
-            navigation.navigate("MerchantProductForm", {
-              shopId: defaultShopId
-            })
-          }
+          onPress={openCreate}
+          testID="merchant-products-add"
         >
           <Text style={styles.addBtnTx}>+</Text>
         </Pressable>
@@ -256,61 +312,178 @@ export function MerchantProductsScreen() {
         </View>
       ) : (
         <>
-          <View style={styles.filters}>
-            {FILTERS.map((f) => (
-              <Pressable
-                key={f}
-                style={[styles.filterChip, filter === f && styles.filterChipOn]}
-                onPress={() => setFilter(f)}
-              >
-                <Text style={[styles.filterTx, filter === f && styles.filterTxOn]}>
-                  {t(`merchant.products.filter.${f}`)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {millOk ? (
+            <View style={styles.filters} testID="mill-kind-filters">
+              {(
+                [
+                  ["all", "kindFilterAll"],
+                  ["ingredients", "kindFilterIngredients"],
+                  ["other", "kindFilterOther"]
+                ] as const
+              ).map(([k, labelKey]) => (
+                <Pressable
+                  key={k}
+                  style={[
+                    styles.filterChip,
+                    kindFilter === k && styles.filterChipOn
+                  ]}
+                  onPress={() => setKindFilter(k)}
+                  testID={`mill-kind-filter-${k}`}
+                >
+                  <Text
+                    style={[
+                      styles.filterTx,
+                      kindFilter === k && styles.filterTxOn
+                    ]}
+                  >
+                    {t(`merchant.products.${labelKey}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
 
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            columnWrapperStyle={styles.column}
-            ListHeaderComponent={listHeader}
-            contentContainerStyle={{
-              padding: H_PAD,
-              paddingBottom: bottomInset + mobileSpacing.lg
-            }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true);
-                  void Promise.all([
-                    productsQ.refetch(),
-                    ordersQ.refetch(),
-                    meQ.refetch()
-                  ]).finally(() => setRefreshing(false));
-                }}
-                tintColor={merchantColors.primary}
-              />
-            }
-            ListEmptyComponent={
-              <Text style={styles.empty}>{t("merchant.dashboard.noProducts")}</Text>
-            }
-            renderItem={({ item }) => (
-              <MerchantProductGridCard
-                product={item}
-                width={cardWidth}
-                onPress={() => openProduct(item.id)}
-                onTogglePublish={() => togglePublish.mutate(item)}
-                publishBusy={togglePublish.isPending}
-                showSwap={me?.subscriptionTier === "free" && item.status === "disabled"}
-                onSwap={() => swapActive.mutate(item.id)}
-                onDelete={() => confirmDelete(item)}
-                atFreeLimit={atFreeLimit}
-              />
-            )}
-          />
+          {kindFilter !== "ingredients" ? (
+            <View style={styles.filters}>
+              {FILTERS.map((f) => (
+                <Pressable
+                  key={f}
+                  style={[styles.filterChip, filter === f && styles.filterChipOn]}
+                  onPress={() => setFilter(f)}
+                >
+                  <Text
+                    style={[styles.filterTx, filter === f && styles.filterTxOn]}
+                  >
+                    {t(`merchant.products.filter.${f}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {millOk && kindFilter === "ingredients" ? (
+            <FlatList
+              testID="mill-ingredients-in-products"
+              data={offersQ.data ?? []}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{
+                padding: H_PAD,
+                paddingBottom: bottomInset + mobileSpacing.lg,
+                gap: 10
+              }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    void Promise.all([
+                      offersQ.refetch(),
+                      productsQ.refetch(),
+                      meQ.refetch()
+                    ]).finally(() => setRefreshing(false));
+                  }}
+                  tintColor={merchantColors.primary}
+                />
+              }
+              ListEmptyComponent={
+                <Text style={styles.empty}>
+                  {t("merchant.millIngredients.empty")}
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.offerCard}>
+                  <FeedIngredientIcon
+                    imageUrl={item.feedIngredientImageUrl}
+                    iconKey={item.feedIngredientIconKey}
+                    category={item.feedIngredientCategory}
+                    size={44}
+                  />
+                  <View style={styles.offerBody}>
+                    <Text style={styles.offerName}>
+                      {item.feedIngredientName ?? item.feedIngredientId}
+                    </Text>
+                    <Text style={styles.offerMeta}>
+                      {item.pricePerUnit.toLocaleString("fr-FR")} XOF ·{" "}
+                      {t("merchant.millIngredients.stockLabel", {
+                        qty: item.stockQuantity
+                      })}
+                    </Text>
+                    <Text style={styles.offerBadge}>
+                      {item.isPubliclyListed
+                        ? t("merchant.millIngredients.publicBadge")
+                        : t("merchant.millIngredients.privateBadge")}
+                    </Text>
+                    <View style={styles.offerActions}>
+                      <Pressable
+                        onPress={() => toggleOfferPublic.mutate(item)}
+                      >
+                        <Text style={styles.offerActionTx}>
+                          {item.isPubliclyListed
+                            ? t("merchant.millIngredients.unlist")
+                            : t("merchant.millIngredients.listPublic")}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => deactivateOffer.mutate(item.id)}
+                      >
+                        <Text style={styles.offerActionDanger}>
+                          {t("merchant.millIngredients.deactivate")}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              )}
+            />
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              columnWrapperStyle={styles.column}
+              ListHeaderComponent={listHeader}
+              contentContainerStyle={{
+                padding: H_PAD,
+                paddingBottom: bottomInset + mobileSpacing.lg
+              }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    void Promise.all([
+                      productsQ.refetch(),
+                      ordersQ.refetch(),
+                      meQ.refetch(),
+                      millOk ? offersQ.refetch() : Promise.resolve()
+                    ]).finally(() => setRefreshing(false));
+                  }}
+                  tintColor={merchantColors.primary}
+                />
+              }
+              ListEmptyComponent={
+                <Text style={styles.empty}>
+                  {t("merchant.dashboard.noProducts")}
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <MerchantProductGridCard
+                  product={item}
+                  width={cardWidth}
+                  onPress={() => openProduct(item.id)}
+                  onTogglePublish={() => togglePublish.mutate(item)}
+                  publishBusy={togglePublish.isPending}
+                  showSwap={
+                    me?.subscriptionTier === "free" &&
+                    item.status === "disabled"
+                  }
+                  onSwap={() => swapActive.mutate(item.id)}
+                  onDelete={() => confirmDelete(item)}
+                  atFreeLimit={atFreeLimit}
+                />
+              )}
+            />
+          )}
         </>
       )}
     </MerchantMobileShell>
@@ -398,5 +571,32 @@ const styles = StyleSheet.create({
     marginBottom: mobileSpacing.sm,
     marginTop: mobileSpacing.xs
   },
-  empty: { textAlign: "center", color: merchantColors.textSecondary, marginTop: 24 }
+  empty: { textAlign: "center", color: merchantColors.textSecondary, marginTop: 24 },
+  offerCard: {
+    flexDirection: "row",
+    gap: 12,
+    padding: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
+    borderWidth: 1,
+    borderColor: merchantColors.border,
+    backgroundColor: merchantColors.cardBg
+  },
+  offerBody: { flex: 1, gap: 4 },
+  offerName: {
+    fontWeight: "800",
+    fontSize: mobileFontSize.md,
+    color: merchantColors.textPrimary
+  },
+  offerMeta: {
+    fontSize: mobileFontSize.sm,
+    color: merchantColors.textSecondary
+  },
+  offerBadge: {
+    fontSize: mobileFontSize.xs,
+    fontWeight: "700",
+    color: merchantColors.primary
+  },
+  offerActions: { flexDirection: "row", gap: 16, marginTop: 6 },
+  offerActionTx: { fontWeight: "700", color: merchantColors.primary },
+  offerActionDanger: { fontWeight: "700", color: "#B91C1C" }
 });

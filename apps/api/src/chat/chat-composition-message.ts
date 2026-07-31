@@ -52,6 +52,10 @@ export type FeedCompositionCardPayload = {
   infeasibilityReasons: string[];
   /** Écart vs version précédente (ajustement véto). */
   nutritionDelta: Record<string, number | null> | null;
+  /** Id CompositionAdjustmentProposal (si proposée via le modèle). */
+  proposalId?: string | null;
+  /** Alerte anti-gras : énergie au-dessus / proche du plafond du stade. */
+  fatRiskAlert?: boolean;
   versionId: string;
   proposedByUserId: string;
   note?: string | null;

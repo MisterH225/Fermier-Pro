@@ -45,6 +45,10 @@ type Props = {
     messageId: string,
     payload: FeedCompositionCardPayload
   ) => void;
+  onRejectCompositionAdjustment?: (
+    proposalId: string,
+    payload: FeedCompositionCardPayload
+  ) => void;
   showApplyComposition?: boolean;
 };
 
@@ -52,6 +56,7 @@ export function MessageBubble({
   message,
   isMine,
   onApplyCompositionAdjustment,
+  onRejectCompositionAdjustment,
   showApplyComposition
 }: Props) {
   const palette = useRolePalette();
@@ -73,6 +78,7 @@ export function MessageBubble({
         messageId={message.id}
         showApply={Boolean(showApplyComposition && !isMine)}
         onApply={onApplyCompositionAdjustment}
+        onReject={onRejectCompositionAdjustment}
       />
     );
   }

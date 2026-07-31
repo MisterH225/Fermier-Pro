@@ -4451,7 +4451,13 @@ export const fr = {
     },
     products: {
       title: "Mes produits",
+      newTitle: "Nouveau produit",
       catalogTitle: "Catalogue",
+      kindIngredient: "Intrant",
+      kindOther: "Autre produit",
+      kindFilterAll: "Tous",
+      kindFilterIngredients: "Intrants",
+      kindFilterOther: "Autres",
       edit: "Modifier",
       publish: "Publier",
       unpublish: "Dépublier",
@@ -4639,7 +4645,9 @@ export const fr = {
       title: "Mes intrants",
       subtitle:
         "Déclare tes prix et stocks d'intrants. Coche « Vendre en gros » pour les publier sur le marché.",
-      dashboardCta: "Gérer prix, stocks et vente en gros",
+      dashboardCta: "Voir mes produits et intrants",
+      unifiedHint:
+        "Choisis un intrant du référentiel. L’appli calcule le prix pour le marché et la composition.",
       unavailable: "Réservé aux moulins lorsque le module est actif.",
       addOffer: "Ajouter un intrant",
       cancelForm: "Fermer le formulaire",

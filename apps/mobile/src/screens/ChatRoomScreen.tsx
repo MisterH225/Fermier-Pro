@@ -41,6 +41,7 @@ import type { ChatMessageDto } from "../lib/api";
 import {
   analyzeChatImage,
   applyCompositionAdjustment,
+  rejectCompositionAdjustment,
   fetchChatMessages,
   fetchChatRoom,
   fetchFarmMembers,
@@ -464,18 +465,20 @@ export function ChatRoomScreen({ route, navigation }: Props) {
   const isCompositionRoom = roomQuery.data?.kind === "feed_composition";
 
   const applyAdjustment = useCallback(
-    (messageId: string, _payload: FeedCompositionCardPayload) => {
+    (messageId: string, payload: FeedCompositionCardPayload) => {
       if (!accessToken || !compositionId) return;
       void applyCompositionAdjustment(
         accessToken,
         compositionId,
-        { messageId },
+        payload.proposalId
+          ? { proposalId: payload.proposalId }
+          : { messageId },
         activeProfileId
       )
         .then(() => {
           Alert.alert(
             "Version appliquée",
-            "La composition a été mise à jour. Vous pouvez la renvoyer au véto."
+            "La composition a été mise à jour — elle reste en revue. Le véto doit encore valider."
           );
           void qc.invalidateQueries({ queryKey: ["chatMessages", roomId] });
           void qc.invalidateQueries({
@@ -483,6 +486,42 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           });
         })
         .catch((err: unknown) => Alert.alert("Erreur", formatApiError(err)));
+    },
+    [accessToken, activeProfileId, compositionId, qc, roomId]
+  );
+
+  const rejectAdjustment = useCallback(
+    (proposalId: string, _payload: FeedCompositionCardPayload) => {
+      if (!accessToken || !compositionId) return;
+      Alert.alert(
+        "Refuser cette proposition ?",
+        "La ration actuelle sera conservée.",
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Refuser",
+            style: "destructive",
+            onPress: () => {
+              void rejectCompositionAdjustment(
+                accessToken,
+                compositionId,
+                proposalId,
+                undefined,
+                activeProfileId
+              )
+                .then(() => {
+                  Alert.alert("Proposition refusée", "Le véto a été notifié.");
+                  void qc.invalidateQueries({
+                    queryKey: ["chatMessages", roomId]
+                  });
+                })
+                .catch((err: unknown) =>
+                  Alert.alert("Erreur", formatApiError(err))
+                );
+            }
+          }
+        ]
+      );
     },
     [accessToken, activeProfileId, compositionId, qc, roomId]
   );
@@ -502,10 +541,17 @@ export function ChatRoomScreen({ route, navigation }: Props) {
           isMine={item.message.senderUserId === myUserId}
           showApplyComposition={Boolean(isCompositionRoom && compositionId)}
           onApplyCompositionAdjustment={applyAdjustment}
+          onRejectCompositionAdjustment={rejectAdjustment}
         />
       );
     },
-    [myUserId, isCompositionRoom, compositionId, applyAdjustment]
+    [
+      myUserId,
+      isCompositionRoom,
+      compositionId,
+      applyAdjustment,
+      rejectAdjustment
+    ]
   );
 
   const openListingProposal = useCallback(() => {

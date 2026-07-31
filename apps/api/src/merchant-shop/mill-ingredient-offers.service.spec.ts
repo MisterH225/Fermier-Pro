@@ -45,7 +45,9 @@ describe("MillIngredientOffersService", () => {
             ...row,
             feedIngredient: {
               canonicalName: "Maïs",
-              category: "cereal"
+              category: "cereal",
+              imageUrl: null,
+              iconKey: "cereal"
             },
             millProfile: {
               userId: millProfile.userId,
@@ -62,7 +64,9 @@ describe("MillIngredientOffersService", () => {
               id: row.feedIngredientId,
               canonicalName: "Maïs",
               aliases: ["mais", "corn"],
-              category: "cereal"
+              category: "cereal",
+              imageUrl: null,
+              iconKey: "cereal"
             },
             merchantProduct: row.merchantProductId
               ? { id: row.merchantProductId, status: "published", stock: 10 }
@@ -171,7 +175,13 @@ describe("MillIngredientOffersService", () => {
       stockQuantity: 100,
       isPubliclyListed: true
     });
-    expect(prisma.merchantProduct.create).toHaveBeenCalled();
+    expect(prisma.merchantProduct.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          photoUrls: ["fermier-icon:cereal"]
+        })
+      })
+    );
     expect(prisma.merchantProduct.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: "published" })
