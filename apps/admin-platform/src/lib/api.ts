@@ -2322,10 +2322,15 @@ export type FeedIngredientWriteBody = {
 
 export function fetchAdminFeedIngredients(
   token: string,
-  opts?: { q?: string; includeInactive?: boolean }
+  opts?: {
+    q?: string;
+    category?: FeedIngredientCategory;
+    includeInactive?: boolean;
+  }
 ) {
   const params = new URLSearchParams();
   if (opts?.q) params.set("q", opts.q);
+  if (opts?.category) params.set("category", opts.category);
   if (opts?.includeInactive !== undefined) {
     params.set("includeInactive", String(opts.includeInactive));
   }

@@ -1767,8 +1767,8 @@
   "feedIngredients": {
     "title": "Feed ingredient catalog",
     "subtitle": "Shared catalog (mills + formulation). Fully editable — seed values are indicative.",
-    "formTitle": "Create or edit",
-    "listTitle": "Ingredients",
+    "formTitle": "Add an ingredient",
+    "listTitle": "Catalog matrix",
     "createTitle": "New ingredient",
     "editTitle": "Edit ingredient",
     "disclaimer": "Nutritional values must be validated by a nutritionist / veterinarian before enabling formulation.",
@@ -1807,6 +1807,10 @@
       "crudeFiberPct": "Fiber %",
       "fatPct": "Fat %",
       "dryMatterPct": "DM %"
-    }
+    },
+    "allCategories": "All categories",
+    "empty": "No ingredients found. Run Prisma seed or add one below.",
+    "loadError": "Could not load the feed ingredient catalog.",
+    "createHint": "Collapsed by default — only used to add an ingredient missing from the catalog."
   }
 }
