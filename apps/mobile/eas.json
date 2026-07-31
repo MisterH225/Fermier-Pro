@@ -24,12 +24,14 @@
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "742075194736-0hcd73lku61a5t2vma7ggf6evtk8bqkl.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "742075194736-76b019pl2eu7k39ocp4lfnjlcqqhi227.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "742075194736-ukme83465m4g39r3s8ghoib7cusu1v1r.apps.googleusercontent.com",
-        "EXPO_PUBLIC_INVITE_BASE_URL": "https://fermierapi-production.up.railway.app/api/v1/invite"
+        "EXPO_PUBLIC_INVITE_BASE_URL": "https://fermierapi-production.up.railway.app/api/v1/invite",
+        "SENTRY_ALLOW_FAILURE": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
         "simulator": false,
-        "image": "latest",
-        "distribution": "store"
+        "image": "sdk-54",
+        "distribution": "internal"
       },
       "android": {
         "buildType": "apk"
@@ -47,7 +49,8 @@
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "742075194736-0hcd73lku61a5t2vma7ggf6evtk8bqkl.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "742075194736-76b019pl2eu7k39ocp4lfnjlcqqhi227.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "742075194736-ukme83465m4g39r3s8ghoib7cusu1v1r.apps.googleusercontent.com",
-        "EXPO_PUBLIC_INVITE_BASE_URL": "https://fermierapi-production.up.railway.app/api/v1/invite"
+        "EXPO_PUBLIC_INVITE_BASE_URL": "https://fermierapi-production.up.railway.app/api/v1/invite",
+        "SENTRY_ALLOW_FAILURE": "true"
       }
     }
   },

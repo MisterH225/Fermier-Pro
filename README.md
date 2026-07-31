@@ -39,7 +39,7 @@ Ce document couvre:
 
 ## Sécurité PostgREST
 
-L'app mobile ne parle **jamais** à PostgREST pour les tables Prisma : uniquement NestJS + Supabase Auth/Storage. La migration `supabase/migrations/20260713071340_revoke_postgrest_table_access.sql` retire les privileges `anon` / `authenticated` sur le schéma `public` (tables + séquences) et verrouille les default privileges pour les futures tables.
+L'app mobile ne parle **jamais** à PostgREST pour les tables Prisma : uniquement NestJS + Supabase Auth/Storage. La migration `supabase/migrations/20260720133458_revoke_postgrest_table_access.sql` retire les privileges `anon` / `authenticated` sur le schéma `public` (tables + séquences) et verrouille les default privileges pour les futures tables.
 
 Après application de la migration sur le projet Supabase, vérifier :
 
