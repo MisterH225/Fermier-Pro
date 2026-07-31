@@ -28,8 +28,8 @@
       },
       "ios": {
         "simulator": false,
-        "image": "latest",
-        "distribution": "store"
+        "image": "sdk-54",
+        "distribution": "internal"
       },
       "android": {
         "buildType": "apk"
