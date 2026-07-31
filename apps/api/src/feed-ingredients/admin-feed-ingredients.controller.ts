@@ -56,6 +56,12 @@ export class AdminFeedIngredientsController {
     return this.ingredients.update(id, dto, user.id);
   }
 
+  /** Marque l'intrant comme relu / validé (reviewedAt). */
+  @Post(":id/review")
+  markReviewed(@Param("id") id: string, @CurrentUser() user: User) {
+    return this.ingredients.markReviewed(id, user.id);
+  }
+
   /** Désactivation soft — conserve l'historique / références. */
   @Delete(":id")
   deactivate(@Param("id") id: string, @CurrentUser() user: User) {

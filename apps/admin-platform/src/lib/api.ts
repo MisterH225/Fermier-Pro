@@ -2300,6 +2300,8 @@ export type AdminFeedIngredientDto = {
   dryMatterPct: number;
   isActive: boolean;
   notes: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -2322,10 +2324,15 @@ export type FeedIngredientWriteBody = {
 
 export function fetchAdminFeedIngredients(
   token: string,
-  opts?: { q?: string; includeInactive?: boolean }
+  opts?: {
+    q?: string;
+    category?: FeedIngredientCategory;
+    includeInactive?: boolean;
+  }
 ) {
   const params = new URLSearchParams();
   if (opts?.q) params.set("q", opts.q);
+  if (opts?.category) params.set("category", opts.category);
   if (opts?.includeInactive !== undefined) {
     params.set("includeInactive", String(opts.includeInactive));
   }
@@ -2349,12 +2356,23 @@ export function createAdminFeedIngredient(
 export function patchAdminFeedIngredient(
   token: string,
   id: string,
-  body: Partial<FeedIngredientWriteBody> & { isActive?: boolean }
+  body: Partial<FeedIngredientWriteBody> & {
+    isActive?: boolean;
+    markReviewed?: boolean;
+  }
 ) {
   return apiFetch<AdminFeedIngredientDto>(
     `/admin/feed-ingredients/${id}`,
     token,
     { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
+export function reviewAdminFeedIngredient(token: string, id: string) {
+  return apiFetch<AdminFeedIngredientDto>(
+    `/admin/feed-ingredients/${id}/review`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
   );
 }
 

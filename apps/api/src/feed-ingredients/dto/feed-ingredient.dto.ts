@@ -189,6 +189,11 @@ export class UpdateFeedIngredientDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  /** Marque l'intrant comme relu / validé (renseigne reviewedAt). */
+  @IsOptional()
+  @IsBoolean()
+  markReviewed?: boolean;
 }
 
 export class ListFeedIngredientsQueryDto {
