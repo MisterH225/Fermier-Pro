@@ -91,6 +91,36 @@ export class FormulateFeedCompositionDto {
   millId?: string;
 }
 
+/** Ligne de ration partagée (save + explain). */
+export class RationLineDto {
+  @IsString()
+  @MinLength(1)
+  feedIngredientId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  canonicalName?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  quantityKg!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  proportionPct!: number;
+
+  /** Présent sur la réponse formulate — stocké tel quel à la sauvegarde. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  costContribution?: number;
+}
+
 export class SaveCompositionDto {
   @IsString()
   @MinLength(1)
@@ -105,8 +135,15 @@ export class SaveCompositionDto {
   @IsObject()
   inputParams!: Record<string, unknown>;
 
-  @IsObject()
-  ration!: Record<string, unknown> | unknown[];
+  /**
+   * Lignes de ration (tableau). `@IsObject()` de class-validator rejette les
+   * arrays — le mobile envoie toujours un `RationLineDto[]`.
+   */
+  @IsArray()
+  @ArrayMaxSize(40)
+  @ValidateNested({ each: true })
+  @Type(() => RationLineDto)
+  ration!: RationLineDto[];
 
   @IsOptional()
   @IsObject()
@@ -178,27 +215,8 @@ export class ApplyCompositionAdjustmentDto {
   messageId!: string;
 }
 
-export class ExplainRationLineDto {
-  @IsString()
-  @MinLength(1)
-  feedIngredientId!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  canonicalName?: string;
-
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  quantityKg!: number;
-
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  proportionPct!: number;
-}
+/** @deprecated alias — préférer `RationLineDto`. */
+export class ExplainRationLineDto extends RationLineDto {}
 
 export class ExplainNutritionDto {
   @Type(() => Number)
