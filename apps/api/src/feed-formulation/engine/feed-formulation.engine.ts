@@ -608,9 +608,53 @@ function buildLpModel(
   };
 }
 
+/** Messages actionnables par goulot de contrainte (nutriment + type d'intrant). */
+const BOTTLENECK_MESSAGES: Record<string, string> = {
+  "energy:min":
+    "L'énergie nécessaire pour ce stade ne peut pas être atteinte avec vos intrants — ajoutez une source de matière grasse (huile), ou utilisez un aliment du commerce adapté.",
+  "energy:max":
+    "L'énergie de vos intrants dépasse le plafond anti-gras de ce stade — remplacez une partie des matières grasses ou céréales très énergétiques par des intrants moins caloriques, ou utilisez un aliment du commerce adapté.",
+  "crudeProtein:min":
+    "Les protéines nécessaires pour ce stade ne peuvent pas être atteintes avec vos intrants — ajoutez un tourteau ou une farine de poisson, ou utilisez un aliment du commerce adapté.",
+  "crudeProtein:max":
+    "La teneur en protéines dépasse le maximum pour ce stade avec vos intrants — réduisez les sources très protéiques, ou utilisez un aliment du commerce adapté.",
+  "lysine:min":
+    "La lysine nécessaire pour ce stade ne peut pas être atteinte avec vos intrants — ajoutez du tourteau de soja, de la L-lysine ou une farine de poisson, ou utilisez un aliment du commerce adapté.",
+  "methionine:min":
+    "La méthionine nécessaire pour ce stade ne peut pas être atteinte avec vos intrants — ajoutez un tourteau ou de la DL-méthionine, ou utilisez un aliment du commerce adapté.",
+  "calcium:min":
+    "Le calcium nécessaire pour ce stade ne peut pas être atteint avec vos intrants — ajoutez un minéral calcique (coquilles, carbonate), ou utilisez un aliment du commerce adapté.",
+  "calcium:max":
+    "Le calcium dépasse le maximum pour ce stade avec vos intrants — réduisez les sources très calciques, ou utilisez un aliment du commerce adapté.",
+  "phosphorus:min":
+    "Le phosphore nécessaire pour ce stade ne peut pas être atteint avec vos intrants — ajoutez du phosphate bicalcique ou des sons, ou utilisez un aliment du commerce adapté.",
+  "fiber:max":
+    "La limite de fibres ne peut pas être respectée en même temps que les autres besoins — privilégiez des intrants moins fibreux ou une source de matière grasse (huile) pour densifier l'énergie, ou utilisez un aliment du commerce adapté.",
+  "lysEnergy:min":
+    "Le rapport lysine/énergie anti-gras ne peut pas être respecté avec vos intrants — augmentez la lysine (tourteau, L-lysine) ou baissez l'énergie trop élevée, ou utilisez un aliment du commerce adapté."
+};
+
+/** Ordre d'affichage : énergie / protéines d'abord (plus actionnables). */
+const BOTTLENECK_PRIORITY = [
+  "energy:min",
+  "energy:max",
+  "crudeProtein:min",
+  "crudeProtein:max",
+  "fiber:max",
+  "lysine:min",
+  "lysEnergy:min",
+  "methionine:min",
+  "calcium:min",
+  "calcium:max",
+  "phosphorus:min"
+];
+
 /**
- * Diagnostique les nutriments non atteignables (LP mono-objectif max/min)
- * sur la part variable, en tenant compte des apports fixes.
+ * Diagnostique les nutriments non atteignables :
+ * 1) stock insuffisant ;
+ * 2) extrema mono-nutriment (cas simples) ;
+ * 3) relâchement d'une contrainte à la fois (goulot d'une combinaison).
+ * Retourne des messages actionnables (nutriment + type d'intrant).
  */
 function diagnoseInfeasibility(
   solver: SolverPort,
@@ -621,68 +665,59 @@ function diagnoseInfeasibility(
   fixed: FixedNutritionContrib
 ): string[] {
   const reasons: string[] = [];
-  const totalAvail =
-    fixed.crudeProteinPct >= 0
-      ? candidates.reduce((s, c) => s + c.maxProp * totalFeedKg, 0) +
-        /* part fixe déjà réservée */ (1 - remaining) * totalFeedKg
-      : candidates.reduce((s, c) => s + c.maxProp * totalFeedKg, 0);
 
   // Stock variable + masse fixe déjà posée.
   const varAvail = candidates.reduce((s, c) => s + c.maxProp * totalFeedKg, 0);
   if (varAvail + 1e-6 < remaining * totalFeedKg) {
     reasons.push(
-      `Stock variable insuffisant : ${round(varAvail, 2)} kg pour ${round(remaining * totalFeedKg, 2)} kg restants après taux fixes.`
+      `Stock insuffisant : ${round(varAvail, 2)} kg disponibles pour ${round(remaining * totalFeedKg, 2)} kg restants après taux fixes — augmentez les stocks ou réduisez la durée / le nombre d'animaux.`
     );
+    return reasons;
   }
-  void totalAvail;
 
   const mins: Array<{
-    label: string;
+    key: string;
     minNeededFromVar: number;
     getter: (n: IngredientNutrition) => number;
-    hint: string;
   }> = [
     {
-      label: "protéine brute",
+      key: "crudeProtein:min",
       minNeededFromVar: profile.minCrudeProteinPct - fixed.crudeProteinPct,
-      getter: (n) => n.crudeProteinPct,
-      hint: "protéagineux (tourteau, farine de poisson, etc.)"
+      getter: (n) => n.crudeProteinPct
     },
     {
-      label: "énergie métabolisable",
+      key: "energy:min",
       minNeededFromVar:
         profile.minMetabolizableEnergyKcal - fixed.metabolizableEnergyKcal,
-      getter: (n) => n.metabolizableEnergyKcal,
-      hint: "céréales énergétiques (maïs, manioc, etc.)"
+      getter: (n) => n.metabolizableEnergyKcal
     },
     {
-      label: "lysine",
+      key: "lysine:min",
       minNeededFromVar: profile.minLysinePct - fixed.lysinePct,
-      getter: (n) => n.lysinePct,
-      hint: "sources riches en lysine (tourteau soja, L-lysine, farine poisson)"
+      getter: (n) => n.lysinePct
     },
     {
-      label: "méthionine",
+      key: "methionine:min",
       minNeededFromVar: profile.minMethioninePct - fixed.methioninePct,
-      getter: (n) => n.methioninePct,
-      hint: "sources méthionine (tourteau, DL-méthionine)"
+      getter: (n) => n.methioninePct
     },
     {
-      label: "calcium",
+      key: "calcium:min",
       minNeededFromVar: profile.minCalciumPct - fixed.calciumPct,
-      getter: (n) => n.calciumPct,
-      hint: "minéraux calciques (carbonate de calcium, coquillages)"
+      getter: (n) => n.calciumPct
     },
     {
-      label: "phosphore",
+      key: "phosphorus:min",
       minNeededFromVar: profile.minPhosphorusPct - fixed.phosphorusPct,
-      getter: (n) => n.phosphorusPct,
-      hint: "sources phosphorées (phosphate bicalcique, sons)"
+      getter: (n) => n.phosphorusPct
     }
   ];
 
+  /** Nutriments individuellement inatteignables (hors autres contraintes). */
+  const individuallyUnreachable = new Set<string>();
+
   for (const m of mins) {
-    if (m.minNeededFromVar <= 0) continue; // déjà couvert par les fixes
+    if (m.minNeededFromVar <= 0) continue;
     const maxReach = extremumNutrient(
       solver,
       candidates,
@@ -691,9 +726,7 @@ function diagnoseInfeasibility(
       remaining
     );
     if (maxReach != null && maxReach + 1e-6 < m.minNeededFromVar) {
-      reasons.push(
-        `Impossible d'atteindre le minimum de ${m.label} (reste à couvrir ${round(m.minNeededFromVar, 4)} après taux fixes) : maximum réalisable ≈ ${round(maxReach, 4)} — il manque probablement un ${m.hint}.`
-      );
+      individuallyUnreachable.add(m.key);
     }
   }
 
@@ -708,18 +741,120 @@ function diagnoseInfeasibility(
       remaining
     );
     if (minReach != null && minReach - 1e-6 > maxAllowedFromVar) {
-      reasons.push(
-        `Impossible de respecter le plafond énergétique anti-gras (${profile.maxMetabolizableEnergyKcal} kcal/kg, dont ${round(fixed.metabolizableEnergyKcal, 2)} déjà apportés par les taux fixes) : minimum variable ≈ ${round(minReach, 2)}.`
-      );
+      individuallyUnreachable.add("energy:max");
     }
+  }
+
+  /**
+   * Goulot d'une combinaison : relâcher une contrainte à la fois.
+   * Si un nutriment est « atteignable seul » mais bloque en combinaison
+   * (ex. énergie + protéines sans huile), on privilégie le message énergie / matière grasse.
+   */
+  const relaxationKeys = new Set(
+    findBottleneckConstraintKeys(
+      solver,
+      candidates,
+      profile,
+      remaining,
+      fixed
+    )
+  );
+
+  const reportKeys = new Set<string>(individuallyUnreachable);
+
+  const comboOnly = [...relaxationKeys].filter(
+    (k) => !individuallyUnreachable.has(k)
+  );
+  if (comboOnly.length > 0) {
+    if (comboOnly.includes("energy:min")) {
+      reportKeys.add("energy:min");
+    } else if (comboOnly.includes("fiber:max")) {
+      reportKeys.add("fiber:max");
+    } else if (comboOnly.includes("energy:max")) {
+      reportKeys.add("energy:max");
+    } else {
+      for (const k of comboOnly) reportKeys.add(k);
+    }
+  } else {
+    for (const k of relaxationKeys) reportKeys.add(k);
+  }
+
+  for (const key of BOTTLENECK_PRIORITY) {
+    if (!reportKeys.has(key)) continue;
+    const msg = BOTTLENECK_MESSAGES[key];
+    if (msg) reasons.push(msg);
   }
 
   if (reasons.length === 0) {
     reasons.push(
-      "Combinaison de contraintes incompatible avec les intrants, stocks et taux fixes disponibles."
+      "Les besoins nutritionnels de ce stade ne peuvent pas être atteints avec vos intrants — ajoutez une source manquante (huile, tourteau, minéraux…), ou utilisez un aliment du commerce adapté."
     );
   }
   return reasons;
+}
+
+/**
+ * Relâche une contrainte nutritionnelle à la fois sur le LP complet.
+ * Si le modèle redevient faisable, cette contrainte est un goulot.
+ */
+function findBottleneckConstraintKeys(
+  solver: SolverPort,
+  candidates: Candidate[],
+  profile: RequirementProfileSnapshot,
+  remaining: number,
+  fixed: FixedNutritionContrib
+): string[] {
+  const base = buildLpModel(candidates, profile, remaining, fixed);
+  const probes: Array<{
+    key: string;
+    constraintName: string;
+    bound: "min" | "max";
+  }> = [
+    { key: "energy:min", constraintName: "energy", bound: "min" },
+    { key: "energy:max", constraintName: "energy", bound: "max" },
+    { key: "crudeProtein:min", constraintName: "crudeProtein", bound: "min" },
+    { key: "crudeProtein:max", constraintName: "crudeProtein", bound: "max" },
+    { key: "lysine:min", constraintName: "lysine", bound: "min" },
+    { key: "methionine:min", constraintName: "methionine", bound: "min" },
+    { key: "calcium:min", constraintName: "calcium", bound: "min" },
+    { key: "calcium:max", constraintName: "calcium", bound: "max" },
+    { key: "phosphorus:min", constraintName: "phosphorus", bound: "min" },
+    { key: "fiber:max", constraintName: "fiber", bound: "max" },
+    { key: "lysEnergy:min", constraintName: "lysEnergy", bound: "min" }
+  ];
+
+  const out: string[] = [];
+  for (const p of probes) {
+    const c = base.constraints[p.constraintName];
+    if (!c) continue;
+    if (p.bound === "min" && c.min == null) continue;
+    if (p.bound === "max" && c.max == null) continue;
+
+    const relaxedConstraints: typeof base.constraints = {};
+    for (const [name, bound] of Object.entries(base.constraints)) {
+      if (name !== p.constraintName) {
+        relaxedConstraints[name] = { ...bound };
+        continue;
+      }
+      const next: { min?: number; max?: number; equal?: number } = {
+        ...bound
+      };
+      if (p.bound === "min") delete next.min;
+      if (p.bound === "max") delete next.max;
+      if (next.min != null || next.max != null || next.equal != null) {
+        relaxedConstraints[name] = next;
+      }
+    }
+
+    const sol = solver.solve({
+      objective: base.objective,
+      sense: base.sense,
+      constraints: relaxedConstraints,
+      variables: base.variables
+    });
+    if (sol.feasible) out.push(p.key);
+  }
+  return out;
 }
 
 function extremumNutrient(

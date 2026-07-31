@@ -158,8 +158,7 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     stage: "lactating_sow",
     minCrudeProteinPct: 16,
     maxCrudeProteinPct: 19,
-    // 3200 (pas 3250) : laisse de la marge après dilution CMV/sel (~1,25 % à 0 kcal).
-    minMetabolizableEnergyKcal: 3200,
+    minMetabolizableEnergyKcal: 3250,
     maxMetabolizableEnergyKcal: 3450,
     minLysinePct: 0.9,
     minMethioninePct: 0.28,

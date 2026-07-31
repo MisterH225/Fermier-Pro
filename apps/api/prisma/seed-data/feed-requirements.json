@@ -130,7 +130,7 @@
     "stage": "lactating_sow",
     "minCrudeProteinPct": 16,
     "maxCrudeProteinPct": 19,
-    "minMetabolizableEnergyKcal": 3200,
+    "minMetabolizableEnergyKcal": 3250,
     "maxMetabolizableEnergyKcal": 3450,
     "minLysinePct": 0.9,
     "minMethioninePct": 0.28,

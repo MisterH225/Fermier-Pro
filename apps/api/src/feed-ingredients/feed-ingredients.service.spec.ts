@@ -66,12 +66,14 @@ describe("FeedIngredientsService", () => {
         "Maïs jaune",
         "Tourteau de soja",
         "Farine de poisson",
+        "Huile de palme",
+        "Son de riz gras",
         "Lysine",
         "Méthionine"
       ])
     );
     expect(new Set(names).size).toBe(names.length);
-    expect(FEED_INGREDIENTS_SEED.length).toBe(20);
+    expect(FEED_INGREDIENTS_SEED.length).toBe(22);
   });
 
   it("recherche par alias normalisé", async () => {
