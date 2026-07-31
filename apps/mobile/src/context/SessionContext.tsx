@@ -79,6 +79,8 @@ type SessionContextValue = {
   /** GET /config/client — défaut tout activé si échec réseau */
   clientFeatures: ClientConfigDto["features"];
   platformModules: PlatformModuleDto[];
+  /** Recharge les feature flags / modules plateforme (ex. mills). */
+  refreshClientConfig: () => Promise<void>;
   /** Coordonnées support (téléphone / Telegram) depuis `/config/client`. */
   supportContact: SupportContactDto;
   /** Taux de commission plateforme (aperçu vendeur / véto). */
@@ -131,6 +133,18 @@ export function SessionProvider({
   });
   const [platformFees, setPlatformFees] =
     useState<ClientPlatformFeesDto>(DEFAULT_PLATFORM_FEES);
+
+  const refreshClientConfig = useCallback(async () => {
+    try {
+      const cfg = await fetchClientConfig();
+      setClientFeatures(cfg.features);
+      setPlatformModules(cfg.modules ?? []);
+      setSupportContact(cfg.support ?? { phone: null, telegramUrl: null });
+      setPlatformFees(cfg.fees ?? DEFAULT_PLATFORM_FEES);
+    } catch {
+      /* conserve le dernier état connu en cas d'échec réseau */
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -247,11 +261,12 @@ export function SessionProvider({
     const onAppState = (state: AppStateStatus) => {
       if (state === "active") {
         void refreshAuthMe();
+        void refreshClientConfig();
       }
     };
     const sub = AppState.addEventListener("change", onAppState);
     return () => sub.remove();
-  }, [refreshAuthMe]);
+  }, [refreshAuthMe, refreshClientConfig]);
 
   useEffect(() => {
     if (authMe?.vetProfessional?.verificationStatus !== "pending") {
@@ -325,6 +340,7 @@ export function SessionProvider({
       reloadAuth,
       clientFeatures,
       platformModules,
+      refreshClientConfig,
       supportContact,
       platformFees
     }),
@@ -340,6 +356,7 @@ export function SessionProvider({
       reloadAuth,
       clientFeatures,
       platformModules,
+      refreshClientConfig,
       supportContact,
       platformFees
     ]

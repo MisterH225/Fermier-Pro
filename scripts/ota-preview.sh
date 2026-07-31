@@ -1,3 +1,4 @@
+# Dernière release OTA preview : 2026-07-31T02:46Z — type moulin dans Paramètres commerçant
 # Dernière release OTA preview : 2026-07-30T13:37Z — filtres période rentabilité + suivi mensuel #284
 # Dernière release OTA preview : 2026-07-30T12:31Z — alignement rentabilité pré-app #282
 # Dernière release OTA preview : 2026-07-29T15:19Z — trust score #279 + i18n #276

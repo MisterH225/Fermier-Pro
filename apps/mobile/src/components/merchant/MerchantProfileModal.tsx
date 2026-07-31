@@ -40,8 +40,7 @@ import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
-
-const MERCHANT_KINDS: MerchantKind[] = ["standard", "mill"];
+import { MerchantKindSelector } from "./MerchantKindSelector";
 
 const AVATAR = 108;
 const PENCIL = 36;
@@ -437,32 +436,12 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
               <View style={styles.kindBlock} testID="merchant-profile-kind">
                 <Text style={styles.label}>{t("merchant.profile.merchantKind")}</Text>
                 <Text style={styles.kindHint}>{t("merchant.profile.merchantKindHint")}</Text>
-                <View style={styles.kindChips}>
-                  {MERCHANT_KINDS.map((kind) => {
-                    const active = (me?.merchantKind ?? "standard") === kind;
-                    return (
-                      <Pressable
-                        key={kind}
-                        style={[styles.kindChip, active && styles.kindChipActive]}
-                        onPress={() => void onChangeMerchantKind(kind)}
-                        disabled={savingKind}
-                        testID={`merchant-profile-kind-${kind}`}
-                      >
-                        <Text
-                          style={[
-                            styles.kindChipTx,
-                            active && styles.kindChipTxActive
-                          ]}
-                        >
-                          {t(`merchant.profile.kind.${kind}`)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {savingKind ? (
-                  <ActivityIndicator size="small" color={merchantColors.primary} />
-                ) : null}
+                <MerchantKindSelector
+                  value={me?.merchantKind ?? "standard"}
+                  onChange={(kind) => void onChangeMerchantKind(kind)}
+                  saving={savingKind}
+                  testID="merchant-profile-kind"
+                />
               </View>
             ) : null}
             <InfoBlock label={t("merchant.profile.shops")} value={shopsLabel} />
@@ -665,31 +644,6 @@ const styles = StyleSheet.create({
   kindHint: {
     ...mobileTypography.meta,
     color: merchantColors.textSecondary
-  },
-  kindChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: mobileSpacing.sm
-  },
-  kindChip: {
-    borderWidth: 1,
-    borderColor: merchantColors.border,
-    borderRadius: merchantRadius.button,
-    paddingVertical: mobileSpacing.sm,
-    paddingHorizontal: mobileSpacing.md,
-    backgroundColor: merchantColors.cardBg
-  },
-  kindChipActive: {
-    borderColor: merchantColors.primary,
-    backgroundColor: merchantColors.primary
-  },
-  kindChipTx: {
-    color: merchantColors.textPrimary,
-    fontWeight: "600",
-    fontSize: mobileFontSize.sm
-  },
-  kindChipTxActive: {
-    color: merchantColors.onPrimary
   },
   label: {
     ...mobileTypography.meta,

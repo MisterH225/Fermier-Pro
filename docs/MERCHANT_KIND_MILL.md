@@ -15,8 +15,10 @@ boutiques, produits, commandes). Le sous-type est stocké sur `MerchantProfile.m
 
 ## Passage standard → mill
 
-**Autorisé** via `PATCH /api/v1/merchant/me` (paramètres boutique / profil mobile),
-uniquement si le flag `mills` est actif.
+**Autorisé** via `PATCH /api/v1/merchant/me`, uniquement si le flag `mills` est actif.
+
+Sur mobile : **Paramètres** (icône engrenage Accueil commerçant) → section
+**Type de commerçant**, ou via la modale profil (avatar Accueil).
 
 **Aucune donnée n’est effacée** : boutiques, produits, commandes, abonnement et
 historique restent intacts. Seul le champ `merchantKind` change.
