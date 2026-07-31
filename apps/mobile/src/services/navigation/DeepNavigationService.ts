@@ -513,7 +513,8 @@ export function navigateFromGenericPushData(
     type === "feed_composition_vet_review" ||
     type === "feed_composition_vet_reviewed" ||
     type === "feed_composition_adjustment" ||
-    type === "feed_composition_validated"
+    type === "feed_composition_validated" ||
+    type === "feed_composition_review_cancelled"
   ) {
     const compositionId = str(data.compositionId);
     const farmId = str(data.farmId);

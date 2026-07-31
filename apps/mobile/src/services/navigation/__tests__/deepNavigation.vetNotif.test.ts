@@ -111,4 +111,21 @@ describe("navigateFromGenericPushData (inbox / stack nav)", () => {
       farmId: "farm-1"
     });
   });
+
+  it("ouvre le détail composition pour feed_composition_review_cancelled", () => {
+    const navigate = jest.fn();
+    const result = navigateFromGenericPushData({ navigate } as never, {
+      type: "feed_composition_review_cancelled",
+      farmId: "farm-1",
+      farmName: "Ferme Test",
+      compositionId: "comp-1",
+      roomId: "room-1"
+    });
+    expect(result).toBe(true);
+    expect(navigate).toHaveBeenCalledWith("FeedCompositionDetail", {
+      farmId: "farm-1",
+      farmName: "Ferme Test",
+      compositionId: "comp-1"
+    });
+  });
 });

@@ -4,11 +4,12 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
-import { VetConsultationStatus } from "@prisma/client";
+import { ChatRoomKind, VetConsultationStatus } from "@prisma/client";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { AuditService } from "../common/audit.service";
 import { FarmAccessService } from "../common/farm-access.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { UserNotificationsService } from "../user-notifications/user-notifications.service";
 import { CreateConsultationAttachmentDto } from "./dto/create-consultation-attachment.dto";
 import { CreateVetConsultationDto } from "./dto/create-vet-consultation.dto";
 import { UpdateVetConsultationDto } from "./dto/update-vet-consultation.dto";
@@ -32,7 +33,8 @@ export class VetConsultationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
-    private readonly audit: AuditService
+    private readonly audit: AuditService,
+    private readonly notifications: UserNotificationsService
   ) {}
 
   private closedAtForStatus(status: VetConsultationStatus): Date | null {
@@ -133,6 +135,10 @@ export class VetConsultationsService {
         ? this.closedAtForStatus(nextStatus)
         : undefined;
 
+    const becomingCancelled =
+      nextStatus === VetConsultationStatus.cancelled &&
+      before.status !== VetConsultationStatus.cancelled;
+
     const row = await this.prisma.vetConsultation.update({
       where: { id },
       data: {
@@ -146,6 +152,11 @@ export class VetConsultationsService {
       },
       include: consultationInclude
     });
+
+    if (becomingCancelled) {
+      await this.releaseLinkedCompositionReview(user, farmId, id);
+    }
+
     await this.audit.record({
       actorUserId: user.id,
       farmId,
@@ -162,6 +173,80 @@ export class VetConsultationsService {
       }
     });
     return row;
+  }
+
+  /**
+   * Annulation d'un dossier lié à une composition : retire la carte « à valider »
+   * du dashboard véto (status → draft), notifie le producteur et lui permet de
+   * re-soumettre la même composition.
+   */
+  private async releaseLinkedCompositionReview(
+    actor: User,
+    farmId: string,
+    consultationId: string
+  ): Promise<void> {
+    const room = await this.prisma.chatRoom.findFirst({
+      where: {
+        vetConsultationId: consultationId,
+        kind: ChatRoomKind.feed_composition
+      },
+      select: {
+        id: true,
+        savedCompositionId: true
+      }
+    });
+    if (!room?.savedCompositionId) {
+      return;
+    }
+
+    const composition = await this.prisma.savedComposition.findUnique({
+      where: { id: room.savedCompositionId }
+    });
+    if (!composition || composition.status !== "vet_review") {
+      return;
+    }
+
+    await this.prisma.savedComposition.update({
+      where: { id: composition.id },
+      data: {
+        status: "draft",
+        vetComment: null,
+        vetReviewedBy: null,
+        vetReviewedAt: null
+      }
+    });
+
+    await this.prisma.chatMessage.create({
+      data: {
+        roomId: room.id,
+        senderUserId: actor.id,
+        body:
+          "Le dossier de validation a été annulé. Vous pouvez renvoyer la composition pour une nouvelle revue."
+      }
+    });
+
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: farmId },
+      select: { name: true }
+    });
+    const vet = await this.prisma.user.findUnique({
+      where: { id: actor.id },
+      select: { fullName: true }
+    });
+
+    await this.notifications.notify(
+      composition.createdByUserId,
+      "Validation de composition annulée",
+      `${vet?.fullName ?? "Votre vétérinaire"} a annulé le dossier — vous pouvez renvoyer la ration.`,
+      {
+        type: "feed_composition_review_cancelled",
+        farmId,
+        farmName: farm?.name ?? "—",
+        compositionId: composition.id,
+        roomId: room.id,
+        consultationId
+      }
+    );
   }
 
   async addAttachment(
