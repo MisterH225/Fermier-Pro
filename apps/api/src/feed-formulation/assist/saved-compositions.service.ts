@@ -55,7 +55,7 @@ export class SavedCompositionsService {
         createdByUserId: user.id,
         stage: dto.stage,
         inputParams: dto.inputParams as Prisma.InputJsonValue,
-        ration: dto.ration as Prisma.InputJsonValue,
+        ration: dto.ration as unknown as Prisma.InputJsonValue,
         nutritionResult: (dto.nutritionResult ?? null) as Prisma.InputJsonValue,
         totalCostXof: dto.totalCostXof,
         source: dto.source,
