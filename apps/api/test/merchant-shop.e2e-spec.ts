@@ -408,4 +408,119 @@ describeOrSkip("Merchant shop (e2e)", () => {
     });
     expect(updated.status).toBe(MerchantProductStatus.moderated_removed);
   });
+
+  describe("merchantKind / flag mills", () => {
+    afterEach(async () => {
+      await base.prisma.featureFlagTestAccount.deleteMany({
+        where: {
+          moduleId: "mills",
+          userId: merchant.merchantUserId
+        }
+      });
+      await base.prisma.merchantProfile.updateMany({
+        where: { userId: merchant.merchantUserId },
+        data: { merchantKind: "standard" }
+      });
+    });
+
+    it("GET /merchant/me expose merchantKind=standard par défaut", async () => {
+      const me = await request(app.getHttpServer())
+        .get("/api/v1/merchant/me")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`)
+        .set("X-Profile-Id", merchant.merchantProfileId);
+      expect(me.status).toBe(200);
+      expect(me.body.merchantKind).toBe("standard");
+    });
+
+    it("flag mills OFF → refuse merchantKind=mill (onboarding)", async () => {
+      const patch = await request(app.getHttpServer())
+        .patch("/api/v1/merchant/me/onboarding")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`)
+        .set("X-Profile-Id", merchant.merchantProfileId)
+        .send({ merchantKind: "mill" });
+      expect(patch.status).toBe(403);
+      expect(patch.body.code).toBe("MILLS_MODULE_INACTIVE");
+    });
+
+    it("flag mills OFF → refuse passage standard→mill (paramètres)", async () => {
+      const patch = await request(app.getHttpServer())
+        .patch("/api/v1/merchant/me")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`)
+        .set("X-Profile-Id", merchant.merchantProfileId)
+        .send({ merchantKind: "mill" });
+      expect(patch.status).toBe(403);
+      expect(patch.body.code).toBe("MILLS_MODULE_INACTIVE");
+    });
+
+    it("flag mills ON → persiste mill (onboarding + DTO)", async () => {
+      await base.prisma.featureFlagTestAccount.create({
+        data: {
+          moduleId: "mills",
+          userId: merchant.merchantUserId
+        }
+      });
+
+      const patch = await request(app.getHttpServer())
+        .patch("/api/v1/merchant/me/onboarding")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`)
+        .set("X-Profile-Id", merchant.merchantProfileId)
+        .send({ merchantKind: "mill" });
+      expect(patch.status).toBe(200);
+      expect(patch.body.merchantKind).toBe("mill");
+
+      const me = await request(app.getHttpServer())
+        .get("/api/v1/merchant/me")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`)
+        .set("X-Profile-Id", merchant.merchantProfileId);
+      expect(me.status).toBe(200);
+      expect(me.body.merchantKind).toBe("mill");
+
+      const authMe = await request(app.getHttpServer())
+        .get("/api/v1/auth/me")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`);
+      expect(authMe.status).toBe(200);
+      expect(authMe.body.merchantProfile?.merchantKind).toBe("mill");
+    });
+
+    it("flag mills ON → passage standard→mill via PATCH /me (aucune donnée effacée)", async () => {
+      await base.prisma.featureFlagTestAccount.create({
+        data: {
+          moduleId: "mills",
+          userId: merchant.merchantUserId
+        }
+      });
+      await base.prisma.merchantProfile.updateMany({
+        where: { userId: merchant.merchantUserId },
+        data: { merchantKind: "standard" }
+      });
+
+      const shopBefore = await base.prisma.merchantShop.count({
+        where: { merchantProfile: { userId: merchant.merchantUserId } }
+      });
+      const productBefore = await base.prisma.merchantProduct.count({
+        where: {
+          shop: { merchantProfile: { userId: merchant.merchantUserId } }
+        }
+      });
+
+      const patch = await request(app.getHttpServer())
+        .patch("/api/v1/merchant/me")
+        .set("Authorization", `Bearer ${merchant.merchantToken}`)
+        .set("X-Profile-Id", merchant.merchantProfileId)
+        .send({ merchantKind: "mill" });
+      expect(patch.status).toBe(200);
+      expect(patch.body.merchantKind).toBe("mill");
+
+      const shopAfter = await base.prisma.merchantShop.count({
+        where: { merchantProfile: { userId: merchant.merchantUserId } }
+      });
+      const productAfter = await base.prisma.merchantProduct.count({
+        where: {
+          shop: { merchantProfile: { userId: merchant.merchantUserId } }
+        }
+      });
+      expect(shopAfter).toBe(shopBefore);
+      expect(productAfter).toBe(productBefore);
+    });
+  });
 });

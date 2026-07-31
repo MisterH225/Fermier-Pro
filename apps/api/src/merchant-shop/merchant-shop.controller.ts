@@ -19,6 +19,7 @@ import {
   CreateMerchantShopDto,
   OpenMerchantOrderDisputeDto,
   PatchMerchantOnboardingDto,
+  PatchMerchantProfileDto,
   PurchaseMerchantProductDto,
   RespondMerchantOrderDisputeDto,
   UpdateMerchantProductDto,
@@ -49,6 +50,14 @@ export class MerchantShopController {
   @Get("me")
   getMe(@CurrentUser() user: Parameters<MerchantProfilesService["getMe"]>[0]) {
     return this.profiles.getMe(user);
+  }
+
+  @Patch("me")
+  patchMe(
+    @CurrentUser() user: Parameters<MerchantProfilesService["patchProfile"]>[0],
+    @Body() dto: PatchMerchantProfileDto
+  ) {
+    return this.profiles.patchProfile(user, dto);
   }
 
   @Patch("me/onboarding")

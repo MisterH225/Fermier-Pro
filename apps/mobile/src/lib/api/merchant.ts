@@ -1,6 +1,10 @@
 import { apiDeleteJson, apiGetJson, apiPatchJson, apiPostJson } from "./http";
 
+export type MerchantKind = "standard" | "mill";
+
 export type MerchantMeDto = {
+  /** Sous-type commerçant — `mill` uniquement si flag `mills` actif. */
+  merchantKind?: MerchantKind;
   subscriptionTier: "free" | "premium" | null;
   subscriptionStatus?:
     | "active"
@@ -201,10 +205,25 @@ export function patchMerchantOnboarding(
     shopSkipped?: boolean;
     productSkipped?: boolean;
     onboardingComplete?: boolean;
+    merchantKind?: MerchantKind;
   }
 ): Promise<MerchantMeDto> {
   return apiPatchJson<MerchantMeDto>(
     "/merchant/me/onboarding",
+    body,
+    accessToken,
+    profileId
+  );
+}
+
+/** Paramètres profil commerçant (ex. passage standard→mill si flag mills actif). */
+export function patchMerchantProfile(
+  accessToken: string,
+  profileId: string,
+  body: { merchantKind?: MerchantKind }
+): Promise<MerchantMeDto> {
+  return apiPatchJson<MerchantMeDto>(
+    "/merchant/me",
     body,
     accessToken,
     profileId

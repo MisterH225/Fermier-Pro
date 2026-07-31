@@ -4589,7 +4589,13 @@ export const fr = {
       productStock: "Stock",
       createShop: "Créer la boutique",
       createProduct: "Créer le produit",
-      skip: "Passer"
+      skip: "Passer",
+      kindQuestion: "Quel type de commerçant êtes-vous ?",
+      kindHint: "Vous pourrez modifier ce choix plus tard dans les paramètres de votre boutique.",
+      kind: {
+        standard: "Commerçant standard",
+        mill: "Moulin (fabricant d'aliment)"
+      }
     },
     subscription: {
       title: "Choisis ton abonnement",
@@ -4780,6 +4786,15 @@ export const fr = {
       mainShop: "Boutique principale",
       nextBilling: "Prochaine échéance",
       graceEnds: "Fin de grâce",
+      merchantKind: "Type de commerçant",
+      merchantKindHint:
+        "Passer en Moulin n'efface aucune donnée (boutiques, produits, commandes).",
+      kind: {
+        standard: "Commerçant standard",
+        mill: "Moulin (fabricant d'aliment)"
+      },
+      merchantKindSaved: "Type de commerçant mis à jour.",
+      merchantKindError: "Impossible de modifier le type. Réessaie dans un instant.",
       cancelSubscription: "Annuler mon abonnement Premium",
       cancelSubscriptionTitle: "Annuler l'abonnement Premium ?",
       cancelSubscriptionMessage:
