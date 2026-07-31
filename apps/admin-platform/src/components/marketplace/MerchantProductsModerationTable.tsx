@@ -162,7 +162,19 @@ export function MerchantProductsModerationTable({
                   return (
                     <TableRow key={row.id}>
                       <TableCell className="font-medium">
-                        <div>{row.name}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{row.name}</span>
+                          {row.isBulkFeed ? (
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                              Gros moulin
+                            </span>
+                          ) : null}
+                        </div>
+                        {row.feedIngredientName ? (
+                          <div className="text-xs text-muted-foreground">
+                            Intrant : {row.feedIngredientName}
+                          </div>
+                        ) : null}
                         {isResubmission && row.resubmissionCount != null ? (
                           <div className="text-xs text-muted-foreground">
                             {t("merchantProducts.resubmissionMeta", {

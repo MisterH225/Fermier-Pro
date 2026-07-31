@@ -25,6 +25,7 @@ import { WalletDashboardCard } from "../../components/wallet/WalletDashboardCard
 import { useBottomInset } from "../../hooks/useBottomInset";
 import { useSession } from "../../context/SessionContext";
 import { fetchMerchantDashboard, fetchMerchantMe } from "../../lib/api";
+import { canAccessMillFeatures } from "../../lib/merchantKind";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { welcomeFirstName } from "../../lib/userDisplay";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
@@ -36,7 +37,13 @@ export function MerchantDashboardScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const bottomInset = useBottomInset();
-  const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const {
+    accessToken,
+    activeProfileId,
+    authMe,
+    refreshAuthMe,
+    platformModules
+  } = useSession();
   const queryClient = useQueryClient();
   const [profileOpen, setProfileOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -158,6 +165,21 @@ export function MerchantDashboardScreen() {
           backgroundColor={merchantColors.primaryLight}
         />
 
+        {canAccessMillFeatures(platformModules, me?.merchantKind) ? (
+          <Pressable
+            style={[styles.millCta, merchantShadow.card]}
+            onPress={() => navigation.navigate("MillIngredients")}
+            testID="merchant-dashboard-mill-ingredients"
+          >
+            <Text style={styles.millCtaTitle}>
+              {t("merchant.millIngredients.title")}
+            </Text>
+            <Text style={styles.millCtaHint}>
+              {t("merchant.millIngredients.dashboardCta")}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <ScreenSection title={t("merchant.dashboard.sectionKpis")} plain>
           <View style={styles.kpiGrid}>
             <Pressable
@@ -256,6 +278,25 @@ const styles = StyleSheet.create({
   },
   heroIconBtnPressed: {
     opacity: 0.85
+  },
+  millCta: {
+    marginHorizontal: 0,
+    marginBottom: mobileSpacing.sm,
+    backgroundColor: merchantColors.cardBg,
+    borderRadius: merchantRadius.card,
+    padding: mobileSpacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: merchantColors.border,
+    gap: 4
+  },
+  millCtaTitle: {
+    fontWeight: "700",
+    fontSize: mobileFontSize.lg,
+    color: merchantColors.primary
+  },
+  millCtaHint: {
+    ...mobileTypography.meta,
+    color: merchantColors.textSecondary
   },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
   kpiCard: {

@@ -78,11 +78,45 @@ describe("marketplace-feed.mapper", () => {
         categoryLabel: "Alimentation",
         viewsCount: 42,
         status: "published",
+        feedIngredientId: null,
+        millIngredientOfferId: null,
         farm: { id: "shop-1", name: "Boutique Test" },
         seller: { id: "user-1", fullName: "Vendeur E2E" }
       });
       expect(row.photoUrls).toEqual(["https://cdn.example/1.jpg"]);
       expect(row.publishedAt).toBe(publishedAt.toISOString());
+    });
+
+    it("mappe une offre moulin synchronisée en kind bulk_feed", () => {
+      const row = merchantProductToFeedItem({
+        id: "prod-bulk",
+        name: "Maïs",
+        description: "Intrant en gros",
+        price: 1000,
+        currency: "XOF",
+        photoUrls: [],
+        stock: 50,
+        viewCount: 0,
+        publishedAt: new Date("2026-07-01T00:00:00.000Z"),
+        createdAt: new Date("2026-07-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+        category: { id: "cat-1", name: "Alimentation", slug: "alimentation" },
+        shop: {
+          id: "shop-1",
+          name: "Moulin Test",
+          locationLabel: null,
+          merchantProfile: {
+            user: { id: "user-mill", fullName: "Moulin" }
+          }
+        },
+        millIngredientOffer: {
+          id: "offer-1",
+          feedIngredientId: "ing-1"
+        }
+      });
+      expect(row.kind).toBe("bulk_feed");
+      expect(row.feedIngredientId).toBe("ing-1");
+      expect(row.millIngredientOfferId).toBe("offer-1");
     });
   });
 

@@ -4595,6 +4595,41 @@ export const en = {
         mill: "Mill (feed manufacturer)"
       }
     },
+    millIngredients: {
+      title: "My ingredients",
+      subtitle:
+        "Declare ingredient prices and stock. Enable wholesale to list them on the market.",
+      dashboardCta: "Manage prices, stock and wholesale",
+      unavailable: "Available to mills when the module is active.",
+      addOffer: "Add ingredient",
+      cancelForm: "Close form",
+      searchIngredient: "Search ingredient",
+      searchPlaceholder: "E.g. maize, soybean meal…",
+      selected: "Selected: {{name}}",
+      packaging: "Packaging",
+      packagingLabels: {
+        kg: "kg",
+        sack_50kg: "50 kg sack",
+        sack_25kg: "25 kg sack",
+        liter: "Litre",
+        ton: "Tonne"
+      },
+      pricePerUnit: "Price per unit (XOF)",
+      stock: "Stock (units)",
+      mixingCost: "Mixing cost / kg (optional)",
+      sellWholesale: "Sell wholesale on the market",
+      sellWholesaleHint:
+        "Single price source: the offer also feeds composition. Private offers stay off the market.",
+      save: "Save offer",
+      myOffers: "My offers",
+      empty: "No offers yet.",
+      stockLabel: "Stock: {{qty}}",
+      publicBadge: "Listed (wholesale)",
+      privateBadge: "Private (composition)",
+      listPublic: "List publicly",
+      unlist: "Remove from market",
+      deactivate: "Deactivate"
+    },
     subscription: {
       title: "Choose your plan",
       subtitle: "Unlock your shop on the Fermier Pro marketplace",

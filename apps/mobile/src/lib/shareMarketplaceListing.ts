@@ -24,7 +24,7 @@ export function buildListingShareUrl(
   kind: ListingShareInput["kind"] = "listing"
 ): string {
   const cleaned = listingId.trim();
-  if (kind === "merchant") {
+  if (kind === "merchant" || kind === "bulk_feed") {
     return `fermier-pro://merchant/product/${encodeURIComponent(cleaned)}`;
   }
   const baseFromEnv = process.env.EXPO_PUBLIC_LISTING_BASE_URL?.trim() ?? "";

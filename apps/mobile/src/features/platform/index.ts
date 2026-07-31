@@ -33,6 +33,7 @@ export { MerchantDashboardScreen } from "../../screens/merchant/MerchantDashboar
 export { MerchantShopsScreen } from "../../screens/merchant/MerchantShopsScreen";
 export { MerchantShopDetailScreen } from "../../screens/merchant/MerchantShopDetailScreen";
 export { MerchantProductsScreen } from "../../screens/merchant/MerchantProductsScreen";
+export { MillIngredientsScreen } from "../../screens/merchant/MillIngredientsScreen";
 export { MerchantMarketScreen } from "../../screens/merchant/MerchantMarketScreen";
 export { MerchantOrdersScreen } from "../../screens/merchant/MerchantOrdersScreen";
 export { MerchantOrderDetailScreen } from "../../screens/merchant/MerchantOrderDetailScreen";

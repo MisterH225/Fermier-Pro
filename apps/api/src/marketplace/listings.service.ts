@@ -609,6 +609,9 @@ export class ListingsService {
               select: { user: { select: { id: true, fullName: true } } }
             }
           }
+        },
+        millIngredientOffer: {
+          select: { id: true, feedIngredientId: true }
         }
       }
     });

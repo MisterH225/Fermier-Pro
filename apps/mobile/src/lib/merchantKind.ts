@@ -17,6 +17,14 @@ export function shouldAskMerchantKind(
   return isMillsModuleActive(platformModules);
 }
 
+/** Écrans moulin (Mes intrants, etc.) : flag mills + profil merchantKind=mill. */
+export function canAccessMillFeatures(
+  platformModules: PlatformModuleDto[] | null | undefined,
+  merchantKind: MerchantKind | null | undefined
+): boolean {
+  return isMillsModuleActive(platformModules) && merchantKind === "mill";
+}
+
 export function resolveMerchantKindLabelKey(
   kind: MerchantKind | null | undefined
 ): "standard" | "mill" {

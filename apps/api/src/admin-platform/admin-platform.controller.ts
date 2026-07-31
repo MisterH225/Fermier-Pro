@@ -56,6 +56,7 @@ import { ProducerScoreService } from "../producer-score/producer-score.service";
 import { ProducerScore } from "@prisma/client";
 import { MerchantCategoriesService } from "../merchant-shop/merchant-categories.service";
 import { MerchantModerationService } from "../merchant-shop/merchant-moderation.service";
+import { MillIngredientOffersService } from "../merchant-shop/mill-ingredient-offers.service";
 import {
   ArchiveMerchantShopAdminDto,
   CreateMerchantCategoryDto,
@@ -98,6 +99,7 @@ export class AdminPlatformController {
     private readonly consoleAccess: AdminConsoleAccessService,
     private readonly merchantCategories: MerchantCategoriesService,
     private readonly merchantModeration: MerchantModerationService,
+    private readonly millIngredientOffers: MillIngredientOffersService,
     private readonly merchantOrders: MerchantOrdersService,
     private readonly merchantSubscriptions: AdminMerchantSubscriptionsService,
     private readonly producerSubscriptions: AdminProducerSubscriptionsService,
@@ -1103,6 +1105,20 @@ export class AdminPlatformController {
     return this.merchantModeration.listAllProducts(
       parsed ? { status: parsed } : undefined
     );
+  }
+
+  /** Offres d'intrants moulin (modération des produits gros via merchant/products). */
+  @Get("mill/offers")
+  @UseGuards(SuperAdminGuard)
+  adminListMillIngredientOffers(
+    @Query("millProfileId") millProfileId?: string,
+    @Query("publiclyListedOnly") publiclyListedOnly?: string
+  ) {
+    return this.millIngredientOffers.listAdmin({
+      millProfileId: millProfileId?.trim() || undefined,
+      publiclyListedOnly:
+        publiclyListedOnly === "1" || publiclyListedOnly === "true"
+    });
   }
 
   @Get("merchant-shops")

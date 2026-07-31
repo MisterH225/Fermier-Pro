@@ -35,7 +35,7 @@ function photoUrl(item: BuyerFavoriteListingDto): string | null {
 }
 
 function isMerchantFavorite(item: BuyerFavoriteListingDto): boolean {
-  return item.kind === "merchant";
+  return item.kind === "merchant" || item.kind === "bulk_feed";
 }
 
 function priceLabel(item: BuyerFavoriteListingDto): string | null {

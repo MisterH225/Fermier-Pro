@@ -3529,9 +3529,49 @@ model FeedIngredient {
   updatedBy                String?
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
+  millOffers               MillIngredientOffer[]
 
   @@index([category, isActive])
   @@index([reviewedAt])
+}
+
+/// Conditionnement d'une offre d'intrant moulin (facteur unitToKg dérivable).
+enum MillIngredientPackaging {
+  kg
+  sack_50kg
+  sack_25kg
+  liter
+  ton
+}
+
+/// Offre d'intrant d'un moulin (prix/stock référentiel). Source unique de prix
+/// pour composition (J4) et vente en gros marketplace (si isPubliclyListed).
+model MillIngredientOffer {
+  id                String                  @id @default(cuid())
+  millProfileId     String
+  millProfile       MerchantProfile         @relation(fields: [millProfileId], references: [id], onDelete: Cascade)
+  feedIngredientId  String
+  feedIngredient    FeedIngredient          @relation(fields: [feedIngredientId], references: [id], onDelete: Restrict)
+  pricePerUnit      Decimal                 @db.Decimal(14, 2)
+  packaging         MillIngredientPackaging
+  /// Facteur de conversion en kg (ex. sac 50 kg → 50) pour comparer les prix.
+  unitToKg          Decimal                 @db.Decimal(14, 4)
+  stockQuantity     Decimal                 @db.Decimal(14, 3)
+  /// Coût de mélange au kg — sert la composition d'aliments (J1-C+).
+  mixingCostPerKg   Decimal?                @db.Decimal(14, 2)
+  /// true = synchronisé vers MerchantProduct (vente en gros marketplace).
+  isPubliclyListed  Boolean                 @default(false)
+  isActive          Boolean                 @default(true)
+  /// Produit marketplace dérivé (null si offre privée / dépubliée).
+  merchantProductId String?                 @unique
+  merchantProduct   MerchantProduct?        @relation(fields: [merchantProductId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@unique([millProfileId, feedIngredientId, packaging])
+  @@index([feedIngredientId, isActive])
+  @@index([millProfileId, isActive])
+  @@index([isPubliclyListed, isActive])
 }
 
 /// Cache des prévisions IA prédictives — une ligne par ferme.
@@ -3732,6 +3772,7 @@ model MerchantProfile {
   shops                MerchantShop[]
   subscriptionInvoices MerchantSubscriptionInvoice[]
   promoRedemptions     MerchantSubscriptionPromoRedemption[]
+  millIngredientOffers MillIngredientOffer[]
 
   @@index([subscriptionTier])
   @@index([subscriptionTier, nextBillingAt])
@@ -3857,10 +3898,12 @@ model MerchantProduct {
   resubmittedAt     DateTime?
   createdAt      DateTime                       @default(now())
   updatedAt      DateTime                       @updatedAt
-  orders         MerchantOrder[]
-  chatRooms      ChatRoom[]
-  moderationLogs MerchantProductModerationLog[]
-  favorites      BuyerMerchantFavorite[]
+  orders              MerchantOrder[]
+  chatRooms           ChatRoom[]
+  moderationLogs      MerchantProductModerationLog[]
+  favorites           BuyerMerchantFavorite[]
+  /// Offre moulin source si produit synchronisé (vente en gros / bulk_feed).
+  millIngredientOffer MillIngredientOffer?
 
   @@index([shopId, status, createdAt])
   @@index([categoryId])

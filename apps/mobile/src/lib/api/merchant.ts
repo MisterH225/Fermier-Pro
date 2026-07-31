@@ -680,3 +680,118 @@ export function acceptMerchantOrderDisputeReturn(
     profileId
   );
 }
+
+/** Conditionnement offre intrant moulin. */
+export type MillIngredientPackaging =
+  | "kg"
+  | "sack_50kg"
+  | "sack_25kg"
+  | "liter"
+  | "ton";
+
+export type MillFeedIngredientDto = {
+  id: string;
+  canonicalName: string;
+  aliases: string[];
+  category: string;
+};
+
+export type MillIngredientOfferDto = {
+  id: string;
+  millProfileId: string;
+  feedIngredientId: string;
+  feedIngredientName: string | null;
+  feedIngredientAliases: string[];
+  feedIngredientCategory: string | null;
+  pricePerUnit: number;
+  packaging: MillIngredientPackaging;
+  unitToKg: number;
+  pricePerKg: number | null;
+  stockQuantity: number;
+  mixingCostPerKg: number | null;
+  isPubliclyListed: boolean;
+  isActive: boolean;
+  merchantProductId: string | null;
+  merchantProductStatus: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function searchMillFeedIngredients(
+  accessToken: string,
+  profileId: string,
+  q?: string
+): Promise<MillFeedIngredientDto[]> {
+  const qs = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+  return apiGetJson<MillFeedIngredientDto[]>(
+    `/merchant/mill/ingredients${qs}`,
+    accessToken,
+    profileId
+  );
+}
+
+export function fetchMillIngredientOffers(
+  accessToken: string,
+  profileId: string
+): Promise<MillIngredientOfferDto[]> {
+  return apiGetJson<MillIngredientOfferDto[]>(
+    "/merchant/mill/offers",
+    accessToken,
+    profileId
+  );
+}
+
+export function createMillIngredientOffer(
+  accessToken: string,
+  profileId: string,
+  body: {
+    feedIngredientId: string;
+    pricePerUnit: number;
+    packaging: MillIngredientPackaging;
+    unitToKg?: number;
+    stockQuantity: number;
+    mixingCostPerKg?: number | null;
+    isPubliclyListed?: boolean;
+  }
+): Promise<MillIngredientOfferDto> {
+  return apiPostJson<MillIngredientOfferDto>(
+    "/merchant/mill/offers",
+    body,
+    accessToken,
+    profileId
+  );
+}
+
+export function updateMillIngredientOffer(
+  accessToken: string,
+  profileId: string,
+  offerId: string,
+  body: Partial<{
+    pricePerUnit: number;
+    packaging: MillIngredientPackaging;
+    unitToKg: number;
+    stockQuantity: number;
+    mixingCostPerKg: number | null;
+    isPubliclyListed: boolean;
+    isActive: boolean;
+  }>
+): Promise<MillIngredientOfferDto> {
+  return apiPatchJson<MillIngredientOfferDto>(
+    `/merchant/mill/offers/${offerId}`,
+    body,
+    accessToken,
+    profileId
+  );
+}
+
+export function deactivateMillIngredientOffer(
+  accessToken: string,
+  profileId: string,
+  offerId: string
+): Promise<MillIngredientOfferDto> {
+  return apiDeleteJson<MillIngredientOfferDto>(
+    `/merchant/mill/offers/${offerId}`,
+    accessToken,
+    profileId
+  );
+}

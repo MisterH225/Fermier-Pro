@@ -42,6 +42,7 @@ import {
   MerchantShopsScreen,
   MerchantShopDetailScreen,
   MerchantProductsScreen,
+  MillIngredientsScreen,
   MerchantMarketScreen,
   MerchantOrdersScreen,
   MerchantOrderDetailScreen,
@@ -265,6 +266,11 @@ function MainStack() {
       <Stack.Screen
         name="MerchantProducts"
         component={MerchantProductsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MillIngredients"
+        component={MillIngredientsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

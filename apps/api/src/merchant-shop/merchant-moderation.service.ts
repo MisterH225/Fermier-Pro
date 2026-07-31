@@ -54,6 +54,13 @@ export class MerchantModerationService {
             }
           }
         },
+        millIngredientOffer: {
+          select: {
+            id: true,
+            feedIngredientId: true,
+            feedIngredient: { select: { canonicalName: true } }
+          }
+        },
         _count: { select: { orders: true } }
       },
       orderBy:
@@ -80,7 +87,13 @@ export class MerchantModerationService {
       resubmittedAt: p.resubmittedAt?.toISOString() ?? null,
       publishedAt: p.publishedAt?.toISOString() ?? null,
       updatedAt: p.updatedAt.toISOString(),
-      orderCount: p._count.orders
+      orderCount: p._count.orders,
+      /** Produit gros moulin synchronisé depuis MillIngredientOffer. */
+      isBulkFeed: Boolean(p.millIngredientOffer),
+      millIngredientOfferId: p.millIngredientOffer?.id ?? null,
+      feedIngredientId: p.millIngredientOffer?.feedIngredientId ?? null,
+      feedIngredientName:
+        p.millIngredientOffer?.feedIngredient.canonicalName ?? null
     }));
   }
 

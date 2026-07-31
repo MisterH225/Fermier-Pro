@@ -7,7 +7,14 @@ export const PIG_LISTING_CATEGORIES = [
   ListingMarketCategory.reformed
 ] as const;
 
-export type MarketplaceFeedKind = "listing" | "merchant";
+export type MarketplaceFeedKind = "listing" | "merchant" | "bulk_feed";
+
+/** Produits boutique (commerçant standard ou gros moulin). */
+export function isMerchantFeedKind(
+  kind?: string | null
+): kind is "merchant" | "bulk_feed" {
+  return kind === "merchant" || kind === "bulk_feed";
+}
 
 export function isPigListingCategory(
   category?: string | null
@@ -45,6 +52,8 @@ type MerchantProductFeedRow = {
     locationLabel: string | null;
     merchantProfile: { user: { id: string; fullName: string | null } };
   };
+  /** Présent si synchronisé depuis une offre moulin publique. */
+  millIngredientOffer?: { id: string; feedIngredientId: string } | null;
 };
 
 export function merchantProductToFeedItem(product: MerchantProductFeedRow) {
@@ -56,10 +65,11 @@ export function merchantProductToFeedItem(product: MerchantProductFeedRow) {
       ? product.price
       : Number(product.price.toString());
   const publishedAt = product.publishedAt?.toISOString() ?? null;
+  const isBulkFeed = Boolean(product.millIngredientOffer?.id);
 
   return {
     id: product.id,
-    kind: "merchant" as const,
+    kind: (isBulkFeed ? "bulk_feed" : "merchant") as MarketplaceFeedKind,
     sellerUserId: product.shop.merchantProfile.user.id,
     title: product.name,
     description: product.description,
@@ -87,6 +97,8 @@ export function merchantProductToFeedItem(product: MerchantProductFeedRow) {
     expiresAt: null,
     activeOfferCount: 0,
     creditEnabled: false,
+    feedIngredientId: product.millIngredientOffer?.feedIngredientId ?? null,
+    millIngredientOfferId: product.millIngredientOffer?.id ?? null,
     farm: { id: product.shop.id, name: product.shop.name },
     animal: null,
     seller: {

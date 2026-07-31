@@ -4597,6 +4597,41 @@ export const fr = {
         mill: "Moulin (fabricant d'aliment)"
       }
     },
+    millIngredients: {
+      title: "Mes intrants",
+      subtitle:
+        "Déclare tes prix et stocks d'intrants. Coche « Vendre en gros » pour les publier sur le marché.",
+      dashboardCta: "Gérer prix, stocks et vente en gros",
+      unavailable: "Réservé aux moulins lorsque le module est actif.",
+      addOffer: "Ajouter un intrant",
+      cancelForm: "Fermer le formulaire",
+      searchIngredient: "Rechercher un intrant",
+      searchPlaceholder: "Ex. maïs, tourteau…",
+      selected: "Sélectionné : {{name}}",
+      packaging: "Conditionnement",
+      packagingLabels: {
+        kg: "kg",
+        sack_50kg: "Sac 50 kg",
+        sack_25kg: "Sac 25 kg",
+        liter: "Litre",
+        ton: "Tonne"
+      },
+      pricePerUnit: "Prix par unité (XOF)",
+      stock: "Stock (nb d'unités)",
+      mixingCost: "Coût de mélange / kg (optionnel)",
+      sellWholesale: "Vendre en gros sur le marché",
+      sellWholesaleHint:
+        "Une seule source de prix : l'offre alimente aussi la composition. Les offres privées restent invisibles sur le marché.",
+      save: "Enregistrer l'offre",
+      myOffers: "Mes offres",
+      empty: "Aucune offre pour l'instant.",
+      stockLabel: "Stock : {{qty}}",
+      publicBadge: "En vente (gros)",
+      privateBadge: "Privé (composition)",
+      listPublic: "Mettre en vente",
+      unlist: "Retirer du marché",
+      deactivate: "Désactiver"
+    },
     subscription: {
       title: "Choisis ton abonnement",
       subtitle: "Débloque ta boutique sur le marketplace Fermier Pro",
