@@ -1,8 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
-INSERT INTO "PlatformFeatureFlag" ("moduleId", "moduleName", "icon", "canDisable", "isActive", "updatedAt")
-VALUES ('wallet', 'Portefeuille', '💳', true, true, CURRENT_TIMESTAMP)
-ON CONFLICT ("moduleId") DO NOTHING;
+-- 20260629195113_wallet_feature_flag
+SELECT 1;

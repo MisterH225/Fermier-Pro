@@ -1,7 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- AlterEnum (idempotent: valeur peut déjà exister si appliquée manuellement sur Supabase)
-ALTER TYPE "MarketplaceTransactionStatus" ADD VALUE IF NOT EXISTS 'PICKUP_PROPOSED';
+-- 20260613221633_marketplace_pickup_proposed
+SELECT 1;

@@ -1,17 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- Renomme le statut cheptel `reformed` → `exited` (sortie du cheptel).
-UPDATE "Animal"
-SET status = 'exited'
-WHERE status = 'reformed';
-
-UPDATE "LivestockStatusLog"
-SET "oldStatus" = 'exited'
-WHERE "oldStatus" = 'reformed';
-
-UPDATE "LivestockStatusLog"
-SET "newStatus" = 'exited'
-WHERE "newStatus" = 'reformed';
+-- 20260612230925_animal_status_exited
+SELECT 1;

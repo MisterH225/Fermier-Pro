@@ -1,10 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- Liaison bidirectionnelle Finance (FarmExpense) ↔ Stock (FeedStockMovement)
-ALTER TABLE "FarmExpense" ADD COLUMN "linkedStockMovementIds" TEXT[] DEFAULT ARRAY[]::TEXT[];
-
-CREATE INDEX "FarmExpense_linkedStockMovementIds_idx" ON "FarmExpense" USING GIN ("linkedStockMovementIds");
-CREATE INDEX "FeedStockMovement_linkedExpenseId_idx" ON "FeedStockMovement"("linkedExpenseId");
+-- 20260527220656_finance_stock_link
+SELECT 1;

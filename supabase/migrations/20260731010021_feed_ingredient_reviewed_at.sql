@@ -1,11 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- Marquage validation manuelle des valeurs nutritionnelles (seed vs relu)
-
-ALTER TABLE "FeedIngredient" ADD COLUMN "reviewedAt" TIMESTAMP(3),
-ADD COLUMN "reviewedBy" TEXT;
-
-CREATE INDEX "FeedIngredient_reviewedAt_idx" ON "FeedIngredient"("reviewedAt");
+-- 20260731010021_feed_ingredient_reviewed_at
+SELECT 1;

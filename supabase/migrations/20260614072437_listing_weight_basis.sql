@@ -1,14 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- Idempotent : la migration peut avoir été pré-appliquée via Supabase MCP.
-DO $$ BEGIN
-  CREATE TYPE "ListingWeightBasis" AS ENUM ('live', 'carcass');
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
-
-ALTER TABLE "MarketplaceListing"
-  ADD COLUMN IF NOT EXISTS "weightBasis" "ListingWeightBasis";
+-- 20260614072437_listing_weight_basis
+SELECT 1;

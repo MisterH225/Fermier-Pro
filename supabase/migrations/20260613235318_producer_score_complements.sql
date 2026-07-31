@@ -1,10 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- AlterTable
-ALTER TABLE "ProducerProfile" ADD COLUMN IF NOT EXISTS "chatBuyerMessagesCount" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ProducerProfile" ADD COLUMN IF NOT EXISTS "chatRepliedWithin24h" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ProducerProfile" ADD COLUMN IF NOT EXISTS "creditBlocked" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "ProducerProfile" ADD COLUMN IF NOT EXISTS "creditBlockedReason" TEXT;
+-- 20260613235318_producer_score_complements
+SELECT 1;

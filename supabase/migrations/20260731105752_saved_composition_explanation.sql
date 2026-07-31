@@ -1,7 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- AlterTable SavedComposition : cache explication structurée (IA / fallback)
-ALTER TABLE "SavedComposition" ADD COLUMN "explanation" JSONB;
+-- 20260731105752_saved_composition_explanation
+SELECT 1;

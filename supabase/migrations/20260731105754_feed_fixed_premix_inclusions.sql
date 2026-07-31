@@ -1,12 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- AlterTable FeedIngredient : marque additifs à taux fixe (CMV, sel…)
-ALTER TABLE "FeedIngredient" ADD COLUMN "isPremix" BOOLEAN NOT NULL DEFAULT false;
-
--- AlterTable FeedRequirementProfile : taux d'incorporation fixes par stade
-ALTER TABLE "FeedRequirementProfile" ADD COLUMN "fixedInclusions" JSONB NOT NULL DEFAULT '[]';
-
-CREATE INDEX "FeedIngredient_isPremix_isActive_idx" ON "FeedIngredient"("isPremix", "isActive");
+-- 20260731105754_feed_fixed_premix_inclusions
+SELECT 1;

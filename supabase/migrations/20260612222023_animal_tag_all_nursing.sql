@@ -1,9 +1,5 @@
--- Synced to match remote supabase_migrations.schema_migrations version.
--- Required for Supabase Preview / branching history reconciliation.
+-- Already applied on remote (Supabase schema_migrations / Prisma).
+-- No-op for Supabase Preview cold replay (base tables live in Prisma).
 
--- Source mirrored from apps/api/prisma/migrations
-
--- Préfixe All (allaitement) + catégorie production nursing
-ALTER TYPE "AnimalProductionCategory" ADD VALUE IF NOT EXISTS 'nursing';
-
-ALTER TABLE "Farm" ADD COLUMN IF NOT EXISTS "lastAllTagNumber" INTEGER NOT NULL DEFAULT 0;
+-- 20260612222023_animal_tag_all_nursing
+SELECT 1;
