@@ -189,7 +189,7 @@ export class SavedCompositionsService {
       {
         type: "feed_composition_vet_review",
         farmId: row.farmId,
-        farmName: farm?.name ?? null,
+        farmName: farm?.name ?? "—",
         compositionId: row.id,
         roomId: room.id,
         consultationId: consultation.id,
@@ -275,7 +275,7 @@ export class SavedCompositionsService {
           ? "feed_composition_validated"
           : "feed_composition_vet_reviewed",
         farmId: row.farmId,
-        farmName: farm?.name ?? null,
+        farmName: farm?.name ?? "—",
         compositionId: row.id,
         decision: dto.decision,
         ...(roomId ? { roomId } : {})
