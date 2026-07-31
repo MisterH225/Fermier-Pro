@@ -9,6 +9,7 @@ import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.modu
 import { PrismaModule } from "../prisma/prisma.module";
 import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { AdminFeedRequirementProfilesController } from "./admin-feed-requirement-profiles.controller";
+import { CompositionPricingService } from "./assist/composition-pricing.service";
 import { FeedCompositionAssistService } from "./assist/feed-composition-assist.service";
 import { FeedCompositionController } from "./assist/feed-composition.controller";
 import { FeedCompositionExplainService } from "./assist/explain/feed-composition-explain.service";
@@ -49,14 +50,16 @@ import { SOLVER_PORT } from "./solver/solver.port";
     IngredientAvailabilityService,
     FeedCompositionAssistService,
     FeedCompositionExplainService,
-    SavedCompositionsService
+    SavedCompositionsService,
+    CompositionPricingService
   ],
   exports: [
     FeedFormulationService,
     FeedRequirementProfilesService,
     FeedCompositionAssistService,
     FeedCompositionExplainService,
-    SavedCompositionsService
+    SavedCompositionsService,
+    CompositionPricingService
   ]
 })
 export class FeedFormulationModule {}
