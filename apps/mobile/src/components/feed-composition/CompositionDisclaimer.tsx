@@ -10,7 +10,7 @@ type Props = {
   compact?: boolean;
 };
 
-/** Disclaimer permanent — formulation indicative. */
+/** Avertissement permanent — proposition à faire valider. */
 export function CompositionDisclaimer({ compact = false }: Props) {
   return (
     <View
@@ -19,8 +19,9 @@ export function CompositionDisclaimer({ compact = false }: Props) {
       accessibilityRole="text"
     >
       <Text style={styles.text}>
-        Formulation indicative — validez avec votre vétérinaire ou technicien
-        avant utilisation.
+        {compact
+          ? "Proposition indicative — faites-la vérifier par votre véto avant usage."
+          : "C’est une proposition de mélange, pas un ordre médical. Faites-la vérifier par votre vétérinaire avant de nourrir vos animaux."}
       </Text>
     </View>
   );

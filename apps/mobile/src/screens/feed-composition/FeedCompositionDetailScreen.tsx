@@ -4,12 +4,15 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CompositionDisclaimer } from "../../components/feed-composition/CompositionDisclaimer";
 import { ProposeAdjustmentModal } from "../../components/feed-composition/ProposeAdjustmentModal";
 import { FormulationResultCard } from "../../components/feed-composition/FormulationResultCard";
@@ -46,6 +49,7 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myId = authMe?.user.id;
+  const insets = useSafeAreaInsets();
   const [adjustOpen, setAdjustOpen] = useState(false);
 
   const detailQ = useQuery({
@@ -206,134 +210,182 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
     Boolean(row.chatRoomId) &&
     (row.status === "vet_review" || row.status === "validated");
 
+  const onSendToVet = () => {
+    if (!hasVets) {
+      Alert.alert(
+        "Aucun vétérinaire associé",
+        "Ajoutez d’abord votre vétérinaire à cette ferme (Équipe / membres), puis renvoyez pour validation.",
+        [
+          {
+            text: "Ouvrir l’équipe",
+            onPress: () =>
+              navigation.navigate("FarmMembers", { farmId, farmName })
+          },
+          { text: "OK", style: "cancel" }
+        ]
+      );
+      return;
+    }
+    sendMut.mutate();
+  };
+
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.root}
-      contentContainerStyle={styles.content}
-      testID="composition-detail"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
     >
-      <CompositionDisclaimer />
-      <Text style={styles.title}>{stageLabelFr(row.stage)}</Text>
-      <Text style={styles.meta}>
-        {statusLabelFr(row.status)} · {formatXof(row.totalCostXof)} ·{" "}
-        {new Date(row.createdAt).toLocaleDateString("fr-FR")}
-      </Text>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, 16) + 48 }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator
+        testID="composition-detail"
+      >
+        <CompositionDisclaimer />
+        <Text style={styles.title}>{stageLabelFr(row.stage)}</Text>
+        <Text style={styles.meta}>
+          {statusLabelFr(row.status)} · {formatXof(row.totalCostXof)} ·{" "}
+          {new Date(row.createdAt).toLocaleDateString("fr-FR")}
+        </Text>
 
-      {row.status === "validated" && row.vetReviewedAt ? (
-        <View style={styles.validatedBanner} testID="validated-banner">
-          <Text style={styles.validatedText}>
-            Validée par {row.vetReviewedByName ?? "votre vétérinaire"} le{" "}
-            {new Date(row.vetReviewedAt).toLocaleDateString("fr-FR")}
+        {row.status === "validated" && row.vetReviewedAt ? (
+          <View style={styles.validatedBanner} testID="validated-banner">
+            <Text style={styles.validatedText}>
+              Validée par {row.vetReviewedByName ?? "votre vétérinaire"} le{" "}
+              {new Date(row.vetReviewedAt).toLocaleDateString("fr-FR")}
+            </Text>
+          </View>
+        ) : null}
+
+        {row.vetComment ? (
+          <Text style={styles.vetComment}>
+            Message du véto : {row.vetComment}
           </Text>
-        </View>
-      ) : null}
+        ) : null}
 
-      {row.vetComment ? (
-        <Text style={styles.vetComment}>Avis véto : {row.vetComment}</Text>
-      ) : null}
+        <FormulationResultCard
+          formulation={formulation}
+          stage={row.stage}
+          isTheoretical={row.isTheoretical}
+        />
 
-      <FormulationResultCard
-        formulation={formulation}
-        stage={row.stage}
-        isTheoretical={row.isTheoretical}
-      />
+        {row.status === "draft" ? (
+          <>
+            <Pressable
+              style={styles.secondaryBtn}
+              onPress={onSendToVet}
+              disabled={sendMut.isPending}
+              testID="detail-send-to-vet"
+            >
+              <Text style={styles.secondaryBtnLabel}>
+                Envoyer à mon vétérinaire pour validation
+              </Text>
+            </Pressable>
+            {!hasVets && !vetsQ.isPending ? (
+              <Text style={styles.vetHint} testID="detail-no-vet-hint">
+                Associez d’abord votre véto dans l’équipe de la ferme pour
+                ouvrir la discussion.
+              </Text>
+            ) : (
+              <Text style={styles.vetHint}>
+                Une discussion s’ouvre automatiquement pour échanger et
+                valider ce mélange.
+              </Text>
+            )}
+          </>
+        ) : null}
 
-      {hasVets && row.status === "draft" ? (
-        <Pressable
-          style={styles.secondaryBtn}
-          onPress={() => sendMut.mutate()}
-          disabled={sendMut.isPending}
-          testID="detail-send-to-vet"
-        >
-          <Text style={styles.secondaryBtnLabel}>
-            Envoyer à mon vétérinaire pour validation
-          </Text>
-        </Pressable>
-      ) : null}
-
-      {canDiscuss ? (
-        <Pressable
-          style={styles.primaryBtn}
-          testID="discuss-with-vet"
-          onPress={() =>
-            navigation.navigate("ChatRoom", {
-              roomId: row.chatRoomId!,
-              headline: "Composition — avis véto",
-              farmId
-            })
-          }
-        >
-          <Text style={styles.primaryBtnLabel}>
-            Discuter avec mon vétérinaire
-          </Text>
-        </Pressable>
-      ) : null}
-
-      {isAssociatedVet && row.status === "vet_review" ? (
-        <View style={styles.vetActions}>
+        {canDiscuss ? (
           <Pressable
             style={styles.primaryBtn}
-            testID="vet-approve"
-            onPress={() => reviewMut.mutate("approve")}
-            disabled={reviewMut.isPending}
+            testID="discuss-with-vet"
+            onPress={() =>
+              navigation.navigate("ChatRoom", {
+                roomId: row.chatRoomId!,
+                headline: "Composition — avis véto",
+                farmId
+              })
+            }
           >
-            <Text style={styles.primaryBtnLabel}>Valider cette composition</Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondaryBtn}
-            testID="vet-request-changes"
-            onPress={() => reviewMut.mutate("request_changes")}
-            disabled={reviewMut.isPending}
-          >
-            <Text style={styles.secondaryBtnLabel}>
-              Demander des ajustements
+            <Text style={styles.primaryBtnLabel}>
+              Continuer la discussion avec mon vétérinaire
             </Text>
           </Pressable>
-          <Pressable
-            style={styles.secondaryBtn}
-            testID="vet-propose-adjustment"
-            onPress={() => setAdjustOpen(true)}
-          >
-            <Text style={styles.secondaryBtnLabel}>
-              Proposer un ajustement (moteur)
-            </Text>
-          </Pressable>
-          {row.chatRoomId ? (
+        ) : null}
+
+        {isAssociatedVet && row.status === "vet_review" ? (
+          <View style={styles.vetActions}>
             <Pressable
-              style={styles.linkBtn}
-              onPress={() =>
-                navigation.navigate("ChatRoom", {
-                  roomId: row.chatRoomId!,
-                  headline: `Composition — ${farmName || "ferme"}`,
-                  farmId
-                })
-              }
+              style={styles.primaryBtn}
+              testID="vet-approve"
+              onPress={() => reviewMut.mutate("approve")}
+              disabled={reviewMut.isPending}
             >
-              <Text style={styles.linkLabel}>Ouvrir le fil de discussion</Text>
+              <Text style={styles.primaryBtnLabel}>
+                Valider ce mélange
+              </Text>
             </Pressable>
-          ) : null}
-        </View>
-      ) : null}
+            <Pressable
+              style={styles.secondaryBtn}
+              testID="vet-request-changes"
+              onPress={() => reviewMut.mutate("request_changes")}
+              disabled={reviewMut.isPending}
+            >
+              <Text style={styles.secondaryBtnLabel}>
+                Demander des changements
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.secondaryBtn}
+              testID="vet-propose-adjustment"
+              onPress={() => setAdjustOpen(true)}
+            >
+              <Text style={styles.secondaryBtnLabel}>
+                Proposer un autre mélange
+              </Text>
+            </Pressable>
+            {row.chatRoomId ? (
+              <Pressable
+                style={styles.linkBtn}
+                onPress={() =>
+                  navigation.navigate("ChatRoom", {
+                    roomId: row.chatRoomId!,
+                    headline: `Composition — ${farmName || "ferme"}`,
+                    farmId
+                  })
+                }
+              >
+                <Text style={styles.linkLabel}>Ouvrir la discussion</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
-      {row.status === "validated" ? (
-        <Pressable
-          style={[styles.primaryBtn, styles.disabledBtn]}
-          disabled
-          testID="order-composition-disabled"
-          accessibilityState={{ disabled: true }}
-        >
-          <Text style={styles.primaryBtnLabel}>Commander — bientôt</Text>
-        </Pressable>
-      ) : null}
+        {row.status === "validated" ? (
+          <Pressable
+            style={[styles.primaryBtn, styles.disabledBtn]}
+            disabled
+            testID="order-composition-disabled"
+            accessibilityState={{ disabled: true }}
+          >
+            <Text style={styles.primaryBtnLabel}>Commander — bientôt</Text>
+          </Pressable>
+        ) : null}
 
-      <ProposeAdjustmentModal
-        visible={adjustOpen}
-        ration={ration}
-        submitting={adjustMut.isPending}
-        onClose={() => setAdjustOpen(false)}
-        onSubmit={(body) => adjustMut.mutate(body)}
-      />
-    </ScrollView>
+        <ProposeAdjustmentModal
+          visible={adjustOpen}
+          ration={ration}
+          submitting={adjustMut.isPending}
+          onClose={() => setAdjustOpen(false)}
+          onSubmit={(body) => adjustMut.mutate(body)}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -341,8 +393,13 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: mobileColors.canvas },
   content: {
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.md,
-    paddingBottom: 48
+    gap: mobileSpacing.md
+  },
+  vetHint: {
+    fontSize: mobileFontSize.xs,
+    color: mobileColors.textSecondary,
+    lineHeight: 18,
+    textAlign: "center"
   },
   center: {
     flex: 1,

@@ -24,17 +24,24 @@ type Props = {
   onChange: (next: FormulateFormValues) => void;
   onSubmit: () => void;
   submitting: boolean;
+  onFieldFocus?: () => void;
 };
 
 export function FormulateForm({
   values,
   onChange,
   onSubmit,
-  submitting
+  submitting,
+  onFieldFocus
 }: Props) {
   return (
     <View style={styles.wrap} testID="formulate-form">
-      <Text style={styles.label}>Stade</Text>
+      <Text style={styles.intro}>
+        Indiquez pour quels porcs et pour combien de jours. On calcule le
+        mélange et le coût.
+      </Text>
+
+      <Text style={styles.label}>Pour quels animaux ?</Text>
       <View style={styles.stageGrid}>
         {PRODUCTION_STAGES.map((s) => {
           const selected = values.stage === s;
@@ -56,27 +63,31 @@ export function FormulateForm({
       </View>
 
       <Field
-        label="Nombre d’animaux"
+        label="Combien d’animaux ?"
         value={values.animalCount}
         onChangeText={(animalCount) => onChange({ ...values, animalCount })}
+        onFocus={onFieldFocus}
         testID="field-animal-count"
       />
       <Field
         label="Poids moyen (kg)"
         value={values.avgWeightKg}
         onChangeText={(avgWeightKg) => onChange({ ...values, avgWeightKg })}
+        onFocus={onFieldFocus}
         testID="field-avg-weight"
       />
       <Field
-        label="Âge moyen (semaines, optionnel)"
+        label="Âge moyen (semaines) — optionnel"
         value={values.avgAgeWeeks}
         onChangeText={(avgAgeWeeks) => onChange({ ...values, avgAgeWeeks })}
+        onFocus={onFieldFocus}
         testID="field-avg-age"
       />
       <Field
-        label="Durée (jours)"
+        label="Pendant combien de jours ?"
         value={values.durationDays}
         onChangeText={(durationDays) => onChange({ ...values, durationDays })}
+        onFocus={onFieldFocus}
         testID="field-duration"
       />
 
@@ -87,7 +98,7 @@ export function FormulateForm({
         testID="formulate-submit"
       >
         <Text style={styles.submitLabel}>
-          {submitting ? "Calcul…" : "Calculer la ration"}
+          {submitting ? "Calcul en cours…" : "Calculer mon mélange"}
         </Text>
       </Pressable>
     </View>
@@ -98,11 +109,13 @@ function Field({
   label,
   value,
   onChangeText,
+  onFocus,
   testID
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
+  onFocus?: () => void;
   testID: string;
 }) {
   return (
@@ -113,6 +126,7 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         keyboardType="decimal-pad"
+        onFocus={onFocus}
         testID={testID}
       />
     </View>
@@ -121,6 +135,11 @@ function Field({
 
 const styles = StyleSheet.create({
   wrap: { gap: mobileSpacing.md },
+  intro: {
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textSecondary,
+    lineHeight: 20
+  },
   label: {
     fontSize: mobileFontSize.sm,
     fontWeight: "700",

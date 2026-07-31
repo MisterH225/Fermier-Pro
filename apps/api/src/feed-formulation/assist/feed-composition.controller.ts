@@ -94,7 +94,7 @@ export class FeedCompositionController {
     return this.saved.getOne(user, id);
   }
 
-  /** Véto associés (si vide → UI masque l'option d'envoi). */
+  /** Véto associés (si vide → UI guide vers l'équipe ferme, bouton toujours visible). */
   @Get("farms/:farmId/veterinarians")
   listVets(@CurrentUser() user: User, @Param("farmId") farmId: string) {
     return this.saved.listAssociatedVeterinarians(user, farmId);

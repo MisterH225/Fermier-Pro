@@ -62,7 +62,7 @@ export function FeedCompositionsListScreen({ navigation, route }: Props) {
             navigation.navigate("FeedComposition", { farmId, farmName })
           }
         >
-          <Text style={styles.newBtnLabel}>Nouvelle formulation</Text>
+          <Text style={styles.newBtnLabel}>Nouveau mélange</Text>
         </Pressable>
       </View>
 
@@ -82,8 +82,8 @@ export function FeedCompositionsListScreen({ navigation, route }: Props) {
           ListEmptyComponent={
             <EmptyStateCard
               icon="flask-outline"
-              title="Aucune composition"
-              subtitle="Formulez une ration puis enregistrez-la ici."
+              title="Aucun mélange enregistré"
+              subtitle="Préparez un mélange pour vos porcs, enregistrez-le, puis envoyez-le au véto."
               onConfigure={() =>
                 navigation.navigate("FeedComposition", { farmId, farmName })
               }

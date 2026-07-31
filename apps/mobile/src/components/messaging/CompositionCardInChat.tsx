@@ -28,13 +28,13 @@ type Props = {
 function variantLabel(v: FeedCompositionCardPayload["variant"]): string {
   switch (v) {
     case "adjustment":
-      return "Ajustement proposé";
+      return "Nouveau mélange proposé";
     case "validated":
-      return "Composition validée";
+      return "Mélange validé par le véto";
     case "request_changes":
-      return "Ajustements demandés";
+      return "Le véto demande des changements";
     default:
-      return "Composition à valider";
+      return "Mélange à faire valider";
   }
 }
 
@@ -73,7 +73,7 @@ export function CompositionCardInChat({
       ) : null}
       {payload.nutritionDelta && payload.variant === "adjustment" ? (
         <Text style={styles.delta}>
-          Écart énergie :{" "}
+          Énergie du mélange :{" "}
           {payload.nutritionDelta.energyChangePct != null
             ? `${Number(payload.nutritionDelta.energyChangePct).toFixed(1)} %`
             : "—"}
