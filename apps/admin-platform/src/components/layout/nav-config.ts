@@ -3,6 +3,7 @@ import {
   Bot,
   Calendar,
   ClipboardList,
+  CreditCard,
   LayoutDashboard,
   Map,
   MessageSquare,
@@ -12,11 +13,11 @@ import {
   Store,
   Users,
   Award,
-  CreditCard,
   Wallet,
   type LucideIcon
 } from "lucide-react";
 
+/** Clés de permission / ACL — inchangées (merchant vs producer restent distincts). */
 export const NAV_KEYS = [
   "overview",
   "vets",
@@ -39,6 +40,9 @@ export const NAV_KEYS = [
 
 export type NavKey = (typeof NAV_KEYS)[number];
 
+/** Libellés i18n `nav.*` pour groupes (pas des clés de permission). */
+export type NavGroupLabelKey = "subscriptions";
+
 export type NavItem = {
   href: string;
   icon: LucideIcon;
@@ -47,11 +51,40 @@ export type NavItem = {
   primary?: boolean;
 };
 
-export const NAV_ITEMS: NavItem[] = [
+export type NavGroup = {
+  kind: "group";
+  id: string;
+  labelKey: NavGroupLabelKey;
+  icon: LucideIcon;
+  primary?: boolean;
+  children: NavItem[];
+};
+
+export type NavEntry =
+  | (NavItem & { kind?: "item" })
+  | NavGroup;
+
+export function isNavGroup(entry: NavEntry): entry is NavGroup {
+  return (entry as NavGroup).kind === "group";
+}
+
+export const NAV_ENTRIES: NavEntry[] = [
   { href: "/", icon: LayoutDashboard, key: "overview", primary: true },
-  { href: "/veterinaires", icon: Shield, key: "vets", badgeKey: "pendingVets", primary: true },
+  {
+    href: "/veterinaires",
+    icon: Shield,
+    key: "vets",
+    badgeKey: "pendingVets",
+    primary: true
+  },
   { href: "/utilisateurs", icon: Users, key: "users", primary: true },
-  { href: "/carte-sanitaire", icon: Map, key: "map", badgeKey: "activeAlerts", primary: true },
+  {
+    href: "/carte-sanitaire",
+    icon: Map,
+    key: "map",
+    badgeKey: "activeAlerts",
+    primary: true
+  },
   {
     href: "/marketplace",
     icon: Store,
@@ -60,16 +93,23 @@ export const NAV_ITEMS: NavItem[] = [
     primary: true
   },
   {
-    href: "/abonnements-commercant",
+    kind: "group",
+    id: "subscriptions",
+    labelKey: "subscriptions",
     icon: CreditCard,
-    key: "merchantSubscriptions",
-    primary: true
-  },
-  {
-    href: "/abonnements-producteur",
-    icon: Users,
-    key: "producerSubscriptions",
-    primary: true
+    primary: true,
+    children: [
+      {
+        href: "/abonnements-commercant",
+        icon: CreditCard,
+        key: "merchantSubscriptions"
+      },
+      {
+        href: "/abonnements-producteur",
+        icon: Users,
+        key: "producerSubscriptions"
+      }
+    ]
   },
   { href: "/producteurs-scores", icon: Award, key: "producerScores", primary: true },
   { href: "/statistiques", icon: BarChart3, key: "stats", primary: true },
@@ -83,5 +123,29 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/parametres", icon: Settings, key: "settings" }
 ];
 
+/** Liste plate (permissions, Sidebar, matrice institution). */
+export const NAV_ITEMS: NavItem[] = NAV_ENTRIES.flatMap((entry) =>
+  isNavGroup(entry) ? entry.children : [entry]
+);
+
 export const PRIMARY_NAV = NAV_ITEMS.filter((item) => item.primary);
 export const SECONDARY_NAV = NAV_ITEMS.filter((item) => !item.primary);
+
+export function filterNavEntries(
+  entries: NavEntry[],
+  canRead: (key: NavKey) => boolean
+): NavEntry[] {
+  const out: NavEntry[] = [];
+  for (const entry of entries) {
+    if (isNavGroup(entry)) {
+      const children = entry.children.filter((c) => canRead(c.key));
+      if (children.length === 0) continue;
+      out.push({ ...entry, children });
+      continue;
+    }
+    if (canRead(entry.key)) {
+      out.push(entry);
+    }
+  }
+  return out;
+}

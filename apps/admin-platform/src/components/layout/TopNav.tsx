@@ -16,8 +16,12 @@ import {
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { NotificationBell } from "@/components/layout/NotificationBell";
-import { NAV_ITEMS, PRIMARY_NAV, SECONDARY_NAV } from "@/components/layout/nav-config";
-import type { NavItem } from "@/components/layout/nav-config";
+import {
+  NAV_ENTRIES,
+  isNavGroup,
+  type NavEntry,
+  type NavItem
+} from "@/components/layout/nav-config";
 
 const LOGO_SRC = "/images/fermier-pro-logo-nobg.png";
 const LOGO_ASPECT = 1200 / 848;
@@ -29,12 +33,16 @@ type Props = {
   userName?: string | null;
   userEmail?: string | null;
   roleLabel?: string;
-  navItems?: NavItem[];
+  navEntries?: NavEntry[];
   onLogout: () => void;
 };
 
 function navActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+function groupActive(pathname: string, children: NavItem[]) {
+  return children.some((c) => navActive(pathname, c.href));
 }
 
 function badgeFor(
@@ -49,6 +57,10 @@ function badgeFor(
   return null;
 }
 
+function entryIsPrimary(entry: NavEntry): boolean {
+  return Boolean(entry.primary);
+}
+
 export function TopNav({
   pendingVets = 0,
   activeAlerts = 0,
@@ -56,7 +68,7 @@ export function TopNav({
   userName,
   userEmail,
   roleLabel = "SuperAdmin",
-  navItems = NAV_ITEMS,
+  navEntries = NAV_ENTRIES,
   onLogout
 }: Props) {
   const t = useTranslations("nav");
@@ -64,12 +76,21 @@ export function TopNav({
   const [moreOpen, setMoreOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const [mobileExpandedGroupId, setMobileExpandedGroupId] = useState<string | null>(
+    null
+  );
   const moreRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
   const counts = { pendingVets, activeAlerts, marketplaceDisputes };
-  const primaryNav = navItems.filter((item) => item.primary);
-  const secondaryNav = navItems.filter((item) => !item.primary);
-  const secondaryActive = secondaryNav.some((item) => navActive(pathname, item.href));
+  const primaryEntries = navEntries.filter(entryIsPrimary);
+  const secondaryEntries = navEntries.filter((e) => !entryIsPrimary(e));
+  const secondaryActive = secondaryEntries.some((entry) =>
+    isNavGroup(entry)
+      ? groupActive(pathname, entry.children)
+      : navActive(pathname, entry.href)
+  );
   const displayName = userName ?? "Admin";
   const initials = displayName
     .split(" ")
@@ -80,9 +101,14 @@ export function TopNav({
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
+      }
+      if (groupRef.current && !groupRef.current.contains(e.target as Node)) {
+        setOpenGroupId(null);
       }
     };
     document.addEventListener("mousedown", onClickOutside);
@@ -93,6 +119,7 @@ export function TopNav({
     setMobileOpen(false);
     setMoreOpen(false);
     setProfileOpen(false);
+    setOpenGroupId(null);
   }, [pathname]);
 
   useEffect(() => {
@@ -111,10 +138,84 @@ export function TopNav({
         : "text-muted-foreground hover:text-foreground hover:bg-white/50"
     );
 
+  const renderItemLink = (
+    item: NavItem,
+    opts?: { onNavigate?: () => void; compact?: boolean; mobile?: boolean }
+  ) => {
+    const active = navActive(pathname, item.href);
+    const badge = badgeFor(item, counts);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        title={t(item.key)}
+        onClick={opts?.onNavigate}
+        className={
+          opts?.mobile
+            ? cn(
+                "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
+                active ? "bg-primary text-primary-foreground" : "hover:bg-white/60"
+              )
+            : navLinkClass(active, opts?.compact)
+        }
+      >
+        <item.icon size={opts?.mobile ? 16 : 15} className="shrink-0" />
+        <span className={opts?.mobile ? "flex-1" : "hidden xl:inline"}>
+          {t(item.key)}
+        </span>
+        {opts?.mobile ? <span className="sr-only">{t(item.key)}</span> : null}
+        {!opts?.mobile && !opts?.compact ? (
+          <span className="xl:hidden sr-only">{t(item.key)}</span>
+        ) : null}
+        {badge != null ? (
+          <span
+            className={cn(
+              "min-w-[1.1rem] shrink-0 rounded-full px-1.5 py-0.5 text-center text-[10px] font-bold",
+              opts?.mobile
+                ? "bg-white/25"
+                : active
+                  ? "bg-white/25 text-white"
+                  : "bg-primary/10 text-primary"
+            )}
+          >
+            {badge}
+          </span>
+        ) : null}
+      </Link>
+    );
+  };
+
+  const renderDropdownLinks = (
+    items: NavItem[],
+    onNavigate: () => void
+  ) =>
+    items.map((item) => {
+      const active = navActive(pathname, item.href);
+      const badge = badgeFor(item, counts);
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition hover:bg-white/60",
+            active && "bg-primary/5 text-primary"
+          )}
+        >
+          <item.icon size={16} />
+          <span className="flex-1">{t(item.key)}</span>
+          {badge != null ? (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+              {badge}
+            </span>
+          ) : null}
+        </Link>
+      );
+    });
+
   return (
     <header className="sticky top-0 z-40 w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 pb-2">
       <div className="glass-panel mx-auto w-full max-w-[1400px] rounded-2xl sm:rounded-[1.75rem] px-3 sm:px-4 lg:px-5 py-2.5 sm:py-3">
-        {/* Ligne 1 : marque + actions */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
             <span className="flex size-8 sm:size-9 items-center justify-center rounded-xl sm:rounded-2xl bg-primary text-primary-foreground shadow-glow-blue">
@@ -182,7 +283,9 @@ export function TopNav({
                   <div className="border-b border-white/40 px-4 py-3 md:hidden">
                     <p className="truncate text-sm font-semibold">{displayName}</p>
                     {userEmail ? (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{userEmail}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {userEmail}
+                      </p>
                     ) : null}
                   </div>
                   <div className="px-3 py-2">
@@ -215,36 +318,47 @@ export function TopNav({
           </div>
         </div>
 
-        {/* Ligne 2 : navigation desktop scrollable */}
         <nav
           className="mt-2 hidden min-w-0 items-center gap-1 border-t border-white/40 pt-2 lg:flex"
           aria-label="Navigation principale"
         >
-          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {primaryNav.map((item) => {
-              const active = navActive(pathname, item.href);
-              const badge = badgeFor(item, counts);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={t(item.key)}
-                  className={navLinkClass(active)}
-                >
-                  <item.icon size={15} className="shrink-0" />
-                  <span className="hidden xl:inline">{t(item.key)}</span>
-                  {badge != null ? (
-                    <span
-                      className={cn(
-                        "min-w-[1.1rem] shrink-0 rounded-full px-1.5 py-0.5 text-center text-[10px] font-bold",
-                        active ? "bg-white/25 text-white" : "bg-primary/10 text-primary"
-                      )}
+          <div
+            className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ref={groupRef}
+          >
+            {primaryEntries.map((entry) => {
+              if (isNavGroup(entry)) {
+                const active = groupActive(pathname, entry.children);
+                const open = openGroupId === entry.id;
+                return (
+                  <div key={entry.id} className="relative shrink-0">
+                    <button
+                      type="button"
+                      title={t(entry.labelKey)}
+                      aria-expanded={open}
+                      onClick={() =>
+                        setOpenGroupId((id) => (id === entry.id ? null : entry.id))
+                      }
+                      className={navLinkClass(active || open)}
                     >
-                      {badge}
-                    </span>
-                  ) : null}
-                </Link>
-              );
+                      <entry.icon size={15} className="shrink-0" />
+                      <span className="hidden xl:inline">{t(entry.labelKey)}</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn("shrink-0 transition", open && "rotate-180")}
+                      />
+                    </button>
+                    {open ? (
+                      <div className="glass-dropdown absolute left-0 top-full z-50 mt-2 w-64 py-2">
+                        {renderDropdownLinks(entry.children, () =>
+                          setOpenGroupId(null)
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+              return renderItemLink(entry);
             })}
           </div>
 
@@ -261,40 +375,38 @@ export function TopNav({
             >
               <MoreHorizontal size={15} className="shrink-0" />
               <span>{t("more")}</span>
-              <ChevronDown size={14} className={cn("shrink-0 transition", moreOpen && "rotate-180")} />
+              <ChevronDown
+                size={14}
+                className={cn("shrink-0 transition", moreOpen && "rotate-180")}
+              />
             </button>
             {moreOpen ? (
               <div className="glass-dropdown absolute right-0 top-full z-50 mt-2 w-56 py-2">
-                {secondaryNav.map((item) => {
-                  const active = navActive(pathname, item.href);
-                  const badge = badgeFor(item, counts);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMoreOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition hover:bg-white/60",
-                        active && "bg-primary/5 text-primary"
-                      )}
-                    >
-                      <item.icon size={16} />
-                      <span className="flex-1">{t(item.key)}</span>
-                      {badge != null ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                          {badge}
-                        </span>
-                      ) : null}
-                    </Link>
-                  );
-                })}
+                {secondaryEntries.flatMap((entry) =>
+                  isNavGroup(entry)
+                    ? renderDropdownLinks(entry.children, () => setMoreOpen(false))
+                    : [
+                        <Link
+                          key={entry.href}
+                          href={entry.href}
+                          onClick={() => setMoreOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition hover:bg-white/60",
+                            navActive(pathname, entry.href) &&
+                              "bg-primary/5 text-primary"
+                          )}
+                        >
+                          <entry.icon size={16} />
+                          <span className="flex-1">{t(entry.key)}</span>
+                        </Link>
+                      ]
+                )}
               </div>
             ) : null}
           </div>
         </nav>
       </div>
 
-      {/* Menu mobile plein écran */}
       {mobileOpen ? (
         <>
           <button
@@ -304,28 +416,54 @@ export function TopNav({
             onClick={() => setMobileOpen(false)}
           />
           <div className="glass-dropdown fixed inset-x-3 top-[4.75rem] z-50 max-h-[calc(100vh-5.5rem)] overflow-y-auto p-2 sm:inset-x-4 lg:hidden">
-            {navItems.map((item) => {
-              const active = navActive(pathname, item.href);
-              const badge = badgeFor(item, counts);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
-                    active ? "bg-primary text-primary-foreground" : "hover:bg-white/60"
-                  )}
-                >
-                  <item.icon size={16} />
-                  <span className="flex-1">{t(item.key)}</span>
-                  {badge != null ? (
-                    <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-bold">
-                      {badge}
-                    </span>
-                  ) : null}
-                </Link>
-              );
+            {navEntries.map((entry) => {
+              if (isNavGroup(entry)) {
+                const active = groupActive(pathname, entry.children);
+                const expanded =
+                  mobileExpandedGroupId === entry.id || active;
+                return (
+                  <div key={entry.id} className="mb-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMobileExpandedGroupId((id) =>
+                          id === entry.id ? null : entry.id
+                        )
+                      }
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-white/60"
+                      )}
+                    >
+                      <entry.icon size={16} />
+                      <span className="flex-1 text-left">{t(entry.labelKey)}</span>
+                      <ChevronDown
+                        size={16}
+                        className={cn(
+                          "shrink-0 transition",
+                          expanded && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    {expanded ? (
+                      <div className="ml-3 mt-1 space-y-1 border-l border-white/50 pl-2">
+                        {entry.children.map((child) =>
+                          renderItemLink(child, {
+                            mobile: true,
+                            onNavigate: () => setMobileOpen(false)
+                          })
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+              return renderItemLink(entry, {
+                mobile: true,
+                onNavigate: () => setMobileOpen(false)
+              });
             })}
           </div>
         </>
