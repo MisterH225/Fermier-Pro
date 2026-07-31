@@ -525,9 +525,14 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => {
       const isMerchant =
         f.kind === "merchant" || f.kind === "bulk_feed";
+      const feedKind: MarketplaceListingListItem["kind"] = isMerchant
+        ? f.kind === "bulk_feed"
+          ? "bulk_feed"
+          : "merchant"
+        : "listing";
       return {
         id: f.id,
-        kind: isMerchant ? ("merchant" as const) : ("listing" as const),
+        kind: feedKind,
         title: f.title,
         description: null,
         unitPrice: isMerchant ? f.totalPrice : null,

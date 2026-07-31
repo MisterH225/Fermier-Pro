@@ -7,7 +7,7 @@ import {
 
 export type ListingShareInput = {
   id: string;
-  kind?: "listing" | "merchant";
+  kind?: "listing" | "merchant" | "bulk_feed";
   title: string;
   currency?: string;
   totalPrice?: string | number | null;

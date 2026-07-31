@@ -166,7 +166,7 @@ export function MarketplaceBrowseListings({
       kind: "listing" | "merchant";
       remove: boolean;
     }) => {
-      if (kind === "merchant" || kind === "bulk_feed") {
+      if (kind === "merchant") {
         if (remove) {
           return removeBuyerMerchantFavorite(accessToken!, activeProfileId, id);
         }
