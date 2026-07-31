@@ -26,6 +26,7 @@ import {
 } from "react-native";
 import { ChatModuleGate } from "../components/ChatModuleGate";
 import { ChatInputBar } from "../components/messaging/ChatInputBar";
+import { CompositionContextBanner } from "../components/messaging/CompositionContextBanner";
 import { ListingContextBanner } from "../components/messaging/ListingContextBanner";
 import { MessageBubble } from "../components/messaging/MessageBubble";
 import { mobileColors, mobileRadius, mobileSpacing, mobileFontSize, mobileStatusSurfaces } from "../theme/mobileTheme";
@@ -597,6 +598,12 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         ) : null}
         {listingContext ? (
           <ListingContextBanner listing={listingContext} />
+        ) : null}
+        {isCompositionRoom && roomQuery.data?.savedComposition ? (
+          <CompositionContextBanner
+            composition={roomQuery.data.savedComposition}
+            farmName={roomQuery.data.farm?.name}
+          />
         ) : null}
         {messagesQuery.isPending ? (
           <View style={styles.centered}>

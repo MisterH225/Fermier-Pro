@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { FeedCompositionCardPayload } from "../../lib/feedCompositionChatMessage";
 import {
+  formatKg,
   formatPct,
   formatXof,
   rationLineName,
@@ -38,6 +39,10 @@ function variantLabel(v: FeedCompositionCardPayload["variant"]): string {
   }
 }
 
+function needsValidation(v: FeedCompositionCardPayload["variant"]): boolean {
+  return v === "initial" || v === "request_changes";
+}
+
 export function CompositionCardInChat({
   payload,
   isMine,
@@ -47,6 +52,15 @@ export function CompositionCardInChat({
 }: Props) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const ration = Array.isArray(payload.ration) ? payload.ration : [];
+  const nutrition = payload.nutritionResult;
+  const openDetail = () =>
+    navigation.navigate("FeedCompositionDetail", {
+      farmId: payload.farmId,
+      farmName: "",
+      compositionId: payload.compositionId
+    });
 
   return (
     <View
@@ -58,16 +72,37 @@ export function CompositionCardInChat({
       <Text style={styles.cost}>{formatXof(payload.totalCostXof)}</Text>
       <Text style={styles.meta}>
         {formatXof(payload.costPerKg)} / kg
+        {payload.totalFeedKg > 0
+          ? ` · ${formatKg(payload.totalFeedKg)} au total`
+          : ""}
         {!payload.feasible ? " · non faisable" : ""}
       </Text>
-      {payload.ration.slice(0, 4).map((l) => (
-        <Text key={l.feedIngredientId} style={styles.line}>
-          {rationLineName(l)} · {formatPct(l.proportionPct)}
+
+      {ration.length === 0 ? (
+        <Text style={styles.emptyRation} testID="composition-card-empty-ration">
+          Détail des intrants indisponible dans cette carte — ouvrez le détail.
         </Text>
-      ))}
-      {payload.ration.length > 4 ? (
-        <Text style={styles.meta}>+{payload.ration.length - 4} autres…</Text>
+      ) : (
+        <View style={styles.rationBlock} testID="composition-card-ration">
+          {ration.slice(0, 8).map((l) => (
+            <Text key={l.feedIngredientId} style={styles.line}>
+              {rationLineName(l)} · {formatPct(l.proportionPct)}
+              {l.quantityKg > 0 ? ` · ${formatKg(l.quantityKg)}` : ""}
+            </Text>
+          ))}
+          {ration.length > 8 ? (
+            <Text style={styles.meta}>+{ration.length - 8} autres…</Text>
+          ) : null}
+        </View>
+      )}
+
+      {nutrition ? (
+        <Text style={styles.nutrition} testID="composition-card-nutrition">
+          Énergie {Math.round(nutrition.metabolizableEnergyKcal)} kcal/kg ·
+          Protéines {formatPct(nutrition.crudeProteinPct)}
+        </Text>
       ) : null}
+
       {payload.note?.trim() ? (
         <Text style={styles.note}>« {payload.note.trim()} »</Text>
       ) : null}
@@ -80,17 +115,19 @@ export function CompositionCardInChat({
         </Text>
       ) : null}
 
-      <Pressable
-        onPress={() =>
-          navigation.navigate("FeedCompositionDetail", {
-            farmId: payload.farmId,
-            farmName: "",
-            compositionId: payload.compositionId
-          })
-        }
-      >
-        <Text style={styles.link}>Voir le détail →</Text>
-      </Pressable>
+      {needsValidation(payload.variant) && !isMine ? (
+        <Pressable
+          style={styles.primaryBtn}
+          testID="composition-card-open-validate"
+          onPress={openDetail}
+        >
+          <Text style={styles.primaryBtnLabel}>Ouvrir pour valider</Text>
+        </Pressable>
+      ) : (
+        <Pressable onPress={openDetail} testID="composition-card-open-detail">
+          <Text style={styles.link}>Voir le détail de la ration →</Text>
+        </Pressable>
+      )}
 
       {showApply &&
       payload.variant === "adjustment" &&
@@ -111,7 +148,7 @@ export function CompositionCardInChat({
 
 const styles = StyleSheet.create({
   wrap: {
-    maxWidth: "88%",
+    maxWidth: "92%",
     borderRadius: mobileRadius.lg,
     borderWidth: 1,
     padding: mobileSpacing.md,
@@ -148,10 +185,26 @@ const styles = StyleSheet.create({
     fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary
   },
+  rationBlock: {
+    marginTop: 4,
+    gap: 2
+  },
   line: {
     fontSize: mobileFontSize.sm,
     color: mobileColors.textPrimary,
     fontWeight: "600"
+  },
+  emptyRation: {
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 4
+  },
+  nutrition: {
+    marginTop: 4,
+    fontSize: mobileFontSize.sm,
+    fontWeight: "700",
+    color: mobileStatusSurfaces.successText
   },
   note: {
     fontSize: mobileFontSize.sm,
@@ -168,6 +221,18 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: mobileColors.accent,
     fontWeight: "700",
+    fontSize: mobileFontSize.sm
+  },
+  primaryBtn: {
+    marginTop: 10,
+    backgroundColor: mobileColors.accent,
+    borderRadius: mobileRadius.md,
+    paddingVertical: 12,
+    alignItems: "center"
+  },
+  primaryBtnLabel: {
+    color: mobileColors.onAccent,
+    fontWeight: "800",
     fontSize: mobileFontSize.sm
   },
   applyBtn: {

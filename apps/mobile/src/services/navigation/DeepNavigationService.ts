@@ -515,17 +515,36 @@ export function navigateFromGenericPushData(
     type === "feed_composition_adjustment" ||
     type === "feed_composition_validated"
   ) {
+    const compositionId = str(data.compositionId);
+    const farmId = str(data.farmId);
     const roomId = str(data.roomId);
+
+    /**
+     * Validation / revue : ouvrir le détail (ration complète + actions Valider).
+     * Ajustement proposé : rester dans le chat (bouton « Appliquer » sur la carte).
+     */
+    if (
+      type !== "feed_composition_adjustment" &&
+      compositionId &&
+      farmId
+    ) {
+      nav.navigate("FeedCompositionDetail", {
+        farmId,
+        farmName: str(data.farmName) ?? "—",
+        compositionId
+      });
+      return true;
+    }
+
     if (roomId) {
       nav.navigate("ChatRoom", {
         roomId,
         headline: "Composition — avis véto",
-        farmId: str(data.farmId) ?? undefined
+        farmId: farmId ?? undefined
       });
       return true;
     }
-    const compositionId = str(data.compositionId);
-    const farmId = str(data.farmId);
+
     if (compositionId && farmId) {
       nav.navigate("FeedCompositionDetail", {
         farmId,

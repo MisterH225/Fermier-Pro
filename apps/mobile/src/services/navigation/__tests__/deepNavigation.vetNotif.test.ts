@@ -78,4 +78,37 @@ describe("navigateFromGenericPushData (inbox / stack nav)", () => {
     expect(result).toBe(false);
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  it("ouvre le détail composition pour feed_composition_vet_review (pas le chat)", () => {
+    const navigate = jest.fn();
+    const result = navigateFromGenericPushData({ navigate } as never, {
+      type: "feed_composition_vet_review",
+      farmId: "farm-1",
+      farmName: "Ferme Test",
+      compositionId: "comp-1",
+      roomId: "room-1"
+    });
+    expect(result).toBe(true);
+    expect(navigate).toHaveBeenCalledWith("FeedCompositionDetail", {
+      farmId: "farm-1",
+      farmName: "Ferme Test",
+      compositionId: "comp-1"
+    });
+  });
+
+  it("garde le chat pour feed_composition_adjustment (bouton Appliquer)", () => {
+    const navigate = jest.fn();
+    const result = navigateFromGenericPushData({ navigate } as never, {
+      type: "feed_composition_adjustment",
+      farmId: "farm-1",
+      compositionId: "comp-1",
+      roomId: "room-1"
+    });
+    expect(result).toBe(true);
+    expect(navigate).toHaveBeenCalledWith("ChatRoom", {
+      roomId: "room-1",
+      headline: "Composition — avis véto",
+      farmId: "farm-1"
+    });
+  });
 });
