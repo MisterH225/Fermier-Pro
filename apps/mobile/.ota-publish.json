@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (7eefa087) — filtres période rentabilité + suivi mensuel #284",
-  "updatedAt": "2026-07-30T13:37Z",
+  "message": "OTA preview (29aad1b2) — type moulin dans Paramètres commerçant",
+  "updatedAt": "2026-07-31T02:46Z",
   "channels": ["preview"],
-  "updateGroupId": "7e3d69f9-b772-454f-a52d-af1e1fd0f752",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/7e3d69f9-b772-454f-a52d-af1e1fd0f752"
+  "updateGroupId": "3a6b9891-b5ce-475a-b351-59efb298b5ad",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/3a6b9891-b5ce-475a-b351-59efb298b5ad"
 }
