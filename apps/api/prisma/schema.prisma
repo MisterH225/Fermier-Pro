@@ -3673,6 +3673,9 @@ model SavedComposition {
   millProfileId    String?
   /// true = prix de référence catalogue (pas d'offres moulin).
   isTheoretical    Boolean                 @default(false)
+  /// Explication structurée (IA ou fallback factuel) + empreinte ration.
+  /// Régénérée si la ration change (rationFingerprint).
+  explanation      Json?
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   /// Salons chat de revue véto (kind=feed_composition).

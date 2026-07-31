@@ -16,6 +16,7 @@ import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-
 import {
   ApplyCompositionAdjustmentDto,
   AssistFeedCompositionDto,
+  ExplainFeedCompositionDto,
   FormulateFeedCompositionDto,
   ProposeCompositionAdjustmentDto,
   RequestVetReviewDto,
@@ -23,6 +24,7 @@ import {
   VetReviewCompositionDto
 } from "./dto/feed-composition.dto";
 import { FeedCompositionAssistService } from "./feed-composition-assist.service";
+import { FeedCompositionExplainService } from "./explain/feed-composition-explain.service";
 import { SavedCompositionsService } from "./saved-compositions.service";
 
 /**
@@ -35,6 +37,7 @@ import { SavedCompositionsService } from "./saved-compositions.service";
 export class FeedCompositionController {
   constructor(
     private readonly assist: FeedCompositionAssistService,
+    private readonly explainService: FeedCompositionExplainService,
     private readonly saved: SavedCompositionsService
   ) {}
 
@@ -74,6 +77,19 @@ export class FeedCompositionController {
     @Body() dto: FormulateFeedCompositionDto
   ) {
     return this.assist.formulateManual(user, dto);
+  }
+
+  /**
+   * Explication structurée d'une ration (Gemini, sans function calling).
+   * Cache sur SavedComposition.explanation si savedCompositionId fourni.
+   */
+  @Post("explain")
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  explainComposition(
+    @CurrentUser() user: User,
+    @Body() dto: ExplainFeedCompositionDto
+  ) {
+    return this.explainService.explain(user, dto);
   }
 
   @Post("compositions")

@@ -11,6 +11,7 @@ import { UserNotificationsModule } from "../user-notifications/user-notification
 import { AdminFeedRequirementProfilesController } from "./admin-feed-requirement-profiles.controller";
 import { FeedCompositionAssistService } from "./assist/feed-composition-assist.service";
 import { FeedCompositionController } from "./assist/feed-composition.controller";
+import { FeedCompositionExplainService } from "./assist/explain/feed-composition-explain.service";
 import { IngredientAvailabilityService } from "./assist/ingredient-availability.service";
 import { SavedCompositionsService } from "./assist/saved-compositions.service";
 import { FeedFormulationService } from "./feed-formulation.service";
@@ -47,12 +48,14 @@ import { SOLVER_PORT } from "./solver/solver.port";
     SuperAdminGuard,
     IngredientAvailabilityService,
     FeedCompositionAssistService,
+    FeedCompositionExplainService,
     SavedCompositionsService
   ],
   exports: [
     FeedFormulationService,
     FeedRequirementProfilesService,
     FeedCompositionAssistService,
+    FeedCompositionExplainService,
     SavedCompositionsService
   ]
 })

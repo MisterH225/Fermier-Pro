@@ -60,8 +60,16 @@ les intrants. Seed indicatif — **à valider par un nutritionniste**.
 |----------|------|
 | `POST /feed-composition/assist` | Agent Gemini (function calling → même moteur) |
 | `POST /feed-composition/formulate` | Mode sans IA (même résultats) |
+| `POST /feed-composition/explain` | Explication structurée (Gemini, sans tools) + cache |
 | `POST /feed-composition/compositions` | Enregistrer une composition |
 | `…/request-vet-review` / `…/vet-review` | Validation véto associé |
+
+### Explication ration (`POST /explain`)
+
+L’IA (Gemini, **pas** Anthropic) commente des **données déjà calculées** :
+besoins du stade, profil obtenu, intrants + rôles (`FeedIngredient.category`).
+Aucun chiffre inventé (rejet → fallback factuel). Cache dans
+`SavedComposition.explanation` (empreinte ration) — régénéré si la ration change.
 
 Réutilise la config Gemini existante : `GEMINI_API_KEY` (serveur only),
 `GEMINI_MODEL` (défaut `gemini-2.5-flash-lite`), `GEMINI_QUOTA_COOLDOWN_MS`.

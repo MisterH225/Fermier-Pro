@@ -1,12 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 import type {
+  CompositionExplanationDto,
   FeedFormulateResultDto,
   ProductionStage
 } from "../../lib/api/feed-composition";
 import {
   asRationLines,
   buildInfeasibilityMessage,
-  formatDeviationHuman,
   formatKg,
   formatPct,
   formatXof,
@@ -21,17 +21,22 @@ import {
   mobileSpacing,
   mobileStatusSurfaces
 } from "../../theme/mobileTheme";
+import { CompositionExplanationBlock } from "./CompositionExplanationBlock";
 
 type Props = {
   formulation: FeedFormulateResultDto;
   stage?: ProductionStage | string;
   isTheoretical?: boolean;
+  explanation?: CompositionExplanationDto | null;
+  explanationLoading?: boolean;
 };
 
 export function FormulationResultCard({
   formulation,
   stage,
-  isTheoretical
+  isTheoretical,
+  explanation,
+  explanationLoading
 }: Props) {
   if (!formulation.feasible) {
     return (
@@ -128,32 +133,10 @@ export function FormulationResultCard({
         </View>
       ))}
 
-      {formulation.deviations?.length ? (
-        <>
-          <Text style={styles.sectionTitle}>Est-ce que ça convient ?</Text>
-          <Text style={styles.sectionSub}>
-            On compare le mélange aux besoins de vos porcs à cette période.
-          </Text>
-          {formulation.deviations.map((d) => (
-            <View
-              key={`${d.nutrient}-${d.target}`}
-              style={[
-                styles.devCard,
-                d.withinBounds ? styles.devCardOk : styles.devCardBad
-              ]}
-            >
-              <Text
-                style={[
-                  styles.devText,
-                  d.withinBounds ? styles.devOk : styles.devBad
-                ]}
-              >
-                {formatDeviationHuman(d)}
-              </Text>
-            </View>
-          ))}
-        </>
-      ) : null}
+      <CompositionExplanationBlock
+        explanation={explanation ?? null}
+        loading={explanationLoading}
+      />
 
       {formulation.warnings?.length ? (
         <View style={styles.warnBox}>
@@ -237,12 +220,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
-  sectionSub: {
-    fontSize: mobileFontSize.sm,
-    color: mobileColors.textSecondary,
-    lineHeight: 20,
-    marginTop: -4
-  },
   tableHead: {
     flexDirection: "row",
     borderBottomWidth: 1,
@@ -268,24 +245,6 @@ const styles = StyleSheet.create({
   colName: { flex: 1.4 },
   colQty: { flex: 1, textAlign: "right" },
   colPct: { flex: 0.7, textAlign: "right" },
-  devCard: {
-    borderRadius: mobileRadius.md,
-    paddingHorizontal: mobileSpacing.md,
-    paddingVertical: mobileSpacing.sm
-  },
-  devCardOk: {
-    backgroundColor: mobileStatusSurfaces.successBg
-  },
-  devCardBad: {
-    backgroundColor: mobileStatusSurfaces.warningBg
-  },
-  devText: {
-    fontSize: mobileFontSize.sm,
-    lineHeight: 20,
-    fontWeight: "600"
-  },
-  devOk: { color: mobileStatusSurfaces.successText },
-  devBad: { color: mobileStatusSurfaces.warningText },
   warnBox: {
     backgroundColor: mobileColors.surfaceMuted,
     borderRadius: mobileRadius.sm,
