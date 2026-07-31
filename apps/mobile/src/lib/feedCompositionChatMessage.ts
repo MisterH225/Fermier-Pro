@@ -43,6 +43,8 @@ export type FeedCompositionCardPayload = {
   }>;
   infeasibilityReasons: string[];
   nutritionDelta: Record<string, number | null> | null;
+  proposalId?: string | null;
+  fatRiskAlert?: boolean;
   versionId: string;
   proposedByUserId: string;
   note?: string | null;

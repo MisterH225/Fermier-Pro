@@ -273,6 +273,53 @@ export function reviewFeedComposition(
   );
 }
 
+export type CompositionAdjustmentPreviewDto = {
+  feasible: boolean;
+  formulation: FeedFormulateResultDto;
+  deviationFromCurrent: {
+    crudeProteinPct: number;
+    metabolizableEnergyKcal: number;
+    lysinePct: number;
+    methioninePct: number;
+    calciumPct: number;
+    phosphorusPct: number;
+    crudeFiberPct: number;
+    energyChangePct: number | null;
+    fatRiskAlert: boolean;
+    energyCapKcal: number | null;
+  };
+  fatRiskAlert: boolean;
+  infeasibilityReasons: string[];
+};
+
+export type CompositionAdjustmentProposeDto = {
+  proposalId: string;
+  messageId: string;
+  formulation: FeedFormulateResultDto;
+  deviationFromCurrent: CompositionAdjustmentPreviewDto["deviationFromCurrent"];
+  fatRiskAlert: boolean;
+};
+
+/** Prévisualise un ajustement (moteur) sans persister. */
+export function previewCompositionAdjustment(
+  accessToken: string,
+  compositionId: string,
+  body: {
+    removeIngredientId: string;
+    addIngredientId: string;
+    addPricePerKg?: number;
+    addMaxAvailableKg?: number;
+  },
+  activeProfileId?: string | null
+): Promise<CompositionAdjustmentPreviewDto> {
+  return apiPostJson(
+    `/feed-composition/compositions/${compositionId}/vet-adjustment/preview`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
 export function proposeCompositionAdjustment(
   accessToken: string,
   compositionId: string,
@@ -284,9 +331,9 @@ export function proposeCompositionAdjustment(
     comment?: string;
   },
   activeProfileId?: string | null
-): Promise<{ messageId: string; formulation: FeedFormulateResultDto }> {
+): Promise<CompositionAdjustmentProposeDto> {
   return apiPostJson(
-    `/feed-composition/compositions/${compositionId}/propose-adjustment`,
+    `/feed-composition/compositions/${compositionId}/vet-adjustment`,
     body,
     accessToken,
     activeProfileId
@@ -296,12 +343,35 @@ export function proposeCompositionAdjustment(
 export function applyCompositionAdjustment(
   accessToken: string,
   compositionId: string,
-  body: { messageId: string },
+  body: { proposalId?: string; messageId?: string },
   activeProfileId?: string | null
 ): Promise<SavedCompositionDto> {
+  if (body.proposalId) {
+    return apiPostJson<SavedCompositionDto>(
+      `/feed-composition/compositions/${compositionId}/adjustment/${body.proposalId}/apply`,
+      {},
+      accessToken,
+      activeProfileId
+    );
+  }
   return apiPostJson<SavedCompositionDto>(
     `/feed-composition/compositions/${compositionId}/apply-adjustment`,
     body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function rejectCompositionAdjustment(
+  accessToken: string,
+  compositionId: string,
+  proposalId: string,
+  body?: { comment?: string },
+  activeProfileId?: string | null
+): Promise<{ proposalId: string; status: "rejected" }> {
+  return apiPostJson(
+    `/feed-composition/compositions/${compositionId}/adjustment/${proposalId}/reject`,
+    body ?? {},
     accessToken,
     activeProfileId
   );

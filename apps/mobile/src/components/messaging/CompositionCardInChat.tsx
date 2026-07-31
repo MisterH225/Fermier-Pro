@@ -22,6 +22,7 @@ type Props = {
   payload: FeedCompositionCardPayload;
   isMine: boolean;
   onApply?: (messageId: string, payload: FeedCompositionCardPayload) => void;
+  onReject?: (proposalId: string, payload: FeedCompositionCardPayload) => void;
   messageId?: string;
   showApply?: boolean;
 };
@@ -47,6 +48,7 @@ export function CompositionCardInChat({
   payload,
   isMine,
   onApply,
+  onReject,
   messageId,
   showApply
 }: Props) {
@@ -61,6 +63,12 @@ export function CompositionCardInChat({
       farmName: "",
       compositionId: payload.compositionId
     });
+
+  const canActOnAdjustment =
+    showApply &&
+    payload.variant === "adjustment" &&
+    payload.feasible &&
+    !isMine;
 
   return (
     <View
@@ -108,10 +116,18 @@ export function CompositionCardInChat({
       ) : null}
       {payload.nutritionDelta && payload.variant === "adjustment" ? (
         <Text style={styles.delta}>
-          Énergie du mélange :{" "}
+          Écart énergie :{" "}
           {payload.nutritionDelta.energyChangePct != null
             ? `${Number(payload.nutritionDelta.energyChangePct).toFixed(1)} %`
             : "—"}
+          {payload.nutritionDelta.crudeProteinPct != null
+            ? ` · protéines ${Number(payload.nutritionDelta.crudeProteinPct) >= 0 ? "+" : ""}${Number(payload.nutritionDelta.crudeProteinPct).toFixed(2)} pts`
+            : ""}
+        </Text>
+      ) : null}
+      {payload.fatRiskAlert ? (
+        <Text style={styles.fatRisk} testID="composition-card-fat-risk">
+          Risque de gras : l’énergie dépasse le plafond de ce stade.
         </Text>
       ) : null}
 
@@ -129,17 +145,22 @@ export function CompositionCardInChat({
         </Pressable>
       )}
 
-      {showApply &&
-      payload.variant === "adjustment" &&
-      payload.feasible &&
-      messageId &&
-      onApply ? (
+      {canActOnAdjustment && messageId && onApply ? (
         <Pressable
           style={styles.applyBtn}
           testID="apply-adjustment-in-chat"
           onPress={() => onApply(messageId, payload)}
         >
           <Text style={styles.applyLabel}>Appliquer cette version</Text>
+        </Pressable>
+      ) : null}
+      {canActOnAdjustment && payload.proposalId && onReject ? (
+        <Pressable
+          style={styles.rejectBtn}
+          testID="reject-adjustment-in-chat"
+          onPress={() => onReject(payload.proposalId!, payload)}
+        >
+          <Text style={styles.rejectLabel}>Refuser</Text>
         </Pressable>
       ) : null}
     </View>
@@ -245,5 +266,23 @@ const styles = StyleSheet.create({
   applyLabel: {
     color: mobileColors.onAccent,
     fontWeight: "800"
+  },
+  rejectBtn: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingVertical: 10,
+    alignItems: "center"
+  },
+  rejectLabel: {
+    color: mobileColors.textPrimary,
+    fontWeight: "700"
+  },
+  fatRisk: {
+    marginTop: 4,
+    color: "#B45309",
+    fontWeight: "700",
+    fontSize: mobileFontSize.sm
   }
 });

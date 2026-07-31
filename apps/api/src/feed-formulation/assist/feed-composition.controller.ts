@@ -19,6 +19,7 @@ import {
   ExplainFeedCompositionDto,
   FormulateFeedCompositionDto,
   ProposeCompositionAdjustmentDto,
+  RejectCompositionAdjustmentDto,
   RequestVetReviewDto,
   SaveCompositionDto,
   VetReviewCompositionDto
@@ -134,7 +135,35 @@ export class FeedCompositionController {
     return this.saved.vetReview(user, id, dto);
   }
 
-  /** Véto : ajustement via moteur (substitution) + carte dans le fil. */
+  /**
+   * Véto : prévisualiser un ajustement (moteur, sans persister).
+   * Affiche ration + écart avant confirmation.
+   */
+  @Post("compositions/:id/vet-adjustment/preview")
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  previewVetAdjustment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ProposeCompositionAdjustmentDto
+  ) {
+    return this.saved.previewVetAdjustment(user, id, dto);
+  }
+
+  /**
+   * Véto : proposer un ajustement recalculé par le moteur + carte dans le fil.
+   * Alias : propose-adjustment (compat mobile).
+   */
+  @Post("compositions/:id/vet-adjustment")
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  proposeVetAdjustment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ProposeCompositionAdjustmentDto
+  ) {
+    return this.saved.proposeAdjustment(user, id, dto);
+  }
+
+  /** @deprecated préférer POST .../vet-adjustment */
   @Post("compositions/:id/propose-adjustment")
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   proposeAdjustment(
@@ -145,7 +174,28 @@ export class FeedCompositionController {
     return this.saved.proposeAdjustment(user, id, dto);
   }
 
-  /** Producteur : appliquer une version proposée (message chat). */
+  /** Producteur : appliquer une proposition (proposalId ou messageId legacy). */
+  @Post("compositions/:id/adjustment/:proposalId/apply")
+  applyAdjustmentById(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Param("proposalId") proposalId: string
+  ) {
+    return this.saved.applyAdjustment(user, id, { proposalId });
+  }
+
+  /** Producteur : refuser une proposition. */
+  @Post("compositions/:id/adjustment/:proposalId/reject")
+  rejectAdjustmentById(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Param("proposalId") proposalId: string,
+    @Body() dto: RejectCompositionAdjustmentDto
+  ) {
+    return this.saved.rejectAdjustment(user, id, proposalId, dto);
+  }
+
+  /** @deprecated préférer POST .../adjustment/:proposalId/apply */
   @Post("compositions/:id/apply-adjustment")
   applyAdjustment(
     @CurrentUser() user: User,
