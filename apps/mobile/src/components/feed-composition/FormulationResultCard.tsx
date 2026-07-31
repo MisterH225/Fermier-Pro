@@ -21,6 +21,10 @@ import {
   mobileSpacing,
   mobileStatusSurfaces
 } from "../../theme/mobileTheme";
+import {
+  compositionUiColors,
+  type CompositionUiTone
+} from "../../theme/compositionUiTone";
 import { CompositionExplanationBlock } from "./CompositionExplanationBlock";
 
 type Props = {
@@ -29,6 +33,8 @@ type Props = {
   isTheoretical?: boolean;
   explanation?: CompositionExplanationDto | null;
   explanationLoading?: boolean;
+  /** Profil actif : aligne les accents (vert producteur / bleu véto). */
+  tone?: CompositionUiTone;
 };
 
 export function FormulationResultCard({
@@ -36,19 +42,28 @@ export function FormulationResultCard({
   stage,
   isTheoretical,
   explanation,
-  explanationLoading
+  explanationLoading,
+  tone = "producer"
 }: Props) {
+  const ui = compositionUiColors(tone);
+
   if (!formulation.feasible) {
     return (
-      <View style={styles.card} testID="formulation-infeasible">
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: ui.background, borderColor: ui.border }
+        ]}
+        testID="formulation-infeasible"
+      >
         <Text style={styles.infeasibleTitle}>On n’a pas pu faire ce mélange</Text>
-        <Text style={styles.infeasibleBody}>
+        <Text style={[styles.infeasibleBody, { color: ui.textPrimary }]}>
           {buildInfeasibilityMessage(formulation.infeasibilityReasons)}
         </Text>
         {formulation.infeasibilityReasons?.length > 1 ? (
           <View style={styles.reasons}>
             {formulation.infeasibilityReasons.slice(1).map((r) => (
-              <Text key={r} style={styles.reasonLine}>
+              <Text key={r} style={[styles.reasonLine, { color: ui.textSecondary }]}>
                 • {r
                   .replace(/protéine brute/gi, "protéines")
                   .replace(/énergie métabolisable/gi, "énergie")
@@ -65,27 +80,43 @@ export function FormulationResultCard({
   const leanOk = respectsLeanPorkGoal(formulation, stage);
 
   return (
-    <View style={styles.card} testID="formulation-result">
-      <Text style={styles.lead}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: ui.background, borderColor: ui.border }
+      ]}
+      testID="formulation-result"
+    >
+      <Text style={[styles.lead, { color: ui.textPrimary }]}>
         Voici le mélange proposé pour vos porcs — quantités et coût estimés.
       </Text>
 
       <View style={styles.costRow}>
-        <View style={styles.costBlock}>
-          <Text style={styles.costLabel}>Coût total estimé</Text>
-          <Text style={styles.costValue} testID="formulation-total-cost">
+        <View style={[styles.costBlock, { backgroundColor: ui.accentSoft }]}>
+          <Text style={[styles.costLabel, { color: ui.textSecondary }]}>
+            Coût total estimé
+          </Text>
+          <Text
+            style={[styles.costValue, { color: ui.textPrimary }]}
+            testID="formulation-total-cost"
+          >
             {formatXof(formulation.totalCostXof)}
           </Text>
         </View>
-        <View style={styles.costBlock}>
-          <Text style={styles.costLabel}>Soit par kilo</Text>
-          <Text style={styles.costValue} testID="formulation-cost-per-kg">
+        <View style={[styles.costBlock, { backgroundColor: ui.accentSoft }]}>
+          <Text style={[styles.costLabel, { color: ui.textSecondary }]}>
+            Soit par kilo
+          </Text>
+          <Text
+            style={[styles.costValue, { color: ui.textPrimary }]}
+            testID="formulation-cost-per-kg"
+          >
             {formatXof(formulation.costPerKg)}
           </Text>
         </View>
       </View>
 
-      <Text style={styles.meta}>
+      <Text style={[styles.meta, { color: ui.textSecondary }]}>
         {formatKg(formulation.totalFeedKg)} de mélange au total · environ{" "}
         {formatKg(formulation.dailyIntakeKg)} par jour et par animal
       </Text>
@@ -101,7 +132,7 @@ export function FormulationResultCard({
           style={[styles.leanBadge, leanOk ? styles.leanOk : styles.leanWarn]}
           testID="lean-pork-badge"
         >
-          <Text style={styles.leanText}>
+          <Text style={[styles.leanText, { color: ui.textPrimary }]}>
             {leanOk
               ? "Bon pour un porc moins gras (engraissement / finition)"
               : "À surveiller : risque de porcs plus gras"}
@@ -109,25 +140,36 @@ export function FormulationResultCard({
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Ce qu’il faut mélanger</Text>
-      <View style={styles.tableHead}>
-        <Text style={[styles.th, styles.colName]}>Produit</Text>
-        <Text style={[styles.th, styles.colQty]}>Quantité</Text>
-        <Text style={[styles.th, styles.colPct]}>Part</Text>
+      <Text style={[styles.sectionTitle, { color: ui.textPrimary }]}>
+        Ce qu’il faut mélanger
+      </Text>
+      <View style={[styles.tableHead, { borderBottomColor: ui.border }]}>
+        <Text style={[styles.th, styles.colName, { color: ui.textSecondary }]}>
+          Produit
+        </Text>
+        <Text style={[styles.th, styles.colQty, { color: ui.textSecondary }]}>
+          Quantité
+        </Text>
+        <Text style={[styles.th, styles.colPct, { color: ui.textSecondary }]}>
+          Part
+        </Text>
       </View>
       {lines.map((line) => (
         <View
           key={line.feedIngredientId}
-          style={styles.tableRow}
+          style={[styles.tableRow, { borderBottomColor: ui.border }]}
           testID={`ration-line-${line.feedIngredientId}`}
         >
-          <Text style={[styles.td, styles.colName]} numberOfLines={2}>
+          <Text
+            style={[styles.td, styles.colName, { color: ui.textPrimary }]}
+            numberOfLines={2}
+          >
             {rationLineName(line)}
           </Text>
-          <Text style={[styles.td, styles.colQty]}>
+          <Text style={[styles.td, styles.colQty, { color: ui.textPrimary }]}>
             {formatKg(line.quantityKg)}
           </Text>
-          <Text style={[styles.td, styles.colPct]}>
+          <Text style={[styles.td, styles.colPct, { color: ui.textPrimary }]}>
             {formatPct(line.proportionPct)}
           </Text>
         </View>
@@ -136,12 +178,13 @@ export function FormulationResultCard({
       <CompositionExplanationBlock
         explanation={explanation ?? null}
         loading={explanationLoading}
+        tone={tone}
       />
 
       {formulation.warnings?.length ? (
-        <View style={styles.warnBox}>
+        <View style={[styles.warnBox, { backgroundColor: ui.surfaceMuted }]}>
           {formulation.warnings.map((w) => (
-            <Text key={w} style={styles.warnText}>
+            <Text key={w} style={[styles.warnText, { color: ui.textSecondary }]}>
               {w}
             </Text>
           ))}
@@ -153,16 +196,13 @@ export function FormulationResultCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.lg,
     borderWidth: 1,
-    borderColor: mobileColors.border,
     padding: mobileSpacing.lg,
     gap: mobileSpacing.sm
   },
   lead: {
     fontSize: mobileFontSize.md,
-    color: mobileColors.textPrimary,
     fontWeight: "600",
     lineHeight: 22
   },
@@ -172,23 +212,19 @@ const styles = StyleSheet.create({
   },
   costBlock: {
     flex: 1,
-    backgroundColor: mobileColors.accentSoft,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md
   },
   costLabel: {
-    color: mobileColors.textSecondary,
     fontSize: mobileFontSize.sm,
     fontWeight: "600",
     marginBottom: 4
   },
   costValue: {
-    color: mobileColors.textPrimary,
     fontSize: mobileFontSize.xxl,
     fontWeight: "800"
   },
   meta: {
-    color: mobileColors.textSecondary,
     fontSize: mobileFontSize.sm,
     lineHeight: 20
   },
@@ -211,49 +247,41 @@ const styles = StyleSheet.create({
   },
   leanText: {
     fontWeight: "700",
-    fontSize: mobileFontSize.sm,
-    color: mobileColors.textPrimary
+    fontSize: mobileFontSize.sm
   },
   sectionTitle: {
     marginTop: mobileSpacing.sm,
     fontSize: mobileFontSize.md,
-    fontWeight: "700",
-    color: mobileColors.textPrimary
+    fontWeight: "700"
   },
   tableHead: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: mobileColors.border,
     paddingBottom: 6
   },
   tableRow: {
     flexDirection: "row",
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   th: {
     fontSize: mobileFontSize.xs,
-    fontWeight: "700",
-    color: mobileColors.textSecondary
+    fontWeight: "700"
   },
   td: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textPrimary,
     fontWeight: "600"
   },
   colName: { flex: 1.4 },
   colQty: { flex: 1, textAlign: "right" },
   colPct: { flex: 0.7, textAlign: "right" },
   warnBox: {
-    backgroundColor: mobileColors.surfaceMuted,
     borderRadius: mobileRadius.sm,
     padding: mobileSpacing.sm,
     gap: 4
   },
   warnText: {
     fontSize: mobileFontSize.xs,
-    color: mobileColors.textSecondary,
     lineHeight: 18
   },
   infeasibleTitle: {
@@ -263,14 +291,12 @@ const styles = StyleSheet.create({
   },
   infeasibleBody: {
     fontSize: mobileFontSize.md,
-    color: mobileColors.textPrimary,
     lineHeight: 22,
     fontWeight: "600"
   },
   reasons: { gap: 4, marginTop: 4 },
   reasonLine: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textSecondary,
     lineHeight: 20
   }
 });

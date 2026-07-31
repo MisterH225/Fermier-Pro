@@ -15,14 +15,17 @@ export const vetColors = {
   cardBg: "#FFFFFF",
   onPrimary: mobileColors.onAccent,
   textPrimary: "#1A1D23",
-  textSecondary: "#8B95A8",
-  textMuted: "#B0B8C4",
+  /** Secondaire plus sombre pour contraste WCAG sur canvas clair. */
+  textSecondary: "#4A5568",
+  /** Inactif / placeholder — lisible sans concurrencer le primaire. */
+  textMuted: "#6B7280",
   success: "#10B981",
   warning: "#F59E0B",
   /** Ambre soutenu (prix / CTA secondaires). */
   warningDeep: "#B45309",
   danger: "#EF4444",
-  border: "rgba(43, 127, 255, 0.08)",
+  /** Bordure plus visible (anciennement trop pâle ~8 % d’opacité). */
+  border: "rgba(43, 127, 255, 0.22)",
   modalScrim: "rgba(26, 29, 35, 0.4)",
   /** Créneaux agenda */
   slotAvailable: "#E8F1FF",

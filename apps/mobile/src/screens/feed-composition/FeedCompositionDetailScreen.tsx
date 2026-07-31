@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -40,12 +40,17 @@ import {
 } from "../../lib/feedCompositionFormat";
 import type { RootStackParamList } from "../../types/navigation";
 import {
-  mobileColors,
+  compositionDiscussLabel,
+  compositionUiColors,
+  type CompositionUiTone
+} from "../../theme/compositionUiTone";
+import {
   mobileFontSize,
   mobileRadius,
   mobileSpacing,
   mobileStatusSurfaces
 } from "../../theme/mobileTheme";
+import { vetStackScreenOptions } from "../../theme/vetTheme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "FeedCompositionDetail">;
 
@@ -56,6 +61,22 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const myId = authMe?.user.id;
   const insets = useSafeAreaInsets();
   const [adjustOpen, setAdjustOpen] = useState(false);
+
+  const profileType =
+    authMe?.profiles?.find((p) => p.id === activeProfileId)?.type ??
+    authMe?.activeProfile?.type;
+  const isVetProfile = profileType === "veterinarian";
+  const tone: CompositionUiTone = isVetProfile ? "vet" : "producer";
+  const ui = compositionUiColors(tone);
+
+  useLayoutEffect(() => {
+    if (isVetProfile) {
+      navigation.setOptions({
+        ...vetStackScreenOptions,
+        title: "Composition"
+      });
+    }
+  }, [isVetProfile, navigation]);
 
   const detailQ = useQuery({
     queryKey: ["feed-composition", compositionId],
@@ -249,8 +270,8 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
 
   if (detailQ.isPending) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={mobileColors.accent} />
+      <View style={[styles.center, { backgroundColor: ui.canvas }]}>
+        <ActivityIndicator color={ui.accent} />
       </View>
     );
   }
@@ -258,8 +279,8 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const row = detailQ.data;
   if (!row) {
     return (
-      <View style={styles.center}>
-        <Text>Composition introuvable.</Text>
+      <View style={[styles.center, { backgroundColor: ui.canvas }]}>
+        <Text style={{ color: ui.textPrimary }}>Composition introuvable.</Text>
       </View>
     );
   }
@@ -293,6 +314,8 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const canDiscuss =
     Boolean(row.chatRoomId) &&
     (row.status === "vet_review" || row.status === "validated");
+  const discussTone: CompositionUiTone =
+    isVetProfile || isAssociatedVet ? "vet" : "producer";
 
   const onSendToVet = () => {
     if (!hasVets) {
@@ -314,193 +337,198 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
-    >
-      <ScrollView
-        style={styles.root}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, 16) + 48 }
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator
-        testID="composition-detail"
+    <>
+      <KeyboardAvoidingView
+        style={[styles.root, { backgroundColor: ui.canvas }]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 24}
       >
-        <CompositionDisclaimer />
-        <Text style={styles.title}>{stageLabelFr(row.stage)}</Text>
-        <Text style={styles.meta}>
-          {statusLabelFr(row.status)} · {formatXof(row.totalCostXof)} ·{" "}
-          {new Date(row.createdAt).toLocaleDateString("fr-FR")}
-        </Text>
-
-        {row.status === "validated" && row.vetReviewedAt ? (
-          <View style={styles.validatedBanner} testID="validated-banner">
-            <Text style={styles.validatedText}>
-              Validée par {row.vetReviewedByName ?? "votre vétérinaire"} le{" "}
-              {new Date(row.vetReviewedAt).toLocaleDateString("fr-FR")}
-            </Text>
-          </View>
-        ) : null}
-
-        {row.vetComment ? (
-          <Text style={styles.vetComment}>
-            Message du véto : {row.vetComment}
+        <ScrollView
+          style={styles.root}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: Math.max(insets.bottom, 16) + 48 }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator
+          testID="composition-detail"
+        >
+          <CompositionDisclaimer />
+          <Text style={[styles.title, { color: ui.textPrimary }]}>
+            {stageLabelFr(row.stage)}
           </Text>
-        ) : null}
+          <Text style={[styles.meta, { color: ui.textSecondary }]}>
+            {statusLabelFr(row.status)} · {formatXof(row.totalCostXof)} ·{" "}
+            {new Date(row.createdAt).toLocaleDateString("fr-FR")}
+          </Text>
 
-        <FormulationResultCard
-          formulation={formulation}
-          stage={row.stage}
-          isTheoretical={row.isTheoretical}
-          explanation={explanation}
-          explanationLoading={explainQ.isPending && !cachedExplanation}
-        />
+          {row.status === "validated" && row.vetReviewedAt ? (
+            <View style={styles.validatedBanner} testID="validated-banner">
+              <Text style={styles.validatedText}>
+                Validée par {row.vetReviewedByName ?? "votre vétérinaire"} le{" "}
+                {new Date(row.vetReviewedAt).toLocaleDateString("fr-FR")}
+              </Text>
+            </View>
+          ) : null}
 
-        {row.status === "draft" ? (
-          <>
-            <Pressable
-              style={styles.secondaryBtn}
-              onPress={onSendToVet}
-              disabled={sendMut.isPending}
-              testID="detail-send-to-vet"
-            >
-              <Text style={styles.secondaryBtnLabel}>
-                Envoyer à mon vétérinaire pour validation
-              </Text>
-            </Pressable>
-            {!hasVets && !vetsQ.isPending ? (
-              <Text style={styles.vetHint} testID="detail-no-vet-hint">
-                Associez d’abord votre véto dans l’équipe de la ferme pour
-                ouvrir la discussion.
-              </Text>
-            ) : (
-              <Text style={styles.vetHint}>
-                Une discussion s’ouvre automatiquement pour échanger et
-                valider ce mélange.
-              </Text>
-            )}
-          </>
-        ) : null}
-
-        {canDiscuss ? (
-          <Pressable
-            style={styles.primaryBtn}
-            testID="discuss-with-vet"
-            onPress={() =>
-              navigation.navigate("ChatRoom", {
-                roomId: row.chatRoomId!,
-                headline: "Composition — avis véto",
-                farmId
-              })
-            }
-          >
-            <Text style={styles.primaryBtnLabel}>
-              Continuer la discussion avec mon vétérinaire
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {isAssociatedVet && row.status === "vet_review" ? (
-          <View style={styles.vetActions}>
-            <Pressable
-              style={styles.primaryBtn}
-              testID="vet-approve"
-              onPress={() => reviewMut.mutate("approve")}
-              disabled={reviewMut.isPending}
-            >
-              <Text style={styles.primaryBtnLabel}>
-                Valider ce mélange
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.secondaryBtn}
-              testID="vet-request-changes"
-              onPress={() => reviewMut.mutate("request_changes")}
-              disabled={reviewMut.isPending}
-            >
-              <Text style={styles.secondaryBtnLabel}>
-                Demander des changements
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.secondaryBtn}
-              testID="vet-propose-adjustment"
-              onPress={() => setAdjustOpen(true)}
-            >
-              <Text style={styles.secondaryBtnLabel}>
-                Proposer un autre mélange
-              </Text>
-            </Pressable>
-            {row.chatRoomId ? (
-              <Pressable
-                style={styles.linkBtn}
-                onPress={() =>
-                  navigation.navigate("ChatRoom", {
-                    roomId: row.chatRoomId!,
-                    headline: `Composition — ${farmName || "ferme"}`,
-                    farmId
-                  })
+          {row.vetComment ? (
+            <Text
+              style={[
+                styles.vetComment,
+                {
+                  color: ui.textPrimary,
+                  backgroundColor: ui.surfaceMuted
                 }
+              ]}
+            >
+              Message du véto : {row.vetComment}
+            </Text>
+          ) : null}
+
+          <FormulationResultCard
+            formulation={formulation}
+            stage={row.stage}
+            isTheoretical={row.isTheoretical}
+            explanation={explanation}
+            explanationLoading={explainQ.isPending && !cachedExplanation}
+            tone={tone}
+          />
+
+          {row.status === "draft" && !isVetProfile ? (
+            <>
+              <Pressable
+                style={[styles.secondaryBtn, { borderColor: ui.accent }]}
+                onPress={onSendToVet}
+                disabled={sendMut.isPending}
+                testID="detail-send-to-vet"
               >
-                <Text style={styles.linkLabel}>Ouvrir la discussion</Text>
+                <Text style={[styles.secondaryBtnLabel, { color: ui.accent }]}>
+                  Envoyer à mon vétérinaire pour validation
+                </Text>
               </Pressable>
-            ) : null}
-          </View>
-        ) : null}
+              {!hasVets && !vetsQ.isPending ? (
+                <Text
+                  style={[styles.vetHint, { color: ui.textSecondary }]}
+                  testID="detail-no-vet-hint"
+                >
+                  Associez d’abord votre véto dans l’équipe de la ferme pour
+                  ouvrir la discussion.
+                </Text>
+              ) : (
+                <Text style={[styles.vetHint, { color: ui.textSecondary }]}>
+                  Une discussion s’ouvre automatiquement pour échanger et
+                  valider ce mélange.
+                </Text>
+              )}
+            </>
+          ) : null}
 
-        {row.status === "validated" ? (
-          <Pressable
-            style={[styles.primaryBtn, styles.disabledBtn]}
-            disabled
-            testID="order-composition-disabled"
-            accessibilityState={{ disabled: true }}
-          >
-            <Text style={styles.primaryBtnLabel}>Commander — bientôt</Text>
-          </Pressable>
-        ) : null}
+          {canDiscuss ? (
+            <Pressable
+              style={[styles.primaryBtn, { backgroundColor: ui.accent }]}
+              testID="discuss-with-peer"
+              onPress={() =>
+                navigation.navigate("ChatRoom", {
+                  roomId: row.chatRoomId!,
+                  headline: "Composition — avis véto",
+                  farmId
+                })
+              }
+            >
+              <Text style={[styles.primaryBtnLabel, { color: ui.onAccent }]}>
+                {compositionDiscussLabel(discussTone)}
+              </Text>
+            </Pressable>
+          ) : null}
 
-        <ProposeAdjustmentModal
-          visible={adjustOpen}
-          ration={ration}
-          submitting={adjustMut.isPending}
-          onClose={() => setAdjustOpen(false)}
-          onSubmit={(body) => adjustMut.mutate(body)}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {isAssociatedVet && row.status === "vet_review" ? (
+            <View style={styles.vetActions}>
+              <Pressable
+                style={[styles.primaryBtn, { backgroundColor: ui.accent }]}
+                testID="vet-approve"
+                onPress={() => reviewMut.mutate("approve")}
+                disabled={reviewMut.isPending}
+              >
+                <Text style={[styles.primaryBtnLabel, { color: ui.onAccent }]}>
+                  Valider ce mélange
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.secondaryBtn, { borderColor: ui.accent }]}
+                testID="vet-request-changes"
+                onPress={() => reviewMut.mutate("request_changes")}
+                disabled={reviewMut.isPending}
+              >
+                <Text style={[styles.secondaryBtnLabel, { color: ui.accent }]}>
+                  Demander des changements
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.secondaryBtn, { borderColor: ui.accent }]}
+                testID="vet-propose-adjustment"
+                onPress={() => setAdjustOpen(true)}
+              >
+                <Text style={[styles.secondaryBtnLabel, { color: ui.accent }]}>
+                  Proposer un autre mélange
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {row.status === "validated" ? (
+            <Pressable
+              style={[
+                styles.primaryBtn,
+                styles.disabledBtn,
+                { backgroundColor: ui.accent }
+              ]}
+              disabled
+              testID="order-composition-disabled"
+              accessibilityState={{ disabled: true }}
+            >
+              <Text style={[styles.primaryBtnLabel, { color: ui.onAccent }]}>
+                Commander — bientôt
+              </Text>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <ProposeAdjustmentModal
+        visible={adjustOpen}
+        ration={ration}
+        submitting={adjustMut.isPending}
+        tone={tone}
+        onClose={() => setAdjustOpen(false)}
+        onSubmit={(body) => adjustMut.mutate(body)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: mobileColors.canvas },
+  root: { flex: 1 },
   content: {
     padding: mobileSpacing.lg,
     gap: mobileSpacing.md
   },
   vetHint: {
     fontSize: mobileFontSize.xs,
-    color: mobileColors.textSecondary,
     lineHeight: 18,
     textAlign: "center"
   },
   center: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: mobileColors.canvas
+    justifyContent: "center"
   },
   title: {
     fontSize: mobileFontSize.xl,
-    fontWeight: "800",
-    color: mobileColors.textPrimary
+    fontWeight: "800"
   },
   meta: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textSecondary,
     fontWeight: "600"
   },
   validatedBanner: {
@@ -515,40 +543,28 @@ const styles = StyleSheet.create({
   },
   vetComment: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textPrimary,
-    backgroundColor: mobileColors.surfaceMuted,
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md
   },
   vetActions: { gap: mobileSpacing.sm },
   primaryBtn: {
-    backgroundColor: mobileColors.accent,
     borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
   disabledBtn: { opacity: 0.45 },
   primaryBtnLabel: {
-    color: mobileColors.onAccent,
     fontWeight: "800",
     textAlign: "center"
   },
   secondaryBtn: {
     borderWidth: 1,
-    borderColor: mobileColors.accent,
     borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
     alignItems: "center"
   },
   secondaryBtnLabel: {
-    color: mobileColors.accent,
     fontWeight: "700",
     textAlign: "center"
-  },
-  linkBtn: { paddingVertical: 8, alignItems: "center" },
-  linkLabel: {
-    color: mobileColors.accent,
-    fontWeight: "700",
-    fontSize: mobileFontSize.sm
   }
 });

@@ -1,21 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
+  type TextInput as TextInputType
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSession } from "../../context/SessionContext";
 import type { FeedRationLineDto } from "../../lib/api/feed-composition";
 import { apiGetJson } from "../../lib/api/http";
 import { formatPct, rationLineName } from "../../lib/feedCompositionFormat";
 import {
-  mobileColors,
+  compositionUiColors,
+  type CompositionUiTone
+} from "../../theme/compositionUiTone";
+import {
   mobileFontSize,
   mobileRadius,
   mobileSpacing
@@ -37,6 +45,7 @@ type Props = {
     comment?: string;
   }) => void;
   submitting?: boolean;
+  tone?: CompositionUiTone;
 };
 
 export function ProposeAdjustmentModal({
@@ -44,13 +53,27 @@ export function ProposeAdjustmentModal({
   ration,
   onClose,
   onSubmit,
-  submitting
+  submitting,
+  tone = "producer"
 }: Props) {
   const { accessToken, activeProfileId } = useSession();
+  const insets = useSafeAreaInsets();
+  const ui = compositionUiColors(tone);
+  const scrollRef = useRef<ScrollView>(null);
+  const commentRef = useRef<TextInputType>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [addId, setAddId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (!visible) {
+      setRemoveId(null);
+      setAddId(null);
+      setQ("");
+      setComment("");
+    }
+  }, [visible]);
 
   const searchQ = useQuery({
     queryKey: ["feed-ingredients-search", q, activeProfileId],
@@ -70,161 +93,248 @@ export function ProposeAdjustmentModal({
     [searchQ.data, removeId]
   );
 
+  const scrollFocusedIntoView = () => {
+    // Android : laisse le clavier s’ouvrir puis remonte le sheet.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, Platform.OS === "android" ? 120 : 40);
+    });
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet} testID="propose-adjustment-modal">
-          <Text style={styles.title}>Proposer un autre mélange</Text>
-          <Text style={styles.hint}>
-            Enlevez un produit et choisissez-en un autre. L’appli recalcule toute
-            seule — pas à la main.
-          </Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      >
+        <Pressable style={styles.backdropTap} onPress={onClose} />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: ui.background,
+              paddingBottom: Math.max(insets.bottom, 12)
+            }
+          ]}
+          testID="propose-adjustment-modal"
+        >
+          <ScrollView
+            ref={scrollRef}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator
+            contentContainerStyle={styles.sheetContent}
+          >
+            <Text style={[styles.title, { color: ui.textPrimary }]}>
+              Proposer un autre mélange
+            </Text>
+            <Text style={[styles.hint, { color: ui.textSecondary }]}>
+              Enlevez un produit et choisissez-en un autre. L’appli recalcule
+              toute seule — pas à la main.
+            </Text>
 
-          <Text style={styles.label}>1. Intrant à retirer</Text>
-          <View style={styles.chips}>
-            {ration.map((l) => {
-              const on = removeId === l.feedIngredientId;
-              return (
-                <Pressable
-                  key={l.feedIngredientId}
-                  style={[styles.chip, on && styles.chipOn]}
-                  onPress={() => setRemoveId(l.feedIngredientId)}
-                >
-                  <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                    {rationLineName(l)} ({formatPct(l.proportionPct)})
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Text style={styles.label}>2. Substitut</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Chercher un intrant (ex. soja)"
-            value={q}
-            onChangeText={setQ}
-            testID="adjust-search"
-          />
-          {searchQ.isFetching ? (
-            <ActivityIndicator color={mobileColors.accent} />
-          ) : (
-            <FlatList
-              data={hits}
-              keyExtractor={(i) => i.id}
-              style={{ maxHeight: 140 }}
-              renderItem={({ item }) => {
-                const on = addId === item.id;
+            <Text style={[styles.label, { color: ui.textSecondary }]}>
+              1. Intrant à retirer
+            </Text>
+            <View style={styles.chips}>
+              {ration.map((l) => {
+                const on = removeId === l.feedIngredientId;
                 return (
                   <Pressable
-                    style={[styles.hit, on && styles.hitOn]}
-                    onPress={() => setAddId(item.id)}
+                    key={l.feedIngredientId}
+                    style={[
+                      styles.chip,
+                      { borderColor: ui.border },
+                      on && {
+                        backgroundColor: ui.accentSoft,
+                        borderColor: ui.accent
+                      }
+                    ]}
+                    onPress={() => setRemoveId(l.feedIngredientId)}
                   >
-                    <Text style={styles.hitText}>{item.canonicalName}</Text>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: ui.textPrimary },
+                        on && { color: ui.accent }
+                      ]}
+                    >
+                      {rationLineName(l)} ({formatPct(l.proportionPct)})
+                    </Text>
                   </Pressable>
                 );
-              }}
-              ListEmptyComponent={
-                q.trim() ? (
-                  <Text style={styles.hint}>Aucun résultat</Text>
-                ) : null
-              }
+              })}
+            </View>
+
+            <Text style={[styles.label, { color: ui.textSecondary }]}>
+              2. Substitut
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: ui.border, color: ui.textPrimary }
+              ]}
+              placeholder="Chercher un intrant (ex. soja)"
+              placeholderTextColor={ui.textSecondary}
+              value={q}
+              onChangeText={setQ}
+              onFocus={scrollFocusedIntoView}
+              testID="adjust-search"
             />
-          )}
+            {searchQ.isFetching ? (
+              <ActivityIndicator color={ui.accent} />
+            ) : (
+              <FlatList
+                data={hits}
+                keyExtractor={(i) => i.id}
+                style={{ maxHeight: 140 }}
+                keyboardShouldPersistTaps="handled"
+                scrollEnabled={hits.length > 3}
+                renderItem={({ item }) => {
+                  const on = addId === item.id;
+                  return (
+                    <Pressable
+                      style={[
+                        styles.hit,
+                        { borderBottomColor: ui.border },
+                        on && { backgroundColor: ui.accentSoft }
+                      ]}
+                      onPress={() => setAddId(item.id)}
+                    >
+                      <Text
+                        style={[styles.hitText, { color: ui.textPrimary }]}
+                      >
+                        {item.canonicalName}
+                      </Text>
+                    </Pressable>
+                  );
+                }}
+                ListEmptyComponent={
+                  q.trim() ? (
+                    <Text style={[styles.hint, { color: ui.textSecondary }]}>
+                      Aucun résultat
+                    </Text>
+                  ) : null
+                }
+              />
+            )}
 
-          <Text style={styles.label}>Commentaire (optionnel)</Text>
-          <TextInput
-            style={[styles.input, { minHeight: 64 }]}
-            multiline
-            value={comment}
-            onChangeText={setComment}
-            placeholder="Ex. : baisse le tourteau, ajoute du calcium"
-          />
+            <Text style={[styles.label, { color: ui.textSecondary }]}>
+              Commentaire (optionnel)
+            </Text>
+            <TextInput
+              ref={commentRef}
+              style={[
+                styles.input,
+                {
+                  borderColor: ui.border,
+                  color: ui.textPrimary,
+                  minHeight: 64
+                }
+              ]}
+              multiline
+              value={comment}
+              onChangeText={setComment}
+              onFocus={scrollFocusedIntoView}
+              placeholder="Ex. : baisse le tourteau, ajoute du calcium"
+              placeholderTextColor={ui.textSecondary}
+              testID="adjust-comment"
+            />
 
-          <View style={styles.actions}>
-            <Pressable style={styles.cancel} onPress={onClose}>
-              <Text style={styles.cancelLabel}>Annuler</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.submit, (!canSubmit || submitting) && styles.disabled]}
-              disabled={!canSubmit || submitting}
-              testID="adjust-submit"
-              onPress={() => {
-                if (!removeId || !addId) return;
-                onSubmit({
-                  removeIngredientId: removeId,
-                  addIngredientId: addId,
-                  comment: comment.trim() || undefined
-                });
-              }}
-            >
-              <Text style={styles.submitLabel}>
-                {submitting ? "Calcul…" : "Proposer"}
-              </Text>
-            </Pressable>
-          </View>
+            <View style={styles.actions}>
+              <Pressable
+                style={[styles.cancel, { borderColor: ui.border }]}
+                onPress={onClose}
+              >
+                <Text style={[styles.cancelLabel, { color: ui.textPrimary }]}>
+                  Annuler
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.submit,
+                  { backgroundColor: ui.accent },
+                  (!canSubmit || submitting) && styles.disabled
+                ]}
+                disabled={!canSubmit || submitting}
+                testID="adjust-submit"
+                onPress={() => {
+                  if (!removeId || !addId) return;
+                  onSubmit({
+                    removeIngredientId: removeId,
+                    addIngredientId: addId,
+                    comment: comment.trim() || undefined
+                  });
+                }}
+              >
+                <Text style={[styles.submitLabel, { color: ui.onAccent }]}>
+                  {submitting ? "Calcul…" : "Proposer"}
+                </Text>
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  kav: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end"
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)"
+  },
+  backdropTap: {
+    flex: 1
   },
   sheet: {
-    backgroundColor: mobileColors.background,
     borderTopLeftRadius: mobileRadius.xl,
     borderTopRightRadius: mobileRadius.xl,
+    maxHeight: "92%"
+  },
+  sheetContent: {
     padding: mobileSpacing.lg,
     gap: mobileSpacing.sm,
-    maxHeight: "90%"
+    paddingBottom: mobileSpacing.xl
   },
   title: {
     fontSize: mobileFontSize.lg,
-    fontWeight: "800",
-    color: mobileColors.textPrimary
+    fontWeight: "800"
   },
   hint: {
-    fontSize: mobileFontSize.sm,
-    color: mobileColors.textSecondary
+    fontSize: mobileFontSize.sm
   },
   label: {
     marginTop: 8,
     fontWeight: "700",
-    color: mobileColors.textSecondary,
     fontSize: mobileFontSize.sm
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     borderWidth: 1,
-    borderColor: mobileColors.border,
     borderRadius: mobileRadius.pill,
     paddingHorizontal: 12,
     paddingVertical: 8
   },
-  chipOn: {
-    backgroundColor: mobileColors.accentSoft,
-    borderColor: mobileColors.accent
-  },
-  chipText: { fontWeight: "600", color: mobileColors.textPrimary },
-  chipTextOn: { color: mobileColors.accent },
+  chipText: { fontWeight: "600" },
   input: {
     borderWidth: 1,
-    borderColor: mobileColors.border,
     borderRadius: mobileRadius.md,
     padding: mobileSpacing.md,
     fontSize: mobileFontSize.md
   },
   hit: {
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: mobileColors.border
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
-  hitOn: { backgroundColor: mobileColors.accentSoft },
   hitText: { fontWeight: "600" },
   actions: { flexDirection: "row", gap: 12, marginTop: 12 },
   cancel: {
@@ -232,17 +342,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     borderRadius: mobileRadius.md,
-    borderWidth: 1,
-    borderColor: mobileColors.border
+    borderWidth: 1
   },
   cancelLabel: { fontWeight: "700" },
   submit: {
     flex: 1,
     paddingVertical: 14,
     alignItems: "center",
-    borderRadius: mobileRadius.md,
-    backgroundColor: mobileColors.accent
+    borderRadius: mobileRadius.md
   },
-  submitLabel: { color: mobileColors.onAccent, fontWeight: "800" },
+  submitLabel: { fontWeight: "800" },
   disabled: { opacity: 0.5 }
 });
