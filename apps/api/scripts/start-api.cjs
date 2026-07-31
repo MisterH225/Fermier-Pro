@@ -9,17 +9,37 @@ const { apiRoot, bootstrapProdEnv } = require("./bootstrap-prod-env.cjs");
 
 bootstrapProdEnv();
 
-const mainJs = path.join(apiRoot, "dist", "main.js");
-if (!fs.existsSync(mainJs)) {
+/** Nest émet normalement dist/main.js ; dist/src/main.js = rootDir cassé (import hors src). */
+function resolveMainJs() {
+  const candidates = [
+    path.join(apiRoot, "dist", "main.js"),
+    path.join(apiRoot, "dist", "src", "main.js")
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+const mainJs = resolveMainJs();
+if (!mainJs) {
   console.error(
-    `[start-api] Introuvable: ${mainJs}. Le build Nest (dist/) est absent — vérifiez la phase build Railway.`
+    "[start-api] Introuvable: dist/main.js (ni dist/src/main.js). Vérifiez nest build / tsconfig.build.json."
   );
   process.exit(1);
 }
 
+if (mainJs.endsWith(`${path.sep}src${path.sep}main.js`)) {
+  console.warn(
+    "[start-api] ATTENTION: main.js sous dist/src/ — rootDir TypeScript incorrect (import hors src/?). Preferer tsconfig.build.json excluant les *.spec.ts."
+  );
+}
+
 const port = process.env.PORT || process.env.API_PORT || "3000";
 console.log(
-  `[start-api] Démarrage API (sans migrate) PORT=${port} NODE_ENV=${process.env.NODE_ENV || ""} APP_ENV=${process.env.APP_ENV || ""}`
+  `[start-api] Démarrage ${mainJs} PORT=${port} NODE_ENV=${process.env.NODE_ENV || ""} APP_ENV=${process.env.APP_ENV || ""}`
 );
 
 const main = spawnSync(process.execPath, [mainJs], {

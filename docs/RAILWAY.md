@@ -42,6 +42,8 @@ Si le déploiement échoue à l'étape **Network > Healthcheck** alors que le bu
 - **Autre cause** : l'API n'écoutait pas sur `process.env.PORT` (Railway route le trafic vers ce port).
 - **503 « service unavailable »** : l'ancien path `/api/v1/health` renvoie **HTTP 503** si Prisma n'est pas joignable au moment du probe. Railway le lit comme un échec de healthcheck alors que Nest tourne.  
   **Correctif** : healthcheck sur `/api/v1/health/live` (toujours 200 une fois le process prêt). Garder `/api/v1/health` pour la readiness / uptime.
+- **Build OK puis process mort** : un import TypeScript depuis `src/**/*.spec.ts` vers un fichier hors `src/` (ex. `prisma/seed-data/*.ts`) fait émettre Nest dans `dist/src/main.js` au lieu de `dist/main.js`. `start-api.cjs` ne trouve plus l'entrée → conteneur down → healthcheck « service unavailable ».  
+  **Correctif** : `apps/api/tsconfig.build.json` exclut les `*.spec.ts` ; ne pas importer de `.ts` hors `src/` dans le graphe de build.
 
 
 ## Admin sur Railway
