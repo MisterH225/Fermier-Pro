@@ -33,3 +33,17 @@ l’interface `SolverPort` permet de changer sans toucher au moteur.
 
 `feasible: false`, `ration: []`, diagnostic dans `infeasibilityReasons`
 (nutriment + type d’intrant manquant). Jamais de ration hors bornes présentée comme valide.
+
+## Agent + mode dégradé (J3)
+
+| Endpoint | Rôle |
+|----------|------|
+| `POST /feed-composition/assist` | Agent Gemini (function calling → même moteur) |
+| `POST /feed-composition/formulate` | Mode sans IA (même résultats) |
+| `POST /feed-composition/compositions` | Enregistrer une composition |
+| `…/request-vet-review` / `…/vet-review` | Validation véto associé |
+
+Réutilise la config Gemini existante : `GEMINI_API_KEY` (serveur only),
+`GEMINI_MODEL` (défaut `gemini-2.5-flash-lite`), `GEMINI_QUOTA_COOLDOWN_MS`.
+Max **3** itérations tool-use / requête. Si Gemini indisponible → `503 AI_UNAVAILABLE`
+(fallback mobile vers `/formulate`).
