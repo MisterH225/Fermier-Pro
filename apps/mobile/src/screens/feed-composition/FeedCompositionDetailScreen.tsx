@@ -19,6 +19,7 @@ import { FormulationResultCard } from "../../components/feed-composition/Formula
 import { useSession } from "../../context/SessionContext";
 import { useBottomInset } from "../../hooks/useBottomInset";
 import {
+  fetchFarm,
   getFeedComposition,
   listFarmCompositionVeterinarians,
   postFeedCompositionExplain,
@@ -34,6 +35,7 @@ import {
   buildLocalFactualExplanation,
   parseCachedExplanation
 } from "../../lib/compositionExplanation";
+import { canOrderFeedComposition } from "../../lib/feedComposition";
 import {
   asRationLines,
   computeDailyIntakeKg,
@@ -89,6 +91,12 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
     queryFn: () =>
       getFeedComposition(accessToken!, compositionId, activeProfileId),
     enabled: Boolean(accessToken)
+  });
+
+  const farmQ = useQuery({
+    queryKey: ["farm", farmId, activeProfileId],
+    queryFn: () => fetchFarm(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && farmId)
   });
 
   const vetsQ = useQuery({
@@ -337,6 +345,13 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
     (row.status === "vet_review" || row.status === "validated");
   const discussTone: CompositionUiTone =
     isVetProfile || isAssociatedVet ? "vet" : "producer";
+  /** Commander = engagement financier : producteur/membre autorisé uniquement. */
+  const canOrder = canOrderFeedComposition({
+    profileType,
+    effectiveScopes: farmQ.data?.effectiveScopes,
+    writeLocked: Boolean(farmQ.data?.writeLockedAt)
+  });
+  const showOrderButton = row.status === "validated" && canOrder;
 
   const onSendToVet = () => {
     if (!hasVets) {
@@ -526,7 +541,7 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
             </View>
           ) : null}
 
-          {row.status === "validated" ? (
+          {showOrderButton ? (
             <Pressable
               style={[
                 styles.primaryBtn,
@@ -536,6 +551,7 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
               disabled
               testID="order-composition-disabled"
               accessibilityState={{ disabled: true }}
+              accessibilityLabel="Commander — bientôt"
             >
               <Text style={[styles.primaryBtnLabel, { color: ui.onAccent }]}>
                 Commander — bientôt

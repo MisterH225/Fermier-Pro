@@ -1,4 +1,7 @@
-import { isFeedCompositionModuleActive } from "../feedComposition";
+import {
+  canOrderFeedComposition,
+  isFeedCompositionModuleActive
+} from "../feedComposition";
 import type { PlatformModuleDto } from "../api/config";
 import {
   buildInfeasibilityMessage,
@@ -104,6 +107,74 @@ describe("isFeedCompositionModuleActive", () => {
 
   it("modules absents → false", () => {
     expect(isFeedCompositionModuleActive(undefined)).toBe(false);
+  });
+});
+
+describe("canOrderFeedComposition (bouton Commander)", () => {
+  it("producteur propriétaire (scopes *) voit Commander", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["*"]
+      })
+    ).toBe(true);
+  });
+
+  it("membre autorisé (finance.write) voit Commander", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["finance.read", "finance.write", "livestock.read"]
+      })
+    ).toBe(true);
+  });
+
+  it("véto ne voit PAS Commander", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "veterinarian",
+        effectiveScopes: ["*"]
+      })
+    ).toBe(false);
+    expect(
+      canOrderFeedComposition({
+        profileType: "veterinarian",
+        effectiveScopes: ["health.write", "vet.write", "finance.write"]
+      })
+    ).toBe(false);
+  });
+
+  it("technicien ne voit PAS Commander", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "technician",
+        effectiveScopes: ["livestock.write", "marketplace.write"]
+      })
+    ).toBe(false);
+  });
+
+  it("membre lecture seule ne voit PAS Commander", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: [
+          "livestock.read",
+          "finance.read",
+          "marketplace.read",
+          "chat"
+        ]
+      })
+    ).toBe(false);
+  });
+
+  it("projet write-locked : pas de Commander", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["*"],
+        writeLocked: true
+      })
+    ).toBe(false);
   });
 });
 
