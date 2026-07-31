@@ -30,6 +30,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
     "@fermier/phone": "*",
     "@fermier/types": "*",
     "@nest-lab/throttler-storage-redis": "^1.2.0",

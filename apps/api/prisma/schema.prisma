@@ -486,6 +486,7 @@ model Farm {
   marketplacePendingTransfers MarketplacePendingTransfer[]
   predictions              FarmPrediction?
   historicalRecords        HistoricalRecord[]
+  savedCompositions        SavedComposition[]
 
   @@index([ownerId, status])
   @@index([status])
@@ -3617,6 +3618,48 @@ model MillIngredientOffer {
   @@index([feedIngredientId, isActive])
   @@index([millProfileId, isActive])
   @@index([isPubliclyListed, isActive])
+}
+
+/// Source d'une composition enregistrée (IA assistée ou formulaire manuel).
+enum SavedCompositionSource {
+  ai_assisted
+  manual
+}
+
+/// Cycle de validation vétérinaire d'une composition.
+enum SavedCompositionStatus {
+  draft
+  vet_review
+  validated
+}
+
+/// Composition d'aliment sauvegardée (moteur feed_composition — J3).
+model SavedComposition {
+  id               String                  @id @default(cuid())
+  farmId           String
+  farm             Farm                    @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  createdByUserId  String
+  stage            ProductionStage
+  /// Paramètres d'entrée (stage, effectif, poids, durée, millId…).
+  inputParams      Json
+  ration           Json
+  nutritionResult  Json?
+  totalCostXof     Decimal                 @db.Decimal(14, 2)
+  source           SavedCompositionSource
+  status           SavedCompositionStatus  @default(draft)
+  /// Commentaire véto (approbation ou retour producteur).
+  vetComment       String?
+  vetReviewedBy    String?
+  vetReviewedAt    DateTime?
+  millProfileId    String?
+  /// true = prix de référence catalogue (pas d'offres moulin).
+  isTheoretical    Boolean                 @default(false)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([farmId, createdAt(sort: Desc)])
+  @@index([farmId, status])
+  @@index([createdByUserId])
 }
 
 /// Cache des prévisions IA prédictives — une ligne par ferme.

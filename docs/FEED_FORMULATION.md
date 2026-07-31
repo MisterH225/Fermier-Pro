@@ -33,3 +33,15 @@ l’interface `SolverPort` permet de changer sans toucher au moteur.
 
 `feasible: false`, `ration: []`, diagnostic dans `infeasibilityReasons`
 (nutriment + type d’intrant manquant). Jamais de ration hors bornes présentée comme valide.
+
+## Agent + mode dégradé (J3)
+
+| Endpoint | Rôle |
+|----------|------|
+| `POST /feed-composition/assist` | Agent Anthropic (outils → même moteur) |
+| `POST /feed-composition/formulate` | Mode sans IA (même résultats) |
+| `POST /feed-composition/compositions` | Enregistrer une composition |
+| `…/request-vet-review` / `…/vet-review` | Validation véto associé |
+
+Env : `ANTHROPIC_API_KEY` (serveur only), `ANTHROPIC_MODEL` (défaut Haiku économique),
+`ANTHROPIC_TIMEOUT_MS`. Max **3** itérations tool-use / requête.

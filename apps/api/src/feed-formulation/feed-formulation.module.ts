@@ -1,35 +1,57 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { SuperAdminGuard } from "../admin-platform/super-admin.guard";
 import { AuthModule } from "../auth/auth.module";
+import { CommonModule } from "../common/common.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.module";
 import { PrismaModule } from "../prisma/prisma.module";
+import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
 import { AdminFeedRequirementProfilesController } from "./admin-feed-requirement-profiles.controller";
+import { AnthropicClientService } from "./assist/anthropic-client.service";
+import { FeedCompositionAssistService } from "./assist/feed-composition-assist.service";
+import { FeedCompositionController } from "./assist/feed-composition.controller";
+import { IngredientAvailabilityService } from "./assist/ingredient-availability.service";
+import { SavedCompositionsService } from "./assist/saved-compositions.service";
 import { FeedFormulationService } from "./feed-formulation.service";
 import { FeedRequirementProfilesService } from "./feed-requirement-profiles.service";
 import { JavascriptLpSolver } from "./solver/javascript-lp.solver";
 import { SOLVER_PORT } from "./solver/solver.port";
 
 /**
- * Module interne « Composition d'aliments » (flag feed_composition).
- * - CRUD superadmin des profils de besoins
- * - Moteur de formulation au moindre coût (aucun endpoint mobile)
+ * Module « Composition d'aliments » (flag feed_composition).
+ * - CRUD superadmin profils de besoins
+ * - Moteur de formulation (interne)
+ * - Agent Anthropic + mode dégradé + SavedComposition (J3)
  */
 @Module({
   imports: [
     PrismaModule,
+    CommonModule,
     forwardRef(() => AuthModule),
     FeatureFlagsModule,
-    FeedIngredientsModule
+    FeedIngredientsModule,
+    UserNotificationsModule
   ],
-  controllers: [AdminFeedRequirementProfilesController],
+  controllers: [
+    AdminFeedRequirementProfilesController,
+    FeedCompositionController
+  ],
   providers: [
     FeedRequirementProfilesService,
     FeedFormulationService,
     JavascriptLpSolver,
     { provide: SOLVER_PORT, useExisting: JavascriptLpSolver },
-    SuperAdminGuard
+    SuperAdminGuard,
+    AnthropicClientService,
+    IngredientAvailabilityService,
+    FeedCompositionAssistService,
+    SavedCompositionsService
   ],
-  exports: [FeedFormulationService, FeedRequirementProfilesService]
+  exports: [
+    FeedFormulationService,
+    FeedRequirementProfilesService,
+    FeedCompositionAssistService,
+    SavedCompositionsService
+  ]
 })
 export class FeedFormulationModule {}
