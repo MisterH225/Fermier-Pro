@@ -3,7 +3,9 @@ import { apiBaseUrl, apiGetJson, apiPostJson, apiPatchJson } from "./http";
 /** GET /marketplace/listings — JWT ; sans `mine` = catalogue publié. */
 export type MarketplaceListingListItem = {
   id: string;
-  kind?: "listing" | "merchant";
+  kind?: "listing" | "merchant" | "bulk_feed";
+  feedIngredientId?: string | null;
+  millIngredientOfferId?: string | null;
   sellerUserId?: string;
   title: string;
   description: string | null;

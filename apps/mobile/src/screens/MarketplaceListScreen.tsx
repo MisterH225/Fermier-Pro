@@ -405,7 +405,10 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
     if (!isBuyerProfile || !accessToken) {
       return;
     }
-    const kind = item.kind === "merchant" ? "merchant" : "listing";
+    const kind =
+      item.kind === "merchant" || item.kind === "bulk_feed"
+        ? "merchant"
+        : "listing";
     const isFav =
       kind === "merchant"
         ? favoriteProductIdSet.has(item.id)
@@ -414,7 +417,8 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
   };
 
   const renderListingCard = ({ item }: { item: MarketplaceListingListItem }) => {
-    const isMerchant = item.kind === "merchant";
+    const isMerchant =
+      item.kind === "merchant" || item.kind === "bulk_feed";
     const isFav = isMerchant
       ? favoriteProductIdSet.has(item.id)
       : favoriteListingIdSet.has(item.id);
@@ -519,10 +523,16 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
 
   const favoritesAsListings = useMemo((): MarketplaceListingListItem[] => {
     return (favoritesListQuery.data ?? []).map((f: BuyerFavoriteListingDto) => {
-      const isMerchant = f.kind === "merchant";
+      const isMerchant =
+        f.kind === "merchant" || f.kind === "bulk_feed";
+      const feedKind: MarketplaceListingListItem["kind"] = isMerchant
+        ? f.kind === "bulk_feed"
+          ? "bulk_feed"
+          : "merchant"
+        : "listing";
       return {
         id: f.id,
-        kind: isMerchant ? ("merchant" as const) : ("listing" as const),
+        kind: feedKind,
         title: f.title,
         description: null,
         unitPrice: isMerchant ? f.totalPrice : null,

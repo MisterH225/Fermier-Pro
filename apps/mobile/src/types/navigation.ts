@@ -12,6 +12,8 @@ export type RootStackParamList = {
   MerchantShops: undefined;
   MerchantShopDetail: { shopId: string };
   MerchantProducts: undefined;
+  /** Offres d'intrants moulin (flag mills + merchantKind=mill). */
+  MillIngredients: undefined;
   MerchantMarket:
     | {
         searchQuery?: string;

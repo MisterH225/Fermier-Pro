@@ -135,7 +135,7 @@ export type BuyerListingPreviewDto = {
 
 export type BuyerFavoriteListingDto = BuyerListingPreviewDto & {
   /** Discriminant : annonce ferme ou produit boutique. */
-  kind?: "listing" | "merchant";
+  kind?: "listing" | "merchant" | "bulk_feed";
   favoriteId: string;
   favoritedAt: string;
   currency?: string | null;

@@ -129,7 +129,8 @@ export function MarketplaceListingCard({
   const views = item.viewsCount ?? 0;
   const consults = item.consultationsCount ?? 0;
   const stock = item.stock ?? item.quantity ?? null;
-  const isMerchant = item.kind === "merchant";
+  const isMerchant =
+    item.kind === "merchant" || item.kind === "bulk_feed";
   const isNew = isNewListing(item.publishedAt ?? null);
   const expired = !isMerchant && isListingExpired(item.status, item.expiresAt);
   const sold = !isMerchant && item.status === "sold";

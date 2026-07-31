@@ -3,6 +3,7 @@ import { AuthModule } from "../auth/auth.module";
 import { ChatModule } from "../chat/chat.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
+import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.module";
 import { MobileMoneyModule } from "../marketplace/escrow";
 import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { PlatformSettingsModule } from "../platform-settings/platform-settings.module";
@@ -22,6 +23,8 @@ import { MerchantSubscriptionBillingService } from "./merchant-subscription-bill
 import { MerchantSubscriptionPromoCodesService } from "./merchant-subscription-promo-codes.service";
 import { MerchantSubscriptionCronService } from "./merchant-subscription.cron";
 import { MerchantSubscriptionService } from "./merchant-subscription.service";
+import { MillIngredientOffersController } from "./mill-ingredient-offers.controller";
+import { MillIngredientOffersService } from "./mill-ingredient-offers.service";
 
 @Module({
   imports: [
@@ -34,9 +37,14 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     FeatureFlagsModule,
     PlatformSettingsModule,
     UserNotificationsModule,
-    ChatModule
+    ChatModule,
+    FeedIngredientsModule
   ],
-  controllers: [MerchantShopController, MerchantCatalogController],
+  controllers: [
+    MerchantShopController,
+    MerchantCatalogController,
+    MillIngredientOffersController
+  ],
   providers: [
     MerchantProfilesService,
     MerchantShopsService,
@@ -49,7 +57,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantOrdersService,
     MerchantOrdersCronService,
     MerchantModerationService,
-    MerchantDashboardService
+    MerchantDashboardService,
+    MillIngredientOffersService
   ],
   exports: [
     MerchantProfilesService,
@@ -59,7 +68,8 @@ import { MerchantSubscriptionService } from "./merchant-subscription.service";
     MerchantSubscriptionService,
     MerchantSubscriptionBillingService,
     MerchantSubscriptionPromoCodesService,
-    MerchantOrdersService
+    MerchantOrdersService,
+    MillIngredientOffersService
   ]
 })
 export class MerchantShopModule {}

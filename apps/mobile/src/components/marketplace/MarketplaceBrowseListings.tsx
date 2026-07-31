@@ -31,6 +31,7 @@ import { getUserFacingError } from "../../lib/userFacingError";
 import { buyerColors } from "../../theme/buyerTheme";
 import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { isMerchantMarketplaceKind } from "../../lib/marketplaceFeedKind";
 import {
   healthVerifiedDaysAgo,
   MarketplaceListingCard,
@@ -188,7 +189,7 @@ export function MarketplaceBrowseListings({
 
   const toggleFav = (item: MarketplaceListingListItem) => {
     if (!isBuyerProfile || !accessToken) return;
-    const kind = item.kind === "merchant" ? "merchant" : "listing";
+    const kind = isMerchantMarketplaceKind(item.kind) ? "merchant" : "listing";
     const isFav =
       kind === "merchant"
         ? favoriteProductIdSet.has(item.id)
@@ -201,7 +202,7 @@ export function MarketplaceBrowseListings({
     if (category === HEALTH_FILTER_ID) {
       rows = rows.filter(
         (item) =>
-          item.kind !== "merchant" &&
+          !isMerchantMarketplaceKind(item.kind) &&
           healthVerifiedDaysAgo(item.healthVerifiedAt) != null
       );
     }
@@ -318,7 +319,7 @@ export function MarketplaceBrowseListings({
           />
         }
         renderItem={({ item }) => {
-          const isMerchant = item.kind === "merchant";
+          const isMerchant = isMerchantMarketplaceKind(item.kind);
           const isFav = isMerchant
             ? favoriteProductIdSet.has(item.id)
             : favoriteListingIdSet.has(item.id);

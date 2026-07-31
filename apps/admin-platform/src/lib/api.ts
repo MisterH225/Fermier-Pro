@@ -1319,6 +1319,11 @@ export type AdminMerchantProductRow = {
   publishedAt: string | null;
   updatedAt: string;
   orderCount?: number;
+  /** Produit synchronisé depuis une offre moulin (vente en gros). */
+  isBulkFeed?: boolean;
+  millIngredientOfferId?: string | null;
+  feedIngredientId?: string | null;
+  feedIngredientName?: string | null;
 };
 
 export type AdminMerchantShopRow = {
