@@ -17,11 +17,12 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { MarketplaceListingListItem } from "../../lib/api";
 import { formatListingWeightWithBasis } from "../../lib/marketplaceListingForm";
 import { formatMarketMoney } from "../../lib/formatMoney";
+import { HealthVerifiedBadge } from "./HealthVerifiedBadge";
 import { ListingImage } from "./ListingImage";
 import { ListingShareButton } from "./ListingShareButton";
 import type { RootStackParamList } from "../../types/navigation";
 import { marketplaceColors } from "../../theme/marketplaceTheme";
-import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileStatusSurfaces, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
+import { mobileColors, mobileRadius, mobileShadows, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
 
 const HEALTH_VERIFIED_MS = 30 * 24 * 60 * 60 * 1000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -220,29 +221,20 @@ export function MarketplaceListingCard({
           </View>
         ) : null}
         {healthDays != null ? (
-          <View
-            style={[
-              styles.badgeHealth,
-              showExpiryWarning && styles.badgeHealthWarning,
-              statusBadgeTopRight && styles.badgeHealthBesideStatus
-            ]}
-          >
-            <Text
-              style={[
-                styles.badgeHealthTx,
-                showExpiryWarning && styles.badgeHealthWarningTx
-              ]}
-              numberOfLines={1}
-            >
-              {showExpiryWarning
+          <HealthVerifiedBadge
+            size="compact"
+            warningLabel={
+              showExpiryWarning
                 ? t("marketScreen.badgeHealthExpiresIn", {
                     days: healthDaysLeft
                   })
-                : t("marketScreen.badgeHealthVerifiedDays", {
-                    days: healthDays
-                  })}
-            </Text>
-          </View>
+                : null
+            }
+            style={[
+              styles.badgeHealth,
+              statusBadgeTopRight && styles.badgeHealthBesideStatus
+            ]}
+          />
         ) : null}
         {showFavorite ? (
           <Pressable
@@ -457,28 +449,11 @@ const styles = StyleSheet.create({
   badgeHealth: {
     position: "absolute",
     top: mobileSpacing.sm,
-    right: mobileSpacing.sm,
-    backgroundColor: mobileStatusSurfaces.successBg,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: mobileRadius.pill,
-    maxWidth: "55%"
-  },
-  badgeHealthWarning: {
-    backgroundColor: mobileStatusSurfaces.warningBg
+    right: mobileSpacing.sm
   },
   /** À côté de badgeNew / sold / expired (même bandeau haut-droite). */
   badgeHealthBesideStatus: {
     right: mobileSpacing.sm + 72
-  },
-  badgeHealthTx: {
-    ...mobileTypography.meta,
-    color: mobileStatusSurfaces.successText,
-    fontWeight: "700",
-    fontSize: mobileFontSize.xs
-  },
-  badgeHealthWarningTx: {
-    color: mobileStatusSurfaces.warningText
   },
   favBtn: {
     position: "absolute",

@@ -25,6 +25,10 @@ import {
 } from "../components/marketplace/listingPricing";
 import { CreditProposalModal } from "../components/marketplace/CreditProposalModal";
 import { CreditScoreBadge } from "../components/marketplace/CreditScoreBadge";
+import {
+  formatVetDisplayName,
+  HealthVerifiedBadge
+} from "../components/marketplace/HealthVerifiedBadge";
 import { HealthVerifyCtaBanner } from "../components/marketplace/HealthVerifyCtaBanner";
 import { ProposalModal } from "../components/marketplace/ProposalModal";
 import {
@@ -557,40 +561,42 @@ export function MarketplaceListingDetailScreen({
             sellerSeesExpiryWarning && styles.healthVerifiedBannerWarning
           ]}
         >
-          <Text
-            style={[
-              styles.healthVerifiedTx,
-              sellerSeesExpiryWarning && styles.healthVerifiedTxWarning
-            ]}
-          >
-            {sellerSeesExpiryWarning
-              ? t("marketScreen.badgeHealthExpiresIn", {
-                  days: healthDaysLeft
-                })
-              : t("marketScreen.badgeHealthVerified")}
+          <HealthVerifiedBadge
+            size="detail"
+            warningLabel={
+              sellerSeesExpiryWarning
+                ? t("marketScreen.badgeHealthExpiresIn", {
+                    days: healthDaysLeft
+                  })
+                : null
+            }
+          />
+          <Text style={styles.healthVerifiedFollowUp}>
+            {t("marketScreen.healthVerifiedFollowUp", {
+              date: new Date(
+                L.healthVerifiedBy?.completedAt ?? L.healthVerifiedAt!
+              ).toLocaleDateString(i18n.language === "en" ? "en-GB" : "fr-FR", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric"
+              })
+            })}
           </Text>
           {L.healthVerifiedBy ? (
             <Pressable onPress={() => setVetProfileOpen(true)}>
               <Text style={styles.healthVerifiedBy}>
-                {t("marketScreen.healthVerifiedBy", {
-                  name: L.healthVerifiedBy.vetName,
-                  date: new Date(
-                    L.healthVerifiedBy.completedAt
-                  ).toLocaleDateString(i18n.language === "en" ? "en-GB" : "fr-FR", {
-                    day: "2-digit",
-                    month: "2-digit"
-                  })
+                {t("marketScreen.healthVerifiedByVet", {
+                  name: formatVetDisplayName(L.healthVerifiedBy.vetName)
                 })}
               </Text>
               <Text style={styles.healthVerifiedLink}>
                 {t("marketScreen.healthVerifiedViewVet")}
               </Text>
             </Pressable>
-          ) : (
-            <Text style={styles.healthVerifiedHint}>
-              {t("marketScreen.healthVerifiedHint")}
-            </Text>
-          )}
+          ) : null}
+          <Text style={styles.healthVerifiedHint}>
+            {t("marketScreen.healthVerifiedDisclaimer")}
+          </Text>
         </View>
       ) : isSeller && L.status === "published" && L.farm?.id ? (
         <HealthVerifyCtaBanner
@@ -1038,23 +1044,21 @@ const styles = StyleSheet.create({
     backgroundColor: mobileColors.success + "18",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: mobileColors.success + "55",
-    gap: 4
+    gap: 6
   },
   healthVerifiedBannerWarning: {
     backgroundColor: mobileStatusSurfaces.warningBg,
     borderColor: mobileStatusSurfaces.warningText + "55"
   },
-  healthVerifiedTx: {
+  healthVerifiedFollowUp: {
     ...mobileTypography.body,
-    fontWeight: "700",
-    color: mobileColors.success
-  },
-  healthVerifiedTxWarning: {
-    color: mobileStatusSurfaces.warningText
+    color: mobileColors.textPrimary,
+    fontWeight: "600"
   },
   healthVerifiedHint: {
     ...mobileTypography.meta,
-    color: mobileColors.textSecondary
+    color: mobileColors.textSecondary,
+    marginTop: 2
   },
   healthVerifiedBy: {
     ...mobileTypography.meta,
