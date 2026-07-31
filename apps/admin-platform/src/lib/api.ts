@@ -2276,6 +2276,96 @@ export function removeFeatureFlagTestAccount(
   );
 }
 
+export type FeedIngredientCategory =
+  | "cereal"
+  | "plant_protein"
+  | "animal_protein"
+  | "byproduct"
+  | "mineral"
+  | "additive";
+
+export type AdminFeedIngredientDto = {
+  id: string;
+  canonicalName: string;
+  aliases: string[];
+  category: FeedIngredientCategory;
+  crudeProteinPct: number;
+  metabolizableEnergyKcal: number;
+  lysinePct: number;
+  methioninePct: number;
+  calciumPct: number;
+  phosphorusPct: number;
+  crudeFiberPct: number;
+  fatPct: number;
+  dryMatterPct: number;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FeedIngredientWriteBody = {
+  canonicalName: string;
+  aliases?: string[];
+  category: FeedIngredientCategory;
+  crudeProteinPct: number;
+  metabolizableEnergyKcal: number;
+  lysinePct: number;
+  methioninePct: number;
+  calciumPct: number;
+  phosphorusPct: number;
+  crudeFiberPct: number;
+  fatPct: number;
+  dryMatterPct: number;
+  notes?: string;
+};
+
+export function fetchAdminFeedIngredients(
+  token: string,
+  opts?: { q?: string; includeInactive?: boolean }
+) {
+  const params = new URLSearchParams();
+  if (opts?.q) params.set("q", opts.q);
+  if (opts?.includeInactive !== undefined) {
+    params.set("includeInactive", String(opts.includeInactive));
+  }
+  const qs = params.toString();
+  return apiFetch<AdminFeedIngredientDto[]>(
+    `/admin/feed-ingredients${qs ? `?${qs}` : ""}`,
+    token
+  );
+}
+
+export function createAdminFeedIngredient(
+  token: string,
+  body: FeedIngredientWriteBody
+) {
+  return apiFetch<AdminFeedIngredientDto>("/admin/feed-ingredients", token, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export function patchAdminFeedIngredient(
+  token: string,
+  id: string,
+  body: Partial<FeedIngredientWriteBody> & { isActive?: boolean }
+) {
+  return apiFetch<AdminFeedIngredientDto>(
+    `/admin/feed-ingredients/${id}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
+export function deactivateAdminFeedIngredient(token: string, id: string) {
+  return apiFetch<AdminFeedIngredientDto>(
+    `/admin/feed-ingredients/${id}`,
+    token,
+    { method: "DELETE" }
+  );
+}
+
 export type ModerationScope =
   | "account"
   | "veterinarian"

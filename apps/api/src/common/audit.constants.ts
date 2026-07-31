@@ -35,7 +35,10 @@ export const AUDIT_ACTION = {
   farmHealthRecordDeleted: "farm.health_record.deleted",
   accountDeleted: "account.deleted",
   profileDeactivated: "profile.deactivated",
-  profileReactivated: "profile.reactivated"
+  profileReactivated: "profile.reactivated",
+  feedIngredientCreated: "feed_ingredient.created",
+  feedIngredientUpdated: "feed_ingredient.updated",
+  feedIngredientDeactivated: "feed_ingredient.deactivated"
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

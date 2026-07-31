@@ -4,9 +4,11 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
+/** Sous-menus de Paramètres (même pattern que Modules). */
 const TABS = [
   { href: "/parametres", key: "platform" as const },
-  { href: "/parametres/modules", key: "modules" as const }
+  { href: "/parametres/modules", key: "modules" as const },
+  { href: "/parametres/intrants", key: "ingredients" as const }
 ] as const;
 
 export function SettingsSubNav() {

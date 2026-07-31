@@ -1,5 +1,5 @@
 /**
- * Seed référentiels géo CI (AdminRegionRef + LocalityRef) — CJS pour Railway.
+ * Seed référentiels géo CI + FeedIngredient — CJS pour Railway.
  * Usage : node prisma/seed.cjs
  */
 const path = require("node:path");
@@ -11,6 +11,7 @@ loadEnv({ path: path.resolve(__dirname, "../.env") });
 
 const CI_ADMIN_REGIONS = require("./seed-data/ci-admin-regions.json");
 const CI_LOCALITIES = require("./seed-data/ci-localities.json");
+const FEED_INGREDIENTS_SEED = require("./seed-data/feed-ingredients.json");
 
 const prisma = new PrismaClient();
 
@@ -62,9 +63,38 @@ async function seedLocalities() {
   console.log(`[seed] LocalityRef : ${CI_LOCALITIES.length} entrées`);
 }
 
+async function seedFeedIngredients() {
+  for (const row of FEED_INGREDIENTS_SEED) {
+    await prisma.feedIngredient.upsert({
+      where: { canonicalName: row.canonicalName },
+      create: {
+        canonicalName: row.canonicalName,
+        aliases: row.aliases,
+        category: row.category,
+        crudeProteinPct: row.crudeProteinPct,
+        metabolizableEnergyKcal: row.metabolizableEnergyKcal,
+        lysinePct: row.lysinePct,
+        methioninePct: row.methioninePct,
+        calciumPct: row.calciumPct,
+        phosphorusPct: row.phosphorusPct,
+        crudeFiberPct: row.crudeFiberPct,
+        fatPct: row.fatPct,
+        dryMatterPct: row.dryMatterPct,
+        notes: row.notes ?? null,
+        isActive: true
+      },
+      update: {}
+    });
+  }
+  console.log(
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, sans écraser l'existant)`
+  );
+}
+
 async function main() {
   await seedAdminRegions();
   await seedLocalities();
+  await seedFeedIngredients();
 }
 
 main()
