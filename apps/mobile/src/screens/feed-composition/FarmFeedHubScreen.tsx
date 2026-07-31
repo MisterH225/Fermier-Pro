@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSession } from "../../context/SessionContext";
 import { isFeedCompositionModuleActive } from "../../lib/feedComposition";
@@ -20,9 +20,14 @@ export function FarmFeedHubScreen({ navigation, route }: Props) {
   const stockOn = clientFeatures.feedStock;
 
   return (
-    <View style={styles.root} testID="farm-feed-hub">
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      testID="farm-feed-hub"
+    >
       <Text style={styles.intro}>
-        Choisissez ce que vous voulez faire pour {farmName}.
+        Que voulez-vous faire pour l’aliment de {farmName} ?
       </Text>
 
       {stockOn ? (
@@ -61,9 +66,9 @@ export function FarmFeedHubScreen({ navigation, route }: Props) {
               />
             </View>
             <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>Composition</Text>
+              <Text style={styles.cardTitle}>Composer mon aliment</Text>
               <Text style={styles.cardSub}>
-                Formuler une ration (assistée ou formulaire)
+                Préparer un mélange pour vos porcs, puis le faire valider
               </Text>
             </View>
             <Ionicons
@@ -90,7 +95,7 @@ export function FarmFeedHubScreen({ navigation, route }: Props) {
             <View style={styles.cardText}>
               <Text style={styles.cardTitle}>Mes compositions</Text>
               <Text style={styles.cardSub}>
-                Enregistrées, en revue véto ou validées
+                Brouillons, envoyées au véto ou déjà validées
               </Text>
             </View>
             <Ionicons
@@ -101,16 +106,19 @@ export function FarmFeedHubScreen({ navigation, route }: Props) {
           </Pressable>
         </>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: mobileColors.canvas,
+    backgroundColor: mobileColors.canvas
+  },
+  content: {
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.md
+    gap: mobileSpacing.md,
+    paddingBottom: 48
   },
   intro: {
     fontSize: mobileFontSize.md,

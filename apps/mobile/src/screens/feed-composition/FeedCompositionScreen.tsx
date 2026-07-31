@@ -1,14 +1,17 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AssistChatPanel } from "../../components/feed-composition/AssistChatPanel";
 import { CompositionDisclaimer } from "../../components/feed-composition/CompositionDisclaimer";
 import {
@@ -46,6 +49,8 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, platformModules } = useSession();
   const compositionOn = isFeedCompositionModuleActive(platformModules);
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [mode, setMode] = useState<Mode>("assist");
   const [messages, setMessages] = useState<FeedCompositionChatMessage[]>([]);
@@ -71,6 +76,13 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     avgAgeWeeks: "",
     durationDays: "30"
   });
+
+  const scrollTowardBottom = useCallback(() => {
+    // Délai court : laisse le clavier s’ouvrir puis ramène la zone de saisie.
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  }, []);
 
   const vetsQ = useQuery({
     queryKey: ["feed-composition-vets", farmId, activeProfileId],
@@ -101,8 +113,9 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
       setSource(meta.source);
       setLastInputParams(meta.inputParams);
       setSavedId(null);
+      scrollTowardBottom();
     },
-    []
+    [scrollTowardBottom]
   );
 
   const assistMut = useMutation({
@@ -143,13 +156,15 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
             message
           }
         });
+      } else {
+        scrollTowardBottom();
       }
     },
     onError: (err, message) => {
       if (isAiUnavailableError(err)) {
         setMode("form");
         setDegradedNote(
-          "Assistant temporairement indisponible — passez par le formulaire."
+          "L’assistant ne répond pas pour le moment — utilisez le formulaire, le calcul reste le même."
         );
         setMessages((prev) => [
           ...prev,
@@ -157,7 +172,7 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
           {
             role: "assistant",
             content:
-              "Je ne peux pas répondre pour le moment. Utilisez le formulaire ci-dessous — le calcul reste le même."
+              "Je ne peux pas discuter pour le moment. Passez par « Remplir moi-même » plus bas — on calcule quand même votre mélange."
           }
         ]);
         setDraft("");
@@ -177,7 +192,9 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
         ? Number(formValues.avgAgeWeeks)
         : undefined;
       if (!(animalCount > 0) || !(avgWeightKg > 0) || !(durationDays > 0)) {
-        throw new Error("Vérifiez effectif, poids et durée (nombres positifs).");
+        throw new Error(
+          "Vérifiez le nombre d’animaux, le poids et le nombre de jours (nombres positifs)."
+        );
       }
       return postFeedCompositionFormulate(
         accessToken,
@@ -222,7 +239,7 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!accessToken || !formulation?.feasible || !lastInputParams) {
-        throw new Error("Aucune formulation à enregistrer");
+        throw new Error("Aucune composition à enregistrer");
       }
       const stageToSave =
         stage ??
@@ -247,10 +264,28 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     },
     onSuccess: (row) => {
       setSavedId(row.id);
-      Alert.alert("Enregistré", "Composition sauvegardée.");
+      Alert.alert(
+        "Enregistré",
+        "Composition sauvegardée. Vous pouvez l’envoyer à votre vétérinaire pour validation."
+      );
     },
     onError: (err) => Alert.alert("Erreur", formatApiError(err))
   });
+
+  const openChat = useCallback(
+    (chatRoomId: string | null | undefined) => {
+      if (!chatRoomId) {
+        navigation.navigate("FeedCompositionsList", { farmId, farmName });
+        return;
+      }
+      navigation.navigate("ChatRoom", {
+        roomId: chatRoomId,
+        headline: "Composition — avis véto",
+        farmId
+      });
+    },
+    [farmId, farmName, navigation]
+  );
 
   const vetMut = useMutation({
     mutationFn: async () => {
@@ -267,17 +302,48 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
         activeProfileId
       );
     },
-    onSuccess: () => {
+    onSuccess: (row) => {
+      setSavedId(row.id);
       Alert.alert(
-        "Envoyé",
-        "Votre vétérinaire a été notifié pour valider la composition."
+        "Envoyé au vétérinaire",
+        "Une discussion a été ouverte. Vous pouvez échanger autour de cette composition.",
+        [
+          {
+            text: "Ouvrir la discussion",
+            onPress: () => openChat(row.chatRoomId)
+          },
+          {
+            text: "Plus tard",
+            onPress: () =>
+              navigation.navigate("FeedCompositionsList", { farmId, farmName })
+          }
+        ]
       );
-      navigation.navigate("FeedCompositionsList", { farmId, farmName });
     },
     onError: (err) => Alert.alert("Erreur", formatApiError(err))
   });
 
   const hasVets = (vetsQ.data?.length ?? 0) > 0;
+
+  const onRequestVet = () => {
+    if (!formulation?.feasible) return;
+    if (!hasVets) {
+      Alert.alert(
+        "Aucun vétérinaire associé",
+        "Ajoutez d’abord votre vétérinaire à cette ferme (Équipe / membres), puis renvoyez la composition pour validation.",
+        [
+          {
+            text: "Ouvrir l’équipe",
+            onPress: () =>
+              navigation.navigate("FarmMembers", { farmId, farmName })
+          },
+          { text: "OK", style: "cancel" }
+        ]
+      );
+      return;
+    }
+    vetMut.mutate();
+  };
 
   const modeSwitcher = useMemo(
     () => (
@@ -288,7 +354,7 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
           testID="mode-assist"
         >
           <Text style={[styles.modeText, mode === "assist" && styles.modeTextOn]}>
-            Assistée
+            Discuter
           </Text>
         </Pressable>
         <Pressable
@@ -297,7 +363,7 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
           testID="mode-form"
         >
           <Text style={[styles.modeText, mode === "form" && styles.modeTextOn]}>
-            Formulaire
+            Remplir moi-même
           </Text>
         </Pressable>
       </View>
@@ -315,81 +381,108 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     );
   }
 
+  // Marge basse généreuse : le clavier ne masque plus les champs / le chat.
+  const bottomPad = Math.max(insets.bottom, 16) + 280;
+
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.root}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      testID="feed-composition-screen"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
     >
-      <Text style={styles.farm}>{farmName}</Text>
-      <CompositionDisclaimer />
-      {modeSwitcher}
-      {degradedNote ? (
-        <Text style={styles.degraded} testID="degraded-note">
-          {degradedNote}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.root}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator
+        testID="feed-composition-screen"
+      >
+        <Text style={styles.farm}>{farmName}</Text>
+        <Text style={styles.intro}>
+          Préparez un mélange pour vos porcs, puis envoyez-le à votre
+          vétérinaire pour qu’il le valide.
         </Text>
-      ) : null}
+        <CompositionDisclaimer />
+        {modeSwitcher}
+        {degradedNote ? (
+          <Text style={styles.degraded} testID="degraded-note">
+            {degradedNote}
+          </Text>
+        ) : null}
 
-      {mode === "assist" ? (
-        <View style={styles.chatBox}>
-          <AssistChatPanel
-            messages={messages}
-            draft={draft}
-            onChangeDraft={setDraft}
-            sending={assistMut.isPending}
-            onSend={() => {
-              const msg = draft.trim();
-              if (!msg) return;
-              assistMut.mutate(msg);
-            }}
+        {mode === "assist" ? (
+          <View style={styles.chatBox}>
+            <AssistChatPanel
+              messages={messages}
+              draft={draft}
+              onChangeDraft={setDraft}
+              sending={assistMut.isPending}
+              onInputFocus={scrollTowardBottom}
+              onSend={() => {
+                const msg = draft.trim();
+                if (!msg) return;
+                assistMut.mutate(msg);
+              }}
+            />
+          </View>
+        ) : (
+          <FormulateForm
+            values={formValues}
+            onChange={setFormValues}
+            onSubmit={() => formulateMut.mutate()}
+            submitting={formulateMut.isPending}
+            onFieldFocus={scrollTowardBottom}
           />
-        </View>
-      ) : (
-        <FormulateForm
-          values={formValues}
-          onChange={setFormValues}
-          onSubmit={() => formulateMut.mutate()}
-          submitting={formulateMut.isPending}
-        />
-      )}
+        )}
 
-      {formulation ? (
-        <>
-          <FormulationResultCard
-            formulation={formulation}
-            stage={stage ?? formValues.stage}
-            isTheoretical={isTheoretical}
-          />
-          {formulation.feasible ? (
-            <View style={styles.actions}>
-              <Pressable
-                style={styles.primaryBtn}
-                onPress={() => saveMut.mutate()}
-                disabled={saveMut.isPending}
-                testID="save-composition"
-              >
-                <Text style={styles.primaryBtnLabel}>
-                  {savedId ? "Enregistrée" : "Enregistrer"}
-                </Text>
-              </Pressable>
-              {hasVets ? (
+        {formulation ? (
+          <>
+            <FormulationResultCard
+              formulation={formulation}
+              stage={stage ?? formValues.stage}
+              isTheoretical={isTheoretical}
+            />
+            {formulation.feasible ? (
+              <View style={styles.actions}>
+                <Pressable
+                  style={styles.primaryBtn}
+                  onPress={() => saveMut.mutate()}
+                  disabled={saveMut.isPending || vetMut.isPending}
+                  testID="save-composition"
+                >
+                  <Text style={styles.primaryBtnLabel}>
+                    {savedId ? "Enregistrée" : "Enregistrer"}
+                  </Text>
+                </Pressable>
                 <Pressable
                   style={styles.secondaryBtn}
-                  onPress={() => vetMut.mutate()}
-                  disabled={vetMut.isPending}
+                  onPress={onRequestVet}
+                  disabled={vetMut.isPending || saveMut.isPending}
                   testID="send-to-vet"
                 >
                   <Text style={styles.secondaryBtnLabel}>
                     Envoyer à mon vétérinaire pour validation
                   </Text>
                 </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-        </>
-      ) : null}
-    </ScrollView>
+                {!hasVets && !vetsQ.isPending ? (
+                  <Text style={styles.vetHint} testID="no-vet-hint">
+                    Astuce : associez d’abord votre véto dans l’équipe de la
+                    ferme pour ouvrir la discussion.
+                  </Text>
+                ) : (
+                  <Text style={styles.vetHint}>
+                    Le véto reçoit la composition et peut discuter / valider
+                    avec vous dans le fil de messages.
+                  </Text>
+                )}
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -397,13 +490,18 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: mobileColors.canvas },
   content: {
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.md,
-    paddingBottom: 48
+    gap: mobileSpacing.md
   },
   farm: {
     fontSize: mobileFontSize.lg,
     fontWeight: "800",
     color: mobileColors.textPrimary
+  },
+  intro: {
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textSecondary,
+    lineHeight: 20,
+    marginTop: -4
   },
   blocked: {
     padding: mobileSpacing.xl,
@@ -432,15 +530,15 @@ const styles = StyleSheet.create({
   degraded: {
     fontSize: mobileFontSize.sm,
     color: mobileColors.textSecondary,
-    fontStyle: "italic"
+    fontStyle: "italic",
+    lineHeight: 20
   },
   chatBox: {
     backgroundColor: mobileColors.background,
     borderRadius: mobileRadius.lg,
     borderWidth: 1,
     borderColor: mobileColors.border,
-    padding: mobileSpacing.md,
-    minHeight: 280
+    padding: mobileSpacing.md
   },
   actions: { gap: mobileSpacing.sm },
   primaryBtn: {
@@ -460,12 +558,19 @@ const styles = StyleSheet.create({
     borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
     paddingHorizontal: mobileSpacing.md,
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: mobileColors.background
   },
   secondaryBtnLabel: {
     color: mobileColors.accent,
     fontWeight: "700",
     fontSize: mobileFontSize.sm,
+    textAlign: "center"
+  },
+  vetHint: {
+    fontSize: mobileFontSize.xs,
+    color: mobileColors.textSecondary,
+    lineHeight: 18,
     textAlign: "center"
   }
 });

@@ -74,10 +74,10 @@ export function ProposeAdjustmentModal({
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.backdrop}>
         <View style={styles.sheet} testID="propose-adjustment-modal">
-          <Text style={styles.title}>Proposer un ajustement</Text>
+          <Text style={styles.title}>Proposer un autre mélange</Text>
           <Text style={styles.hint}>
-            Retirez un intrant et choisissez un substitut. Le calcul est fait par
-            le moteur — pas à la main.
+            Enlevez un produit et choisissez-en un autre. L’appli recalcule toute
+            seule — pas à la main.
           </Text>
 
           <Text style={styles.label}>1. Intrant à retirer</Text>

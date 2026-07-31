@@ -2,7 +2,9 @@ import { isFeedCompositionModuleActive } from "../feedComposition";
 import type { PlatformModuleDto } from "../api/config";
 import {
   buildInfeasibilityMessage,
+  formatDeviationHuman,
   isAiUnavailableError,
+  nutrientLabelFr,
   respectsLeanPorkGoal,
   stageLabelFr
 } from "../feedCompositionFormat";
@@ -68,13 +70,27 @@ describe("isFeedCompositionModuleActive", () => {
 });
 
 describe("feedCompositionFormat", () => {
-  it("labels stade FR", () => {
+  it("labels stade FR terre à terre", () => {
     expect(stageLabelFr("fattening")).toBe("Engraissement");
+    expect(stageLabelFr("piglet_weaning")).toBe("Porcelets sevrés");
+  });
+
+  it("nutriments en langage producteur", () => {
+    expect(nutrientLabelFr("crudeProteinPct")).toMatch(/Protéines/i);
+    expect(nutrientLabelFr("metabolizableEnergyKcal")).toMatch(/Énergie/i);
+    expect(
+      formatDeviationHuman({
+        nutrient: "crudeProteinPct",
+        target: "≥ 15",
+        actual: 16,
+        withinBounds: true
+      })
+    ).toMatch(/bon niveau/i);
   });
 
   it("message infaisable clair", () => {
     const msg = buildInfeasibilityMessage(["protéine trop basse"]);
-    expect(msg).toMatch(/ne suffisent pas/i);
+    expect(msg).toMatch(/n’y arrive pas|On n’y arrive pas/i);
     expect(msg).toMatch(/aliment du commerce/i);
   });
 

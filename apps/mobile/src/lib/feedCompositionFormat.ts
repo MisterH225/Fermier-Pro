@@ -14,19 +14,47 @@ export const PRODUCTION_STAGES: ProductionStage[] = [
   "lactating_sow"
 ];
 
+/** Libellés courts (listes, chips). */
 const STAGE_LABELS_FR: Record<ProductionStage, string> = {
-  piglet_weaning: "Sevrage",
-  growing: "Croissance",
+  piglet_weaning: "Porcelets sevrés",
+  growing: "Porcs qui grandissent",
   fattening: "Engraissement",
-  finishing: "Finition",
-  gestating_sow: "Truie gestante",
-  lactating_sow: "Truie allaitante"
+  finishing: "Presque prêts à vendre",
+  gestating_sow: "Truies pleines",
+  lactating_sow: "Truies qui allaitent"
 };
 
 const STATUS_LABELS_FR: Record<SavedCompositionStatus, string> = {
   draft: "Brouillon",
   vet_review: "Chez le véto",
-  validated: "Validée"
+  validated: "Validée par le véto"
+};
+
+/** Noms techniques API → langage producteur. */
+const NUTRIENT_LABELS_FR: Record<string, string> = {
+  crudeProteinPct: "Protéines",
+  metabolizableEnergyKcal: "Énergie",
+  lysinePct: "Lysine (muscle)",
+  methioninePct: "Méthionine",
+  calciumPct: "Calcium (os)",
+  phosphorusPct: "Phosphore",
+  crudeFiberPct: "Fibres",
+  lysinePerMcal: "Équilibre muscle / énergie",
+  // Variantes déjà humanisées côté tests / anciennes réponses
+  Protéine: "Protéines",
+  EM: "Énergie",
+  Lysine: "Lysine (muscle)"
+};
+
+const NUTRIENT_HINTS_FR: Record<string, string> = {
+  crudeProteinPct: "c’est la « force » de l’aliment pour bien pousser",
+  metabolizableEnergyKcal: "c’est ce qui fait grossir (et peut graisser si trop fort)",
+  lysinePct: "aide les porcs à faire du muscle plutôt que du gras",
+  methioninePct: "un autre acide aminé utile pour la croissance",
+  calciumPct: "important pour les os",
+  phosphorusPct: "travaille avec le calcium pour les os",
+  crudeFiberPct: "trop de fibres = digestion plus lourde",
+  lysinePerMcal: "pour un porc moins gras à l’engraissement / finition"
 };
 
 export function stageLabelFr(stage: ProductionStage | string): string {
@@ -35,6 +63,37 @@ export function stageLabelFr(stage: ProductionStage | string): string {
 
 export function statusLabelFr(status: SavedCompositionStatus | string): string {
   return STATUS_LABELS_FR[status as SavedCompositionStatus] ?? status;
+}
+
+export function nutrientLabelFr(nutrient: string): string {
+  const key = nutrient.trim();
+  return NUTRIENT_LABELS_FR[key] ?? key.replace(/Pct$/i, "").replace(/Kcal$/i, "");
+}
+
+export function nutrientHintFr(nutrient: string): string | null {
+  return NUTRIENT_HINTS_FR[nutrient.trim()] ?? null;
+}
+
+/** Phrase courte pour une ligne d’écart nutritionnel. */
+export function formatDeviationHuman(d: {
+  nutrient: string;
+  target: string;
+  actual: number;
+  withinBounds: boolean;
+}): string {
+  const name = nutrientLabelFr(d.nutrient);
+  const hint = nutrientHintFr(d.nutrient);
+  const value = Number.isFinite(d.actual)
+    ? d.actual.toLocaleString("fr-FR", { maximumFractionDigits: 2 })
+    : "—";
+  if (d.withinBounds) {
+    return hint
+      ? `${name} : bon niveau (${value}) — ${hint}.`
+      : `${name} : bon niveau (${value}).`;
+  }
+  return hint
+    ? `${name} : à surveiller (${value}, attendu ${d.target}) — ${hint}.`
+    : `${name} : à surveiller (${value}, attendu ${d.target}).`;
 }
 
 export function formatXof(value: number | string | null | undefined): string {
@@ -56,7 +115,7 @@ export function formatPct(value: number | null | undefined): string {
 export function rationLineName(line: FeedRationLineDto): string {
   const name = line.canonicalName?.trim();
   if (name) return name;
-  return "Intrant";
+  return "Ingrédient";
 }
 
 export function isLeanPorkStage(stage: ProductionStage | string | undefined): boolean {
@@ -92,14 +151,17 @@ export function buildInfeasibilityMessage(
   const cleaned = (reasons ?? []).map((r) => r.trim()).filter(Boolean);
   if (cleaned.length === 0) {
     return (
-      "Les intrants disponibles ne suffisent pas pour composer cette ration. " +
-      "Envisagez d’autres matières premières ou un aliment du commerce."
+      "Avec les matières premières dispo, on n’arrive pas à faire un bon mélange pour vos porcs. " +
+      "Ajoutez d’autres produits (tourteau, farine de poisson…) ou regardez un aliment du commerce."
     );
   }
-  const nutrientHint = cleaned[0] ?? "un nutriment";
+  const first = cleaned[0]
+    .replace(/protéine brute/gi, "protéines")
+    .replace(/énergie métabolisable/gi, "énergie")
+    .replace(/intrants disponibles/gi, "produits disponibles");
   return (
-    `Les intrants disponibles ne suffisent pas pour ${nutrientHint}. ` +
-    "Envisagez un autre type d’intrant ou un aliment du commerce."
+    `On n’y arrive pas avec ce que vous avez : ${first}. ` +
+    "Essayez un autre produit dans le mélange, ou un aliment du commerce."
   );
 }
 

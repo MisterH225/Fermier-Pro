@@ -1,7 +1,5 @@
-import { useRef } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -23,59 +21,57 @@ type Props = {
   onSend: () => void;
   sending: boolean;
   placeholder?: string;
+  onInputFocus?: () => void;
 };
 
-/** Chat léger local (pas la messagerie Socket.IO) — bulles inspirées MessageBubble. */
+/**
+ * Chat local (pas Socket.IO). Pas de FlatList imbriquée : le parent ScrollView
+ * gère le défilement pour éviter les gestes « coincés ».
+ */
 export function AssistChatPanel({
   messages,
   draft,
   onChangeDraft,
   onSend,
   sending,
-  placeholder = "Ex. : je veux nourrir 30 porcs à l’engraissement pendant un mois"
+  placeholder = "Ex. : j’ai 30 porcs à engraisser pendant un mois, propose-moi un mélange",
+  onInputFocus
 }: Props) {
-  const listRef = useRef<FlatList<FeedCompositionChatMessage>>(null);
-
   return (
     <View style={styles.wrap} testID="assist-chat-panel">
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={(_, i) => `m-${i}`}
-        contentContainerStyle={styles.list}
-        onContentSizeChange={() =>
-          listRef.current?.scrollToEnd({ animated: true })
-        }
-        ListEmptyComponent={
-          <Text style={styles.emptyHint}>
-            Décrivez votre besoin en phrases simples. L’assistant posera les
-            questions manquantes.
-          </Text>
-        }
-        renderItem={({ item }) => {
-          const mine = item.role === "user";
-          return (
-            <View
-              style={[styles.row, mine ? styles.rowMine : styles.rowOther]}
-              testID={mine ? "chat-bubble-user" : "chat-bubble-assistant"}
-            >
+      {messages.length === 0 ? (
+        <Text style={styles.emptyHint}>
+          Expliquez simplement ce que vous voulez faire (combien de porcs, quel
+          âge / poids, pour combien de temps). On vous guide étape par étape.
+        </Text>
+      ) : (
+        <View style={styles.list}>
+          {messages.map((item, i) => {
+            const mine = item.role === "user";
+            return (
               <View
-                style={[
-                  styles.bubble,
-                  mine ? styles.bubbleMine : styles.bubbleOther
-                ]}
+                key={`m-${i}`}
+                style={[styles.row, mine ? styles.rowMine : styles.rowOther]}
+                testID={mine ? "chat-bubble-user" : "chat-bubble-assistant"}
               >
-                {!mine ? (
-                  <Text style={styles.sender}>Assistant</Text>
-                ) : null}
-                <Text style={[styles.body, mine && styles.bodyMine]}>
-                  {item.content}
-                </Text>
+                <View
+                  style={[
+                    styles.bubble,
+                    mine ? styles.bubbleMine : styles.bubbleOther
+                  ]}
+                >
+                  {!mine ? (
+                    <Text style={styles.sender}>Assistant</Text>
+                  ) : null}
+                  <Text style={[styles.body, mine && styles.bodyMine]}>
+                    {item.content}
+                  </Text>
+                </View>
               </View>
-            </View>
-          );
-        }}
-      />
+            );
+          })}
+        </View>
+      )}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
@@ -85,6 +81,7 @@ export function AssistChatPanel({
           placeholderTextColor={mobileColors.textSecondary}
           multiline
           editable={!sending}
+          onFocus={onInputFocus}
           testID="assist-chat-input"
         />
         <Pressable
@@ -105,19 +102,18 @@ export function AssistChatPanel({
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, minHeight: 220 },
+  wrap: { gap: mobileSpacing.sm },
   list: {
-    paddingVertical: mobileSpacing.sm,
     gap: mobileSpacing.sm,
-    flexGrow: 1
+    paddingVertical: mobileSpacing.xs
   },
   emptyHint: {
     color: mobileColors.textSecondary,
     fontSize: mobileFontSize.sm,
     lineHeight: 20,
-    padding: mobileSpacing.md
+    paddingVertical: mobileSpacing.sm
   },
-  row: { flexDirection: "row", marginBottom: mobileSpacing.sm },
+  row: { flexDirection: "row" },
   rowMine: { justifyContent: "flex-end" },
   rowOther: { justifyContent: "flex-start" },
   bubble: {

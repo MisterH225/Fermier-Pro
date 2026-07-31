@@ -6,6 +6,7 @@ import type {
 import {
   asRationLines,
   buildInfeasibilityMessage,
+  formatDeviationHuman,
   formatKg,
   formatPct,
   formatXof,
@@ -35,7 +36,7 @@ export function FormulationResultCard({
   if (!formulation.feasible) {
     return (
       <View style={styles.card} testID="formulation-infeasible">
-        <Text style={styles.infeasibleTitle}>Ration impossible</Text>
+        <Text style={styles.infeasibleTitle}>On n’a pas pu faire ce mélange</Text>
         <Text style={styles.infeasibleBody}>
           {buildInfeasibilityMessage(formulation.infeasibilityReasons)}
         </Text>
@@ -43,7 +44,10 @@ export function FormulationResultCard({
           <View style={styles.reasons}>
             {formulation.infeasibilityReasons.slice(1).map((r) => (
               <Text key={r} style={styles.reasonLine}>
-                • {r}
+                • {r
+                  .replace(/protéine brute/gi, "protéines")
+                  .replace(/énergie métabolisable/gi, "énergie")
+                  .replace(/intrants disponibles/gi, "produits disponibles")}
               </Text>
             ))}
           </View>
@@ -57,15 +61,19 @@ export function FormulationResultCard({
 
   return (
     <View style={styles.card} testID="formulation-result">
+      <Text style={styles.lead}>
+        Voici le mélange proposé pour vos porcs — quantités et coût estimés.
+      </Text>
+
       <View style={styles.costRow}>
         <View style={styles.costBlock}>
-          <Text style={styles.costLabel}>Coût total</Text>
+          <Text style={styles.costLabel}>Coût total estimé</Text>
           <Text style={styles.costValue} testID="formulation-total-cost">
             {formatXof(formulation.totalCostXof)}
           </Text>
         </View>
         <View style={styles.costBlock}>
-          <Text style={styles.costLabel}>Coût / kg</Text>
+          <Text style={styles.costLabel}>Soit par kilo</Text>
           <Text style={styles.costValue} testID="formulation-cost-per-kg">
             {formatXof(formulation.costPerKg)}
           </Text>
@@ -73,13 +81,13 @@ export function FormulationResultCard({
       </View>
 
       <Text style={styles.meta}>
-        {formatKg(formulation.totalFeedKg)} au total ·{" "}
-        {formatKg(formulation.dailyIntakeKg)} / jour / tête
+        {formatKg(formulation.totalFeedKg)} de mélange au total · environ{" "}
+        {formatKg(formulation.dailyIntakeKg)} par jour et par animal
       </Text>
 
       {isTheoretical ? (
         <Text style={styles.theoretical}>
-          Prix de catalogue (indicatif) — ce n’est pas un devis moulin.
+          Prix indicatifs du catalogue — ce n’est pas encore un devis de moulin.
         </Text>
       ) : null}
 
@@ -90,15 +98,15 @@ export function FormulationResultCard({
         >
           <Text style={styles.leanText}>
             {leanOk
-              ? "Objectif « porc sans graisse » respecté"
-              : "Objectif « porc sans graisse » à surveiller"}
+              ? "Bon pour un porc moins gras (engraissement / finition)"
+              : "À surveiller : risque de porcs plus gras"}
           </Text>
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Intrants</Text>
+      <Text style={styles.sectionTitle}>Ce qu’il faut mélanger</Text>
       <View style={styles.tableHead}>
-        <Text style={[styles.th, styles.colName]}>Nom</Text>
+        <Text style={[styles.th, styles.colName]}>Produit</Text>
         <Text style={[styles.th, styles.colQty]}>Quantité</Text>
         <Text style={[styles.th, styles.colPct]}>Part</Text>
       </View>
@@ -122,22 +130,25 @@ export function FormulationResultCard({
 
       {formulation.deviations?.length ? (
         <>
-          <Text style={styles.sectionTitle}>Nutrition vs cible</Text>
+          <Text style={styles.sectionTitle}>Est-ce que ça convient ?</Text>
+          <Text style={styles.sectionSub}>
+            On compare le mélange aux besoins de vos porcs à cette période.
+          </Text>
           {formulation.deviations.map((d) => (
-            <View key={d.nutrient} style={styles.devRow}>
-              <Text style={styles.devName}>{d.nutrient}</Text>
-              <Text style={styles.devTarget}>cible {d.target}</Text>
+            <View
+              key={`${d.nutrient}-${d.target}`}
+              style={[
+                styles.devCard,
+                d.withinBounds ? styles.devCardOk : styles.devCardBad
+              ]}
+            >
               <Text
                 style={[
-                  styles.devActual,
+                  styles.devText,
                   d.withinBounds ? styles.devOk : styles.devBad
                 ]}
               >
-                {Number.isFinite(d.actual)
-                  ? d.actual.toLocaleString("fr-FR", {
-                      maximumFractionDigits: 2
-                    })
-                  : "—"}
+                {formatDeviationHuman(d)}
               </Text>
             </View>
           ))}
@@ -166,6 +177,12 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.lg,
     gap: mobileSpacing.sm
   },
+  lead: {
+    fontSize: mobileFontSize.md,
+    color: mobileColors.textPrimary,
+    fontWeight: "600",
+    lineHeight: 22
+  },
   costRow: {
     flexDirection: "row",
     gap: mobileSpacing.md
@@ -189,12 +206,14 @@ const styles = StyleSheet.create({
   },
   meta: {
     color: mobileColors.textSecondary,
-    fontSize: mobileFontSize.sm
+    fontSize: mobileFontSize.sm,
+    lineHeight: 20
   },
   theoretical: {
     color: mobileStatusSurfaces.infoText,
     fontSize: mobileFontSize.sm,
-    fontWeight: "600"
+    fontWeight: "600",
+    lineHeight: 20
   },
   leanBadge: {
     borderRadius: mobileRadius.md,
@@ -218,6 +237,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: mobileColors.textPrimary
   },
+  sectionSub: {
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textSecondary,
+    lineHeight: 20,
+    marginTop: -4
+  },
   tableHead: {
     flexDirection: "row",
     borderBottomWidth: 1,
@@ -233,8 +258,7 @@ const styles = StyleSheet.create({
   th: {
     fontSize: mobileFontSize.xs,
     fontWeight: "700",
-    color: mobileColors.textSecondary,
-    textTransform: "uppercase"
+    color: mobileColors.textSecondary
   },
   td: {
     fontSize: mobileFontSize.sm,
@@ -244,31 +268,24 @@ const styles = StyleSheet.create({
   colName: { flex: 1.4 },
   colQty: { flex: 1, textAlign: "right" },
   colPct: { flex: 0.7, textAlign: "right" },
-  devRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 4
+  devCard: {
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm
   },
-  devName: {
-    flex: 1.2,
+  devCardOk: {
+    backgroundColor: mobileStatusSurfaces.successBg
+  },
+  devCardBad: {
+    backgroundColor: mobileStatusSurfaces.warningBg
+  },
+  devText: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textPrimary,
+    lineHeight: 20,
     fontWeight: "600"
   },
-  devTarget: {
-    flex: 1,
-    fontSize: mobileFontSize.xs,
-    color: mobileColors.textSecondary
-  },
-  devActual: {
-    flex: 0.7,
-    textAlign: "right",
-    fontSize: mobileFontSize.sm,
-    fontWeight: "700"
-  },
-  devOk: { color: mobileColors.success },
-  devBad: { color: mobileColors.error },
+  devOk: { color: mobileStatusSurfaces.successText },
+  devBad: { color: mobileStatusSurfaces.warningText },
   warnBox: {
     backgroundColor: mobileColors.surfaceMuted,
     borderRadius: mobileRadius.sm,
@@ -277,7 +294,8 @@ const styles = StyleSheet.create({
   },
   warnText: {
     fontSize: mobileFontSize.xs,
-    color: mobileColors.textSecondary
+    color: mobileColors.textSecondary,
+    lineHeight: 18
   },
   infeasibleTitle: {
     fontSize: mobileFontSize.lg,
@@ -293,6 +311,7 @@ const styles = StyleSheet.create({
   reasons: { gap: 4, marginTop: 4 },
   reasonLine: {
     fontSize: mobileFontSize.sm,
-    color: mobileColors.textSecondary
+    color: mobileColors.textSecondary,
+    lineHeight: 20
   }
 });
