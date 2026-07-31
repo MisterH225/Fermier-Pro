@@ -9,6 +9,9 @@
  * 1) plafond d'énergie métabolisable (maxMetabolizableEnergyKcal) ;
  * 2) ratio lysine/énergie minimal (minLysinePerMcal, g lysine / Mcal EM)
  *    — favorise les acides aminés plutôt que l'excès calorique (dépôt gras).
+ *
+ * Taux fixes (fixedInclusionsByName) — CMV / sel prescrits par stade.
+ * Résolus en feedIngredientId au seed. Indicatif — à valider nutritionniste.
  */
 
 export type ProductionStageSeed =
@@ -18,6 +21,11 @@ export type ProductionStageSeed =
   | "finishing"
   | "gestating_sow"
   | "lactating_sow";
+
+export type FixedInclusionSeedByName = {
+  canonicalName: string;
+  inclusionPct: number;
+};
 
 export type FeedRequirementSeed = {
   stage: ProductionStageSeed;
@@ -34,8 +42,14 @@ export type FeedRequirementSeed = {
   /** g lysine / Mcal EM — levier anti-gras si renseigné. */
   minLysinePerMcal?: number;
   targetDailyIntakeKg?: number;
+  /** Taux fixes par nom canonique (résolus en id au seed). */
+  fixedInclusionsByName: FixedInclusionSeedByName[];
   notes: string;
 };
+
+/** Taux de référence CMV + sel (indicatif). */
+const CMV = "Complément minéral vitaminé (CMV)";
+const SALT = "Sel";
 
 export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
   {
@@ -51,8 +65,12 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     minPhosphorusPct: 0.55,
     maxFiberPct: 4.5,
     targetDailyIntakeKg: 0.5,
+    fixedInclusionsByName: [
+      { canonicalName: CMV, inclusionPct: 1.0 },
+      { canonicalName: SALT, inclusionPct: 0.3 }
+    ],
     notes:
-      "INRAE/NRC indicatif — post-sevrage (~7–15 kg). À valider par un nutritionniste avant mise en service."
+      "INRAE/NRC indicatif — post-sevrage (~7–15 kg). Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     stage: "growing",
@@ -67,15 +85,18 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     minPhosphorusPct: 0.5,
     maxFiberPct: 5.5,
     targetDailyIntakeKg: 1.5,
+    fixedInclusionsByName: [
+      { canonicalName: CMV, inclusionPct: 0.5 },
+      { canonicalName: SALT, inclusionPct: 0.3 }
+    ],
     notes:
-      "INRAE/NRC indicatif — croissance (~20–50 kg). À valider par un nutritionniste avant mise en service."
+      "INRAE/NRC indicatif — croissance (~20–50 kg). Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     stage: "fattening",
     minCrudeProteinPct: 14,
     maxCrudeProteinPct: 17,
     minMetabolizableEnergyKcal: 3000,
-    // Levier anti-gras n°1 : plafond EM (évite ration trop calorique).
     maxMetabolizableEnergyKcal: 3200,
     minLysinePct: 0.78,
     minMethioninePct: 0.24,
@@ -83,18 +104,20 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     maxCalciumPct: 0.9,
     minPhosphorusPct: 0.45,
     maxFiberPct: 6,
-    // Levier anti-gras n°2 : lysine/énergie — densifie les AA vs calories.
     minLysinePerMcal: 2.6,
     targetDailyIntakeKg: 2.4,
+    fixedInclusionsByName: [
+      { canonicalName: CMV, inclusionPct: 0.5 },
+      { canonicalName: SALT, inclusionPct: 0.3 }
+    ],
     notes:
-      "INRAE/NRC indicatif — engraissement (~50–80 kg). Anti-gras : max EM 3200 kcal/kg + minLysinePerMcal 2.6 g/Mcal. À valider par un nutritionniste avant mise en service."
+      "INRAE/NRC indicatif — engraissement (~50–80 kg). Anti-gras : max EM 3200 kcal/kg + minLysinePerMcal 2.6 g/Mcal. Taux fixes CMV 0,5 % / sel 0,3 % (indicatif). À valider par un nutritionniste avant mise en service."
   },
   {
     stage: "finishing",
     minCrudeProteinPct: 13,
     maxCrudeProteinPct: 16,
     minMetabolizableEnergyKcal: 2900,
-    // Levier anti-gras n°1 : plafond EM plus strict en finition.
     maxMetabolizableEnergyKcal: 3100,
     minLysinePct: 0.68,
     minMethioninePct: 0.22,
@@ -102,11 +125,14 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     maxCalciumPct: 0.85,
     minPhosphorusPct: 0.4,
     maxFiberPct: 6.5,
-    // Levier anti-gras n°2 : ratio lysine/énergie renforcé.
     minLysinePerMcal: 2.4,
     targetDailyIntakeKg: 2.9,
+    fixedInclusionsByName: [
+      { canonicalName: CMV, inclusionPct: 0.5 },
+      { canonicalName: SALT, inclusionPct: 0.3 }
+    ],
     notes:
-      "INRAE/NRC indicatif — finition (~80–110 kg). Anti-gras : max EM 3100 kcal/kg + minLysinePerMcal 2.4 g/Mcal. À valider par un nutritionniste avant mise en service."
+      "INRAE/NRC indicatif — finition (~80–110 kg). Anti-gras : max EM 3100 kcal/kg + minLysinePerMcal 2.4 g/Mcal. Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     stage: "gestating_sow",
@@ -121,14 +147,19 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     minPhosphorusPct: 0.55,
     maxFiberPct: 8,
     targetDailyIntakeKg: 2.5,
+    fixedInclusionsByName: [
+      { canonicalName: CMV, inclusionPct: 0.5 },
+      { canonicalName: SALT, inclusionPct: 0.4 }
+    ],
     notes:
-      "INRAE/NRC indicatif — truie gestante. À valider par un nutritionniste avant mise en service."
+      "INRAE/NRC indicatif — truie gestante. Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     stage: "lactating_sow",
     minCrudeProteinPct: 16,
     maxCrudeProteinPct: 19,
-    minMetabolizableEnergyKcal: 3250,
+    // 3200 (pas 3250) : laisse de la marge après dilution CMV/sel (~1,25 % à 0 kcal).
+    minMetabolizableEnergyKcal: 3200,
     maxMetabolizableEnergyKcal: 3450,
     minLysinePct: 0.9,
     minMethioninePct: 0.28,
@@ -137,7 +168,11 @@ export const FEED_REQUIREMENTS_SEED: FeedRequirementSeed[] = [
     minPhosphorusPct: 0.6,
     maxFiberPct: 6,
     targetDailyIntakeKg: 6.0,
+    fixedInclusionsByName: [
+      { canonicalName: CMV, inclusionPct: 0.75 },
+      { canonicalName: SALT, inclusionPct: 0.5 }
+    ],
     notes:
-      "INRAE/NRC indicatif — truie allaitante. À valider par un nutritionniste avant mise en service."
+      "INRAE/NRC indicatif — truie allaitante. Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   }
 ];

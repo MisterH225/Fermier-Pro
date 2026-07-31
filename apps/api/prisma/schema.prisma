@@ -3534,6 +3534,8 @@ model FeedIngredient {
   fatPct                   Decimal                @db.Decimal(8, 4)
   dryMatterPct             Decimal                @db.Decimal(8, 4)
   isActive                 Boolean                @default(true)
+  /// Additif à taux d'incorporation fixe (CMV, sel…) — hors optimisation LP.
+  isPremix                 Boolean                @default(false)
   notes                    String?
   /// Null = valeurs seed / non relues ; renseigné quand un superadmin valide.
   reviewedAt               DateTime?
@@ -3546,6 +3548,7 @@ model FeedIngredient {
 
   @@index([category, isActive])
   @@index([reviewedAt])
+  @@index([isPremix, isActive])
 }
 
 /// Conditionnement d'une offre d'intrant moulin (facteur unitToKg dérivable).
@@ -3592,6 +3595,10 @@ model FeedRequirementProfile {
   minLysinePerMcal            Decimal?        @db.Decimal(8, 4)
   /// Ingéré journalier cible (kg/tête) ; sinon estimation par poids.
   targetDailyIntakeKg         Decimal?        @db.Decimal(8, 3)
+  /// Taux d'incorporation fixes par stade : [{ feedIngredientId, inclusionPct }].
+  /// Posés avant l'optimisation LP ; leurs apports (Ca/P du CMV…) comptent
+  /// dans le bilan nutritionnel. Indicatif seed — à valider nutritionniste.
+  fixedInclusions             Json            @default("[]")
   notes                       String?
   isActive                    Boolean         @default(true)
   createdBy                   String?

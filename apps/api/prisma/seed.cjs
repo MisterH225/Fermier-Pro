@@ -81,43 +81,81 @@ async function seedFeedIngredients() {
         crudeFiberPct: row.crudeFiberPct,
         fatPct: row.fatPct,
         dryMatterPct: row.dryMatterPct,
+        isPremix: Boolean(row.isPremix),
         notes: row.notes ?? null,
         isActive: true
       },
-      update: {}
+      update: row.isPremix ? { isPremix: true } : {}
     });
   }
   console.log(
-    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, sans écraser l'existant)`
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix seed)`
   );
+}
+
+async function resolveFixedInclusions(byName) {
+  const out = [];
+  for (const item of byName || []) {
+    const ing = await prisma.feedIngredient.findUnique({
+      where: { canonicalName: item.canonicalName }
+    });
+    if (!ing) {
+      console.warn(
+        `[seed] Taux fixe ignoré — intrant introuvable : ${item.canonicalName}`
+      );
+      continue;
+    }
+    out.push({
+      feedIngredientId: ing.id,
+      inclusionPct: item.inclusionPct
+    });
+  }
+  return out;
 }
 
 async function seedFeedRequirements() {
   for (const row of FEED_REQUIREMENTS_SEED) {
-    await prisma.feedRequirementProfile.upsert({
-      where: { stage: row.stage },
-      create: {
-        stage: row.stage,
-        minCrudeProteinPct: row.minCrudeProteinPct,
-        maxCrudeProteinPct: row.maxCrudeProteinPct ?? null,
-        minMetabolizableEnergyKcal: row.minMetabolizableEnergyKcal,
-        maxMetabolizableEnergyKcal: row.maxMetabolizableEnergyKcal ?? null,
-        minLysinePct: row.minLysinePct,
-        minMethioninePct: row.minMethioninePct,
-        minCalciumPct: row.minCalciumPct,
-        maxCalciumPct: row.maxCalciumPct ?? null,
-        minPhosphorusPct: row.minPhosphorusPct,
-        maxFiberPct: row.maxFiberPct ?? null,
-        minLysinePerMcal: row.minLysinePerMcal ?? null,
-        targetDailyIntakeKg: row.targetDailyIntakeKg ?? null,
-        notes: row.notes,
-        isActive: true
-      },
-      update: {}
+    const fixedInclusions = await resolveFixedInclusions(
+      row.fixedInclusionsByName
+    );
+    const existing = await prisma.feedRequirementProfile.findUnique({
+      where: { stage: row.stage }
     });
+    if (!existing) {
+      await prisma.feedRequirementProfile.create({
+        data: {
+          stage: row.stage,
+          minCrudeProteinPct: row.minCrudeProteinPct,
+          maxCrudeProteinPct: row.maxCrudeProteinPct ?? null,
+          minMetabolizableEnergyKcal: row.minMetabolizableEnergyKcal,
+          maxMetabolizableEnergyKcal: row.maxMetabolizableEnergyKcal ?? null,
+          minLysinePct: row.minLysinePct,
+          minMethioninePct: row.minMethioninePct,
+          minCalciumPct: row.minCalciumPct,
+          maxCalciumPct: row.maxCalciumPct ?? null,
+          minPhosphorusPct: row.minPhosphorusPct,
+          maxFiberPct: row.maxFiberPct ?? null,
+          minLysinePerMcal: row.minLysinePerMcal ?? null,
+          targetDailyIntakeKg: row.targetDailyIntakeKg ?? null,
+          fixedInclusions,
+          notes: row.notes,
+          isActive: true
+        }
+      });
+    } else {
+      const current = existing.fixedInclusions;
+      const empty =
+        current == null || (Array.isArray(current) && current.length === 0);
+      if (empty && fixedInclusions.length > 0) {
+        await prisma.feedRequirementProfile.update({
+          where: { id: existing.id },
+          data: { fixedInclusions }
+        });
+      }
+    }
   }
   console.log(
-    `[seed] FeedRequirementProfile : ${FEED_REQUIREMENTS_SEED.length} stades (upsert stage, sans écraser l'existant)`
+    `[seed] FeedRequirementProfile : ${FEED_REQUIREMENTS_SEED.length} stades (taux fixes CMV/sel si vides)`
   );
 }
 

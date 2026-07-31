@@ -13,6 +13,12 @@ import type {
   CreateFeedRequirementProfileDto,
   UpdateFeedRequirementProfileDto
 } from "./dto/feed-requirement-profile.dto";
+import {
+  parseFixedInclusions,
+  sumFixedInclusionPct,
+  FIXED_INCLUSIONS_WARN_THRESHOLD_PCT,
+  type FixedInclusion
+} from "./engine/fixed-inclusions";
 import type { RequirementProfileSnapshot } from "./engine/feed-formulation.types";
 
 export type FeedRequirementProfileDto = {
@@ -30,6 +36,7 @@ export type FeedRequirementProfileDto = {
   maxFiberPct: number | null;
   minLysinePerMcal: number | null;
   targetDailyIntakeKg: number | null;
+  fixedInclusions: FixedInclusion[];
   notes: string | null;
   isActive: boolean;
   createdBy: string | null;
@@ -88,6 +95,9 @@ export class FeedRequirementProfilesService {
     actorUserId: string
   ): Promise<FeedRequirementProfileDto> {
     this.assertBounds(dto);
+    const fixedInclusions = this.normalizeFixedInclusions(
+      dto.fixedInclusions ?? []
+    );
     try {
       const created = await this.prisma.feedRequirementProfile.create({
         data: {
@@ -104,6 +114,7 @@ export class FeedRequirementProfilesService {
           maxFiberPct: dto.maxFiberPct ?? null,
           minLysinePerMcal: dto.minLysinePerMcal ?? null,
           targetDailyIntakeKg: dto.targetDailyIntakeKg ?? null,
+          fixedInclusions,
           notes: dto.notes?.trim() || null,
           isActive: dto.isActive ?? true,
           createdBy: actorUserId,
@@ -170,6 +181,10 @@ export class FeedRequirementProfilesService {
             : Number(existing.maxCalciumPct)
     };
     this.assertBounds(merged);
+    const fixedInclusions =
+      dto.fixedInclusions !== undefined
+        ? this.normalizeFixedInclusions(dto.fixedInclusions)
+        : undefined;
 
     const updated = await this.prisma.feedRequirementProfile.update({
       where: { id },
@@ -208,6 +223,7 @@ export class FeedRequirementProfilesService {
         ...(dto.targetDailyIntakeKg !== undefined
           ? { targetDailyIntakeKg: dto.targetDailyIntakeKg }
           : {}),
+        ...(fixedInclusions !== undefined ? { fixedInclusions } : {}),
         ...(dto.notes !== undefined
           ? { notes: dto.notes?.trim() || null }
           : {}),
@@ -264,8 +280,26 @@ export class FeedRequirementProfilesService {
       targetDailyIntakeKg:
         row.targetDailyIntakeKg == null
           ? null
-          : Number(row.targetDailyIntakeKg)
+          : Number(row.targetDailyIntakeKg),
+      fixedInclusions: parseFixedInclusions(row.fixedInclusions)
     };
+  }
+
+  private normalizeFixedInclusions(
+    raw: { feedIngredientId: string; inclusionPct: number }[]
+  ): FixedInclusion[] {
+    const parsed = parseFixedInclusions(raw);
+    const sum = sumFixedInclusionPct(parsed);
+    if (sum >= 100) {
+      throw new BadRequestException(
+        `Somme des taux fixes (${sum} %) doit être < 100 %`
+      );
+    }
+    if (sum > FIXED_INCLUSIONS_WARN_THRESHOLD_PCT) {
+      // Pas de blocage — l'avertissement runtime du moteur suffit ;
+      // on journalise via BadRequest uniquement si ≥ 100.
+    }
+    return parsed;
   }
 
   private assertBounds(p: {
@@ -329,6 +363,7 @@ export class FeedRequirementProfilesService {
         row.targetDailyIntakeKg == null
           ? null
           : Number(row.targetDailyIntakeKg),
+      fixedInclusions: parseFixedInclusions(row.fixedInclusions),
       notes: row.notes,
       isActive: row.isActive,
       createdBy: row.createdBy,

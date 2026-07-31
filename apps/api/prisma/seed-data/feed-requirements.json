@@ -8,11 +8,21 @@
     "minLysinePct": 1.2,
     "minMethioninePct": 0.35,
     "minCalciumPct": 0.7,
-    "maxCalciumPct": 1,
+    "maxCalciumPct": 1.0,
     "minPhosphorusPct": 0.55,
     "maxFiberPct": 4.5,
     "targetDailyIntakeKg": 0.5,
-    "notes": "INRAE/NRC indicatif — post-sevrage (~7–15 kg). À valider par un nutritionniste avant mise en service."
+    "fixedInclusionsByName": [
+      {
+        "canonicalName": "Complément minéral vitaminé (CMV)",
+        "inclusionPct": 1.0
+      },
+      {
+        "canonicalName": "Sel",
+        "inclusionPct": 0.3
+      }
+    ],
+    "notes": "INRAE/NRC indicatif — post-sevrage (~7–15 kg). Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     "stage": "growing",
@@ -27,7 +37,17 @@
     "minPhosphorusPct": 0.5,
     "maxFiberPct": 5.5,
     "targetDailyIntakeKg": 1.5,
-    "notes": "INRAE/NRC indicatif — croissance (~20–50 kg). À valider par un nutritionniste avant mise en service."
+    "fixedInclusionsByName": [
+      {
+        "canonicalName": "Complément minéral vitaminé (CMV)",
+        "inclusionPct": 0.5
+      },
+      {
+        "canonicalName": "Sel",
+        "inclusionPct": 0.3
+      }
+    ],
+    "notes": "INRAE/NRC indicatif — croissance (~20–50 kg). Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     "stage": "fattening",
@@ -41,9 +61,19 @@
     "maxCalciumPct": 0.9,
     "minPhosphorusPct": 0.45,
     "maxFiberPct": 6,
-    "minLysinePerMcal": 2.6,
     "targetDailyIntakeKg": 2.4,
-    "notes": "INRAE/NRC indicatif — engraissement (~50–80 kg). Anti-gras : max EM 3200 kcal/kg + minLysinePerMcal 2.6 g/Mcal. À valider par un nutritionniste avant mise en service."
+    "fixedInclusionsByName": [
+      {
+        "canonicalName": "Complément minéral vitaminé (CMV)",
+        "inclusionPct": 0.5
+      },
+      {
+        "canonicalName": "Sel",
+        "inclusionPct": 0.3
+      }
+    ],
+    "notes": "INRAE/NRC indicatif — engraissement (~50–80 kg). Anti-gras : max EM 3200 kcal/kg + minLysinePerMcal 2.6 g/Mcal. Taux fixes CMV 0,5 % / sel 0,3 % (indicatif). À valider par un nutritionniste avant mise en service.",
+    "minLysinePerMcal": 2.6
   },
   {
     "stage": "finishing",
@@ -57,9 +87,19 @@
     "maxCalciumPct": 0.85,
     "minPhosphorusPct": 0.4,
     "maxFiberPct": 6.5,
-    "minLysinePerMcal": 2.4,
     "targetDailyIntakeKg": 2.9,
-    "notes": "INRAE/NRC indicatif — finition (~80–110 kg). Anti-gras : max EM 3100 kcal/kg + minLysinePerMcal 2.4 g/Mcal. À valider par un nutritionniste avant mise en service."
+    "fixedInclusionsByName": [
+      {
+        "canonicalName": "Complément minéral vitaminé (CMV)",
+        "inclusionPct": 0.5
+      },
+      {
+        "canonicalName": "Sel",
+        "inclusionPct": 0.3
+      }
+    ],
+    "notes": "INRAE/NRC indicatif — finition (~80–110 kg). Anti-gras : max EM 3100 kcal/kg + minLysinePerMcal 2.4 g/Mcal. Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service.",
+    "minLysinePerMcal": 2.4
   },
   {
     "stage": "gestating_sow",
@@ -74,13 +114,23 @@
     "minPhosphorusPct": 0.55,
     "maxFiberPct": 8,
     "targetDailyIntakeKg": 2.5,
-    "notes": "INRAE/NRC indicatif — truie gestante. À valider par un nutritionniste avant mise en service."
+    "fixedInclusionsByName": [
+      {
+        "canonicalName": "Complément minéral vitaminé (CMV)",
+        "inclusionPct": 0.5
+      },
+      {
+        "canonicalName": "Sel",
+        "inclusionPct": 0.4
+      }
+    ],
+    "notes": "INRAE/NRC indicatif — truie gestante. Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   },
   {
     "stage": "lactating_sow",
     "minCrudeProteinPct": 16,
     "maxCrudeProteinPct": 19,
-    "minMetabolizableEnergyKcal": 3250,
+    "minMetabolizableEnergyKcal": 3200,
     "maxMetabolizableEnergyKcal": 3450,
     "minLysinePct": 0.9,
     "minMethioninePct": 0.28,
@@ -88,7 +138,17 @@
     "maxCalciumPct": 1.15,
     "minPhosphorusPct": 0.6,
     "maxFiberPct": 6,
-    "targetDailyIntakeKg": 6,
-    "notes": "INRAE/NRC indicatif — truie allaitante. À valider par un nutritionniste avant mise en service."
+    "targetDailyIntakeKg": 6.0,
+    "fixedInclusionsByName": [
+      {
+        "canonicalName": "Complément minéral vitaminé (CMV)",
+        "inclusionPct": 0.75
+      },
+      {
+        "canonicalName": "Sel",
+        "inclusionPct": 0.5
+      }
+    ],
+    "notes": "INRAE/NRC indicatif — truie allaitante. Taux fixes CMV/sel indicatifs. À valider par un nutritionniste avant mise en service."
   }
 ]
