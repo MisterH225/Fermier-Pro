@@ -189,6 +189,7 @@ export class SavedCompositionsService {
       {
         type: "feed_composition_vet_review",
         farmId: row.farmId,
+        farmName: farm?.name ?? null,
         compositionId: row.id,
         roomId: room.id,
         consultationId: consultation.id,
@@ -257,6 +258,11 @@ export class SavedCompositionsService {
       select: { fullName: true }
     });
 
+    const farm = await this.prisma.farm.findUnique({
+      where: { id: row.farmId },
+      select: { name: true }
+    });
+
     await this.notifications.notify(
       row.createdByUserId,
       approved ? "Composition validée" : "Ajustements demandés sur la ration",
@@ -269,6 +275,7 @@ export class SavedCompositionsService {
           ? "feed_composition_validated"
           : "feed_composition_vet_reviewed",
         farmId: row.farmId,
+        farmName: farm?.name ?? null,
         compositionId: row.id,
         decision: dto.decision,
         ...(roomId ? { roomId } : {})
