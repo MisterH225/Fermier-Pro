@@ -180,6 +180,8 @@ export type VetDashboardDto = {
     conflictStatus?: string | null;
     conflictLabel?: string | null;
     servicePrice?: number | null;
+    /** Présent si dossier de revue de composition → ouvrir FeedCompositionDetail. */
+    compositionId?: string | null;
   }>;
   assignedFarms: Array<{
     id: string;

@@ -9,6 +9,7 @@ import type { VetAvailabilityDto } from "./dto/vet-availability.dto";
 import type { ProducerScheduleVetVisitDto } from "./dto/producer-schedule-vet-visit.dto";
 import type { User } from "@prisma/client";
 import {
+  ChatRoomKind,
   FarmHealthRecordKind,
   MembershipRole,
   Prisma,
@@ -1293,6 +1294,34 @@ export class VetsService {
       })
     );
 
+    const consultationIds = openConsultations.map((c) => c.id);
+    const compositionRooms =
+      consultationIds.length === 0
+        ? []
+        : await this.prisma.chatRoom.findMany({
+            where: {
+              kind: ChatRoomKind.feed_composition,
+              vetConsultationId: { in: consultationIds },
+              savedCompositionId: { not: null }
+            },
+            select: {
+              vetConsultationId: true,
+              savedCompositionId: true
+            }
+          });
+    const compositionIdByConsultation = new Map(
+      compositionRooms
+        .filter(
+          (r): r is typeof r & {
+            vetConsultationId: string;
+            savedCompositionId: string;
+          } =>
+            typeof r.vetConsultationId === "string" &&
+            typeof r.savedCompositionId === "string"
+        )
+        .map((r) => [r.vetConsultationId, r.savedCompositionId])
+    );
+
     const consultationVisits: VetDashboardUpcomingVisitDto[] =
       openConsultations.map((c) => ({
         id: c.id,
@@ -1304,7 +1333,8 @@ export class VetsService {
         subject: c.subject,
         location: c.farm.address,
         status: c.status,
-        kind: "consultation" as const
+        kind: "consultation" as const,
+        compositionId: compositionIdByConsultation.get(c.id) ?? null
       }));
 
     const upcomingVisits = [...appointmentVisits, ...consultationVisits].sort(

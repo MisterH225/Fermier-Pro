@@ -96,6 +96,15 @@ export function VetAgendaScreen() {
       navigation.navigate("VetAppointmentDetail", { appointmentId: v.id });
       return;
     }
+    // Revue composition : écran unique avec la ration (pas VetConsultation).
+    if (v.compositionId) {
+      navigation.navigate("FeedCompositionDetail", {
+        farmId: v.farmId,
+        farmName: v.farmName,
+        compositionId: v.compositionId
+      });
+      return;
+    }
     navigation.navigate("VetConsultationDetail", {
       farmId: v.farmId,
       farmName: v.farmName,
