@@ -99,6 +99,12 @@ export class CreateFeedIngredientDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  /** Additif à taux fixe (CMV, sel…) — hors optimisation LP. */
+  @IsOptional()
+  @Transform(({ value }) => toOptionalBoolean(value))
+  @IsBoolean()
+  isPremix?: boolean;
 }
 
 export class UpdateFeedIngredientDto {
@@ -184,6 +190,11 @@ export class UpdateFeedIngredientDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => toOptionalBoolean(value))
+  @IsBoolean()
+  isPremix?: boolean;
 
   @IsOptional()
   @IsString()

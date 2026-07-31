@@ -26,6 +26,7 @@ function row(overrides: Record<string, unknown> = {}) {
     fatPct: 3.8,
     dryMatterPct: 86,
     isActive: true,
+    isPremix: false,
     notes: null,
     reviewedAt: null,
     reviewedBy: null,

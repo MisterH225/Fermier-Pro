@@ -23,6 +23,26 @@ Appelé par J3/J4. Gardé par le flag plateforme `feed_composition` (prérequis 
 Une heuristique serait plus transparente mais plus fragile pour min/max + stocks ;
 l’interface `SolverPort` permet de changer sans toucher au moteur.
 
+## Taux d’incorporation fixes (prémélanges)
+
+Le solveur n’« voit » pas les vitamines / oligo-éléments : CMV, sel (et parfois
+acides aminés de synthèse) s’incorporent à un **taux prescrit par stade**, pas
+via l’optimisation.
+
+1. **`FeedIngredient.isPremix`** — marque les additifs à taux fixe (hors LP).
+2. **`FeedRequirementProfile.fixedInclusions`** — JSON
+   `[{ feedIngredientId, inclusionPct }]` (ex. CMV 0,5 %, sel 0,3 % en engraissement).
+3. **Solveur en deux temps** :
+   - pose les taux fixes (Σ % de la masse totale) ;
+   - optimise les intrants **variables** sur la masse restante `(100 % − Σ)` ;
+   - les apports nutritionnels des prémélanges (**Ca/P du CMV** notamment)
+     **comptent dans le bilan** — sinon le LP sur-ajoute du phosphate.
+4. Si Σ taux fixes **> 5 %** → avertissement (probable erreur de saisie admin),
+   sans bloquer. Si Σ ≥ 100 % → infaisable.
+
+CRUD superadmin : même API profils (`fixedInclusions`) + flag `isPremix` sur
+les intrants. Seed indicatif — **à valider par un nutritionniste**.
+
 ## Anti-gras (fattening / finishing)
 
 - Plafond `maxMetabolizableEnergyKcal`

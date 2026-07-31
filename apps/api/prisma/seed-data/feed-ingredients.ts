@@ -29,6 +29,8 @@ export type FeedIngredientSeed = {
   crudeFiberPct: number;
   fatPct: number;
   dryMatterPct: number;
+  /** Additif à taux fixe (CMV, sel…) — hors optimisation LP. */
+  isPremix?: boolean;
   notes?: string;
 };
 
@@ -293,7 +295,8 @@ export const FEED_INGREDIENTS_SEED: FeedIngredientSeed[] = [
     crudeFiberPct: 0,
     fatPct: 0,
     dryMatterPct: 99,
-    notes: "Chlorure de sodium alimentaire (indicatif)"
+    isPremix: true,
+    notes: "Chlorure de sodium alimentaire (indicatif) — taux fixe par stade"
   },
   {
     canonicalName: "Complément minéral vitaminé (CMV)",
@@ -308,7 +311,9 @@ export const FEED_INGREDIENTS_SEED: FeedIngredientSeed[] = [
     crudeFiberPct: 0,
     fatPct: 0,
     dryMatterPct: 95,
-    notes: "Prémix CMV — composition variable selon fabricant (indicatif)"
+    isPremix: true,
+    notes:
+      "Prémix CMV — composition variable selon fabricant (indicatif). Taux fixe par stade ; apports Ca/P comptent dans le bilan."
   },
   {
     canonicalName: "Lysine",

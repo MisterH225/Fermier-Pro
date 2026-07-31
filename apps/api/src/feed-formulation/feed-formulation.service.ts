@@ -92,10 +92,12 @@ export class FeedFormulationService {
   private async buildInput(request: FormulateRequest): Promise<FormulateInput> {
     const profile = await this.profiles.getActiveByStage(request.stage);
     const nutritionById: Record<string, IngredientNutrition> = {};
-    for (const a of request.availableIngredients) {
-      nutritionById[a.feedIngredientId] = await this.loadNutrition(
-        a.feedIngredientId
-      );
+    const ids = new Set(request.availableIngredients.map((a) => a.feedIngredientId));
+    for (const fi of profile.fixedInclusions) {
+      ids.add(fi.feedIngredientId);
+    }
+    for (const id of ids) {
+      nutritionById[id] = await this.loadNutrition(id);
     }
     return {
       stage: request.stage,
@@ -125,7 +127,8 @@ export class FeedFormulationService {
       phosphorusPct: dto.phosphorusPct,
       crudeFiberPct: dto.crudeFiberPct,
       fatPct: dto.fatPct,
-      dryMatterPct: dto.dryMatterPct
+      dryMatterPct: dto.dryMatterPct,
+      isPremix: dto.isPremix
     };
   }
 }

@@ -321,7 +321,8 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 99,
-    "notes": "Chlorure de sodium alimentaire (indicatif)"
+    "notes": "Chlorure de sodium alimentaire (indicatif)",
+    "isPremix": true
   },
   {
     "canonicalName": "Complément minéral vitaminé (CMV)",
@@ -341,7 +342,8 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 95,
-    "notes": "Prémix CMV — composition variable selon fabricant (indicatif)"
+    "notes": "Prémix CMV — composition variable selon fabricant (indicatif)",
+    "isPremix": true
   },
   {
     "canonicalName": "Lysine",
