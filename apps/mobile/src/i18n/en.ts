@@ -4589,7 +4589,7 @@ export const en = {
       createProduct: "Create product",
       skip: "Skip",
       kindQuestion: "What type of merchant are you?",
-      kindHint: "You can change this later in your shop settings.",
+      kindHint: "You can change this later in Settings (gear icon).",
       kind: {
         standard: "Standard merchant",
         mill: "Mill (feed manufacturer)"

@@ -4591,7 +4591,7 @@ export const fr = {
       createProduct: "Créer le produit",
       skip: "Passer",
       kindQuestion: "Quel type de commerçant êtes-vous ?",
-      kindHint: "Vous pourrez modifier ce choix plus tard dans les paramètres de votre boutique.",
+      kindHint: "Vous pourrez modifier ce choix plus tard dans Paramètres (icône engrenage).",
       kind: {
         standard: "Commerçant standard",
         mill: "Moulin (fabricant d'aliment)"

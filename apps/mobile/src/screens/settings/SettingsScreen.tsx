@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -38,6 +38,7 @@ import { fetchCguCurrent } from "../../lib/api/auth";
 import { getUserFacingError } from "../../lib/userFacingError";
 import { mobileColors, mobileSpacing, mobileTypography, mobileRadius } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+import { MerchantSettingsSections } from "./MerchantSettingsSections";
 import { ProducerSettingsSections } from "./ProducerSettingsSections";
 import { producerColors } from "../../theme/producerTheme";
 
@@ -49,8 +50,14 @@ export function SettingsScreen({ route, navigation }: Props) {
   const { t, i18n } = useTranslation();
   useScreenTitle(navigation, t("settings.title"));
   const scrollPad = useScrollBottomPad();
-  const { accessToken, activeProfileId, authMe, signOut, clientFeatures } =
-    useSession();
+  const {
+    accessToken,
+    activeProfileId,
+    authMe,
+    signOut,
+    clientFeatures,
+    refreshClientConfig
+  } = useSession();
   const qc = useQueryClient();
   const { savedToastVisible, savedToastMessage, showSaved } =
     useSettingsSavedToast();
@@ -61,6 +68,13 @@ export function SettingsScreen({ route, navigation }: Props) {
 
   const isProducer = profileType === "producer";
   const isTechnician = profileType === "technician";
+  const isMerchant = profileType === "merchant";
+
+  useEffect(() => {
+    if (isMerchant) {
+      void refreshClientConfig();
+    }
+  }, [isMerchant, refreshClientConfig]);
 
   const [langModal, setLangModal] = useState(false);
   const [currencyModal, setCurrencyModal] = useState(false);
@@ -254,10 +268,7 @@ export function SettingsScreen({ route, navigation }: Props) {
             <View testID="settings-buyer-sections" />
           ) : null}
 
-          {/* TODO: sections paramètres marchand (PR dédiée) */}
-          {profileType === "merchant" ? (
-            <View testID="settings-merchant-sections" />
-          ) : null}
+          {isMerchant ? <MerchantSettingsSections /> : null}
 
           <SettingsSection title={t("settings.sectionSecurity")}>
             {authMe?.user?.email ? (

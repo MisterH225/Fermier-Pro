@@ -126,6 +126,21 @@ jest.mock("@tanstack/react-query", () => ({
         refetch: jest.fn()
       };
     }
+    if (key === "merchant-me") {
+      return {
+        data: {
+          merchantKind: "standard",
+          shopCount: 1,
+          maxShops: 1,
+          activeProductCount: 0,
+          maxActiveProducts: 10,
+          shops: [{ name: "Boutique Test", activeProductCount: 0 }]
+        },
+        isPending: false,
+        error: null,
+        refetch: jest.fn()
+      };
+    }
     return { data: undefined, isPending: false, error: null, refetch: jest.fn() };
   },
   useMutation: () => ({
@@ -154,8 +169,35 @@ jest.mock("../../../context/SessionContext", () => ({
     signOut: jest.fn(),
     reloadAuth: jest.fn(),
     refreshAuthMe: jest.fn(),
-    clientFeatures: { finance: true, feedStock: true, wallet: true }
+    refreshClientConfig: jest.fn(),
+    clientFeatures: { finance: true, feedStock: true, wallet: true },
+    platformModules: [
+      {
+        moduleId: "mills",
+        moduleName: "Moulins",
+        icon: null,
+        isActive: true,
+        canDisable: true,
+        userMessageFr: null,
+        userMessageEn: null,
+        scheduledReactivation: null
+      }
+    ]
   })
+}));
+
+jest.mock("../../../lib/api", () => ({
+  fetchFarmSettings: jest.fn(),
+  patchFarmSettings: jest.fn(),
+  fetchMerchantMe: jest.fn().mockResolvedValue({
+    merchantKind: "standard",
+    shopCount: 1,
+    maxShops: 1,
+    activeProductCount: 0,
+    maxActiveProducts: 10,
+    shops: [{ name: "Boutique Test", activeProductCount: 0 }]
+  }),
+  patchMerchantProfile: jest.fn()
 }));
 
 jest.mock("../../../hooks/useScreenTitle", () => ({
@@ -172,11 +214,6 @@ jest.mock("../../../hooks/useSettingsSavedToast", () => ({
     savedToastMessage: "",
     showSaved: jest.fn()
   })
-}));
-
-jest.mock("../../../lib/api", () => ({
-  fetchFarmSettings: jest.fn(),
-  patchFarmSettings: jest.fn()
 }));
 
 jest.mock("../../../lib/api/auth", () => ({
@@ -355,6 +392,26 @@ describe("SettingsScreen — socle multi-rôles", () => {
     const buyer = renderForRole("buyer");
     expect(
       findByTestId(buyer.root as unknown as TestNode, "settings-technician-sections")
+    ).toBeNull();
+    unmount(buyer);
+  });
+
+  it("expose type commerçant / boutique uniquement pour le commerçant", () => {
+    const merchant = renderForRole("merchant");
+    expect(
+      findByTestId(merchant.root as unknown as TestNode, "settings-merchant-sections")
+    ).not.toBeNull();
+    expect(
+      findByTestId(merchant.root as unknown as TestNode, "settings-merchant-kind")
+    ).not.toBeNull();
+    const merchantJson = JSON.stringify(merchant.toJSON());
+    expect(merchantJson).toContain("merchant.profile.merchantKind");
+    expect(merchantJson).toContain("merchant.profile.sectionMerchant");
+    unmount(merchant);
+
+    const buyer = renderForRole("buyer");
+    expect(
+      findByTestId(buyer.root as unknown as TestNode, "settings-merchant-sections")
     ).toBeNull();
     unmount(buyer);
   });
