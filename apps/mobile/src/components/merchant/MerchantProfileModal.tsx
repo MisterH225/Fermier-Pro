@@ -27,8 +27,11 @@ import {
   fetchMerchantDashboard,
   fetchMerchantMe,
   patchAuthProfile,
-  renewMerchantSubscription
+  patchMerchantProfile,
+  renewMerchantSubscription,
+  type MerchantKind
 } from "../../lib/api";
+import { shouldAskMerchantKind } from "../../lib/merchantKind";
 import { resolveActiveProfileAvatarUrl } from "../../lib/profileAvatar";
 import { getSupabase } from "../../lib/supabase";
 import { uploadUserAvatarToSupabase } from "../../lib/uploadAvatarToSupabase";
@@ -37,6 +40,8 @@ import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { merchantColors, merchantRadius } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography, mobileColors, mobileFontSize } from "../../theme/mobileTheme";
 import type { RootStackParamList } from "../../types/navigation";
+
+const MERCHANT_KINDS: MerchantKind[] = ["standard", "mill"];
 
 const AVATAR = 108;
 const PENCIL = 36;
@@ -68,11 +73,19 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
   const scrollPad = useScrollBottomPad({ includeChrome: false });
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken, activeProfileId, authMe, refreshAuthMe } = useSession();
+  const {
+    accessToken,
+    activeProfileId,
+    authMe,
+    refreshAuthMe,
+    platformModules
+  } = useSession();
   const queryClient = useQueryClient();
+  const canEditMerchantKind = shouldAskMerchantKind(platformModules);
   const [pendingAvatarUri, setPendingAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [savingKind, setSavingKind] = useState(false);
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId, "profileModal"],
@@ -291,6 +304,31 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
     );
   };
 
+  const onChangeMerchantKind = async (kind: MerchantKind) => {
+    if (!accessToken || !activeProfileId || !canEditMerchantKind) return;
+    if ((me?.merchantKind ?? "standard") === kind) return;
+    setSavingKind(true);
+    try {
+      // Passage standard→mill (ou inverse) : aucune donnée effacée côté API.
+      await patchMerchantProfile(accessToken, activeProfileId, {
+        merchantKind: kind
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["merchant-me", activeProfileId]
+      });
+      await meQ.refetch();
+      await refreshAuthMe();
+      Alert.alert(t("common.successTitle"), t("merchant.profile.merchantKindSaved"));
+    } catch (e) {
+      Alert.alert(
+        "",
+        e instanceof Error ? e.message : t("merchant.profile.merchantKindError")
+      );
+    } finally {
+      setSavingKind(false);
+    }
+  };
+
   const showSave = Boolean(pendingAvatarUri);
 
   return (
@@ -394,6 +432,38 @@ export function MerchantProfileModal({ visible, onClose }: MerchantProfileModalP
                 label={t("merchant.profile.graceEnds")}
                 value={new Date(me.graceEndsAt).toLocaleDateString("fr-FR")}
               />
+            ) : null}
+            {canEditMerchantKind ? (
+              <View style={styles.kindBlock} testID="merchant-profile-kind">
+                <Text style={styles.label}>{t("merchant.profile.merchantKind")}</Text>
+                <Text style={styles.kindHint}>{t("merchant.profile.merchantKindHint")}</Text>
+                <View style={styles.kindChips}>
+                  {MERCHANT_KINDS.map((kind) => {
+                    const active = (me?.merchantKind ?? "standard") === kind;
+                    return (
+                      <Pressable
+                        key={kind}
+                        style={[styles.kindChip, active && styles.kindChipActive]}
+                        onPress={() => void onChangeMerchantKind(kind)}
+                        disabled={savingKind}
+                        testID={`merchant-profile-kind-${kind}`}
+                      >
+                        <Text
+                          style={[
+                            styles.kindChipTx,
+                            active && styles.kindChipTxActive
+                          ]}
+                        >
+                          {t(`merchant.profile.kind.${kind}`)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {savingKind ? (
+                  <ActivityIndicator size="small" color={merchantColors.primary} />
+                ) : null}
+              </View>
             ) : null}
             <InfoBlock label={t("merchant.profile.shops")} value={shopsLabel} />
             <InfoBlock label={t("merchant.profile.activeProducts")} value={productsLabel} />
@@ -591,6 +661,36 @@ const styles = StyleSheet.create({
     gap: mobileSpacing.md
   },
   infoBlock: { gap: 2 },
+  kindBlock: { gap: mobileSpacing.sm },
+  kindHint: {
+    ...mobileTypography.meta,
+    color: merchantColors.textSecondary
+  },
+  kindChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileSpacing.sm
+  },
+  kindChip: {
+    borderWidth: 1,
+    borderColor: merchantColors.border,
+    borderRadius: merchantRadius.button,
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.md,
+    backgroundColor: merchantColors.cardBg
+  },
+  kindChipActive: {
+    borderColor: merchantColors.primary,
+    backgroundColor: merchantColors.primary
+  },
+  kindChipTx: {
+    color: merchantColors.textPrimary,
+    fontWeight: "600",
+    fontSize: mobileFontSize.sm
+  },
+  kindChipTxActive: {
+    color: merchantColors.onPrimary
+  },
   label: {
     ...mobileTypography.meta,
     color: merchantColors.textSecondary

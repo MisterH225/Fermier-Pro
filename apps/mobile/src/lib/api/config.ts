@@ -15,7 +15,10 @@ export type PlatformModuleId =
   | "gestation"
   | "nutrition"
   | "wallet"
-  | "merchant";
+  | "merchant"
+  | "mills"
+  | "feed_composition"
+  | "delivery";
 
 export type PlatformModuleDto = {
   moduleId: PlatformModuleId;

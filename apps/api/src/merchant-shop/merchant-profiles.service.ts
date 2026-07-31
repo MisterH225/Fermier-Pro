@@ -5,15 +5,20 @@ import {
 } from "@nestjs/common";
 import type { User } from "@prisma/client";
 import {
+  MerchantKind,
   MerchantProductDisabledReason,
   MerchantProductStatus,
   MerchantSubscriptionInvoiceStatus,
   MerchantSubscriptionTier,
   Prisma
 } from "@prisma/client";
+import { PlatformFeatureFlagsService } from "../feature-flags/platform-feature-flags.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
-import type { PatchMerchantOnboardingDto } from "./dto/merchant-shop.dto";
+import type {
+  PatchMerchantOnboardingDto,
+  PatchMerchantProfileDto
+} from "./dto/merchant-shop.dto";
 import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-config";
 import { shouldExposePendingSubscription } from "./merchant-pending-subscription.util";
 import { applyPromoPercent } from "./merchant-subscription.constants";
@@ -22,7 +27,8 @@ import { applyPromoPercent } from "./merchant-subscription.constants";
 export class MerchantProfilesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly subscriptionLimits: SubscriptionLimitsService
+    private readonly subscriptionLimits: SubscriptionLimitsService,
+    private readonly platformFlags: PlatformFeatureFlagsService
   ) {}
 
   async ensureProfile(userId: string) {
@@ -80,6 +86,31 @@ export class MerchantProfilesService {
     limits: ReturnType<SubscriptionLimitsService["limitsFromSettings"]>
   ): number | null {
     return this.subscriptionLimits.resolveMaxProductsPerShop(tier, limits);
+  }
+
+  /**
+   * Accepte `mill` uniquement si le flag `mills` est actif pour l'utilisateur.
+   * Le passage standard→mill (et mill→standard) n'efface aucune donnée.
+   */
+  async assertMerchantKindAllowed(
+    userId: string,
+    merchantKind: MerchantKind
+  ): Promise<void> {
+    if (merchantKind !== MerchantKind.mill) {
+      return;
+    }
+    const millsActive = await this.platformFlags.isModuleActiveForUser(
+      "mills",
+      userId
+    );
+    if (!millsActive) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: "MILLS_MODULE_INACTIVE",
+        message:
+          "Le type Moulin n'est disponible que lorsque le module moulins est actif"
+      });
+    }
   }
 
   async getMe(user: User) {
@@ -144,6 +175,7 @@ export class MerchantProfilesService {
       profile.subscriptionTier !== MerchantSubscriptionTier.premium;
 
     return {
+      merchantKind: profile.merchantKind,
       subscriptionTier: profile.subscriptionTier,
       subscriptionStatus: profile.subscriptionStatus,
       subscriptionChosenAt: profile.subscriptionChosenAt?.toISOString() ?? null,
@@ -209,15 +241,38 @@ export class MerchantProfilesService {
 
   async patchOnboarding(user: User, dto: PatchMerchantOnboardingDto) {
     await this.ensureProfile(user.id);
+    if (dto.merchantKind !== undefined) {
+      await this.assertMerchantKindAllowed(user.id, dto.merchantKind);
+    }
     const data: Prisma.MerchantProfileUpdateInput = {};
     if (dto.shopSkipped !== undefined) data.shopSkipped = dto.shopSkipped;
     if (dto.productSkipped !== undefined) data.productSkipped = dto.productSkipped;
     if (dto.onboardingComplete !== undefined) {
       data.onboardingComplete = dto.onboardingComplete;
     }
+    if (dto.merchantKind !== undefined) {
+      data.merchantKind = dto.merchantKind;
+    }
     await this.prisma.merchantProfile.update({
       where: { userId: user.id },
       data
+    });
+    return this.getMe(user);
+  }
+
+  /**
+   * Paramètres profil/boutique.
+   * Passage standard→mill autorisé si flag `mills` actif — aucune donnée effacée.
+   */
+  async patchProfile(user: User, dto: PatchMerchantProfileDto) {
+    await this.ensureProfile(user.id);
+    if (dto.merchantKind === undefined) {
+      return this.getMe(user);
+    }
+    await this.assertMerchantKindAllowed(user.id, dto.merchantKind);
+    await this.prisma.merchantProfile.update({
+      where: { userId: user.id },
+      data: { merchantKind: dto.merchantKind }
     });
     return this.getMe(user);
   }

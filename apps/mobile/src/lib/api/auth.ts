@@ -109,6 +109,7 @@ export type AuthMeResponse = {
   merchantProfile?: {
     profileId: string;
     subscriptionTier: "free" | "premium" | null;
+    merchantKind?: "standard" | "mill";
     shopSkipped: boolean;
     productSkipped: boolean;
     onboardingComplete: boolean;
