@@ -694,6 +694,8 @@ export type MillFeedIngredientDto = {
   canonicalName: string;
   aliases: string[];
   category: string;
+  imageUrl?: string | null;
+  iconKey?: string | null;
 };
 
 export type MillIngredientOfferDto = {
@@ -703,6 +705,8 @@ export type MillIngredientOfferDto = {
   feedIngredientName: string | null;
   feedIngredientAliases: string[];
   feedIngredientCategory: string | null;
+  feedIngredientImageUrl?: string | null;
+  feedIngredientIconKey?: string | null;
   pricePerUnit: number;
   packaging: MillIngredientPackaging;
   unitToKg: number;

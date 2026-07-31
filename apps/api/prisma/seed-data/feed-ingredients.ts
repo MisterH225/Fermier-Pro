@@ -32,7 +32,33 @@ export type FeedIngredientSeed = {
   /** Additif à taux fixe (CMV, sel…) — hors optimisation LP. */
   isPremix?: boolean;
   notes?: string;
+  /** Pictogramme (défaut = catégorie). */
+  iconKey?: string;
+  /** Photo réelle optionnelle (URL). */
+  imageUrl?: string;
 };
+
+/** Pictogramme de catégorie — toujours un visuel même sans photo. */
+export function defaultIconKeyForCategory(
+  category: FeedIngredientCategorySeed | string
+): string {
+  switch (category) {
+    case "cereal":
+      return "cereal";
+    case "plant_protein":
+      return "plant_protein";
+    case "animal_protein":
+      return "animal_protein";
+    case "byproduct":
+      return "byproduct";
+    case "mineral":
+      return "mineral";
+    case "additive":
+      return "additive";
+    default:
+      return "byproduct";
+  }
+}
 
 export const FEED_INGREDIENTS_SEED: FeedIngredientSeed[] = [
   // —— Céréales / énergie ——

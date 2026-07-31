@@ -13,7 +13,6 @@ export type RootStackParamList = {
   MerchantShopDetail: { shopId: string };
   MerchantProducts: undefined;
   /** Offres d'intrants moulin (flag mills + merchantKind=mill). */
-  MillIngredients: undefined;
   MerchantMarket:
     | {
         searchQuery?: string;
@@ -32,7 +31,16 @@ export type RootStackParamList = {
   MerchantSubscription: undefined;
   ProducerSubscription: undefined;
   MerchantShop: undefined;
-  MerchantProductForm: { productId?: string; shopId?: string } | undefined;
+  MerchantProductForm:
+    | {
+        productId?: string;
+        shopId?: string;
+        /** Moulin : ouvrir directement le formulaire intrant. */
+        createKind?: "product" | "ingredient";
+      }
+    | undefined;
+  /** @deprecated redirige vers MerchantProducts (filtre intrants). */
+  MillIngredients: { focus?: "ingredients" } | undefined;
   /** Détail produit côté acheteur (catalogue marketplace). */
   MerchantProductDetail: { productId: string };
   /** Détail produit côté commerçant propriétaire. */

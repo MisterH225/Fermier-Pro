@@ -168,11 +168,11 @@ export function MerchantDashboardScreen() {
         {canAccessMillFeatures(platformModules, me?.merchantKind) ? (
           <Pressable
             style={[styles.millCta, merchantShadow.card]}
-            onPress={() => navigation.navigate("MillIngredients")}
+            onPress={() => navigation.navigate("MerchantProducts")}
             testID="merchant-dashboard-mill-ingredients"
           >
             <Text style={styles.millCtaTitle}>
-              {t("merchant.millIngredients.title")}
+              {t("merchant.products.title")}
             </Text>
             <Text style={styles.millCtaHint}>
               {t("merchant.millIngredients.dashboardCta")}

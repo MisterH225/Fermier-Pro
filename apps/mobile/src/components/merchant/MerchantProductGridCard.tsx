@@ -13,6 +13,7 @@ import type { MerchantProductDto } from "../../lib/api";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import { merchantColors, merchantRadius, merchantShadow } from "../../theme/merchantTheme";
 import { mobileSpacing, mobileTypography, mobileStatusSurfaces, mobileFontSize } from "../../theme/mobileTheme";
+import { FeedIngredientIcon } from "./FeedIngredientIcon";
 
 type Props = {
   product: MerchantProductDto;
@@ -49,6 +50,7 @@ export function MerchantProductGridCard({
   const photo = product.photoUrls?.find((u) => u.trim().length > 0);
   const stockLow = product.stock <= 5;
   const stockOut = product.stock <= 0;
+  const isIconMarker = Boolean(photo?.startsWith("fermier-icon:"));
 
   return (
     <View style={[styles.card, merchantShadow.card, { width }, style]}>
@@ -58,8 +60,12 @@ export function MerchantProductGridCard({
         accessibilityLabel={product.name}
       >
         <View style={styles.imageWrap}>
-          {photo ? (
+          {photo && !isIconMarker ? (
             <Image source={{ uri: photo }} style={styles.image} resizeMode="cover" />
+          ) : photo && isIconMarker ? (
+            <View style={styles.placeholder}>
+              <FeedIngredientIcon photoUrls={product.photoUrls} size={48} />
+            </View>
           ) : (
             <View style={styles.placeholder}>
               <Ionicons name="cube-outline" size={36} color={merchantColors.textMuted} />
