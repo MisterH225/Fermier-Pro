@@ -18,6 +18,11 @@ import {
   type PlatformModuleId
 } from "./platform-modules.constants";
 import type { ClientFeatureKey } from "../config-client/feature-flags.service";
+import {
+  detectIdentifierKind,
+  normalizeEmail,
+  normalizePhone
+} from "../invitations/identifier-utils";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -36,6 +41,9 @@ export type FeatureFlagTestAccountDto = {
   id: string;
   moduleId: string;
   userId: string;
+  email: string | null;
+  phone: string | null;
+  label: string;
   addedBy: string | null;
   createdAt: string;
 };
@@ -317,27 +325,25 @@ export class PlatformFeatureFlagsService {
     await this.findModuleOrThrow(moduleId);
     const rows = await this.prisma.featureFlagTestAccount.findMany({
       where: { moduleId },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { email: true, phone: true } }
+      }
     });
-    return rows.map((r) => ({
-      id: r.id,
-      moduleId: r.moduleId,
-      userId: r.userId,
-      addedBy: r.addedBy,
-      createdAt: r.createdAt.toISOString()
-    }));
+    return rows.map((r) => this.toTestAccountDto(r));
   }
 
+  /**
+   * Ajoute un compte de test via email ou téléphone (pas l'id interne).
+   */
   async addTestAccount(
     moduleId: PlatformModuleId,
-    userId: string,
+    identifier: string,
     addedBy: string
   ) {
     await this.findModuleOrThrow(moduleId);
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`Utilisateur inconnu : ${userId}`);
-    }
+    const user = await this.resolveUserByIdentifier(identifier);
+    const userId = user.id;
 
     const existing = await this.prisma.featureFlagTestAccount.findUnique({
       where: { moduleId_userId: { moduleId, userId } }
@@ -349,25 +355,28 @@ export class PlatformFeatureFlagsService {
     }
 
     const created = await this.prisma.featureFlagTestAccount.create({
-      data: { moduleId, userId, addedBy }
+      data: { moduleId, userId, addedBy },
+      include: {
+        user: { select: { email: true, phone: true } }
+      }
     });
+    const label = this.testAccountLabel(user.email, user.phone);
     await this.prisma.featureFlagHistory.create({
       data: {
         moduleId,
         action: FeatureFlagHistoryAction.test_account_added,
         performedById: addedBy,
-        reason: `Compte de test ajouté : ${userId}`,
-        affectedDataSummary: { userId }
+        reason: `Compte de test ajouté : ${label}`,
+        affectedDataSummary: {
+          userId,
+          email: user.email,
+          phone: user.phone,
+          identifier: identifier.trim()
+        }
       }
     });
 
-    return {
-      id: created.id,
-      moduleId: created.moduleId,
-      userId: created.userId,
-      addedBy: created.addedBy,
-      createdAt: created.createdAt.toISOString()
-    } satisfies FeatureFlagTestAccountDto;
+    return this.toTestAccountDto(created);
   }
 
   async removeTestAccount(
@@ -377,7 +386,8 @@ export class PlatformFeatureFlagsService {
   ) {
     await this.findModuleOrThrow(moduleId);
     const existing = await this.prisma.featureFlagTestAccount.findUnique({
-      where: { moduleId_userId: { moduleId, userId } }
+      where: { moduleId_userId: { moduleId, userId } },
+      include: { user: { select: { email: true, phone: true } } }
     });
     if (!existing) {
       throw new NotFoundException(
@@ -385,6 +395,10 @@ export class PlatformFeatureFlagsService {
       );
     }
 
+    const label = this.testAccountLabel(
+      existing.user?.email,
+      existing.user?.phone
+    );
     await this.prisma.featureFlagTestAccount.delete({
       where: { id: existing.id }
     });
@@ -393,8 +407,12 @@ export class PlatformFeatureFlagsService {
         moduleId,
         action: FeatureFlagHistoryAction.test_account_removed,
         performedById,
-        reason: `Compte de test retiré : ${userId}`,
-        affectedDataSummary: { userId }
+        reason: `Compte de test retiré : ${label}`,
+        affectedDataSummary: {
+          userId,
+          email: existing.user?.email ?? null,
+          phone: existing.user?.phone ?? null
+        }
       }
     });
 
@@ -410,6 +428,72 @@ export class PlatformFeatureFlagsService {
       select: { id: true }
     });
     return row != null;
+  }
+
+  private async resolveUserByIdentifier(raw: string) {
+    const trimmed = raw.trim();
+    const kind = detectIdentifierKind(trimmed);
+    if (!kind) {
+      throw new BadRequestException(
+        "Indiquez un email ou un numéro de téléphone"
+      );
+    }
+
+    let normalized: string | null = null;
+    if (kind === "email") {
+      normalized = normalizeEmail(trimmed);
+    } else {
+      normalized = normalizePhone(trimmed);
+    }
+    if (!normalized) {
+      throw new BadRequestException(
+        kind === "email"
+          ? "Email invalide"
+          : "Numéro de téléphone invalide"
+      );
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: kind === "email" ? { email: normalized } : { phone: normalized },
+      select: { id: true, email: true, phone: true }
+    });
+    if (!user) {
+      throw new NotFoundException(
+        kind === "email"
+          ? `Aucun compte trouvé pour l'email « ${normalized} »`
+          : `Aucun compte trouvé pour le numéro « ${normalized} »`
+      );
+    }
+    return user;
+  }
+
+  private testAccountLabel(
+    email: string | null | undefined,
+    phone: string | null | undefined
+  ): string {
+    return email || phone || "compte inconnu";
+  }
+
+  private toTestAccountDto(row: {
+    id: string;
+    moduleId: string;
+    userId: string;
+    addedBy: string | null;
+    createdAt: Date;
+    user?: { email: string | null; phone: string | null } | null;
+  }): FeatureFlagTestAccountDto {
+    const email = row.user?.email ?? null;
+    const phone = row.user?.phone ?? null;
+    return {
+      id: row.id,
+      moduleId: row.moduleId,
+      userId: row.userId,
+      email,
+      phone,
+      label: this.testAccountLabel(email, phone),
+      addedBy: row.addedBy,
+      createdAt: row.createdAt.toISOString()
+    };
   }
 
   private async loadAll(): Promise<PlatformFeatureFlag[]> {

@@ -60,7 +60,7 @@ describe("PlatformFeatureFlagsService — résolution + allow-list", () => {
   const testAccountDelete = jest.fn();
   const testAccountFindMany = jest.fn();
   const testAccountGroupBy = jest.fn();
-  const userFindUnique = jest.fn();
+  const userFindFirst = jest.fn();
   const platformFindMany = jest.fn();
   const platformFindUnique = jest.fn();
   const platformCreateMany = jest.fn();
@@ -83,7 +83,7 @@ describe("PlatformFeatureFlagsService — résolution + allow-list", () => {
       findMany: testAccountFindMany,
       groupBy: testAccountGroupBy
     },
-    user: { findUnique: userFindUnique },
+    user: { findFirst: userFindFirst },
     reactivationWaitlist: { upsert: jest.fn() }
   };
 
@@ -234,30 +234,43 @@ describe("PlatformFeatureFlagsService — résolution + allow-list", () => {
     stubRows(
       allModulesActiveExcept(["mills", "feed_composition", "delivery"])
     );
-    userFindUnique.mockResolvedValue({ id: "tester" });
+    userFindFirst.mockResolvedValue({
+      id: "tester",
+      email: "tester@example.com",
+      phone: null
+    });
     testAccountFindUnique.mockResolvedValue(null);
     testAccountCreate.mockResolvedValue({
       id: "ta1",
       moduleId: "mills",
       userId: "tester",
       addedBy: "admin",
-      createdAt: new Date("2026-07-30T00:00:00.000Z")
+      createdAt: new Date("2026-07-30T00:00:00.000Z"),
+      user: { email: "tester@example.com", phone: null }
     });
 
-    await service.addTestAccount("mills", "tester", "admin");
+    await service.addTestAccount("mills", "tester@example.com", "admin");
+    expect(userFindFirst).toHaveBeenCalledWith({
+      where: { email: "tester@example.com" },
+      select: { id: true, email: true, phone: true }
+    });
     expect(historyCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         moduleId: "mills",
         action: FeatureFlagHistoryAction.test_account_added,
         performedById: "admin",
-        affectedDataSummary: { userId: "tester" }
+        affectedDataSummary: expect.objectContaining({
+          userId: "tester",
+          email: "tester@example.com"
+        })
       })
     });
 
     testAccountFindUnique.mockResolvedValue({
       id: "ta1",
       moduleId: "mills",
-      userId: "tester"
+      userId: "tester",
+      user: { email: "tester@example.com", phone: null }
     });
     testAccountDelete.mockResolvedValue({});
     await service.removeTestAccount("mills", "tester", "admin");
@@ -266,8 +279,42 @@ describe("PlatformFeatureFlagsService — résolution + allow-list", () => {
         moduleId: "mills",
         action: FeatureFlagHistoryAction.test_account_removed,
         performedById: "admin",
-        affectedDataSummary: { userId: "tester" }
+        affectedDataSummary: expect.objectContaining({
+          userId: "tester",
+          email: "tester@example.com"
+        })
       })
     });
+  });
+
+  it("résout un compte de test par numéro de téléphone", async () => {
+    stubRows(
+      allModulesActiveExcept(["mills", "feed_composition", "delivery"])
+    );
+    userFindFirst.mockResolvedValue({
+      id: "u-phone",
+      email: null,
+      phone: "+2250708123456"
+    });
+    testAccountFindUnique.mockResolvedValue(null);
+    testAccountCreate.mockResolvedValue({
+      id: "ta2",
+      moduleId: "delivery",
+      userId: "u-phone",
+      addedBy: "admin",
+      createdAt: new Date("2026-07-30T00:00:00.000Z"),
+      user: { email: null, phone: "+2250708123456" }
+    });
+
+    const created = await service.addTestAccount(
+      "delivery",
+      "+225 07 08 12 34 56",
+      "admin"
+    );
+    expect(userFindFirst).toHaveBeenCalledWith({
+      where: { phone: "+2250708123456" },
+      select: { id: true, email: true, phone: true }
+    });
+    expect(created.label).toBe("+2250708123456");
   });
 });

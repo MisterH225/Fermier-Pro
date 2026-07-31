@@ -2203,6 +2203,9 @@ export type FeatureFlagTestAccountDto = {
   id: string;
   moduleId: string;
   userId: string;
+  email: string | null;
+  phone: string | null;
+  label: string;
   addedBy: string | null;
   createdAt: string;
 };
@@ -2252,12 +2255,12 @@ export function fetchFeatureFlagTestAccounts(token: string, moduleId: string) {
 export function addFeatureFlagTestAccount(
   token: string,
   moduleId: string,
-  userId: string
+  identifier: string
 ) {
   return apiFetch<FeatureFlagTestAccountDto>(
     `/admin/feature-flags/${moduleId}/test-accounts`,
     token,
-    { method: "POST", body: JSON.stringify({ userId }) }
+    { method: "POST", body: JSON.stringify({ identifier }) }
   );
 }
 

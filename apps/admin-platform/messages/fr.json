@@ -1105,13 +1105,13 @@
     "confirm": "Confirmer",
     "testAccounts": "Comptes de test",
     "testAccountsCount": "{count} compte(s) de test",
-    "testAccountsHint": "Ces comptes voient le module même s'il est OFF global (les prérequis restent exigés).",
-    "testAccountUserId": "ID utilisateur",
+    "testAccountsHint": "Ces comptes voient le module même s'il est OFF global (les prérequis restent exigés). Ajoutez-les par email ou numéro de téléphone.",
+    "testAccountIdentifier": "Email ou téléphone",
     "addTestAccount": "Ajouter",
     "removeTestAccount": "Retirer",
     "manageTestAccounts": "Comptes de test",
     "testAccountsEmpty": "Aucun compte de test.",
-    "testAccountAddError": "Impossible d'ajouter ce compte."
+    "testAccountAddError": "Impossible d'ajouter ce compte (vérifiez l'email ou le téléphone)."
   },
   "common": {
     "loading": "Chargement…",
