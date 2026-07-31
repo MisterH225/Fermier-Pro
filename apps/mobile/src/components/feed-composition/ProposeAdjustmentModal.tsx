@@ -186,7 +186,10 @@ export function ProposeAdjustmentModal({
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator
-            contentContainerStyle={styles.sheetContent}
+            contentContainerStyle={[
+              styles.sheetContent,
+              { paddingBottom: Math.max(insets.bottom, 16) + 32 }
+            ]}
           >
             <Text style={[styles.title, { color: ui.textPrimary }]}>
               Proposer un autre mélange
@@ -440,8 +443,7 @@ const styles = StyleSheet.create({
   },
   sheetContent: {
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.sm,
-    paddingBottom: mobileSpacing.xl
+    gap: mobileSpacing.sm
   },
   title: {
     fontSize: mobileFontSize.lg,

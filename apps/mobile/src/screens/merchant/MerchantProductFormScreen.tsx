@@ -16,6 +16,7 @@ import { MerchantMobileShell } from "../../components/layout/MerchantMobileShell
 import { MerchantProductForm } from "../../components/merchant/MerchantProductForm";
 import { MillIngredientOfferForm } from "../../components/merchant/MillIngredientOfferForm";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { fetchMerchantMe } from "../../lib/api";
 import { canAccessMillFeatures } from "../../lib/merchantKind";
 import { merchantColors } from "../../theme/merchantTheme";
@@ -40,6 +41,7 @@ export function MerchantProductFormScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "MerchantProductForm">>();
   const { accessToken, activeProfileId, platformModules } = useSession();
+  const scrollPad = useScrollBottomPad();
 
   const meQ = useQuery({
     queryKey: ["merchant-me", activeProfileId],
@@ -105,7 +107,7 @@ export function MerchantProductFormScreen() {
       }
     >
       <ScrollView
-        contentContainerStyle={styles.pad}
+        contentContainerStyle={[styles.pad, { paddingBottom: scrollPad }]}
         keyboardShouldPersistTaps="handled"
         testID="merchant-product-form-ingredient"
       >
@@ -170,7 +172,6 @@ const styles = StyleSheet.create({
   pad: {
     padding: mobileSpacing.md,
     gap: mobileSpacing.md,
-    paddingBottom: mobileSpacing.xxl
   },
   hint: {
     fontSize: mobileFontSize.sm,

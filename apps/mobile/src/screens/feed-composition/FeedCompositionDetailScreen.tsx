@@ -17,7 +17,7 @@ import { CompositionDisclaimer } from "../../components/feed-composition/Composi
 import { ProposeAdjustmentModal } from "../../components/feed-composition/ProposeAdjustmentModal";
 import { FormulationResultCard } from "../../components/feed-composition/FormulationResultCard";
 import { useSession } from "../../context/SessionContext";
-import { useBottomInset } from "../../hooks/useBottomInset";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   getFeedComposition,
   listFarmCompositionVeterinarians,
@@ -63,8 +63,8 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myId = authMe?.user.id;
-  /** Navbar flottante + safe area — les actions véto ne doivent jamais être masquées. */
-  const bottomPad = useBottomInset();
+  /** Navbar flottante + FAB + marge pour la zone d’actions véto. */
+  const scrollPad = useScrollBottomPad({ extra: 48 });
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [vetCommentDraft, setVetCommentDraft] = useState("");
 
@@ -368,7 +368,7 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
           style={styles.root}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: bottomPad + 32 }
+            { paddingBottom: scrollPad }
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

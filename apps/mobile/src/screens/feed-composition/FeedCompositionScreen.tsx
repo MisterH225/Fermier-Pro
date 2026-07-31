@@ -11,7 +11,6 @@ import {
   Text,
   View
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AssistChatPanel } from "../../components/feed-composition/AssistChatPanel";
 import { CompositionDisclaimer } from "../../components/feed-composition/CompositionDisclaimer";
 import {
@@ -20,6 +19,7 @@ import {
 } from "../../components/feed-composition/FormulateForm";
 import { FormulationResultCard } from "../../components/feed-composition/FormulationResultCard";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
   listFarmCompositionVeterinarians,
   postFeedCompositionAssist,
@@ -55,7 +55,8 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, platformModules } = useSession();
   const compositionOn = isFeedCompositionModuleActive(platformModules);
-  const insets = useSafeAreaInsets();
+  /** Navbar + FAB + marge pour boutons Enregistrer / Envoyer au véto. */
+  const scrollPad = useScrollBottomPad({ extra: 160 });
   const scrollRef = useRef<ScrollView>(null);
 
   const [mode, setMode] = useState<Mode>("assist");
@@ -479,9 +480,6 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     );
   }
 
-  // Marge basse généreuse : le clavier ne masque plus les champs / le chat.
-  const bottomPad = Math.max(insets.bottom, 16) + 280;
-
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -491,7 +489,7 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
       <ScrollView
         ref={scrollRef}
         style={styles.root}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator
