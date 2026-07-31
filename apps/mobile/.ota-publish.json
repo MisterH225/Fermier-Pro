@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (7eefa087) — filtres période rentabilité + suivi mensuel #284",
-  "updatedAt": "2026-07-30T13:37Z",
+  "message": "OTA preview (bd16cac1) — sous-type moulin #293 + offres intrants moulin #294",
+  "updatedAt": "2026-07-31T02:33Z",
   "channels": ["preview"],
-  "updateGroupId": "7e3d69f9-b772-454f-a52d-af1e1fd0f752",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/7e3d69f9-b772-454f-a52d-af1e1fd0f752"
+  "updateGroupId": "d3fc25ce-0696-4fcc-94e6-d5c501d6399f",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/d3fc25ce-0696-4fcc-94e6-d5c501d6399f"
 }
