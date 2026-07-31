@@ -20,6 +20,12 @@ export type VetDashboardUpcomingVisitDto = {
   conflictStatus?: string | null;
   conflictLabel?: string | null;
   servicePrice?: number | null;
+  /**
+   * Si la consultation est un dossier de revue de composition
+   * (ChatRoom kind=feed_composition), id de la SavedComposition liée.
+   * Le mobile ouvre alors FeedCompositionDetail plutôt que VetConsultationDetail.
+   */
+  compositionId?: string | null;
 };
 
 export type VetDashboardActivityDto = {

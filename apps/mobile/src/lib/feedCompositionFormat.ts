@@ -16,9 +16,44 @@ export const PRODUCTION_STAGES: ProductionStage[] = [
 
 const STATUS_LABELS_FR: Record<SavedCompositionStatus, string> = {
   draft: "Brouillon",
-  vet_review: "Chez le véto",
+  vet_review: "En validation vétérinaire",
   validated: "Validée par le véto"
 };
+
+/**
+ * Quantité journalière par animal :
+ * total mélange ÷ effectif ÷ durée (jours).
+ * Ex. 375 kg / 5 / 30 = 2,5 kg. Retourne 0 si données manquantes.
+ */
+export function computeDailyIntakeKg(
+  totalFeedKg: number,
+  animalCount: number | null | undefined,
+  durationDays: number | null | undefined
+): number {
+  if (!(totalFeedKg > 0)) return 0;
+  const animals =
+    typeof animalCount === "number" && Number.isFinite(animalCount)
+      ? animalCount
+      : 0;
+  const days =
+    typeof durationDays === "number" && Number.isFinite(durationDays)
+      ? durationDays
+      : 0;
+  if (!(animals > 0) || !(days > 0)) return 0;
+  return totalFeedKg / animals / days;
+}
+
+/** Lit un nombre positif depuis inputParams (number ou string numérique). */
+export function readPositiveInputNumber(
+  params: Record<string, unknown> | null | undefined,
+  key: string
+): number | null {
+  if (!params) return null;
+  const raw = params[key];
+  const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : NaN;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
 
 /** Noms techniques API → langage producteur (labels courts, sans prose marketing). */
 const NUTRIENT_LABELS_FR: Record<string, string> = {

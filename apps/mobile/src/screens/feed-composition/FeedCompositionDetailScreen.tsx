@@ -10,13 +10,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CompositionDisclaimer } from "../../components/feed-composition/CompositionDisclaimer";
 import { ProposeAdjustmentModal } from "../../components/feed-composition/ProposeAdjustmentModal";
 import { FormulationResultCard } from "../../components/feed-composition/FormulationResultCard";
 import { useSession } from "../../context/SessionContext";
+import { useBottomInset } from "../../hooks/useBottomInset";
 import {
   getFeedComposition,
   listFarmCompositionVeterinarians,
@@ -35,7 +36,9 @@ import {
 } from "../../lib/compositionExplanation";
 import {
   asRationLines,
+  computeDailyIntakeKg,
   formatXof,
+  readPositiveInputNumber,
   stageLabelFr,
   statusLabelFr
 } from "../../lib/feedCompositionFormat";
@@ -60,8 +63,10 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const { accessToken, activeProfileId, authMe } = useSession();
   const qc = useQueryClient();
   const myId = authMe?.user.id;
-  const insets = useSafeAreaInsets();
+  /** Navbar flottante + safe area — les actions véto ne doivent jamais être masquées. */
+  const bottomPad = useBottomInset();
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [vetCommentDraft, setVetCommentDraft] = useState("");
 
   const profileType =
     authMe?.profiles?.find((p) => p.id === activeProfileId)?.type ??
@@ -112,14 +117,24 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
       const ration = asRationLines(row.ration);
       const nutrition = (row.nutritionResult ??
         null) as FeedNutritionResultDto | null;
+      const animalCount =
+        readPositiveInputNumber(row.inputParams, "animalCount") ?? 1;
+      const durationDays = readPositiveInputNumber(
+        row.inputParams,
+        "durationDays"
+      );
+      const avgWeightKg =
+        readPositiveInputNumber(row.inputParams, "avgWeightKg") ?? undefined;
+      const totalKg = ration.reduce((s, l) => s + (l.quantityKg || 0), 0);
+      const dailyKg = computeDailyIntakeKg(totalKg, animalCount, durationDays);
       if (!nutrition || ration.length === 0) {
         return buildLocalFactualExplanation({
           stage: row.stage,
           formulation: {
             feasible: ration.length > 0,
             ration,
-            totalFeedKg: 0,
-            dailyIntakeKg: 0,
+            totalFeedKg: totalKg,
+            dailyIntakeKg: dailyKg,
             totalCostXof: 0,
             costPerKg: 0,
             nutritionResult: nutrition,
@@ -129,14 +144,6 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
           }
         });
       }
-      const animalCount =
-        typeof row.inputParams?.animalCount === "number"
-          ? row.inputParams.animalCount
-          : 1;
-      const avgWeightKg =
-        typeof row.inputParams?.avgWeightKg === "number"
-          ? row.inputParams.avgWeightKg
-          : undefined;
       try {
         const res = await postFeedCompositionExplain(
           accessToken!,
@@ -161,8 +168,8 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
           formulation: {
             feasible: true,
             ration,
-            totalFeedKg: ration.reduce((s, l) => s + (l.quantityKg || 0), 0),
-            dailyIntakeKg: 0,
+            totalFeedKg: totalKg,
+            dailyIntakeKg: dailyKg,
             totalCostXof: 0,
             costPerKg: 0,
             nutritionResult: nutrition,
@@ -215,20 +222,26 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   });
 
   const reviewMut = useMutation({
-    mutationFn: (decision: "approve" | "request_changes") =>
+    mutationFn: (body: {
+      decision: "approve" | "request_changes";
+      comment?: string;
+    }) =>
       reviewFeedComposition(
         accessToken!,
         compositionId,
-        { decision },
+        body,
         activeProfileId
       ),
     onSuccess: (row) => {
       invalidate();
+      void qc.invalidateQueries({ queryKey: ["vet-dashboard"] });
+      void qc.invalidateQueries({ queryKey: ["vet-pending-compositions"] });
+      setVetCommentDraft("");
       Alert.alert(
-        row.status === "validated" ? "Validée" : "Demande envoyée",
+        row.status === "validated" ? "Validée" : "Commentaire envoyé",
         row.status === "validated"
-          ? "La composition est validée."
-          : "Le producteur a été notifié."
+          ? "La composition est validée. Le dossier de suivi est clôturé."
+          : "Votre message a été envoyé au producteur dans le fil."
       );
     },
     onError: (err) => Alert.alert("Erreur", formatApiError(err))
@@ -294,11 +307,18 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
       ? Number(row.totalCostXof)
       : row.totalCostXof;
   const totalFeedKg = ration.reduce((s, l) => s + (l.quantityKg || 0), 0);
+  const animalCount = readPositiveInputNumber(row.inputParams, "animalCount");
+  const durationDays = readPositiveInputNumber(row.inputParams, "durationDays");
+  const dailyIntakeKg = computeDailyIntakeKg(
+    totalFeedKg,
+    animalCount,
+    durationDays
+  );
   const formulation: FeedFormulateResultDto = {
     feasible: ration.length > 0,
     ration,
     totalFeedKg,
-    dailyIntakeKg: 0,
+    dailyIntakeKg,
     totalCostXof: Number.isFinite(totalCost) ? totalCost : 0,
     costPerKg:
       totalFeedKg > 0 && Number.isFinite(totalCost) ? totalCost / totalFeedKg : 0,
@@ -348,7 +368,7 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
           style={styles.root}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: Math.max(insets.bottom, 16) + 48 }
+            { paddingBottom: bottomPad + 32 }
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -444,25 +464,15 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
           ) : null}
 
           {isAssociatedVet && row.status === "vet_review" ? (
-            <View style={styles.vetActions}>
+            <View style={styles.vetActions} testID="vet-review-actions">
               <Pressable
                 style={[styles.primaryBtn, { backgroundColor: ui.accent }]}
                 testID="vet-approve"
-                onPress={() => reviewMut.mutate("approve")}
+                onPress={() => reviewMut.mutate({ decision: "approve" })}
                 disabled={reviewMut.isPending}
               >
                 <Text style={[styles.primaryBtnLabel, { color: ui.onAccent }]}>
-                  Valider ce mélange
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.secondaryBtn, { borderColor: ui.accent }]}
-                testID="vet-request-changes"
-                onPress={() => reviewMut.mutate("request_changes")}
-                disabled={reviewMut.isPending}
-              >
-                <Text style={[styles.secondaryBtnLabel, { color: ui.accent }]}>
-                  Demander des changements
+                  Valider la composition
                 </Text>
               </Pressable>
               <Pressable
@@ -471,7 +481,46 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
                 onPress={() => setAdjustOpen(true)}
               >
                 <Text style={[styles.secondaryBtnLabel, { color: ui.accent }]}>
-                  Proposer un autre mélange
+                  Proposer un ajustement
+                </Text>
+              </Pressable>
+              <TextInput
+                style={[
+                  styles.commentInput,
+                  {
+                    color: ui.textPrimary,
+                    borderColor: ui.accent + "55",
+                    backgroundColor: ui.surfaceMuted
+                  }
+                ]}
+                placeholder="Commentaire pour le producteur…"
+                placeholderTextColor={ui.textSecondary}
+                value={vetCommentDraft}
+                onChangeText={setVetCommentDraft}
+                multiline
+                testID="vet-comment-input"
+              />
+              <Pressable
+                style={[styles.secondaryBtn, { borderColor: ui.accent }]}
+                testID="vet-comment"
+                onPress={() => {
+                  const comment = vetCommentDraft.trim();
+                  if (!comment) {
+                    Alert.alert(
+                      "Commentaire requis",
+                      "Écrivez un message avant d’envoyer."
+                    );
+                    return;
+                  }
+                  reviewMut.mutate({
+                    decision: "request_changes",
+                    comment
+                  });
+                }}
+                disabled={reviewMut.isPending}
+              >
+                <Text style={[styles.secondaryBtnLabel, { color: ui.accent }]}>
+                  Commenter
                 </Text>
               </Pressable>
             </View>
@@ -558,7 +607,16 @@ const styles = StyleSheet.create({
     padding: mobileSpacing.md,
     borderRadius: mobileRadius.md
   },
-  vetActions: { gap: mobileSpacing.sm },
+  vetActions: { gap: mobileSpacing.sm, marginTop: mobileSpacing.sm },
+  commentInput: {
+    borderWidth: 1,
+    borderRadius: mobileRadius.md,
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.sm,
+    minHeight: 72,
+    textAlignVertical: "top",
+    fontSize: mobileFontSize.sm
+  },
   primaryBtn: {
     borderRadius: mobileRadius.md,
     paddingVertical: mobileSpacing.md,
