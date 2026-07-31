@@ -2753,6 +2753,18 @@ export class MarketplaceTransactionService {
       `Un acheteur a sécurisé ${amountLabel} pour « ${tx.listing?.title ?? "votre annonce"} ». Coordonnez la livraison.`,
       { type: "marketplace_payment_held", transactionId: tx.id, listingId: tx.listingId }
     );
+    // Confirmation acheteur (vente standard) — moment de confiance escrow.
+    // Branche crédit : return ci-dessus → pas de double notification.
+    void this.push.sendToUser(
+      tx.buyerUserId,
+      "Paiement sécurisé",
+      `${amountLabel} est bloqué en sécurité sur la plateforme jusqu'à la réception et la validation du poids.`,
+      {
+        type: "marketplace_payment_held_buyer",
+        transactionId: tx.id,
+        listingId: tx.listingId
+      }
+    );
   }
 
   private assertCanTransition(
