@@ -21,6 +21,12 @@ enum MerchantSubscriptionTier {
   premium
 }
 
+/// Sous-type commerçant (moulin = fabricant d'aliment). Gardé par le flag `mills`.
+enum MerchantKind {
+  standard
+  mill
+}
+
 enum MerchantSubscriptionStatus {
   active
   past_due
@@ -3714,6 +3720,9 @@ model MerchantProfile {
   cancelledAt          DateTime?
   suspendedAt          DateTime?
   suspensionReason     String?
+  /// standard (défaut) | mill — le passage standard→mill n'efface aucune donnée.
+  /// Le choix `mill` n'est accepté que si le flag plateforme `mills` est actif pour l'utilisateur.
+  merchantKind         MerchantKind              @default(standard)
   shopSkipped          Boolean                   @default(false)
   productSkipped       Boolean                   @default(false)
   onboardingComplete   Boolean                   @default(false)
@@ -3727,6 +3736,7 @@ model MerchantProfile {
   @@index([subscriptionTier])
   @@index([subscriptionTier, nextBillingAt])
   @@index([subscriptionStatus])
+  @@index([merchantKind])
 }
 
 /// Facture mensuelle Premium commerçant (lien mobile money).

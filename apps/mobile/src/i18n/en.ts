@@ -4587,7 +4587,13 @@ export const en = {
       productStock: "Stock",
       createShop: "Create shop",
       createProduct: "Create product",
-      skip: "Skip"
+      skip: "Skip",
+      kindQuestion: "What type of merchant are you?",
+      kindHint: "You can change this later in your shop settings.",
+      kind: {
+        standard: "Standard merchant",
+        mill: "Mill (feed manufacturer)"
+      }
     },
     subscription: {
       title: "Choose your plan",
@@ -4778,6 +4784,15 @@ export const en = {
       mainShop: "Main shop",
       nextBilling: "Next billing date",
       graceEnds: "Grace period ends",
+      merchantKind: "Merchant type",
+      merchantKindHint:
+        "Switching to Mill does not erase any data (shops, products, orders).",
+      kind: {
+        standard: "Standard merchant",
+        mill: "Mill (feed manufacturer)"
+      },
+      merchantKindSaved: "Merchant type updated.",
+      merchantKindError: "Could not update the type. Try again shortly.",
       cancelSubscription: "Cancel Premium subscription",
       cancelSubscriptionTitle: "Cancel Premium subscription?",
       cancelSubscriptionMessage:

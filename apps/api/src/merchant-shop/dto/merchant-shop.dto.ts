@@ -1,4 +1,8 @@
-import { MarketplacePaymentMethod, MerchantSubscriptionTier } from "@prisma/client";
+import {
+  MarketplacePaymentMethod,
+  MerchantKind,
+  MerchantSubscriptionTier
+} from "@prisma/client";
 import {
   IsArray,
   IsEnum,
@@ -21,6 +25,24 @@ export class PatchMerchantOnboardingDto {
 
   @IsOptional()
   onboardingComplete?: boolean;
+
+  /**
+   * Sous-type commerçant. `mill` n'est accepté que si le flag `mills` est actif
+   * pour l'utilisateur ; sinon le champ est ignoré / rejeté côté service.
+   */
+  @IsOptional()
+  @IsEnum(MerchantKind)
+  merchantKind?: MerchantKind;
+}
+
+/**
+ * Mise à jour du profil commerçant (paramètres boutique / profil).
+ * Le passage standard→mill n'efface aucune donnée existante.
+ */
+export class PatchMerchantProfileDto {
+  @IsOptional()
+  @IsEnum(MerchantKind)
+  merchantKind?: MerchantKind;
 }
 
 export class ChooseMerchantSubscriptionDto {

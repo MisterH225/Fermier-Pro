@@ -423,6 +423,7 @@ export class AuthService {
       select: {
         id: true,
         subscriptionTier: true,
+        merchantKind: true,
         shopSkipped: true,
         productSkipped: true,
         onboardingComplete: true
@@ -471,6 +472,7 @@ export class AuthService {
         ? {
             profileId: merchantRow.id,
             subscriptionTier: merchantRow.subscriptionTier,
+            merchantKind: merchantRow.merchantKind,
             shopSkipped: merchantRow.shopSkipped,
             productSkipped: merchantRow.productSkipped,
             onboardingComplete: merchantRow.onboardingComplete

@@ -9,7 +9,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput
+  TextInput,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MerchantProductForm } from "../../../components/merchant/MerchantProductForm";
@@ -22,10 +23,12 @@ import {
   fetchMerchantMe,
   isSubscriptionLimitError,
   patchMerchantOnboarding,
+  type MerchantKind,
   type MerchantMeDto,
   type MerchantProductDto
 } from "../../../lib/api";
 import { formatApiError } from "../../../lib/apiErrors";
+import { shouldAskMerchantKind } from "../../../lib/merchantKind";
 import { resolveMerchantOnboardingStep } from "../../../lib/merchantOnboardingState";
 import { useScrollBottomPad } from "../../../hooks/useScrollBottomPad";
 import { MerchantSubscriptionScreen } from "../../merchant/MerchantSubscriptionScreen";
@@ -36,24 +39,39 @@ type Props = {
   onCancel: () => void;
 };
 
+const MERCHANT_KINDS: MerchantKind[] = ["standard", "mill"];
+
 export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   const { t } = useTranslation();
   const scrollPad = useScrollBottomPad({ includeChrome: false });
   const queryClient = useQueryClient();
   const { open } = useModal();
-  const { accessToken, activeProfileId, refreshAuthMe } = useSession();
+  const { accessToken, activeProfileId, refreshAuthMe, platformModules } =
+    useSession();
+  const askMerchantKind = shouldAskMerchantKind(platformModules);
   const [step, setStep] = useState(0);
   const [premiumCheckout, setPremiumCheckout] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<MerchantMeDto | null>(null);
   const [shopName, setShopName] = useState("");
+  const [merchantKind, setMerchantKind] = useState<MerchantKind>("standard");
 
   const loadMe = async () => {
     if (!accessToken || !activeProfileId) return;
     const data = await fetchMerchantMe(accessToken, activeProfileId);
     setMe(data);
+    if (data.merchantKind === "mill" || data.merchantKind === "standard") {
+      setMerchantKind(data.merchantKind);
+    }
     return data;
+  };
+
+  const persistMerchantKindIfNeeded = async () => {
+    if (!askMerchantKind || !accessToken || !activeProfileId) return;
+    await patchMerchantOnboarding(accessToken, activeProfileId, {
+      merchantKind
+    });
   };
 
   const invalidateMerchantCache = async () => {
@@ -120,7 +138,8 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     try {
       await patchMerchantOnboarding(accessToken, activeProfileId, {
         ...flags,
-        onboardingComplete: true
+        onboardingComplete: true,
+        ...(askMerchantKind ? { merchantKind } : {})
       });
       await invalidateMerchantCache();
       await refreshAuthMe();
@@ -173,6 +192,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     setBusy(true);
     setError(null);
     try {
+      await persistMerchantKindIfNeeded();
       await createMerchantShop(accessToken, activeProfileId, {
         name: shopName.trim()
       });
@@ -260,7 +280,7 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     );
   }
 
-  // step === 1 : création boutique
+  // step === 1 : création boutique (+ type commerçant si flag mills)
   return (
     <SafeAreaView style={styles.safe} testID="merchant-onboarding-shop-step">
       <KeyboardAvoidingView
@@ -272,6 +292,38 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
+          {askMerchantKind ? (
+            <View testID="merchant-onboarding-kind-step">
+              <Text style={styles.title}>
+                {t("merchant.onboarding.kindQuestion")}
+              </Text>
+              <Text style={styles.kindHint}>
+                {t("merchant.onboarding.kindHint")}
+              </Text>
+              <View style={styles.kindChips}>
+                {MERCHANT_KINDS.map((kind) => (
+                  <Pressable
+                    key={kind}
+                    style={[
+                      styles.kindChip,
+                      merchantKind === kind && styles.kindChipActive
+                    ]}
+                    onPress={() => setMerchantKind(kind)}
+                    testID={`merchant-onboarding-kind-${kind}`}
+                  >
+                    <Text
+                      style={[
+                        styles.kindChipTx,
+                        merchantKind === kind && styles.kindChipTxActive
+                      ]}
+                    >
+                      {t(`merchant.onboarding.kind.${kind}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
           <Text style={styles.title}>{t("merchant.onboarding.shopTitle")}</Text>
           <TextInput
             style={styles.input}
@@ -312,6 +364,30 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { padding: mobileSpacing.lg, gap: mobileSpacing.md },
   title: { fontSize: mobileFontSize.xl, fontWeight: "700", color: mobileColors.textPrimary },
+  kindHint: {
+    fontSize: mobileFontSize.sm,
+    color: mobileColors.textSecondary,
+    marginTop: -mobileSpacing.xs
+  },
+  kindChips: { flexDirection: "row", flexWrap: "wrap", gap: mobileSpacing.sm },
+  kindChip: {
+    borderWidth: 1,
+    borderColor: mobileColors.border,
+    borderRadius: mobileRadius.md,
+    paddingVertical: mobileSpacing.sm,
+    paddingHorizontal: mobileSpacing.md,
+    backgroundColor: mobileColors.background
+  },
+  kindChipActive: {
+    borderColor: mobileColors.accent,
+    backgroundColor: mobileColors.accent
+  },
+  kindChipTx: {
+    color: mobileColors.textPrimary,
+    fontWeight: "600",
+    fontSize: mobileFontSize.sm
+  },
+  kindChipTxActive: { color: mobileColors.background },
   input: {
     borderWidth: 1,
     borderColor: mobileColors.border,
