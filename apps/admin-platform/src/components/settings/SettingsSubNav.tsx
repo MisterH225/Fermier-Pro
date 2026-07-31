@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/parametres", key: "platform" as const },
-  { href: "/parametres/modules", key: "modules" as const }
+  { href: "/parametres/modules", key: "modules" as const },
+  { href: "/parametres/intrants", key: "ingredients" as const }
 ] as const;
 
 export function SettingsSubNav() {

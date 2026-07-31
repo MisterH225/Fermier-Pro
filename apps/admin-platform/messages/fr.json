@@ -892,7 +892,8 @@
     "tabs": {
       "navLabel": "Sections des paramètres",
       "platform": "Plateforme",
-      "modules": "Modules"
+      "modules": "Modules",
+      "ingredients": "Intrants aliment"
     },
     "groups": {
       "access": "Accès & comptes",
@@ -1764,5 +1765,50 @@
     "invoiceInspectionProviderStatus": "Statut GeniusPay : {status}",
     "invoiceInspectionAmount": "Montant GeniusPay : {amount} {currency}",
     "invoiceInspectionCheckedAt": "Vérifié le {date}"
+  },
+  "feedIngredients": {
+    "title": "Référentiel d'intrants",
+    "subtitle": "Catalogue partagé (moulins + formulation). Entièrement éditable — les valeurs seedées sont indicatives.",
+    "formTitle": "Créer ou modifier",
+    "listTitle": "Intrants",
+    "createTitle": "Nouvel intrant",
+    "editTitle": "Modifier l'intrant",
+    "disclaimer": "Valeurs nutritionnelles à valider par un nutritionniste / vétérinaire avant mise en service de la formulation.",
+    "canonicalName": "Nom canonique",
+    "aliases": "Alias (séparés par des virgules)",
+    "aliasesHint": "ex. mais, corn, maize",
+    "category": "Catégorie",
+    "notes": "Notes",
+    "create": "Ajouter",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edit": "Éditer",
+    "deactivate": "Désactiver",
+    "reactivate": "Réactiver",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "status": "Statut",
+    "search": "Rechercher",
+    "searchPlaceholder": "Nom ou alias…",
+    "saveError": "Enregistrement impossible.",
+    "categories": {
+      "cereal": "Céréale",
+      "plant_protein": "Protéine végétale",
+      "animal_protein": "Protéine animale",
+      "byproduct": "Sous-produit",
+      "mineral": "Minéral",
+      "additive": "Additif"
+    },
+    "fields": {
+      "crudeProteinPct": "PB %",
+      "metabolizableEnergyKcal": "EM kcal/kg",
+      "lysinePct": "Lysine %",
+      "methioninePct": "Méthionine %",
+      "calciumPct": "Ca %",
+      "phosphorusPct": "P %",
+      "crudeFiberPct": "Cellulose %",
+      "fatPct": "MG %",
+      "dryMatterPct": "MS %"
+    }
   }
 }

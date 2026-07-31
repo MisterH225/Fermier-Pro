@@ -50,6 +50,7 @@ import { VetAppointmentsModule } from "./vet-appointments/vet-appointments.modul
 import { AdminPlatformModule } from "./admin-platform/admin-platform.module";
 import { AdminConsoleAuthModule } from "./admin-platform/admin-console-auth.module";
 import { FeatureFlagsModule } from "./feature-flags/feature-flags.module";
+import { FeedIngredientsModule } from "./feed-ingredients/feed-ingredients.module";
 import { MarketModule } from "./market/market.module";
 import { BuyerProfilesModule } from "./buyer-profiles/buyer-profiles.module";
 import { WalletModule } from "./wallet/wallet.module";
@@ -140,6 +141,7 @@ import { InsightsModule } from "./insights/insights.module";
     VetAppointmentsModule,
     AdminPlatformModule,
     FeatureFlagsModule,
+    FeedIngredientsModule,
     MarketModule,
     BuyerProfilesModule,
     WalletModule,

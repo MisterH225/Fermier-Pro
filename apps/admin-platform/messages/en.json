@@ -890,7 +890,8 @@
     "tabs": {
       "navLabel": "Settings sections",
       "platform": "Platform",
-      "modules": "Modules"
+      "modules": "Modules",
+      "ingredients": "Feed ingredients"
     },
     "groups": {
       "access": "Access & accounts",
@@ -1762,5 +1763,50 @@
     "testAccountsEmpty": "No test accounts.",
     "testAccountAddError": "Could not add this account (check the email or phone).",
     "testAccountIdentifier": "Email or phone"
+  },
+  "feedIngredients": {
+    "title": "Feed ingredient catalog",
+    "subtitle": "Shared catalog (mills + formulation). Fully editable — seed values are indicative.",
+    "formTitle": "Create or edit",
+    "listTitle": "Ingredients",
+    "createTitle": "New ingredient",
+    "editTitle": "Edit ingredient",
+    "disclaimer": "Nutritional values must be validated by a nutritionist / veterinarian before enabling formulation.",
+    "canonicalName": "Canonical name",
+    "aliases": "Aliases (comma-separated)",
+    "aliasesHint": "e.g. corn, maize",
+    "category": "Category",
+    "notes": "Notes",
+    "create": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "active": "Active",
+    "inactive": "Inactive",
+    "status": "Status",
+    "search": "Search",
+    "searchPlaceholder": "Name or alias…",
+    "saveError": "Could not save.",
+    "categories": {
+      "cereal": "Cereal",
+      "plant_protein": "Plant protein",
+      "animal_protein": "Animal protein",
+      "byproduct": "By-product",
+      "mineral": "Mineral",
+      "additive": "Additive"
+    },
+    "fields": {
+      "crudeProteinPct": "CP %",
+      "metabolizableEnergyKcal": "ME kcal/kg",
+      "lysinePct": "Lysine %",
+      "methioninePct": "Methionine %",
+      "calciumPct": "Ca %",
+      "phosphorusPct": "P %",
+      "crudeFiberPct": "Fiber %",
+      "fatPct": "Fat %",
+      "dryMatterPct": "DM %"
+    }
   }
 }

@@ -37,6 +37,7 @@ export const SUPERADMIN_ONLY_PATH_PREFIXES = [
   "/admin/superadmins",
   "/admin/institution-users",
   "/admin/feature-flags",
+  "/admin/feed-ingredients",
   "/admin/metrics"
 ] as const;
 
@@ -76,6 +77,7 @@ export const ADMIN_ROUTE_MENU_RULES: RouteMenuRule[] = [
   { prefix: "/admin/wallet", menu: "wallet" },
   { prefix: "/admin/ai", menu: "ai" },
   { prefix: "/admin/settings", menu: "settings" },
+  { prefix: "/admin/feed-ingredients", menu: "settings" },
   { prefix: "/admin/pig-price-index", menu: "marketplace" },
   { prefix: "/admin/pen-allocation", menu: "settings" }
 ];

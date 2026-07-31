@@ -1,5 +1,6 @@
 /**
- * Seed référentiels géo CI (AdminRegionRef + LocalityRef).
+ * Seed référentiels géo CI (AdminRegionRef + LocalityRef)
+ * + référentiel FeedIngredient (intrants, valeurs indicatives).
  * Usage : npm run prisma:seed --workspace @fermier/api
  */
 import * as path from "node:path";
@@ -7,6 +8,7 @@ import { config as loadEnv } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { CI_ADMIN_REGIONS } from "./seed-data/ci-admin-regions";
 import { CI_LOCALITIES } from "./seed-data/ci-localities";
+import { FEED_INGREDIENTS_SEED } from "./seed-data/feed-ingredients";
 
 loadEnv({ path: path.resolve(__dirname, "../../../.env") });
 loadEnv({ path: path.resolve(__dirname, "../.env") });
@@ -62,9 +64,43 @@ async function seedLocalities() {
   console.log(`[seed] LocalityRef : ${CI_LOCALITIES.length} entrées`);
 }
 
+async function seedFeedIngredients() {
+  for (const row of FEED_INGREDIENTS_SEED) {
+    await prisma.feedIngredient.upsert({
+      where: { canonicalName: row.canonicalName },
+      create: {
+        canonicalName: row.canonicalName,
+        aliases: row.aliases,
+        category: row.category,
+        crudeProteinPct: row.crudeProteinPct,
+        metabolizableEnergyKcal: row.metabolizableEnergyKcal,
+        lysinePct: row.lysinePct,
+        methioninePct: row.methioninePct,
+        calciumPct: row.calciumPct,
+        phosphorusPct: row.phosphorusPct,
+        crudeFiberPct: row.crudeFiberPct,
+        fatPct: row.fatPct,
+        dryMatterPct: row.dryMatterPct,
+        notes: row.notes ?? null,
+        isActive: true
+      },
+      update: {
+        // Idempotent : ne pas écraser les corrections superadmin déjà en base.
+        // Seuls les champs absents à la création sont garantis ; on met à jour
+        // aliases / notes / nutrition uniquement si l'intrant est encore « seed ».
+        // Politique : ne touche PAS les valeurs si la ligne existe déjà.
+      }
+    });
+  }
+  console.log(
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, sans écraser l'existant)`
+  );
+}
+
 async function main() {
   await seedAdminRegions();
   await seedLocalities();
+  await seedFeedIngredients();
 }
 
 main()
