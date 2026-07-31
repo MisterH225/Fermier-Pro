@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import type { ProductionStage } from "../../lib/api/feed-composition";
 import {
-  PRODUCTION_STAGES,
-  stageLabelFr
-} from "../../lib/feedCompositionFormat";
+  PRODUCTION_STAGE_ORDER,
+  productionStageLabel
+} from "../../constants/productionStages";
+import type { ProductionStage } from "../../lib/api/feed-composition";
 import {
   mobileColors,
   mobileFontSize,
@@ -43,7 +43,7 @@ export function FormulateForm({
 
       <Text style={styles.label}>Pour quels animaux ?</Text>
       <View style={styles.stageGrid}>
-        {PRODUCTION_STAGES.map((s) => {
+        {PRODUCTION_STAGE_ORDER.map((s) => {
           const selected = values.stage === s;
           return (
             <Pressable
@@ -55,7 +55,7 @@ export function FormulateForm({
               <Text
                 style={[styles.stageChipText, selected && styles.stageChipTextOn]}
               >
-                {stageLabelFr(s)}
+                {productionStageLabel(s)}
               </Text>
             </Pressable>
           );

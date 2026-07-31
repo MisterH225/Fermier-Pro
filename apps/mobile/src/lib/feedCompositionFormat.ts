@@ -1,3 +1,7 @@
+import {
+  PRODUCTION_STAGE_ORDER,
+  productionStageLabel
+} from "../constants/productionStages";
 import type {
   FeedFormulateResultDto,
   FeedRationLineDto,
@@ -5,24 +9,10 @@ import type {
   SavedCompositionStatus
 } from "./api/feed-composition";
 
+/** @deprecated Préférer PRODUCTION_STAGE_ORDER depuis constants/productionStages. */
 export const PRODUCTION_STAGES: ProductionStage[] = [
-  "piglet_weaning",
-  "growing",
-  "fattening",
-  "finishing",
-  "gestating_sow",
-  "lactating_sow"
+  ...PRODUCTION_STAGE_ORDER
 ];
-
-/** Libellés courts (listes, chips). */
-const STAGE_LABELS_FR: Record<ProductionStage, string> = {
-  piglet_weaning: "Porcelets sevrés",
-  growing: "Porcs qui grandissent",
-  fattening: "Engraissement",
-  finishing: "Presque prêts à vendre",
-  gestating_sow: "Truies pleines",
-  lactating_sow: "Truies qui allaitent"
-};
 
 const STATUS_LABELS_FR: Record<SavedCompositionStatus, string> = {
   draft: "Brouillon",
@@ -57,8 +47,12 @@ const NUTRIENT_HINTS_FR: Record<string, string> = {
   lysinePerMcal: "pour un porc moins gras à l’engraissement / finition"
 };
 
+/**
+ * Libellé stade — délègue au mapping unique `productionStages`.
+ * Conservé pour compatibilité des imports existants.
+ */
 export function stageLabelFr(stage: ProductionStage | string): string {
-  return STAGE_LABELS_FR[stage as ProductionStage] ?? stage;
+  return productionStageLabel(stage);
 }
 
 export function statusLabelFr(status: SavedCompositionStatus | string): string {

@@ -38,6 +38,33 @@ export const fr = {
       saveFailed: "Enregistrement impossible. Réessaie."
     }
   },
+  /** Libellés uniques ProductionStage — vocabulaire métier éleveur. */
+  productionStages: {
+    piglet_weaning: {
+      label: "Sevrage",
+      description: "Porcelets sevrés"
+    },
+    growing: {
+      label: "Croissance",
+      description: "Porcs en croissance"
+    },
+    fattening: {
+      label: "Engraissement",
+      description: "Porcs en engraissement"
+    },
+    finishing: {
+      label: "Finition",
+      description: "Porcs en finition"
+    },
+    gestating_sow: {
+      label: "Truie gestante",
+      description: "Truie en gestation"
+    },
+    lactating_sow: {
+      label: "Truie allaitante",
+      description: "Truie en lactation"
+    }
+  },
   cgu: {
     title: "Conditions d'utilisation",
     subtitle: "Veuillez lire et accepter avant de continuer",
@@ -2036,7 +2063,8 @@ export const fr = {
       starter: "Démarrage",
       growth: "Croissance",
       piglets: "Porcelets / démarrage",
-      finishing: "Engraissement",
+      // Aligné ProductionStage.finishing (était à tort « Engraissement »)
+      finishing: "Finition",
       breeders: "Reproducteurs",
       other: "Autres"
     },

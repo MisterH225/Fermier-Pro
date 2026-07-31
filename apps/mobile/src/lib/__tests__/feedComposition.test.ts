@@ -70,9 +70,13 @@ describe("isFeedCompositionModuleActive", () => {
 });
 
 describe("feedCompositionFormat", () => {
-  it("labels stade FR terre à terre", () => {
+  it("labels stade FR métier (mapping unique)", () => {
     expect(stageLabelFr("fattening")).toBe("Engraissement");
-    expect(stageLabelFr("piglet_weaning")).toBe("Porcelets sevrés");
+    expect(stageLabelFr("piglet_weaning")).toBe("Sevrage");
+    expect(stageLabelFr("growing")).toBe("Croissance");
+    expect(stageLabelFr("finishing")).toBe("Finition");
+    expect(stageLabelFr("gestating_sow")).toBe("Truie gestante");
+    expect(stageLabelFr("lactating_sow")).toBe("Truie allaitante");
   });
 
   it("nutriments en langage producteur", () => {

@@ -38,6 +38,33 @@ export const en = {
       saveFailed: "Could not save. Please try again."
     }
   },
+  /** Unique ProductionStage labels — farmer vocabulary. */
+  productionStages: {
+    piglet_weaning: {
+      label: "Weaning",
+      description: "Weaned piglets"
+    },
+    growing: {
+      label: "Growth",
+      description: "Growing pigs"
+    },
+    fattening: {
+      label: "Fattening",
+      description: "Fattening pigs"
+    },
+    finishing: {
+      label: "Finishing",
+      description: "Finishing pigs"
+    },
+    gestating_sow: {
+      label: "Gestating sow",
+      description: "Sow in gestation"
+    },
+    lactating_sow: {
+      label: "Lactating sow",
+      description: "Sow in lactation"
+    }
+  },
   cgu: {
     title: "Terms of use",
     subtitle: "Please read and accept before continuing",
@@ -2031,7 +2058,7 @@ export const en = {
       reproducteur_femelle: "Truies",
       reproducteur_male: "Boars",
       sous_mere: "Nursing piglets",
-      fattening: "Finishing",
+      fattening: "Fattening",
       starter: "Starter",
       growth: "Growth",
       piglets: "Piglets / starter",
