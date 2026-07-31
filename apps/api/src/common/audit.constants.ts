@@ -38,7 +38,10 @@ export const AUDIT_ACTION = {
   profileReactivated: "profile.reactivated",
   feedIngredientCreated: "feed_ingredient.created",
   feedIngredientUpdated: "feed_ingredient.updated",
-  feedIngredientDeactivated: "feed_ingredient.deactivated"
+  feedIngredientDeactivated: "feed_ingredient.deactivated",
+  feedRequirementProfileCreated: "feed_requirement_profile.created",
+  feedRequirementProfileUpdated: "feed_requirement_profile.updated",
+  feedRequirementProfileDeactivated: "feed_requirement_profile.deactivated"
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

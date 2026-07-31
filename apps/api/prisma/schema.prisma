@@ -3544,6 +3544,51 @@ enum MillIngredientPackaging {
   ton
 }
 
+/// Stade de production porcin pour les profils de besoins nutritionnels
+/// (moteur de formulation — module feed_composition).
+enum ProductionStage {
+  piglet_weaning
+  growing
+  fattening
+  finishing
+  gestating_sow
+  lactating_sow
+}
+
+/// Besoins nutritionnels cibles par stade — éditable superadmin.
+/// Valeurs seed INDICATIVES (INRAE / NRC) : à valider par un nutritionniste
+/// avant mise en service. Le levier « porc sans graisse » en fattening /
+/// finishing combine maxMetabolizableEnergyKcal + minLysinePerMcal.
+model FeedRequirementProfile {
+  id                          String          @id @default(cuid())
+  stage                       ProductionStage @unique
+  minCrudeProteinPct          Decimal         @db.Decimal(8, 4)
+  maxCrudeProteinPct          Decimal?        @db.Decimal(8, 4)
+  /// EM porc kcal/kg (min).
+  minMetabolizableEnergyKcal  Decimal         @db.Decimal(12, 2)
+  /// Plafond EM — levier anti-gras (surtout fattening / finishing).
+  maxMetabolizableEnergyKcal  Decimal?        @db.Decimal(12, 2)
+  minLysinePct                Decimal         @db.Decimal(8, 4)
+  minMethioninePct            Decimal         @db.Decimal(8, 4)
+  minCalciumPct               Decimal         @db.Decimal(8, 4)
+  maxCalciumPct               Decimal?        @db.Decimal(8, 4)
+  minPhosphorusPct            Decimal         @db.Decimal(8, 4)
+  maxFiberPct                 Decimal?        @db.Decimal(8, 4)
+  /// Ratio lysine (g) / EM (Mcal) minimal — 2ᵉ levier anti-gras.
+  /// Formule : 10000 × lysinePct / metabolizableEnergyKcal.
+  minLysinePerMcal            Decimal?        @db.Decimal(8, 4)
+  /// Ingéré journalier cible (kg/tête) ; sinon estimation par poids.
+  targetDailyIntakeKg         Decimal?        @db.Decimal(8, 3)
+  notes                       String?
+  isActive                    Boolean         @default(true)
+  createdBy                   String?
+  updatedBy                   String?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+
+  @@index([isActive])
+}
+
 /// Offre d'intrant d'un moulin (prix/stock référentiel). Source unique de prix
 /// pour composition (J4) et vente en gros marketplace (si isPubliclyListed).
 model MillIngredientOffer {

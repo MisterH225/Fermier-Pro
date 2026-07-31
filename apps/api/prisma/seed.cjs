@@ -1,5 +1,5 @@
 /**
- * Seed référentiels géo CI + FeedIngredient — CJS pour Railway.
+ * Seed référentiels géo CI + FeedIngredient + FeedRequirementProfile — CJS.
  * Usage : node prisma/seed.cjs
  */
 const path = require("node:path");
@@ -12,6 +12,7 @@ loadEnv({ path: path.resolve(__dirname, "../.env") });
 const CI_ADMIN_REGIONS = require("./seed-data/ci-admin-regions.json");
 const CI_LOCALITIES = require("./seed-data/ci-localities.json");
 const FEED_INGREDIENTS_SEED = require("./seed-data/feed-ingredients.json");
+const FEED_REQUIREMENTS_SEED = require("./seed-data/feed-requirements.json");
 
 const prisma = new PrismaClient();
 
@@ -91,10 +92,40 @@ async function seedFeedIngredients() {
   );
 }
 
+async function seedFeedRequirements() {
+  for (const row of FEED_REQUIREMENTS_SEED) {
+    await prisma.feedRequirementProfile.upsert({
+      where: { stage: row.stage },
+      create: {
+        stage: row.stage,
+        minCrudeProteinPct: row.minCrudeProteinPct,
+        maxCrudeProteinPct: row.maxCrudeProteinPct ?? null,
+        minMetabolizableEnergyKcal: row.minMetabolizableEnergyKcal,
+        maxMetabolizableEnergyKcal: row.maxMetabolizableEnergyKcal ?? null,
+        minLysinePct: row.minLysinePct,
+        minMethioninePct: row.minMethioninePct,
+        minCalciumPct: row.minCalciumPct,
+        maxCalciumPct: row.maxCalciumPct ?? null,
+        minPhosphorusPct: row.minPhosphorusPct,
+        maxFiberPct: row.maxFiberPct ?? null,
+        minLysinePerMcal: row.minLysinePerMcal ?? null,
+        targetDailyIntakeKg: row.targetDailyIntakeKg ?? null,
+        notes: row.notes,
+        isActive: true
+      },
+      update: {}
+    });
+  }
+  console.log(
+    `[seed] FeedRequirementProfile : ${FEED_REQUIREMENTS_SEED.length} stades (upsert stage, sans écraser l'existant)`
+  );
+}
+
 async function main() {
   await seedAdminRegions();
   await seedLocalities();
   await seedFeedIngredients();
+  await seedFeedRequirements();
 }
 
 main()
