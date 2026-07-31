@@ -549,22 +549,28 @@ export const fr = {
     badgeNew: "Nouveau",
     badgeSold: "Vendu",
     badgeHealthVerified: "Santé vérifiée",
-    badgeHealthVerifiedDays: "✓ Santé vérifiée · {{days}} j",
+    badgeHealthVerifiedDays: "Santé vérifiée · {{days}} j",
     badgeHealthExpiresIn: "Expire dans {{days}} j",
-    healthVerifiedHint: "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
+    healthVerifiedFollowUp:
+      "Élevage suivi par un vétérinaire — dernière visite le {{date}}",
+    healthVerifiedByVet: "par {{name}}",
+    healthVerifiedHint:
+      "Visite vétérinaire réalisée il y a moins de 30 jours sur cet élevage.",
+    healthVerifiedDisclaimer:
+      "Ce badge confirme qu’un vétérinaire vérifié a visité l’élevage à cette date. Il atteste d’un suivi au niveau de l’élevage, pas de la santé garantie de chaque animal mis en vente.",
     healthVerifiedBy: "Vérifié par {{name}} le {{date}}",
     healthVerifiedViewVet: "Voir la fiche du vétérinaire",
     filterHealthVerified: "Santé vérifiée",
     healthVerifyCta: {
       title: "Faites vérifier votre élevage",
-      body: "Un vétérinaire vérifié visite votre ferme → badge Santé sur vos annonces.",
+      body: "Faites vérifier votre élevage par un vétérinaire pour rassurer les acheteurs.",
       action: "Prendre rendez-vous",
       dismiss: "Fermer"
     },
     healthVerifyCtaExpired: {
-      title: "Votre badge a expiré",
-      body: "Votre badge a expiré — vos annonces ont perdu leur certification.",
-      action: "Reprendre rendez-vous",
+      title: "Votre badge Santé a expiré",
+      body: "Faites vérifier votre élevage par un vétérinaire pour rassurer les acheteurs.",
+      action: "Prendre rendez-vous",
       dismiss: "Fermer"
     },
     meteoBuyer: {

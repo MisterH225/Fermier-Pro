@@ -492,10 +492,12 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       const statusLab = listingStatusLabel(item.status);
       const farm = item.farm?.name;
       const daysLeft = healthVerifiedDaysRemaining(item.healthVerifiedAt);
-      const expiryLab =
+      const healthLab =
         daysLeft != null && daysLeft <= HEALTH_BADGE_EXPIRY_WARNING_DAYS
           ? t("marketScreen.badgeHealthExpiresIn", { days: daysLeft })
-          : null;
+          : healthVerifiedDaysAgo(item.healthVerifiedAt) != null
+            ? t("marketScreen.badgeHealthVerified")
+            : null;
       const priceLine =
         item.totalPrice != null
           ? `${typeof item.totalPrice === "string" ? item.totalPrice : String(item.totalPrice)} ${item.currency}`
@@ -503,7 +505,7 @@ export function MarketplaceListScreen({ navigation, route }: Props) {
       return {
         id: item.id,
         title: item.title,
-        subtitle: [statusLab, farm, expiryLab].filter(Boolean).join(" · "),
+        subtitle: [statusLab, farm, healthLab].filter(Boolean).join(" · "),
         value: priceLine,
         valueType: "neutral",
         date: new Date(item.updatedAt).toLocaleDateString("fr-FR"),

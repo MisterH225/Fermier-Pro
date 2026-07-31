@@ -548,22 +548,28 @@ export const en = {
     badgeNew: "New",
     badgeSold: "Sold",
     badgeHealthVerified: "Health verified",
-    badgeHealthVerifiedDays: "✓ Health verified · {{days}} d",
+    badgeHealthVerifiedDays: "Health verified · {{days}} d",
     badgeHealthExpiresIn: "Expires in {{days}} d",
-    healthVerifiedHint: "A vet visit was completed on this farm within the last 30 days.",
+    healthVerifiedFollowUp:
+      "Farm monitored by a veterinarian — last visit on {{date}}",
+    healthVerifiedByVet: "by {{name}}",
+    healthVerifiedHint:
+      "A vet visit was completed on this farm within the last 30 days.",
+    healthVerifiedDisclaimer:
+      "This badge confirms that a verified veterinarian visited the farm on that date. It attests to farm-level follow-up, not a health guarantee for every animal listed for sale.",
     healthVerifiedBy: "Verified by {{name}} on {{date}}",
     healthVerifiedViewVet: "View veterinarian profile",
     filterHealthVerified: "Health verified",
     healthVerifyCta: {
       title: "Get your farm verified",
-      body: "A verified vet visits your farm → Health badge on your listings.",
+      body: "Have a veterinarian verify your farm to reassure buyers.",
       action: "Book an appointment",
       dismiss: "Dismiss"
     },
     healthVerifyCtaExpired: {
-      title: "Your badge has expired",
-      body: "Your badge has expired — your listings lost their certification.",
-      action: "Book again",
+      title: "Your Health badge has expired",
+      body: "Have a veterinarian verify your farm to reassure buyers.",
+      action: "Book an appointment",
       dismiss: "Dismiss"
     },
     meteoBuyer: {
