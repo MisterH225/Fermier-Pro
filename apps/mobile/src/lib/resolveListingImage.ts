@@ -6,7 +6,12 @@ export function pickListingImageUrl(item: {
 }): string | null {
   const photos = Array.isArray(item.photoUrls) ? item.photoUrls : [];
   for (const u of photos) {
-    if (typeof u === "string" && u.trim().length > 0) {
+    // Pictogrammes `fermier-icon:` ne sont pas des URI HTTP — ignorés ici.
+    if (
+      typeof u === "string" &&
+      u.trim().length > 0 &&
+      !u.startsWith("fermier-icon:")
+    ) {
       return u.trim();
     }
   }

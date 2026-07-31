@@ -35,6 +35,10 @@ export type FeedIngredientDto = {
   isActive: boolean;
   isPremix: boolean;
   notes: string | null;
+  /** Photo réelle (URL) — optionnelle. */
+  imageUrl: string | null;
+  /** Pictogramme de catégorie (toujours renseigné via seed / défaut). */
+  iconKey: string | null;
   /** Null = seed / non relu ; ISO si validé par un superadmin. */
   reviewedAt: string | null;
   reviewedBy: string | null;
@@ -43,6 +47,14 @@ export type FeedIngredientDto = {
   createdAt: string;
   updatedAt: string;
 };
+
+function resolveIconKey(
+  category: FeedIngredientCategory | string,
+  iconKey?: string | null
+): string {
+  if (iconKey?.trim()) return iconKey.trim();
+  return String(category);
+}
 
 const NUTRITION_PATCH_KEYS = [
   "crudeProteinPct",
@@ -124,6 +136,8 @@ export class FeedIngredientsService {
           dryMatterPct: dto.dryMatterPct,
           isPremix: dto.isPremix ?? false,
           notes: dto.notes?.trim() || null,
+          imageUrl: dto.imageUrl?.trim() || null,
+          iconKey: resolveIconKey(dto.category, dto.iconKey),
           // Création manuelle admin = déjà validée.
           reviewedAt: new Date(),
           reviewedBy: actorUserId,
@@ -213,6 +227,17 @@ export class FeedIngredientsService {
           ...(dto.isPremix != null ? { isPremix: dto.isPremix } : {}),
           ...(dto.notes !== undefined
             ? { notes: dto.notes?.trim() || null }
+            : {}),
+          ...(dto.imageUrl !== undefined
+            ? { imageUrl: dto.imageUrl?.trim() || null }
+            : {}),
+          ...(dto.iconKey !== undefined || dto.category != null
+            ? {
+                iconKey: resolveIconKey(
+                  dto.category ?? existing.category,
+                  dto.iconKey !== undefined ? dto.iconKey : existing.iconKey
+                )
+              }
             : {}),
           ...(shouldMarkReviewed
             ? { reviewedAt: new Date(), reviewedBy: actorUserId }
@@ -339,6 +364,8 @@ export class FeedIngredientsService {
       isActive: row.isActive,
       isPremix: row.isPremix,
       notes: row.notes,
+      imageUrl: row.imageUrl ?? null,
+      iconKey: resolveIconKey(row.category, row.iconKey),
       reviewedAt: row.reviewedAt?.toISOString() ?? null,
       reviewedBy: row.reviewedBy,
       createdBy: row.createdBy,

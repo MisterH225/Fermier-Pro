@@ -105,6 +105,16 @@ export class CreateFeedIngredientDto {
   @Transform(({ value }) => toOptionalBoolean(value))
   @IsBoolean()
   isPremix?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  imageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  iconKey?: string | null;
 }
 
 export class UpdateFeedIngredientDto {
@@ -200,6 +210,16 @@ export class UpdateFeedIngredientDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  imageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  iconKey?: string | null;
 
   /** Marque l'intrant comme relu / validé (renseigne reviewedAt). */
   @IsOptional()

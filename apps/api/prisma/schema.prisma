@@ -3537,6 +3537,10 @@ model FeedIngredient {
   /// Additif à taux d'incorporation fixe (CMV, sel…) — hors optimisation LP.
   isPremix                 Boolean                @default(false)
   notes                    String?
+  /// Photo réelle de l'intrant (URL) — optionnelle, renseignée par superadmin.
+  imageUrl                 String?
+  /// Pictogramme de catégorie (ex. cereal, plant_protein) — toujours présent via seed.
+  iconKey                  String?
   /// Null = valeurs seed / non relues ; renseigné quand un superadmin valide.
   reviewedAt               DateTime?
   reviewedBy               String?

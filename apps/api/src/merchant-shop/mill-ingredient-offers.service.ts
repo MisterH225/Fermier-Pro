@@ -84,7 +84,9 @@ export class MillIngredientOffersService {
             id: true,
             canonicalName: true,
             aliases: true,
-            category: true
+            category: true,
+            imageUrl: true,
+            iconKey: true
           }
         },
         merchantProduct: {
@@ -229,7 +231,14 @@ export class MillIngredientOffersService {
     const offer = await this.prisma.millIngredientOffer.findUnique({
       where: { id: offerId },
       include: {
-        feedIngredient: { select: { canonicalName: true, category: true } },
+        feedIngredient: {
+          select: {
+            canonicalName: true,
+            category: true,
+            imageUrl: true,
+            iconKey: true
+          }
+        },
         millProfile: { select: { userId: true, subscriptionTier: true } }
       }
     });
@@ -240,6 +249,9 @@ export class MillIngredientOffersService {
       offer.isPubliclyListed &&
       Number(offer.stockQuantity) > 0;
 
+    /** Photo réelle si dispo, sinon marqueur pictogramme pour l'UI mobile/marketplace. */
+    const photoUrls = resolveIngredientPhotoUrls(offer.feedIngredient);
+
     if (!shouldList) {
       if (offer.merchantProductId) {
         await this.prisma.merchantProduct.update({
@@ -248,7 +260,8 @@ export class MillIngredientOffersService {
             status: MerchantProductStatus.draft,
             stock: Math.max(0, Math.floor(Number(offer.stockQuantity))),
             price: offer.pricePerUnit,
-            unitLabel: packagingUnitLabel(offer.packaging)
+            unitLabel: packagingUnitLabel(offer.packaging),
+            photoUrls
           }
         });
       }
@@ -283,7 +296,8 @@ export class MillIngredientOffersService {
           price: offer.pricePerUnit,
           stock,
           categoryId: alimentation.id,
-          shopId
+          shopId,
+          photoUrls
         }
       });
     } else {
@@ -296,7 +310,7 @@ export class MillIngredientOffersService {
           unitLabel,
           price: offer.pricePerUnit,
           stock,
-          photoUrls: [],
+          photoUrls,
           status: MerchantProductStatus.draft
         }
       });
@@ -360,7 +374,9 @@ export class MillIngredientOffersService {
             id: true,
             canonicalName: true,
             aliases: true,
-            category: true
+            category: true,
+            imageUrl: true,
+            iconKey: true
           }
         },
         merchantProduct: {
@@ -393,11 +409,17 @@ export class MillIngredientOffersService {
       canonicalName: string;
       aliases?: string[];
       category: string;
+      imageUrl?: string | null;
+      iconKey?: string | null;
     };
     merchantProduct?: { id: string; status: string; stock: number } | null;
   }) {
     const price = Number(row.pricePerUnit);
     const unitToKg = Number(row.unitToKg);
+    const iconKey =
+      row.feedIngredient?.iconKey?.trim() ||
+      row.feedIngredient?.category ||
+      null;
     return {
       id: row.id,
       millProfileId: row.millProfileId,
@@ -405,6 +427,8 @@ export class MillIngredientOffersService {
       feedIngredientName: row.feedIngredient?.canonicalName ?? null,
       feedIngredientAliases: row.feedIngredient?.aliases ?? [],
       feedIngredientCategory: row.feedIngredient?.category ?? null,
+      feedIngredientImageUrl: row.feedIngredient?.imageUrl ?? null,
+      feedIngredientIconKey: iconKey,
       pricePerUnit: price,
       packaging: row.packaging,
       unitToKg,
@@ -420,4 +444,17 @@ export class MillIngredientOffersService {
       updatedAt: row.updatedAt.toISOString()
     };
   }
+}
+
+/** URL photo ou marqueur `fermier-icon:<key>` pour pictogramme de catégorie. */
+export function resolveIngredientPhotoUrls(ing: {
+  imageUrl?: string | null;
+  iconKey?: string | null;
+  category?: string | null;
+}): string[] {
+  const image = ing.imageUrl?.trim();
+  if (image) return [image];
+  const key = ing.iconKey?.trim() || ing.category?.trim();
+  if (key) return [`fermier-icon:${key}`];
+  return [];
 }

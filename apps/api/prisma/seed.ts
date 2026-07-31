@@ -9,7 +9,10 @@ import { config as loadEnv } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { CI_ADMIN_REGIONS } from "./seed-data/ci-admin-regions";
 import { CI_LOCALITIES } from "./seed-data/ci-localities";
-import { FEED_INGREDIENTS_SEED } from "./seed-data/feed-ingredients";
+import {
+  defaultIconKeyForCategory,
+  FEED_INGREDIENTS_SEED
+} from "./seed-data/feed-ingredients";
 import { FEED_REQUIREMENTS_SEED } from "./seed-data/feed-requirements";
 
 loadEnv({ path: path.resolve(__dirname, "../../../.env") });
@@ -68,6 +71,7 @@ async function seedLocalities() {
 
 async function seedFeedIngredients() {
   for (const row of FEED_INGREDIENTS_SEED) {
+    const iconKey = row.iconKey ?? defaultIconKeyForCategory(row.category);
     await prisma.feedIngredient.upsert({
       where: { canonicalName: row.canonicalName },
       create: {
@@ -85,16 +89,19 @@ async function seedFeedIngredients() {
         dryMatterPct: row.dryMatterPct,
         isPremix: row.isPremix ?? false,
         notes: row.notes ?? null,
+        iconKey,
+        imageUrl: row.imageUrl ?? null,
         isActive: true
       },
       update: {
-        // Structurelle : propager isPremix seed (CMV/sel) sans toucher nutrition.
-        ...(row.isPremix ? { isPremix: true } : {})
+        // Structurelle : propager isPremix + pictogramme catégorie (sans écraser imageUrl admin).
+        ...(row.isPremix ? { isPremix: true } : {}),
+        iconKey
       }
     });
   }
   console.log(
-    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix seed)`
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix/iconKey seed)`
   );
 }
 
