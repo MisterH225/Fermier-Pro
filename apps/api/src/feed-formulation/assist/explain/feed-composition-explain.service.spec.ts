@@ -25,7 +25,8 @@ const PROFILE: RequirementProfileSnapshot = {
   minPhosphorusPct: 0.45,
   maxFiberPct: 6,
   minLysinePerMcal: 2.6,
-  targetDailyIntakeKg: 2.4
+  targetDailyIntakeKg: 2.4,
+  fixedInclusions: []
 };
 
 const NUTRITION = {
