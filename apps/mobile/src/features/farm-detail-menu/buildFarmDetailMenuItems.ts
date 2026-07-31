@@ -49,6 +49,10 @@ type FarmDetailNavTarget =
   | {
       screen: "FarmFeedStock";
       params: RootStackParamList["FarmFeedStock"];
+    }
+  | {
+      screen: "FarmFeedHub";
+      params: RootStackParamList["FarmFeedHub"];
     };
 
 export type FarmDetailMenuNavigateRow = {
@@ -79,8 +83,10 @@ export function buildFarmDetailMenuItems(args: {
   farmId: string;
   farmName: string;
   effectiveScopes?: string[];
+  /** Module plateforme `feed_composition` — sous-menu Composition sous Aliment. */
+  feedCompositionActive?: boolean;
 }): FarmDetailMenuRow[] {
-  const { menu, farmId, farmName, effectiveScopes } = args;
+  const { menu, farmId, farmName, feedCompositionActive } = args;
 
   const rows: FarmDetailMenuRow[] = [
     {
@@ -154,15 +160,25 @@ export function buildFarmDetailMenuItems(args: {
       screen: "Collaboration",
       params: { farmId, farmName }
     },
-    {
-      kind: "navigate",
-      preset: "feed",
-      visible: menu.feedStock,
-      title: "Aliment",
-      subtitle: "Achats et stock restant",
-      screen: "FarmFeedStock",
-      params: { farmId, farmName }
-    }
+    feedCompositionActive
+      ? {
+          kind: "navigate" as const,
+          preset: "feed" as const,
+          visible: menu.feedStock || feedCompositionActive,
+          title: "Aliment",
+          subtitle: "Stock et composition de rations",
+          screen: "FarmFeedHub" as const,
+          params: { farmId, farmName }
+        }
+      : {
+          kind: "navigate" as const,
+          preset: "feed" as const,
+          visible: menu.feedStock,
+          title: "Aliment",
+          subtitle: "Achats et stock restant",
+          screen: "FarmFeedStock" as const,
+          params: { farmId, farmName }
+        }
   ];
 
   return rows;
