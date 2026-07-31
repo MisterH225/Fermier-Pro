@@ -89,6 +89,10 @@ export type SavedCompositionDto = {
   vetReviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  chatRoomId?: string | null;
+  vetConsultationId?: string | null;
+  vetReviewedByName?: string | null;
+  farmName?: string;
 };
 
 export type FarmCompositionVetDto = {
@@ -213,6 +217,65 @@ export function requestCompositionVetReview(
   return apiPostJson<SavedCompositionDto>(
     `/feed-composition/compositions/${compositionId}/request-vet-review`,
     body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function reviewFeedComposition(
+  accessToken: string,
+  compositionId: string,
+  body: { decision: "approve" | "request_changes"; comment?: string },
+  activeProfileId?: string | null
+): Promise<SavedCompositionDto> {
+  return apiPostJson<SavedCompositionDto>(
+    `/feed-composition/compositions/${compositionId}/vet-review`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function proposeCompositionAdjustment(
+  accessToken: string,
+  compositionId: string,
+  body: {
+    removeIngredientId: string;
+    addIngredientId: string;
+    addPricePerKg?: number;
+    addMaxAvailableKg?: number;
+    comment?: string;
+  },
+  activeProfileId?: string | null
+): Promise<{ messageId: string; formulation: FeedFormulateResultDto }> {
+  return apiPostJson(
+    `/feed-composition/compositions/${compositionId}/propose-adjustment`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function applyCompositionAdjustment(
+  accessToken: string,
+  compositionId: string,
+  body: { messageId: string },
+  activeProfileId?: string | null
+): Promise<SavedCompositionDto> {
+  return apiPostJson<SavedCompositionDto>(
+    `/feed-composition/compositions/${compositionId}/apply-adjustment`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function listPendingCompositionReviews(
+  accessToken: string,
+  activeProfileId?: string | null
+): Promise<SavedCompositionDto[]> {
+  return apiGetJson<SavedCompositionDto[]>(
+    "/feed-composition/vet/pending-reviews",
     accessToken,
     activeProfileId
   );

@@ -1,13 +1,22 @@
 import type { ChatRoomListItem } from "../api";
 import { directConversationTitle } from "../api";
+import { parseFeedCompositionCardMessage } from "../feedCompositionChatMessage";
 import {
   formatOfferPreview,
   parseMarketplaceOfferMessage
 } from "../marketplaceOfferMessage";
 import { formatPrivacyDisplayName } from "../userDisplay";
+import { stageLabelFr } from "../feedCompositionFormat";
 
 /** Titre affiché pour une conversation (navigation + liste). */
 export function chatRoomTitle(room: ChatRoomListItem, myUserId?: string): string {
+  if (room.kind === "feed_composition") {
+    if (room.title?.trim()) return room.title.trim();
+    if (room.savedComposition?.stage) {
+      return `Composition — ${stageLabelFr(room.savedComposition.stage)}`;
+    }
+    return "Composition — avis véto";
+  }
   if (room.kind === "direct" && myUserId) {
     const peer = room.members?.find((m) => m.userId !== myUserId)?.user;
     if (peer?.fullName) {
@@ -28,7 +37,12 @@ export function chatRoomLastPreview(room: ChatRoomListItem): string | null {
   }
   const body = last.body.trim();
   const offer = parseMarketplaceOfferMessage(body);
-  const text = offer ? formatOfferPreview(offer) : body;
+  const composition = parseFeedCompositionCardMessage(body);
+  const text = offer
+    ? formatOfferPreview(offer)
+    : composition
+      ? `${composition.variant === "adjustment" ? "Ajustement" : "Composition"} · ${Math.round(composition.totalCostXof).toLocaleString("fr-FR")} F`
+      : body;
   return text.length > 80 ? `${text.slice(0, 78)}…` : text;
 }
 

@@ -47,3 +47,24 @@ Réutilise la config Gemini existante : `GEMINI_API_KEY` (serveur only),
 `GEMINI_MODEL` (défaut `gemini-2.5-flash-lite`), `GEMINI_QUOTA_COOLDOWN_MS`.
 Max **3** itérations tool-use / requête. Si Gemini indisponible → `503 AI_UNAVAILABLE`
 (fallback mobile vers `/formulate`).
+
+## Revue vétérinaire (discussion)
+
+À l’envoi en validation (`request-vet-review`) :
+
+1. Ouvre une **`VetConsultation`** (`status=open`, subject « Validation composition — [stade] »,
+   `primaryVetUserId` = véto associé) — historique ferme / stats activité.
+2. Ouvre (ou réutilise) une **`ChatRoom`** `kind=feed_composition` ancrée
+   `savedCompositionId` + `vetConsultationId`, membres = producteur + véto.
+3. Poster une **carte JSON** `_type=feed_composition_card` (intrants, coûts, nutrition).
+
+| Action | Effet |
+|--------|--------|
+| Commentaires | `ChatMessage` classiques |
+| Ajustement véto | `POST …/propose-adjustment` → `recomputeWithSubstitution` (moteur J2) → nouvelle carte |
+| Valider | `SavedComposition → validated` + consultation `resolved` + `closedAt` |
+| Demander ajustements | reste `vet_review`, consultation reste `open` |
+| Producteur applique | `POST …/apply-adjustment` (messageId de la carte) |
+
+Choix consultation « closed » : l’enum existant utilise **`resolved`** (+ `closedAt`) —
+pas de nouvelle valeur `closed`.

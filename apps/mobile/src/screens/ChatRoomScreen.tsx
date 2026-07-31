@@ -13,6 +13,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -38,12 +39,15 @@ import { CHAT_INPUT_BAR_HEIGHT } from "../constants/layout";
 import type { ChatMessageDto } from "../lib/api";
 import {
   analyzeChatImage,
+  applyCompositionAdjustment,
   fetchChatMessages,
   fetchChatRoom,
   fetchFarmMembers,
   markChatRoomRead,
   postChatMessage
 } from "../lib/api";
+import type { FeedCompositionCardPayload } from "../lib/feedCompositionChatMessage";
+import { formatApiError } from "../lib/apiErrors";
 import { buildChatImageMessageBody } from "../lib/chatImageMessage";
 import { getSupabase } from "../lib/supabase";
 import { uploadChatImageToSupabase } from "../lib/uploadChatImageToSupabase";
@@ -455,6 +459,33 @@ export function ChatRoomScreen({ route, navigation }: Props) {
     }
   });
 
+  const compositionId = roomQuery.data?.savedCompositionId ?? null;
+  const isCompositionRoom = roomQuery.data?.kind === "feed_composition";
+
+  const applyAdjustment = useCallback(
+    (messageId: string, _payload: FeedCompositionCardPayload) => {
+      if (!accessToken || !compositionId) return;
+      void applyCompositionAdjustment(
+        accessToken,
+        compositionId,
+        { messageId },
+        activeProfileId
+      )
+        .then(() => {
+          Alert.alert(
+            "Version appliquée",
+            "La composition a été mise à jour. Vous pouvez la renvoyer au véto."
+          );
+          void qc.invalidateQueries({ queryKey: ["chatMessages", roomId] });
+          void qc.invalidateQueries({
+            queryKey: ["feed-composition", compositionId]
+          });
+        })
+        .catch((err: unknown) => Alert.alert("Erreur", formatApiError(err)));
+    },
+    [accessToken, activeProfileId, compositionId, qc, roomId]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: ChatListItem }) => {
       if (item.kind === "date") {
@@ -468,10 +499,12 @@ export function ChatRoomScreen({ route, navigation }: Props) {
         <MessageBubble
           message={item.message}
           isMine={item.message.senderUserId === myUserId}
+          showApplyComposition={Boolean(isCompositionRoom && compositionId)}
+          onApplyCompositionAdjustment={applyAdjustment}
         />
       );
     },
-    [myUserId]
+    [myUserId, isCompositionRoom, compositionId, applyAdjustment]
   );
 
   const openListingProposal = useCallback(() => {
