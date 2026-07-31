@@ -1,0 +1,109 @@
+import type { ProductionStage } from "@prisma/client";
+
+/** Snapshot nutritionnel d'un intrant (par kg matière brute). */
+export type IngredientNutrition = {
+  feedIngredientId: string;
+  canonicalName?: string;
+  category?: string;
+  crudeProteinPct: number;
+  metabolizableEnergyKcal: number;
+  lysinePct: number;
+  methioninePct: number;
+  calciumPct: number;
+  phosphorusPct: number;
+  crudeFiberPct: number;
+  fatPct?: number;
+  dryMatterPct?: number;
+};
+
+/** Intrant disponible (déjà converti en prix/kg côté appelant). */
+export type AvailableIngredientInput = {
+  feedIngredientId: string;
+  pricePerKg: number;
+  maxAvailableKg: number;
+};
+
+/** Profil de besoins (nombres JS, pas Decimal Prisma). */
+export type RequirementProfileSnapshot = {
+  stage: ProductionStage;
+  minCrudeProteinPct: number;
+  maxCrudeProteinPct: number | null;
+  minMetabolizableEnergyKcal: number;
+  maxMetabolizableEnergyKcal: number | null;
+  minLysinePct: number;
+  minMethioninePct: number;
+  minCalciumPct: number;
+  maxCalciumPct: number | null;
+  minPhosphorusPct: number;
+  maxFiberPct: number | null;
+  minLysinePerMcal: number | null;
+  targetDailyIntakeKg: number | null;
+};
+
+export type FormulateInput = {
+  stage: ProductionStage;
+  animalCount: number;
+  avgWeightKg: number;
+  avgAgeWeeks?: number;
+  durationDays: number;
+  availableIngredients: AvailableIngredientInput[];
+  /** Profil actif du stade (chargé par le service Nest). */
+  profile: RequirementProfileSnapshot;
+  /** Nutrition des intrants (même ids que availableIngredients). */
+  nutritionById: Record<string, IngredientNutrition>;
+};
+
+export type RationLine = {
+  feedIngredientId: string;
+  quantityKg: number;
+  proportionPct: number;
+  costContribution: number;
+};
+
+export type NutritionResult = {
+  crudeProteinPct: number;
+  metabolizableEnergyKcal: number;
+  lysinePct: number;
+  methioninePct: number;
+  calciumPct: number;
+  phosphorusPct: number;
+  crudeFiberPct: number;
+  /** g lysine / Mcal EM — null si EM = 0. */
+  lysinePerMcal: number | null;
+};
+
+export type NutrientDeviation = {
+  nutrient: string;
+  target: string;
+  actual: number;
+  withinBounds: boolean;
+};
+
+export type FormulateResult = {
+  feasible: boolean;
+  ration: RationLine[];
+  totalFeedKg: number;
+  dailyIntakeKg: number;
+  totalCostXof: number;
+  costPerKg: number;
+  nutritionResult: NutritionResult | null;
+  deviations: NutrientDeviation[];
+  warnings: string[];
+  /** Diagnostic quand feasible=false — nutriments non atteignables. */
+  infeasibilityReasons: string[];
+};
+
+export type SubstitutionResult = FormulateResult & {
+  /** Écart nutritionnel vs ration de base (points / kcal / %). */
+  nutritionDelta: {
+    crudeProteinPct: number;
+    metabolizableEnergyKcal: number;
+    lysinePct: number;
+    methioninePct: number;
+    calciumPct: number;
+    phosphorusPct: number;
+    crudeFiberPct: number;
+    energyChangePct: number | null;
+  } | null;
+  baseFeasible: boolean;
+};

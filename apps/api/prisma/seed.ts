@@ -1,6 +1,7 @@
 /**
  * Seed référentiels géo CI (AdminRegionRef + LocalityRef)
- * + référentiel FeedIngredient (intrants, valeurs indicatives).
+ * + référentiel FeedIngredient (intrants, valeurs indicatives)
+ * + profils FeedRequirementProfile (besoins par stade).
  * Usage : npm run prisma:seed --workspace @fermier/api
  */
 import * as path from "node:path";
@@ -9,6 +10,7 @@ import { PrismaClient } from "@prisma/client";
 import { CI_ADMIN_REGIONS } from "./seed-data/ci-admin-regions";
 import { CI_LOCALITIES } from "./seed-data/ci-localities";
 import { FEED_INGREDIENTS_SEED } from "./seed-data/feed-ingredients";
+import { FEED_REQUIREMENTS_SEED } from "./seed-data/feed-requirements";
 
 loadEnv({ path: path.resolve(__dirname, "../../../.env") });
 loadEnv({ path: path.resolve(__dirname, "../.env") });
@@ -97,10 +99,41 @@ async function seedFeedIngredients() {
   );
 }
 
+async function seedFeedRequirements() {
+  for (const row of FEED_REQUIREMENTS_SEED) {
+    await prisma.feedRequirementProfile.upsert({
+      where: { stage: row.stage },
+      create: {
+        stage: row.stage,
+        minCrudeProteinPct: row.minCrudeProteinPct,
+        maxCrudeProteinPct: row.maxCrudeProteinPct ?? null,
+        minMetabolizableEnergyKcal: row.minMetabolizableEnergyKcal,
+        maxMetabolizableEnergyKcal: row.maxMetabolizableEnergyKcal ?? null,
+        minLysinePct: row.minLysinePct,
+        minMethioninePct: row.minMethioninePct,
+        minCalciumPct: row.minCalciumPct,
+        maxCalciumPct: row.maxCalciumPct ?? null,
+        minPhosphorusPct: row.minPhosphorusPct,
+        maxFiberPct: row.maxFiberPct ?? null,
+        minLysinePerMcal: row.minLysinePerMcal ?? null,
+        targetDailyIntakeKg: row.targetDailyIntakeKg ?? null,
+        notes: row.notes,
+        isActive: true
+      },
+      // Idempotent : ne pas écraser les corrections superadmin.
+      update: {}
+    });
+  }
+  console.log(
+    `[seed] FeedRequirementProfile : ${FEED_REQUIREMENTS_SEED.length} stades (upsert stage, sans écraser l'existant)`
+  );
+}
+
 async function main() {
   await seedAdminRegions();
   await seedLocalities();
   await seedFeedIngredients();
+  await seedFeedRequirements();
 }
 
 main()
