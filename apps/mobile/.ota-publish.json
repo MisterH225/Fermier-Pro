@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (5a390c61) — composition aliments #297–#300 + type moulin paramètres #296",
-  "updatedAt": "2026-07-31T03:58Z",
+  "message": "OTA preview (bbf3bf81) — UX composition aliment (scroll, clavier, véto, langage) #301",
+  "updatedAt": "2026-07-31T04:30Z",
   "channels": ["preview"],
-  "updateGroupId": "e66cf858-5b84-4817-a10e-e4028d76c144",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/e66cf858-5b84-4817-a10e-e4028d76c144"
+  "updateGroupId": "82c7e64b-b1dc-46c8-9666-f230267b8a9d",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/82c7e64b-b1dc-46c8-9666-f230267b8a9d"
 }
