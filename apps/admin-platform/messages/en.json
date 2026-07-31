@@ -1811,6 +1811,13 @@
     "allCategories": "All categories",
     "empty": "No ingredients found. Run Prisma seed or add one below.",
     "loadError": "Could not load the feed ingredient catalog.",
-    "createHint": "Collapsed by default — only used to add an ingredient missing from the catalog."
+    "createHint": "Collapsed by default — only used to add an ingredient missing from the catalog.",
+    "reviewStatus": "Review",
+    "needsReview": "Needs review",
+    "reviewed": "Reviewed",
+    "markReviewed": "Mark reviewed",
+    "reviewLegend": "Amber rows come from the seed catalog and have not been reviewed yet. Any nutrition edit or a manual validation sets the review date.",
+    "reviewedAt": "Reviewed on {date}",
+    "needsReviewHint": "Not yet reviewed by an admin"
   }
 }

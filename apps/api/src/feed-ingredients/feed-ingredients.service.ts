@@ -34,11 +34,26 @@ export type FeedIngredientDto = {
   dryMatterPct: number;
   isActive: boolean;
   notes: string | null;
+  /** Null = seed / non relu ; ISO si validé par un superadmin. */
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   createdBy: string | null;
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+const NUTRITION_PATCH_KEYS = [
+  "crudeProteinPct",
+  "metabolizableEnergyKcal",
+  "lysinePct",
+  "methioninePct",
+  "calciumPct",
+  "phosphorusPct",
+  "crudeFiberPct",
+  "fatPct",
+  "dryMatterPct"
+] as const;
 
 @Injectable()
 export class FeedIngredientsService {
@@ -107,6 +122,9 @@ export class FeedIngredientsService {
           fatPct: dto.fatPct,
           dryMatterPct: dto.dryMatterPct,
           notes: dto.notes?.trim() || null,
+          // Création manuelle admin = déjà validée.
+          reviewedAt: new Date(),
+          reviewedBy: actorUserId,
           createdBy: actorUserId,
           updatedBy: actorUserId
         }
@@ -152,6 +170,11 @@ export class FeedIngredientsService {
       );
     }
 
+    const nutritionTouched = NUTRITION_PATCH_KEYS.some(
+      (key) => dto[key] != null
+    );
+    const shouldMarkReviewed = Boolean(dto.markReviewed) || nutritionTouched;
+
     try {
       const updated = await this.prisma.feedIngredient.update({
         where: { id },
@@ -188,6 +211,9 @@ export class FeedIngredientsService {
           ...(dto.notes !== undefined
             ? { notes: dto.notes?.trim() || null }
             : {}),
+          ...(shouldMarkReviewed
+            ? { reviewedAt: new Date(), reviewedBy: actorUserId }
+            : {}),
           updatedBy: actorUserId
         }
       });
@@ -203,7 +229,8 @@ export class FeedIngredientsService {
         resourceId: updated.id,
         metadata: {
           canonicalName: updated.canonicalName,
-          isActive: updated.isActive
+          isActive: updated.isActive,
+          reviewed: shouldMarkReviewed || Boolean(updated.reviewedAt)
         }
       });
       return this.toDto(updated);
@@ -223,6 +250,14 @@ export class FeedIngredientsService {
   /** Désactivation soft — conserve la ligne pour l'historique. */
   async deactivate(id: string, actorUserId: string): Promise<FeedIngredientDto> {
     return this.update(id, { isActive: false }, actorUserId);
+  }
+
+  /** Marque l'intrant comme relu sans modifier les valeurs. */
+  async markReviewed(
+    id: string,
+    actorUserId: string
+  ): Promise<FeedIngredientDto> {
+    return this.update(id, { markReviewed: true }, actorUserId);
   }
 
   /**
@@ -300,6 +335,8 @@ export class FeedIngredientsService {
       dryMatterPct: Number(row.dryMatterPct),
       isActive: row.isActive,
       notes: row.notes,
+      reviewedAt: row.reviewedAt?.toISOString() ?? null,
+      reviewedBy: row.reviewedBy,
       createdBy: row.createdBy,
       updatedBy: row.updatedBy,
       createdAt: row.createdAt.toISOString(),

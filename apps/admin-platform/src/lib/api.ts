@@ -2300,6 +2300,8 @@ export type AdminFeedIngredientDto = {
   dryMatterPct: number;
   isActive: boolean;
   notes: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -2354,12 +2356,23 @@ export function createAdminFeedIngredient(
 export function patchAdminFeedIngredient(
   token: string,
   id: string,
-  body: Partial<FeedIngredientWriteBody> & { isActive?: boolean }
+  body: Partial<FeedIngredientWriteBody> & {
+    isActive?: boolean;
+    markReviewed?: boolean;
+  }
 ) {
   return apiFetch<AdminFeedIngredientDto>(
     `/admin/feed-ingredients/${id}`,
     token,
     { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
+export function reviewAdminFeedIngredient(token: string, id: string) {
+  return apiFetch<AdminFeedIngredientDto>(
+    `/admin/feed-ingredients/${id}/review`,
+    token,
+    { method: "POST", body: JSON.stringify({}) }
   );
 }
 

@@ -7,6 +7,7 @@ import {
   deactivateAdminFeedIngredient,
   fetchAdminFeedIngredients,
   patchAdminFeedIngredient,
+  reviewAdminFeedIngredient,
   type AdminFeedIngredientDto,
   type FeedIngredientCategory,
   type FeedIngredientWriteBody
@@ -236,6 +237,22 @@ export function FeedIngredientsPanel() {
     }
   };
 
+  const onMarkReviewed = async (row: AdminFeedIngredientDto) => {
+    if (!token || row.reviewedAt) return;
+    setBusyId(row.id);
+    try {
+      const updated = await reviewAdminFeedIngredient(token, row.id);
+      setRows((prev) => prev.map((r) => (r.id === row.id ? updated : r)));
+    } catch (e) {
+      setRowErrors((err) => ({
+        ...err,
+        [row.id]: e instanceof Error ? e.message : t("saveError")
+      }));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const onCreate = async () => {
     if (!token || !form.canonicalName.trim()) return;
     const validationError = validateNutrition(form);
@@ -309,6 +326,7 @@ export function FeedIngredientsPanel() {
             {t("search")}
           </Button>
         </div>
+        <p className="mb-4 text-xs text-muted-foreground">{t("reviewLegend")}</p>
 
         {loadError ? (
           <p className="mb-3 text-sm text-destructive">{loadError}</p>
@@ -369,8 +387,9 @@ export function FeedIngredientsPanel() {
                             <TableHead>{t("fields.crudeFiberPct")}</TableHead>
                             <TableHead>{t("fields.fatPct")}</TableHead>
                             <TableHead>{t("fields.dryMatterPct")}</TableHead>
+                            <TableHead>{t("reviewStatus")}</TableHead>
                             <TableHead>{t("status")}</TableHead>
-                            <TableHead className="min-w-[9rem]" />
+                            <TableHead className="min-w-[11rem]" />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -379,10 +398,14 @@ export function FeedIngredientsPanel() {
                               drafts[row.id] ?? nutritionFromRow(row);
                             const dirty = isDirty(row, draft);
                             const saving = busyId === row.id;
+                            const needsReview = !row.reviewedAt;
                             return (
                               <TableRow
                                 key={row.id}
-                                className={cn(!row.isActive && "opacity-60")}
+                                className={cn(
+                                  !row.isActive && "opacity-60",
+                                  needsReview && "bg-amber-50/40"
+                                )}
                               >
                                 <TableCell>
                                   <div className="font-medium">
@@ -426,6 +449,24 @@ export function FeedIngredientsPanel() {
                                 ))}
                                 <TableCell>
                                   <Badge
+                                    variant={needsReview ? "destructive" : "outline"}
+                                    title={
+                                      row.reviewedAt
+                                        ? t("reviewedAt", {
+                                            date: new Date(
+                                              row.reviewedAt
+                                            ).toLocaleDateString("fr-FR")
+                                          })
+                                        : t("needsReviewHint")
+                                    }
+                                  >
+                                    {needsReview
+                                      ? t("needsReview")
+                                      : t("reviewed")}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
                                     variant={
                                       row.isActive ? "outline" : "destructive"
                                     }
@@ -442,6 +483,17 @@ export function FeedIngredientsPanel() {
                                   >
                                     {saving ? "…" : t("save")}
                                   </Button>
+                                  {needsReview ? (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={saving}
+                                      onClick={() => void onMarkReviewed(row)}
+                                    >
+                                      {t("markReviewed")}
+                                    </Button>
+                                  ) : null}
                                   <Button
                                     type="button"
                                     size="sm"

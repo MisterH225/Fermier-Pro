@@ -25,6 +25,8 @@ function row(overrides: Record<string, unknown> = {}) {
     dryMatterPct: 86,
     isActive: true,
     notes: null,
+    reviewedAt: null,
+    reviewedBy: null,
     createdBy: "admin",
     updatedBy: "admin",
     createdAt: now,
@@ -210,5 +212,90 @@ describe("FeedIngredientsService", () => {
         "admin"
       )
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("création admin pose reviewedAt ; désactivation seule ne le pose pas", async () => {
+    findMany.mockResolvedValue([]);
+    create.mockResolvedValue(
+      row({
+        id: "ing-new",
+        canonicalName: "Sorgho",
+        reviewedAt: new Date("2026-07-31T12:00:00.000Z"),
+        reviewedBy: "admin-1"
+      })
+    );
+    const created = await service.create(
+      {
+        canonicalName: "Sorgho",
+        aliases: ["sorghum"],
+        category: FeedIngredientCategory.cereal,
+        crudeProteinPct: 10,
+        metabolizableEnergyKcal: 3100,
+        lysinePct: 0.2,
+        methioninePct: 0.15,
+        calciumPct: 0.03,
+        phosphorusPct: 0.3,
+        crudeFiberPct: 2.5,
+        fatPct: 3,
+        dryMatterPct: 87
+      },
+      "admin-1"
+    );
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        reviewedAt: expect.any(Date),
+        reviewedBy: "admin-1"
+      })
+    });
+    expect(created.reviewedAt).toBe("2026-07-31T12:00:00.000Z");
+    expect(created.reviewedBy).toBe("admin-1");
+
+    findUnique.mockResolvedValue(row({ isActive: true, reviewedAt: null }));
+    findMany.mockResolvedValue([]);
+    update.mockResolvedValue(row({ isActive: false, reviewedAt: null }));
+    await service.deactivate("ing-1", "admin-1");
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "ing-1" },
+      data: expect.not.objectContaining({ reviewedAt: expect.any(Date) })
+    });
+  });
+
+  it("markReviewed et édition nutritionnelle renseignent reviewedAt", async () => {
+    findUnique.mockResolvedValue(row({ reviewedAt: null }));
+    findMany.mockResolvedValue([]);
+    update.mockResolvedValue(
+      row({
+        reviewedAt: new Date("2026-07-31T15:00:00.000Z"),
+        reviewedBy: "admin-1"
+      })
+    );
+
+    const reviewed = await service.markReviewed("ing-1", "admin-1");
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "ing-1" },
+      data: expect.objectContaining({
+        reviewedAt: expect.any(Date),
+        reviewedBy: "admin-1"
+      })
+    });
+    expect(reviewed.reviewedAt).toBe("2026-07-31T15:00:00.000Z");
+
+    findUnique.mockResolvedValue(row({ reviewedAt: null }));
+    update.mockResolvedValue(
+      row({
+        crudeProteinPct: 9,
+        reviewedAt: new Date("2026-07-31T16:00:00.000Z"),
+        reviewedBy: "admin-1"
+      })
+    );
+    await service.update("ing-1", { crudeProteinPct: 9 }, "admin-1");
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "ing-1" },
+      data: expect.objectContaining({
+        crudeProteinPct: 9,
+        reviewedAt: expect.any(Date),
+        reviewedBy: "admin-1"
+      })
+    });
   });
 });

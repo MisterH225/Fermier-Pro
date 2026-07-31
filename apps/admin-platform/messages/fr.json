@@ -1813,6 +1813,13 @@
     "allCategories": "Toutes les catégories",
     "empty": "Aucun intrant trouvé. Lancez le seed Prisma ou ajoutez-en un ci-dessous.",
     "loadError": "Impossible de charger le référentiel d'intrants.",
-    "createHint": "Réplié par défaut — sert uniquement à ajouter un intrant absent du référentiel."
+    "createHint": "Réplié par défaut — sert uniquement à ajouter un intrant absent du référentiel.",
+    "reviewStatus": "Revue",
+    "needsReview": "À valider",
+    "reviewed": "Validé",
+    "markReviewed": "Marquer validé",
+    "reviewLegend": "Les lignes ambrées viennent du référentiel seed et n’ont pas encore été relues. Toute modification nutritionnelle ou une validation manuelle pose la date de revue.",
+    "reviewedAt": "Validé le {date}",
+    "needsReviewHint": "Pas encore relu par un admin"
   }
 }
