@@ -24,17 +24,29 @@ export class AppService {
   ) {}
 
   /**
-   * Healthcheck public pour uptime monitors externes.
+   * Liveness (Railway / orchestrateurs) : le process HTTP est prêt.
+   * Ne touche pas à la DB — un 503 readiness ne doit pas bloquer le rollout.
+   */
+  live() {
+    return {
+      status: "ok" as const,
+      service: "fermier-api",
+      version: APP_VERSION,
+      gitCommit:
+        process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
+        process.env.GIT_COMMIT?.trim() ||
+        null
+    };
+  }
+
+  /**
+   * Readiness / uptime monitors externes.
    * Vérifie Prisma (`SELECT 1`) et Redis si REDIS_URL est configuré.
+   * Retry court : au boot Railway, la première requête peut arriver avant
+   * que le pool Prisma soit chaud (sinon HTTP 503 → healthcheck « service unavailable »).
    */
   async health(): Promise<HealthCheckResult> {
-    let db: "ok" | "error" = "ok";
-    try {
-      await this.prisma.$queryRaw`SELECT 1`;
-    } catch {
-      db = "error";
-    }
-
+    const db = (await this.probeDbWithRetry()) ? "ok" : "error";
     const redis = await this.checkRedis();
 
     let status: HealthCheckResult["status"] = "ok";
@@ -56,6 +68,21 @@ export class AppService {
         null,
       phoneAuth: getPhoneAuthReadiness()
     };
+  }
+
+  private async probeDbWithRetry(): Promise<boolean> {
+    const attempts = 3;
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        await this.prisma.$queryRaw`SELECT 1`;
+        return true;
+      } catch {
+        if (i < attempts - 1) {
+          await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+        }
+      }
+    }
+    return false;
   }
 
   async healthWithDb() {

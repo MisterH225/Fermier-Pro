@@ -5,7 +5,9 @@ import { plainToInstance } from "class-transformer";
 import { AUDIT_ACTION } from "../common/audit.constants";
 import { CreateFeedIngredientDto } from "./dto/feed-ingredient.dto";
 import { FeedIngredientsService } from "./feed-ingredients.service";
-import { FEED_INGREDIENTS_SEED } from "../../prisma/seed-data/feed-ingredients";
+// JSON (pas le .ts seed) : un import hors `src/` dans le programme tsc
+// déplace l'emit Nest vers `dist/src/main.js` et casse start-api sur Railway.
+import FEED_INGREDIENTS_SEED from "../../prisma/seed-data/feed-ingredients.json";
 
 function row(overrides: Record<string, unknown> = {}) {
   const now = new Date("2026-07-31T00:00:00.000Z");

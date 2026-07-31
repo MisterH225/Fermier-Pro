@@ -16,7 +16,8 @@
 4. **Pre-deploy** : `node apps/api/scripts/railway-predeploy.cjs` (défini dans `railway.json`).
 5. **Port** : Railway injecte `PORT` ; l'API écoute `PORT` puis `API_PORT` (défaut 3000). Ne pas forcer un port fixe sans `PORT`.
 6. **Variables** : `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `YELLIKA_SMS_API_TOKEN`, `YELLIKA_SMS_SENDER_ID`, `SUPABASE_SEND_SMS_HOOK_SECRET`, etc. (voir `.env.example`).
-7. **Healthcheck** : `GET /api/v1/health` (configuré dans `railway.json`).
+7. **Healthcheck** : `GET /api/v1/health/live` (liveness sans DB, configuré dans `railway.json`).  
+   `GET /api/v1/health` reste la readiness (503 si DB down) pour les monitors externes.
 8. **Serverless** : `sleepApplication: false` dans `railway.json` — **désactiver aussi dans Settings** si le toggle UI est encore ON.
 
 ### Serverless ON → app mobile « Application failed to respond »
@@ -39,6 +40,11 @@ Si le déploiement échoue à l'étape **Network > Healthcheck** alors que le bu
 - **Cause fréquente** : `prisma migrate deploy` dans le `startCommand` bloque le démarrage HTTP jusqu'au timeout.
 - **Correctif** (déjà dans `railway.json`) : migrations en `preDeployCommand`, API seule au démarrage.
 - **Autre cause** : l'API n'écoutait pas sur `process.env.PORT` (Railway route le trafic vers ce port).
+- **503 « service unavailable »** : l'ancien path `/api/v1/health` renvoie **HTTP 503** si Prisma n'est pas joignable au moment du probe. Railway le lit comme un échec de healthcheck alors que Nest tourne.  
+  **Correctif** : healthcheck sur `/api/v1/health/live` (toujours 200 une fois le process prêt). Garder `/api/v1/health` pour la readiness / uptime.
+- **Build OK puis process mort** : un import TypeScript depuis `src/**/*.spec.ts` vers un fichier hors `src/` (ex. `prisma/seed-data/*.ts`) fait émettre Nest dans `dist/src/main.js` au lieu de `dist/main.js`. `start-api.cjs` ne trouve plus l'entrée → conteneur down → healthcheck « service unavailable ».  
+  **Correctif** : `apps/api/tsconfig.build.json` exclut les `*.spec.ts` ; ne pas importer de `.ts` hors `src/` dans le graphe de build.
+
 
 ## Admin sur Railway
 

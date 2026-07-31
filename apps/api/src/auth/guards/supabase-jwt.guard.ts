@@ -16,6 +16,8 @@ import { AuthService } from "../auth.service";
 const ACCOUNT_STATUS_EXEMPT_PATHS = new Set([
   "/api/v1/auth/me",
   "/api/v1/health",
+  "/api/v1/health/live",
+  "/api/v1/health/db",
   "/api/v1/config/client"
 ]);
 
