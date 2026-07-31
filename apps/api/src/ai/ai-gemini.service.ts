@@ -13,6 +13,12 @@ const DEFAULT_QUOTA_COOLDOWN_MS = 15 * 60 * 1000;
 type CallModelResult = {
   text: string | null;
   quotaExceeded: boolean;
+  usage: { inputTokens: number; outputTokens: number };
+};
+
+export type GeminiGenerateResult = {
+  text: string;
+  usage: { inputTokens: number; outputTokens: number };
 };
 
 /** Contenu conversationnel Gemini (user / model). */
@@ -136,6 +142,18 @@ export class AiGeminiService {
   }
 
   async generateText(prompt: string): Promise<string | null> {
+    const result = await this.generateJson(prompt);
+    return result?.text ?? null;
+  }
+
+  /**
+   * Génération JSON + usage tokens (explication composition, prévisions…).
+   * Pas de function calling — prompt seul.
+   */
+  async generateJson(
+    prompt: string,
+    options?: { maxOutputTokens?: number; timeoutMs?: number }
+  ): Promise<GeminiGenerateResult | null> {
     if (this.isQuotaBlocked()) {
       return null;
     }
@@ -147,12 +165,17 @@ export class AiGeminiService {
     const chain = this.modelChain();
     let sawQuotaError = false;
     for (const model of chain) {
-      const { text, quotaExceeded } = await this.callModel(apiKey, model, prompt);
+      const { text, quotaExceeded, usage } = await this.callModel(
+        apiKey,
+        model,
+        prompt,
+        options
+      );
       if (text) {
         if (model !== chain[0]) {
           this.logger.log(`Gemini OK via modèle de secours: ${model}`);
         }
-        return text;
+        return { text, usage };
       }
       if (quotaExceeded) {
         sawQuotaError = true;
@@ -162,6 +185,22 @@ export class AiGeminiService {
       this.markQuotaExceeded();
     }
     return null;
+  }
+
+  /** Log usage tokens (explication, génération libre). */
+  logGenerateUsage(
+    usage: { inputTokens: number; outputTokens: number },
+    meta: { purpose: string }
+  ): void {
+    this.logger.log(
+      JSON.stringify({
+        event: "gemini_usage",
+        model: this.primaryModel(),
+        purpose: meta.purpose,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens
+      })
+    );
   }
 
   /**
@@ -359,18 +398,37 @@ export class AiGeminiService {
         this.logger.warn(
           `Gemini ${model} HTTP ${res.status}${quotaExceeded ? " (quota)" : ""}: ${errText.slice(0, 180)}`
         );
-        return { text: null, quotaExceeded };
+        return {
+          text: null,
+          quotaExceeded,
+          usage: { inputTokens: 0, outputTokens: 0 }
+        };
       }
 
       const body = (await res.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
+        usageMetadata?: {
+          promptTokenCount?: number;
+          candidatesTokenCount?: number;
+        };
       };
       const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
-      return { text: text?.trim() ?? null, quotaExceeded: false };
+      return {
+        text: text?.trim() ?? null,
+        quotaExceeded: false,
+        usage: {
+          inputTokens: body.usageMetadata?.promptTokenCount ?? 0,
+          outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0
+        }
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Gemini ${model} indisponible: ${msg}`);
-      return { text: null, quotaExceeded: false };
+      return {
+        text: null,
+        quotaExceeded: false,
+        usage: { inputTokens: 0, outputTokens: 0 }
+      };
     } finally {
       clearTimeout(timer);
     }

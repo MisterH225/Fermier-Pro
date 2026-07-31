@@ -23,9 +23,11 @@ import { useSession } from "../../context/SessionContext";
 import {
   listFarmCompositionVeterinarians,
   postFeedCompositionAssist,
+  postFeedCompositionExplain,
   postFeedCompositionFormulate,
   requestCompositionVetReview,
   saveFeedComposition,
+  type CompositionExplanationDto,
   type FeedCompositionChatMessage,
   type FeedFormulateResultDto,
   type ProductionStage,
@@ -33,7 +35,11 @@ import {
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
 import { isFeedCompositionModuleActive } from "../../lib/feedComposition";
-import { isAiUnavailableError } from "../../lib/feedCompositionFormat";
+import {
+  buildLocalFactualExplanation,
+  nutritionFromFormulation
+} from "../../lib/compositionExplanation";
+import { asRationLines, isAiUnavailableError } from "../../lib/feedCompositionFormat";
 import type { RootStackParamList } from "../../types/navigation";
 import {
   mobileColors,
@@ -68,6 +74,9 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     unknown
   > | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [explanation, setExplanation] =
+    useState<CompositionExplanationDto | null>(null);
+  const [explanationLoading, setExplanationLoading] = useState(false);
 
   const [formValues, setFormValues] = useState<FormulateFormValues>({
     stage: "fattening",
@@ -95,6 +104,58 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     enabled: Boolean(accessToken && compositionOn)
   });
 
+  const fetchExplanation = useCallback(
+    async (
+      f: FeedFormulateResultDto,
+      meta: {
+        stage: ProductionStage;
+        animalCount?: number;
+        avgWeightKg?: number;
+        avgAgeWeeks?: number;
+        savedCompositionId?: string;
+      }
+    ) => {
+      const nutrition = nutritionFromFormulation(f);
+      if (!f.feasible || !nutrition || !accessToken) {
+        setExplanation(null);
+        return;
+      }
+      setExplanationLoading(true);
+      try {
+        const res = await postFeedCompositionExplain(
+          accessToken,
+          {
+            farmId,
+            stage: meta.stage,
+            animalCount: meta.animalCount && meta.animalCount > 0
+              ? meta.animalCount
+              : 1,
+            avgWeightKg: meta.avgWeightKg,
+            avgAgeWeeks: meta.avgAgeWeeks,
+            ration: asRationLines(f.ration),
+            nutritionResult: nutrition,
+            deviations: f.deviations,
+            savedCompositionId: meta.savedCompositionId
+          },
+          activeProfileId
+        );
+        setExplanation(res.explanation);
+      } catch {
+        setExplanation(
+          buildLocalFactualExplanation({
+            stage: meta.stage,
+            animalCount: meta.animalCount,
+            avgWeightKg: meta.avgWeightKg,
+            formulation: f
+          })
+        );
+      } finally {
+        setExplanationLoading(false);
+      }
+    },
+    [accessToken, activeProfileId, farmId]
+  );
+
   const applyFormulation = useCallback(
     (
       f: FeedFormulateResultDto,
@@ -113,9 +174,31 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
       setSource(meta.source);
       setLastInputParams(meta.inputParams);
       setSavedId(null);
+      setExplanation(null);
       scrollTowardBottom();
+
+      const stageForExplain =
+        meta.stage ??
+        (typeof meta.inputParams.stage === "string"
+          ? (meta.inputParams.stage as ProductionStage)
+          : formValues.stage);
+      void fetchExplanation(f, {
+        stage: stageForExplain,
+        animalCount:
+          typeof meta.inputParams.animalCount === "number"
+            ? meta.inputParams.animalCount
+            : Number(formValues.animalCount) || undefined,
+        avgWeightKg:
+          typeof meta.inputParams.avgWeightKg === "number"
+            ? meta.inputParams.avgWeightKg
+            : Number(formValues.avgWeightKg) || undefined,
+        avgAgeWeeks:
+          typeof meta.inputParams.avgAgeWeeks === "number"
+            ? meta.inputParams.avgAgeWeeks
+            : undefined
+      });
     },
-    [scrollTowardBottom]
+    [scrollTowardBottom, fetchExplanation, formValues]
   );
 
   const assistMut = useMutation({
@@ -264,6 +347,21 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
     },
     onSuccess: (row) => {
       setSavedId(row.id);
+      // Persister l'explication en cache côté composition sauvegardée.
+      if (formulation?.feasible) {
+        void fetchExplanation(formulation, {
+          stage: row.stage,
+          animalCount:
+            typeof lastInputParams?.animalCount === "number"
+              ? lastInputParams.animalCount
+              : Number(formValues.animalCount) || undefined,
+          avgWeightKg:
+            typeof lastInputParams?.avgWeightKg === "number"
+              ? lastInputParams.avgWeightKg
+              : Number(formValues.avgWeightKg) || undefined,
+          savedCompositionId: row.id
+        });
+      }
       Alert.alert(
         "Enregistré",
         "Composition sauvegardée. Vous pouvez l’envoyer à votre vétérinaire pour validation."
@@ -443,6 +541,8 @@ export function FeedCompositionScreen({ navigation, route }: Props) {
               formulation={formulation}
               stage={stage ?? formValues.stage}
               isTheoretical={isTheoretical}
+              explanation={explanation}
+              explanationLoading={explanationLoading}
             />
             {formulation.feasible ? (
               <View style={styles.actions}>
