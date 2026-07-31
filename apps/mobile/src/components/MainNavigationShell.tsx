@@ -68,6 +68,10 @@ import {
   FarmBarnsScreen,
   FarmDetailScreen,
   FarmFeedStockScreen,
+  FarmFeedHubScreen,
+  FeedCompositionScreen,
+  FeedCompositionsListScreen,
+  FeedCompositionDetailScreen,
   FarmGestationScreen,
   FarmFinanceScreen,
   HistoricalRecordsScreen,
@@ -683,6 +687,26 @@ function MainStack() {
         name="FarmFeedStock"
         component={FarmFeedStockScreen}
         options={{ title: st("feedStock") }}
+      />
+      <Stack.Screen
+        name="FarmFeedHub"
+        component={FarmFeedHubScreen}
+        options={{ title: st("feedHub") }}
+      />
+      <Stack.Screen
+        name="FeedComposition"
+        component={FeedCompositionScreen}
+        options={{ title: st("feedComposition") }}
+      />
+      <Stack.Screen
+        name="FeedCompositionsList"
+        component={FeedCompositionsListScreen}
+        options={{ title: st("feedCompositionsList") }}
+      />
+      <Stack.Screen
+        name="FeedCompositionDetail"
+        component={FeedCompositionDetailScreen}
+        options={{ title: st("feedCompositionDetail") }}
       />
       <Stack.Screen
         name="FarmGestation"

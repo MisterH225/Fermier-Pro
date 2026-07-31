@@ -63,7 +63,8 @@ export function ProducerPersistentTabBar() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { accessToken, activeProfileId, authMe, clientFeatures } = useSession();
+  const { accessToken, activeProfileId, authMe, clientFeatures, platformModules } =
+    useSession();
   const [extendedOpen, setExtendedOpen] = useState(false);
 
   const profileType = authMe?.profiles.find((p) => p.id === activeProfileId)?.type;
@@ -273,17 +274,29 @@ export function ProducerPersistentTabBar() {
             navigation.navigate("FarmList");
             return;
           }
-          if (!clientFeatures.feedStock) {
-            navigation.navigate("ModuleRoadmap", {
-              title: t("navigation.extended.nutrition"),
-              body: t("navigation.extended.nutritionRoadmap")
+          {
+            const compositionOn = platformModules.some(
+              (m) => m.moduleId === "feed_composition" && m.isActive
+            );
+            if (!clientFeatures.feedStock && !compositionOn) {
+              navigation.navigate("ModuleRoadmap", {
+                title: t("navigation.extended.nutrition"),
+                body: t("navigation.extended.nutritionRoadmap")
+              });
+              return;
+            }
+            if (compositionOn) {
+              navigation.navigate("FarmFeedHub", {
+                farmId: ctx.farmId,
+                farmName: ctx.farmName
+              });
+              return;
+            }
+            navigation.navigate("FarmFeedStock", {
+              farmId: ctx.farmId,
+              farmName: ctx.farmName
             });
-            return;
           }
-          navigation.navigate("FarmFeedStock", {
-            farmId: ctx.farmId,
-            farmName: ctx.farmName
-          });
           return;
         case "communityFeed":
           navigation.navigate("CommunityFeed");
@@ -328,7 +341,7 @@ export function ProducerPersistentTabBar() {
           return;
       }
     },
-    [navigation, farmContext, clientFeatures.feedStock, t]
+    [navigation, farmContext, clientFeatures.feedStock, platformModules, t]
   );
 
   if (!isProducer) {

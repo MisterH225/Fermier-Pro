@@ -304,6 +304,24 @@ export type RootStackParamList = {
     filterCostMissing?: boolean;
     costFilter?: "missing";
   };
+  /** Hub Aliment : stock + composition (si flag feed_composition). */
+  FarmFeedHub: {
+    farmId: string;
+    farmName: string;
+  };
+  FeedComposition: {
+    farmId: string;
+    farmName: string;
+  };
+  FeedCompositionsList: {
+    farmId: string;
+    farmName: string;
+  };
+  FeedCompositionDetail: {
+    farmId: string;
+    farmName: string;
+    compositionId: string;
+  };
   FarmGestation: {
     farmId: string;
     farmName: string;
