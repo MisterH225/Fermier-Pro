@@ -1,4 +1,7 @@
 import type { ProductionStage } from "@prisma/client";
+import type { FixedInclusion } from "./fixed-inclusions";
+
+export type { FixedInclusion } from "./fixed-inclusions";
 
 /** Snapshot nutritionnel d'un intrant (par kg matière brute). */
 export type IngredientNutrition = {
@@ -14,6 +17,8 @@ export type IngredientNutrition = {
   crudeFiberPct: number;
   fatPct?: number;
   dryMatterPct?: number;
+  /** Si true : hors LP, uniquement via fixedInclusions du profil. */
+  isPremix?: boolean;
 };
 
 /** Intrant disponible (déjà converti en prix/kg côté appelant). */
@@ -38,6 +43,11 @@ export type RequirementProfileSnapshot = {
   maxFiberPct: number | null;
   minLysinePerMcal: number | null;
   targetDailyIntakeKg: number | null;
+  /**
+   * Taux fixes prescrits pour le stade (CMV, sel…).
+   * Posés avant l'optimisation ; leurs apports comptent dans le bilan.
+   */
+  fixedInclusions: FixedInclusion[];
 };
 
 export type FormulateInput = {
@@ -49,7 +59,7 @@ export type FormulateInput = {
   availableIngredients: AvailableIngredientInput[];
   /** Profil actif du stade (chargé par le service Nest). */
   profile: RequirementProfileSnapshot;
-  /** Nutrition des intrants (même ids que availableIngredients). */
+  /** Nutrition des intrants (même ids que availableIngredients + fixed). */
   nutritionById: Record<string, IngredientNutrition>;
 };
 

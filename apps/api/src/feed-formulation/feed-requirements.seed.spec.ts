@@ -37,4 +37,24 @@ describe("FEED_REQUIREMENTS_SEED", () => {
       }
     }
   });
+
+  it("chaque stade prescrit CMV + sel en taux fixes (indicatif)", () => {
+    for (const row of FEED_REQUIREMENTS_SEED) {
+      expect(row.fixedInclusionsByName.length).toBeGreaterThan(0);
+      const names = row.fixedInclusionsByName.map((f) => f.canonicalName);
+      expect(names).toEqual(
+        expect.arrayContaining([
+          "Complément minéral vitaminé (CMV)",
+          "Sel"
+        ])
+      );
+      const sum = row.fixedInclusionsByName.reduce(
+        (s, f) => s + f.inclusionPct,
+        0
+      );
+      expect(sum).toBeGreaterThan(0);
+      expect(sum).toBeLessThanOrEqual(5);
+      expect(row.notes).toMatch(/nutritionniste/i);
+    }
+  });
 });

@@ -112,12 +112,51 @@ const NUTRI: Record<string, IngredientNutrition> = {
     calciumPct: 0,
     phosphorusPct: 0,
     crudeFiberPct: 0
+  },
+  cmv: {
+    feedIngredientId: "cmv",
+    canonicalName: "Complément minéral vitaminé (CMV)",
+    crudeProteinPct: 0,
+    metabolizableEnergyKcal: 0,
+    lysinePct: 0,
+    methioninePct: 0,
+    calciumPct: 15,
+    phosphorusPct: 5,
+    crudeFiberPct: 0,
+    isPremix: true
+  },
+  salt: {
+    feedIngredientId: "salt",
+    canonicalName: "Sel",
+    crudeProteinPct: 0,
+    metabolizableEnergyKcal: 0,
+    lysinePct: 0,
+    methioninePct: 0,
+    calciumPct: 0,
+    phosphorusPct: 0,
+    crudeFiberPct: 0,
+    isPremix: true
   }
 };
 
-function profileOf(stage: RequirementProfileSnapshot["stage"]): RequirementProfileSnapshot {
+/** Map seed canonicalName → id de test stable. */
+const NAME_TO_TEST_ID: Record<string, string> = {
+  "Complément minéral vitaminé (CMV)": "cmv",
+  Sel: "salt"
+};
+
+function profileOf(
+  stage: RequirementProfileSnapshot["stage"],
+  fixedOverride?: RequirementProfileSnapshot["fixedInclusions"]
+): RequirementProfileSnapshot {
   const seed = FEED_REQUIREMENTS_SEED.find((r) => r.stage === stage);
   if (!seed) throw new Error(`seed manquant: ${stage}`);
+  const fixedInclusions =
+    fixedOverride ??
+    seed.fixedInclusionsByName.map((f) => ({
+      feedIngredientId: NAME_TO_TEST_ID[f.canonicalName] ?? f.canonicalName,
+      inclusionPct: f.inclusionPct
+    }));
   return {
     stage,
     minCrudeProteinPct: seed.minCrudeProteinPct,
@@ -131,7 +170,8 @@ function profileOf(stage: RequirementProfileSnapshot["stage"]): RequirementProfi
     minPhosphorusPct: seed.minPhosphorusPct,
     maxFiberPct: seed.maxFiberPct ?? null,
     minLysinePerMcal: seed.minLysinePerMcal ?? null,
-    targetDailyIntakeKg: seed.targetDailyIntakeKg ?? null
+    targetDailyIntakeKg: seed.targetDailyIntakeKg ?? null,
+    fixedInclusions
   };
 }
 
@@ -143,7 +183,10 @@ const FULL_PANEL = [
   "oyster",
   "dcp",
   "lys",
-  "met"
+  "met",
+  "oil",
+  "cmv",
+  "salt"
 ] as const;
 
 function availableAll(
@@ -160,7 +203,9 @@ function availableAll(
     dcp: 350,
     lys: 2000,
     met: 2500,
-    oil: 900
+    oil: 900,
+    cmv: 1200,
+    salt: 80
   };
   return ids.map((id) => ({
     feedIngredientId: id,
@@ -239,6 +284,7 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
     it("finition : refuse une palette uniquement ultra-énergétique (huile+maïs)", () => {
       const result = engine.formulate(
         baseInput("finishing", {
+          profile: profileOf("finishing", []),
           availableIngredients: availableAll(["corn", "oil", "oyster", "dcp"]),
           nutritionById: NUTRI
         })
@@ -277,7 +323,14 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
     it("sans source protéique → feasible=false + diagnostic protéine", () => {
       const result = engine.formulate(
         baseInput("growing", {
-          availableIngredients: availableAll(["corn", "bran", "oyster", "dcp"])
+          availableIngredients: availableAll([
+            "corn",
+            "bran",
+            "oyster",
+            "dcp",
+            "cmv",
+            "salt"
+          ])
         })
       );
       expect(result.feasible).toBe(false);
@@ -310,7 +363,10 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
         oyster: 5,
         dcp: 5,
         lys: 2,
-        met: 2
+        met: 2,
+        oil: 15,
+        cmv: 10,
+        salt: 10
       };
       const result = engine.formulate(
         baseInput("growing", {
@@ -325,7 +381,9 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
       );
       expect(result.feasible).toBe(true);
       for (const line of result.ration) {
-        expect(line.quantityKg).toBeLessThanOrEqual(caps[line.feedIngredientId] + 1e-6);
+        expect(line.quantityKg).toBeLessThanOrEqual(
+          (caps[line.feedIngredientId] ?? 0) + 1e-6
+        );
       }
     });
   });
@@ -376,7 +434,9 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
           "oyster",
           "dcp",
           "lys",
-          "met"
+          "met",
+          "cmv",
+          "salt"
         ])
       });
       const base = engine.formulate(input);
@@ -427,7 +487,8 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
         minPhosphorusPct: 0.4,
         maxFiberPct: 12,
         minLysinePerMcal: null,
-        targetDailyIntakeKg: 1
+        targetDailyIntakeKg: 1,
+        fixedInclusions: []
       };
       const input: FormulateInput = {
         stage: "growing",
@@ -475,6 +536,140 @@ describe("FeedFormulationEngine — formulation au moindre coût", () => {
       expect(result.feasible).toBe(true);
       expect(result.dailyIntakeKg).toBe(1.5);
       expect(result.totalFeedKg).toBeCloseTo(1.5 * 20 * 10, 3);
+    });
+  });
+
+  describe("taux fixes (prémélanges CMV / sel)", () => {
+    it.each(
+      FEED_REQUIREMENTS_SEED.filter((r) =>
+        r.fixedInclusionsByName.some(
+          (f) => f.canonicalName === "Complément minéral vitaminé (CMV)"
+        )
+      ).map((r) => [r.stage, r] as const)
+    )(
+      "stade %s : CMV présent au taux fixe prescrit",
+      (stage, seed) => {
+        const result = engine.formulate(baseInput(stage));
+        expect(result.feasible).toBe(true);
+        const cmvLine = result.ration.find((l) => l.feedIngredientId === "cmv");
+        expect(cmvLine).toBeDefined();
+        const expectedPct = seed.fixedInclusionsByName.find(
+          (f) => f.canonicalName === "Complément minéral vitaminé (CMV)"
+        )!.inclusionPct;
+        expect(cmvLine!.proportionPct).toBeCloseTo(expectedPct, 3);
+        const saltSeed = seed.fixedInclusionsByName.find(
+          (f) => f.canonicalName === "Sel"
+        );
+        if (saltSeed) {
+          const saltLine = result.ration.find((l) => l.feedIngredientId === "salt");
+          expect(saltLine).toBeDefined();
+          expect(saltLine!.proportionPct).toBeCloseTo(saltSeed.inclusionPct, 3);
+        }
+        const sumPct = result.ration.reduce((s, l) => s + l.proportionPct, 0);
+        expect(sumPct).toBeGreaterThan(99.5);
+        expect(sumPct).toBeLessThan(100.5);
+      }
+    );
+
+    it("apports Ca/P du CMV comptés → moins de phosphate que si CMV sans minéraux", () => {
+      // CMV riche à 3 % : contribution Ca/P significative au bilan.
+      const profile = profileOf("growing", [
+        { feedIngredientId: "cmv", inclusionPct: 3 },
+        { feedIngredientId: "salt", inclusionPct: 0.3 }
+      ]);
+      const richCmv = {
+        ...NUTRI,
+        cmv: { ...NUTRI.cmv, calciumPct: 20, phosphorusPct: 12 }
+      };
+      const withCmvMinerals = engine.formulate(
+        baseInput("growing", { profile, nutritionById: richCmv })
+      );
+      expect(withCmvMinerals.feasible).toBe(true);
+
+      const zeroMineralsNutri = {
+        ...richCmv,
+        cmv: { ...richCmv.cmv, calciumPct: 0, phosphorusPct: 0 }
+      };
+      const withoutCmvMinerals = engine.formulate(
+        baseInput("growing", { profile, nutritionById: zeroMineralsNutri })
+      );
+      expect(withoutCmvMinerals.feasible).toBe(true);
+
+      const dcpWith =
+        withCmvMinerals.ration.find((l) => l.feedIngredientId === "dcp")
+          ?.proportionPct ?? 0;
+      const dcpWithout =
+        withoutCmvMinerals.ration.find((l) => l.feedIngredientId === "dcp")
+          ?.proportionPct ?? 0;
+      expect(dcpWith).toBeLessThan(dcpWithout - 0.05);
+
+      // CMV reste au même taux fixe (non optimisé).
+      expect(
+        withCmvMinerals.ration.find((l) => l.feedIngredientId === "cmv")!
+          .proportionPct
+      ).toBeCloseTo(3, 3);
+      expect(
+        withoutCmvMinerals.ration.find((l) => l.feedIngredientId === "cmv")!
+          .proportionPct
+      ).toBeCloseTo(3, 3);
+    });
+
+    it("modifier un taux fixe admin change la ration", () => {
+      const base = engine.formulate(baseInput("fattening"));
+      expect(base.feasible).toBe(true);
+      const cmvBase = base.ration.find((l) => l.feedIngredientId === "cmv")!;
+      expect(cmvBase.proportionPct).toBeCloseTo(0.5, 3);
+
+      const modified = engine.formulate(
+        baseInput("fattening", {
+          profile: profileOf("fattening", [
+            { feedIngredientId: "cmv", inclusionPct: 2 },
+            { feedIngredientId: "salt", inclusionPct: 0.3 }
+          ])
+        })
+      );
+      expect(modified.feasible).toBe(true);
+      const cmvMod = modified.ration.find((l) => l.feedIngredientId === "cmv")!;
+      expect(cmvMod.proportionPct).toBeCloseTo(2, 3);
+      expect(cmvMod.proportionPct).not.toBeCloseTo(cmvBase.proportionPct, 2);
+
+      const sumPct = modified.ration.reduce((s, l) => s + l.proportionPct, 0);
+      expect(sumPct).toBeGreaterThan(99.5);
+      expect(sumPct).toBeLessThan(100.5);
+    });
+
+    it("Σ taux fixes > 5 % → avertissement sans bloquer", () => {
+      // Engraissement (EM min plus bas) : reste faisable malgré 6 % de dilution.
+      const result = engine.formulate(
+        baseInput("fattening", {
+          profile: profileOf("fattening", [
+            { feedIngredientId: "cmv", inclusionPct: 4 },
+            { feedIngredientId: "salt", inclusionPct: 2 }
+          ])
+        })
+      );
+      expect(result.feasible).toBe(true);
+      expect(result.warnings.join(" ")).toMatch(/taux fixes|5\s*%|saisie/i);
+      const cmv = result.ration.find((l) => l.feedIngredientId === "cmv")!;
+      const salt = result.ration.find((l) => l.feedIngredientId === "salt")!;
+      expect(cmv.proportionPct).toBeCloseTo(4, 3);
+      expect(salt.proportionPct).toBeCloseTo(2, 3);
+    });
+
+    it("prémélange non prescrit (isPremix) n'est pas optimisé", () => {
+      const result = engine.formulate(
+        baseInput("growing", {
+          profile: profileOf("growing", [
+            { feedIngredientId: "cmv", inclusionPct: 0.5 }
+            // sel disponible mais non prescrit
+          ])
+        })
+      );
+      expect(result.feasible).toBe(true);
+      expect(result.ration.some((l) => l.feedIngredientId === "salt")).toBe(
+        false
+      );
+      expect(result.warnings.join(" ")).toMatch(/Sel|prémélange/i);
     });
   });
 });

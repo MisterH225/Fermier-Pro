@@ -20,6 +20,7 @@ import { useSession } from "../../context/SessionContext";
 import {
   getFeedComposition,
   listFarmCompositionVeterinarians,
+  postFeedCompositionExplain,
   proposeCompositionAdjustment,
   requestCompositionVetReview,
   reviewFeedComposition,
@@ -27,6 +28,10 @@ import {
   type FeedNutritionResultDto
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import {
+  buildLocalFactualExplanation,
+  parseCachedExplanation
+} from "../../lib/compositionExplanation";
 import {
   asRationLines,
   formatXof,
@@ -73,6 +78,85 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const isAssociatedVet = Boolean(
     myId && vetsQ.data?.some((v) => v.userId === myId)
   );
+
+  const cachedExplanation = parseCachedExplanation(
+    detailQ.data?.explanation
+  );
+
+  const explainQ = useQuery({
+    queryKey: ["feed-composition-explain", compositionId],
+    queryFn: async () => {
+      const row = detailQ.data!;
+      const ration = asRationLines(row.ration);
+      const nutrition = (row.nutritionResult ??
+        null) as FeedNutritionResultDto | null;
+      if (!nutrition || ration.length === 0) {
+        return buildLocalFactualExplanation({
+          stage: row.stage,
+          formulation: {
+            feasible: ration.length > 0,
+            ration,
+            totalFeedKg: 0,
+            dailyIntakeKg: 0,
+            totalCostXof: 0,
+            costPerKg: 0,
+            nutritionResult: nutrition,
+            deviations: [],
+            warnings: [],
+            infeasibilityReasons: []
+          }
+        });
+      }
+      const animalCount =
+        typeof row.inputParams?.animalCount === "number"
+          ? row.inputParams.animalCount
+          : 1;
+      const avgWeightKg =
+        typeof row.inputParams?.avgWeightKg === "number"
+          ? row.inputParams.avgWeightKg
+          : undefined;
+      try {
+        const res = await postFeedCompositionExplain(
+          accessToken!,
+          {
+            farmId,
+            stage: row.stage,
+            animalCount,
+            avgWeightKg,
+            ration,
+            nutritionResult: nutrition,
+            deviations: [],
+            savedCompositionId: compositionId
+          },
+          activeProfileId
+        );
+        return res.explanation;
+      } catch {
+        return buildLocalFactualExplanation({
+          stage: row.stage,
+          animalCount,
+          avgWeightKg,
+          formulation: {
+            feasible: true,
+            ration,
+            totalFeedKg: ration.reduce((s, l) => s + (l.quantityKg || 0), 0),
+            dailyIntakeKg: 0,
+            totalCostXof: 0,
+            costPerKg: 0,
+            nutritionResult: nutrition,
+            deviations: [],
+            warnings: [],
+            infeasibilityReasons: []
+          }
+        });
+      }
+    },
+    enabled: Boolean(
+      accessToken && detailQ.data && !cachedExplanation
+    )
+  });
+
+  const explanation = cachedExplanation ?? explainQ.data ?? null;
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["feed-composition", compositionId] });
@@ -272,6 +356,8 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
           formulation={formulation}
           stage={row.stage}
           isTheoretical={row.isTheoretical}
+          explanation={explanation}
+          explanationLoading={explainQ.isPending && !cachedExplanation}
         />
 
         {row.status === "draft" ? (

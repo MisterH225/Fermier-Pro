@@ -6,8 +6,8 @@ import {
 } from "@nestjs/common";
 import {
   MembershipRole,
+  Prisma,
   ProductionStage,
-  type Prisma,
   type SavedComposition,
   type User
 } from "@prisma/client";
@@ -432,6 +432,8 @@ export class SavedCompositionsService {
         nutritionResult: (card.nutritionResult ??
           null) as Prisma.InputJsonValue,
         totalCostXof: card.totalCostXof,
+        // Ration changée → invalider l'explication mise en cache.
+        explanation: Prisma.DbNull,
         status: "vet_review",
         vetComment: null,
         vetReviewedBy: null,
@@ -664,6 +666,7 @@ export class SavedCompositionsService {
       inputParams: row.inputParams,
       ration: row.ration,
       nutritionResult: row.nutritionResult,
+      explanation: row.explanation ?? null,
       totalCostXof: Number(row.totalCostXof),
       source: row.source,
       status: row.status,

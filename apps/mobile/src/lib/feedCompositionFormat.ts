@@ -20,7 +20,7 @@ const STATUS_LABELS_FR: Record<SavedCompositionStatus, string> = {
   validated: "Validée par le véto"
 };
 
-/** Noms techniques API → langage producteur. */
+/** Noms techniques API → langage producteur (labels courts, sans prose marketing). */
 const NUTRIENT_LABELS_FR: Record<string, string> = {
   crudeProteinPct: "Protéines",
   metabolizableEnergyKcal: "Énergie",
@@ -30,21 +30,9 @@ const NUTRIENT_LABELS_FR: Record<string, string> = {
   phosphorusPct: "Phosphore",
   crudeFiberPct: "Fibres",
   lysinePerMcal: "Équilibre muscle / énergie",
-  // Variantes déjà humanisées côté tests / anciennes réponses
   Protéine: "Protéines",
   EM: "Énergie",
   Lysine: "Lysine (muscle)"
-};
-
-const NUTRIENT_HINTS_FR: Record<string, string> = {
-  crudeProteinPct: "c’est la « force » de l’aliment pour bien pousser",
-  metabolizableEnergyKcal: "c’est ce qui fait grossir (et peut graisser si trop fort)",
-  lysinePct: "aide les porcs à faire du muscle plutôt que du gras",
-  methioninePct: "un autre acide aminé utile pour la croissance",
-  calciumPct: "important pour les os",
-  phosphorusPct: "travaille avec le calcium pour les os",
-  crudeFiberPct: "trop de fibres = digestion plus lourde",
-  lysinePerMcal: "pour un porc moins gras à l’engraissement / finition"
 };
 
 /**
@@ -62,32 +50,6 @@ export function statusLabelFr(status: SavedCompositionStatus | string): string {
 export function nutrientLabelFr(nutrient: string): string {
   const key = nutrient.trim();
   return NUTRIENT_LABELS_FR[key] ?? key.replace(/Pct$/i, "").replace(/Kcal$/i, "");
-}
-
-export function nutrientHintFr(nutrient: string): string | null {
-  return NUTRIENT_HINTS_FR[nutrient.trim()] ?? null;
-}
-
-/** Phrase courte pour une ligne d’écart nutritionnel. */
-export function formatDeviationHuman(d: {
-  nutrient: string;
-  target: string;
-  actual: number;
-  withinBounds: boolean;
-}): string {
-  const name = nutrientLabelFr(d.nutrient);
-  const hint = nutrientHintFr(d.nutrient);
-  const value = Number.isFinite(d.actual)
-    ? d.actual.toLocaleString("fr-FR", { maximumFractionDigits: 2 })
-    : "—";
-  if (d.withinBounds) {
-    return hint
-      ? `${name} : bon niveau (${value}) — ${hint}.`
-      : `${name} : bon niveau (${value}).`;
-  }
-  return hint
-    ? `${name} : à surveiller (${value}, attendu ${d.target}) — ${hint}.`
-    : `${name} : à surveiller (${value}, attendu ${d.target}).`;
 }
 
 export function formatXof(value: number | string | null | undefined): string {

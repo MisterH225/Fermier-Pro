@@ -177,3 +177,135 @@ export class ApplyCompositionAdjustmentDto {
   @MinLength(1)
   messageId!: string;
 }
+
+export class ExplainRationLineDto {
+  @IsString()
+  @MinLength(1)
+  feedIngredientId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  canonicalName?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  quantityKg!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  proportionPct!: number;
+}
+
+export class ExplainNutritionDto {
+  @Type(() => Number)
+  @IsNumber()
+  crudeProteinPct!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  metabolizableEnergyKcal!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  lysinePct!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  methioninePct!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  calciumPct!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  phosphorusPct!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  crudeFiberPct!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  lysinePerMcal?: number | null;
+}
+
+export class ExplainDeviationDto {
+  @IsString()
+  @MinLength(1)
+  nutrient!: string;
+
+  @IsString()
+  target!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  actual!: number;
+
+  @IsBoolean()
+  withinBounds!: boolean;
+}
+
+/**
+ * Demande d'explication structurée d'une ration déjà calculée.
+ * L'IA (Gemini) commente les données — aucun chiffre inventé.
+ */
+export class ExplainFeedCompositionDto {
+  @IsString()
+  @MinLength(1)
+  farmId!: string;
+
+  @IsEnum(ProductionStage)
+  stage!: ProductionStage;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100_000)
+  animalCount!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.1)
+  @Max(500)
+  avgWeightKg?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(520)
+  avgAgeWeeks?: number;
+
+  @IsArray()
+  @ArrayMaxSize(40)
+  @ValidateNested({ each: true })
+  @Type(() => ExplainRationLineDto)
+  ration!: ExplainRationLineDto[];
+
+  @ValidateNested()
+  @Type(() => ExplainNutritionDto)
+  nutritionResult!: ExplainNutritionDto;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(40)
+  @ValidateNested({ each: true })
+  @Type(() => ExplainDeviationDto)
+  deviations?: ExplainDeviationDto[];
+
+  /** Si fourni : lit/écrit le cache SavedComposition.explanation. */
+  @IsOptional()
+  @IsString()
+  savedCompositionId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  forceRefresh?: boolean;
+}

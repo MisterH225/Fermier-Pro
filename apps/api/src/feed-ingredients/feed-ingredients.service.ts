@@ -33,6 +33,7 @@ export type FeedIngredientDto = {
   fatPct: number;
   dryMatterPct: number;
   isActive: boolean;
+  isPremix: boolean;
   notes: string | null;
   /** Null = seed / non relu ; ISO si validé par un superadmin. */
   reviewedAt: string | null;
@@ -121,6 +122,7 @@ export class FeedIngredientsService {
           crudeFiberPct: dto.crudeFiberPct,
           fatPct: dto.fatPct,
           dryMatterPct: dto.dryMatterPct,
+          isPremix: dto.isPremix ?? false,
           notes: dto.notes?.trim() || null,
           // Création manuelle admin = déjà validée.
           reviewedAt: new Date(),
@@ -208,6 +210,7 @@ export class FeedIngredientsService {
             ? { dryMatterPct: dto.dryMatterPct }
             : {}),
           ...(dto.isActive != null ? { isActive: dto.isActive } : {}),
+          ...(dto.isPremix != null ? { isPremix: dto.isPremix } : {}),
           ...(dto.notes !== undefined
             ? { notes: dto.notes?.trim() || null }
             : {}),
@@ -334,6 +337,7 @@ export class FeedIngredientsService {
       fatPct: Number(row.fatPct),
       dryMatterPct: Number(row.dryMatterPct),
       isActive: row.isActive,
+      isPremix: row.isPremix,
       notes: row.notes,
       reviewedAt: row.reviewedAt?.toISOString() ?? null,
       reviewedBy: row.reviewedBy,

@@ -72,6 +72,29 @@ export type FeedCompositionFormulateResponse = {
   warning?: string;
 };
 
+export type IngredientJustificationDto = {
+  feedIngredientId: string;
+  name: string;
+  text: string;
+};
+
+/** Explication structurée (IA Gemini ou fallback factuel). */
+export type CompositionExplanationDto = {
+  stageNeeds: string;
+  ingredientJustifications: IngredientJustificationDto[];
+  energyKcalPerKg: number;
+  energyComment: string;
+  notableDeviations: string[];
+  source: "ai" | "factual_fallback";
+  rationFingerprint: string;
+};
+
+export type ExplainCompositionResponse = {
+  explanation: CompositionExplanationDto;
+  cached: boolean;
+  usage: { inputTokens: number; outputTokens: number } | null;
+};
+
 export type SavedCompositionDto = {
   id: string;
   farmId: string;
@@ -81,6 +104,7 @@ export type SavedCompositionDto = {
   inputParams: Record<string, unknown>;
   ration: FeedRationLineDto[] | Record<string, unknown>;
   nutritionResult: FeedNutritionResultDto | Record<string, unknown> | null;
+  explanation?: CompositionExplanationDto | Record<string, unknown> | null;
   totalCostXof: number | string;
   millProfileId: string | null;
   isTheoretical: boolean;
@@ -130,6 +154,19 @@ export type SaveCompositionBody = {
   totalCostXof: number;
   millProfileId?: string;
   isTheoretical?: boolean;
+};
+
+export type ExplainFeedCompositionBody = {
+  farmId: string;
+  stage: ProductionStage;
+  animalCount: number;
+  avgWeightKg?: number;
+  avgAgeWeeks?: number;
+  ration: FeedRationLineDto[];
+  nutritionResult: FeedNutritionResultDto;
+  deviations?: FeedNutrientDeviationDto[];
+  savedCompositionId?: string;
+  forceRefresh?: boolean;
 };
 
 export function postFeedCompositionAssist(
@@ -276,6 +313,19 @@ export function listPendingCompositionReviews(
 ): Promise<SavedCompositionDto[]> {
   return apiGetJson<SavedCompositionDto[]>(
     "/feed-composition/vet/pending-reviews",
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function postFeedCompositionExplain(
+  accessToken: string,
+  body: ExplainFeedCompositionBody,
+  activeProfileId?: string | null
+): Promise<ExplainCompositionResponse> {
+  return apiPostJson<ExplainCompositionResponse>(
+    "/feed-composition/explain",
+    body,
     accessToken,
     activeProfileId
   );

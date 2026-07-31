@@ -1,6 +1,8 @@
 import { ProductionStage } from "@prisma/client";
 import { Transform, Type } from "class-transformer";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -8,8 +10,24 @@ import {
   IsString,
   Max,
   MaxLength,
-  Min
+  Min,
+  MinLength,
+  ValidateNested
 } from "class-validator";
+
+/** Une ligne de taux d'incorporation fixe (CMV, sel…). */
+export class FixedInclusionDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  feedIngredientId!: string;
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0.0001)
+  @Max(100)
+  inclusionPct!: number;
+}
 
 function toOptionalBoolean(value: unknown): boolean | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -96,6 +114,13 @@ export class CreateFeedRequirementProfileDto {
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   targetDailyIntakeKg?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => FixedInclusionDto)
+  fixedInclusions?: FixedInclusionDto[];
 
   @IsOptional()
   @IsString()
@@ -188,6 +213,13 @@ export class UpdateFeedRequirementProfileDto {
   @IsNumber({ maxDecimalPlaces: 3 })
   @Min(0)
   targetDailyIntakeKg?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => FixedInclusionDto)
+  fixedInclusions?: FixedInclusionDto[];
 
   @IsOptional()
   @IsString()

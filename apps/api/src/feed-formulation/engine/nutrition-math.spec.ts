@@ -64,7 +64,8 @@ describe("nutrition-math", () => {
       minPhosphorusPct: 0.4,
       maxFiberPct: 6.5,
       minLysinePerMcal: 2.4,
-      targetDailyIntakeKg: 2.9
+      targetDailyIntakeKg: 2.9,
+      fixedInclusions: []
     };
     const bad = evaluateDeviations(profile, {
       crudeProteinPct: 14,

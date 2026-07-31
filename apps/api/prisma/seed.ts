@@ -83,49 +83,85 @@ async function seedFeedIngredients() {
         crudeFiberPct: row.crudeFiberPct,
         fatPct: row.fatPct,
         dryMatterPct: row.dryMatterPct,
+        isPremix: row.isPremix ?? false,
         notes: row.notes ?? null,
         isActive: true
       },
       update: {
-        // Idempotent : ne pas écraser les corrections superadmin déjà en base.
-        // Seuls les champs absents à la création sont garantis ; on met à jour
-        // aliases / notes / nutrition uniquement si l'intrant est encore « seed ».
-        // Politique : ne touche PAS les valeurs si la ligne existe déjà.
+        // Structurelle : propager isPremix seed (CMV/sel) sans toucher nutrition.
+        ...(row.isPremix ? { isPremix: true } : {})
       }
     });
   }
   console.log(
-    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, sans écraser l'existant)`
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix seed)`
   );
+}
+
+async function resolveFixedInclusions(
+  byName: { canonicalName: string; inclusionPct: number }[]
+): Promise<{ feedIngredientId: string; inclusionPct: number }[]> {
+  const out: { feedIngredientId: string; inclusionPct: number }[] = [];
+  for (const item of byName) {
+    const ing = await prisma.feedIngredient.findUnique({
+      where: { canonicalName: item.canonicalName }
+    });
+    if (!ing) {
+      console.warn(
+        `[seed] Taux fixe ignoré — intrant introuvable : ${item.canonicalName}`
+      );
+      continue;
+    }
+    out.push({ feedIngredientId: ing.id, inclusionPct: item.inclusionPct });
+  }
+  return out;
 }
 
 async function seedFeedRequirements() {
   for (const row of FEED_REQUIREMENTS_SEED) {
-    await prisma.feedRequirementProfile.upsert({
-      where: { stage: row.stage },
-      create: {
-        stage: row.stage,
-        minCrudeProteinPct: row.minCrudeProteinPct,
-        maxCrudeProteinPct: row.maxCrudeProteinPct ?? null,
-        minMetabolizableEnergyKcal: row.minMetabolizableEnergyKcal,
-        maxMetabolizableEnergyKcal: row.maxMetabolizableEnergyKcal ?? null,
-        minLysinePct: row.minLysinePct,
-        minMethioninePct: row.minMethioninePct,
-        minCalciumPct: row.minCalciumPct,
-        maxCalciumPct: row.maxCalciumPct ?? null,
-        minPhosphorusPct: row.minPhosphorusPct,
-        maxFiberPct: row.maxFiberPct ?? null,
-        minLysinePerMcal: row.minLysinePerMcal ?? null,
-        targetDailyIntakeKg: row.targetDailyIntakeKg ?? null,
-        notes: row.notes,
-        isActive: true
-      },
-      // Idempotent : ne pas écraser les corrections superadmin.
-      update: {}
+    const fixedInclusions = await resolveFixedInclusions(
+      row.fixedInclusionsByName
+    );
+    const existing = await prisma.feedRequirementProfile.findUnique({
+      where: { stage: row.stage }
     });
+    if (!existing) {
+      await prisma.feedRequirementProfile.create({
+        data: {
+          stage: row.stage,
+          minCrudeProteinPct: row.minCrudeProteinPct,
+          maxCrudeProteinPct: row.maxCrudeProteinPct ?? null,
+          minMetabolizableEnergyKcal: row.minMetabolizableEnergyKcal,
+          maxMetabolizableEnergyKcal: row.maxMetabolizableEnergyKcal ?? null,
+          minLysinePct: row.minLysinePct,
+          minMethioninePct: row.minMethioninePct,
+          minCalciumPct: row.minCalciumPct,
+          maxCalciumPct: row.maxCalciumPct ?? null,
+          minPhosphorusPct: row.minPhosphorusPct,
+          maxFiberPct: row.maxFiberPct ?? null,
+          minLysinePerMcal: row.minLysinePerMcal ?? null,
+          targetDailyIntakeKg: row.targetDailyIntakeKg ?? null,
+          fixedInclusions,
+          notes: row.notes,
+          isActive: true
+        }
+      });
+    } else {
+      // Remplir fixedInclusions uniquement s'ils sont encore vides (ne pas écraser admin).
+      const current = existing.fixedInclusions;
+      const empty =
+        current == null ||
+        (Array.isArray(current) && current.length === 0);
+      if (empty && fixedInclusions.length > 0) {
+        await prisma.feedRequirementProfile.update({
+          where: { id: existing.id },
+          data: { fixedInclusions }
+        });
+      }
+    }
   }
   console.log(
-    `[seed] FeedRequirementProfile : ${FEED_REQUIREMENTS_SEED.length} stades (upsert stage, sans écraser l'existant)`
+    `[seed] FeedRequirementProfile : ${FEED_REQUIREMENTS_SEED.length} stades (taux fixes CMV/sel si vides)`
   );
 }
 

@@ -78,20 +78,41 @@ export class IngredientAvailabilityService {
       }
     }
 
-    const availableIngredients = [...byIngredient.values()];
-    if (availableIngredients.length === 0) {
+    if (byIngredient.size === 0) {
       return {
-        ...await this.fromCatalog(),
+        ...(await this.fromCatalog()),
         warning:
           "Aucune offre active chez ce moulin — formulation théorique (prix de référence)."
       };
     }
 
+    // Toujours joindre les prémélanges catalogue (CMV, sel…) pour les taux fixes
+    // du stade — souvent absents des offres moulin marketplace.
+    await this.mergeCatalogPremixes(byIngredient);
+
     return {
-      availableIngredients,
+      availableIngredients: [...byIngredient.values()],
       isTheoretical: false,
       millProfileId
     };
+  }
+
+  /** Ajoute les isPremix actifs du catalogue s'ils manquent (prix de référence). */
+  private async mergeCatalogPremixes(
+    byIngredient: Map<string, AvailableIngredientInput>
+  ): Promise<void> {
+    const premixes = await this.prisma.feedIngredient.findMany({
+      where: { isActive: true, isPremix: true },
+      select: { id: true, category: true }
+    });
+    for (const r of premixes) {
+      if (byIngredient.has(r.id)) continue;
+      byIngredient.set(r.id, {
+        feedIngredientId: r.id,
+        pricePerKg: referencePrice(r.category),
+        maxAvailableKg: THEORETICAL_MAX_AVAILABLE_KG
+      });
+    }
   }
 
   private async fromCatalog(): Promise<IngredientAvailabilityResult> {
