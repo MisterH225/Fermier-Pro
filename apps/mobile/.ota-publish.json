@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (bbf3bf81) — UX composition aliment (scroll, clavier, véto, langage) #301",
-  "updatedAt": "2026-07-31T04:30Z",
+  "message": "OTA preview (869c6f89) — J4 composition commande + escrow + hub #318 #323",
+  "updatedAt": "2026-08-01T00:28Z",
   "channels": ["preview"],
-  "updateGroupId": "82c7e64b-b1dc-46c8-9666-f230267b8a9d",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/82c7e64b-b1dc-46c8-9666-f230267b8a9d"
+  "updateGroupId": "3bd13b05-026e-45fd-a7c5-1522d03c08b9",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/3bd13b05-026e-45fd-a7c5-1522d03c08b9"
 }
