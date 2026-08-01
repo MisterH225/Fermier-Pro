@@ -114,7 +114,11 @@ export function MerchantProductFormScreen() {
           {t("merchant.millIngredients.unifiedHint")}
         </Text>
         <MillIngredientOfferForm
-          onSuccess={() => navigation.goBack()}
+          onSuccess={() =>
+            navigation.navigate("MerchantProducts", {
+              kindFilter: "ingredients"
+            })
+          }
           onCancel={() => navigation.goBack()}
         />
       </ScrollView>

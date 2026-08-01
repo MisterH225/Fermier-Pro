@@ -15,7 +15,7 @@ export function MillIngredientsScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
-    navigation.replace("MerchantProducts");
+    navigation.replace("MerchantProducts", { kindFilter: "ingredients" });
   }, [navigation]);
 
   return (

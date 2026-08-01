@@ -4668,7 +4668,7 @@ export const fr = {
       sellWholesale: "Vendre en gros sur le marché",
       sellWholesaleHint:
         "Une seule source de prix : l'offre alimente aussi la composition. Les offres privées restent invisibles sur le marché.",
-      save: "Enregistrer l'offre",
+      save: "Enregistrer l'intrant",
       myOffers: "Mes offres",
       empty: "Aucune offre pour l'instant.",
       stockLabel: "Stock : {{qty}}",
