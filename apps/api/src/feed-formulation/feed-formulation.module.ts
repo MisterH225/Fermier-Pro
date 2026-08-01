@@ -15,6 +15,8 @@ import { FeedCompositionController } from "./assist/feed-composition.controller"
 import { FeedCompositionExplainService } from "./assist/explain/feed-composition-explain.service";
 import { IngredientAvailabilityService } from "./assist/ingredient-availability.service";
 import { SavedCompositionsService } from "./assist/saved-compositions.service";
+import { CompositionOrdersController } from "./composition-orders/composition-orders.controller";
+import { CompositionOrdersService } from "./composition-orders/composition-orders.service";
 import { FeedFormulationService } from "./feed-formulation.service";
 import { FeedRequirementProfilesService } from "./feed-requirement-profiles.service";
 import { JavascriptLpSolver } from "./solver/javascript-lp.solver";
@@ -39,7 +41,8 @@ import { SOLVER_PORT } from "./solver/solver.port";
   ],
   controllers: [
     AdminFeedRequirementProfilesController,
-    FeedCompositionController
+    FeedCompositionController,
+    CompositionOrdersController
   ],
   providers: [
     FeedRequirementProfilesService,
@@ -51,7 +54,8 @@ import { SOLVER_PORT } from "./solver/solver.port";
     FeedCompositionAssistService,
     FeedCompositionExplainService,
     SavedCompositionsService,
-    CompositionPricingService
+    CompositionPricingService,
+    CompositionOrdersService
   ],
   exports: [
     FeedFormulationService,
@@ -59,7 +63,8 @@ import { SOLVER_PORT } from "./solver/solver.port";
     FeedCompositionAssistService,
     FeedCompositionExplainService,
     SavedCompositionsService,
-    CompositionPricingService
+    CompositionPricingService,
+    CompositionOrdersService
   ]
 })
 export class FeedFormulationModule {}

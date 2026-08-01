@@ -218,6 +218,7 @@ model User {
   featureFlagTestAccounts FeatureFlagTestAccount[]
   memberships           FarmMembership[]
   ownedFarms            Farm[]               @relation("FarmOwner")
+  compositionOrdersAsProducer CompositionOrder[] @relation("CompositionOrderProducer")
   farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
   farmInvitesScanned    FarmInvitation[]     @relation("InvitationScanner")
   farmInvitesReceived   FarmInvitation[]     @relation("InvitationInvitee")
@@ -487,6 +488,7 @@ model Farm {
   predictions              FarmPrediction?
   historicalRecords        HistoricalRecord[]
   savedCompositions        SavedComposition[]
+  compositionOrders        CompositionOrder[]
 
   @@index([ownerId, status])
   @@index([status])
@@ -3686,10 +3688,85 @@ model SavedComposition {
   chatRooms        ChatRoom[]
   /// Propositions d'ajustement véto (recalcul moteur).
   adjustmentProposals CompositionAdjustmentProposal[]
+  /// Commandes moulin issues de cette composition (J4).
+  compositionOrders CompositionOrder[]
 
   @@index([farmId, createdAt(sort: Desc)])
   @@index([farmId, status])
   @@index([createdByUserId])
+}
+
+/// Statuts commande composition chez un moulin (P-J4-B).
+/// OUT_FOR_DELIVERY / fenêtre litige COMPLETED = J5.
+enum CompositionOrderStatus {
+  SENT_TO_MILL
+  MILL_REVISED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  PAID
+  IN_PRODUCTION
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+}
+
+/// Commande d'une SavedComposition validée chez un moulin (P-J4-B).
+model CompositionOrder {
+  id                       String                 @id @default(cuid())
+  savedCompositionId       String
+  savedComposition         SavedComposition       @relation(fields: [savedCompositionId], references: [id], onDelete: Restrict)
+  farmId                   String
+  farm                     Farm                   @relation(fields: [farmId], references: [id], onDelete: Restrict)
+  producerUserId           String
+  producer                 User                   @relation("CompositionOrderProducer", fields: [producerUserId], references: [id], onDelete: Restrict)
+  millProfileId            String
+  millProfile              MerchantProfile        @relation(fields: [millProfileId], references: [id], onDelete: Restrict)
+  status                   CompositionOrderStatus @default(SENT_TO_MILL)
+  /// Ration figée à l'envoi — le moulin travaille dessus, pas sur la SavedComposition live.
+  snapshotRation           Json
+  /// Prix P-J4-A chez ce moulin au moment de l'envoi.
+  quotedPriceXof           Decimal                @db.Decimal(14, 2)
+  /// Prix ferme après révision moulin (accepté par le producteur).
+  finalPriceXof            Decimal?               @db.Decimal(14, 2)
+  millNote                 String?
+  /// Dates estimées annoncées par le moulin à MILL_REVISED (pas un engagement plateforme).
+  productionStartEstimate  DateTime?
+  readyEstimate            DateTime?
+  /// Dates réelles.
+  productionStartedAt      DateTime?
+  /// Référence litige J5 — PAS readyEstimate.
+  readyActual              DateTime?
+  /// Lien vers une transaction escrow quand l'adaptateur composition sera branché.
+  escrowTransactionRef     String?
+  /// Échéance de réponse moulin (SENT_TO_MILL).
+  deadlineAt               DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  transitions              CompositionOrderTransition[]
+
+  @@index([farmId, status, createdAt(sort: Desc)])
+  @@index([producerUserId, status])
+  @@index([millProfileId, status])
+  @@index([savedCompositionId])
+  @@index([status, deadlineAt])
+}
+
+/// Audit des transitions de commande composition.
+model CompositionOrderTransition {
+  id          String                  @id @default(cuid())
+  orderId     String
+  order       CompositionOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  CompositionOrderStatus?
+  toStatus    CompositionOrderStatus
+  event       String
+  actorUserId String?
+  /// producer | mill | system
+  actorRole   String
+  meta        Json?
+  createdAt   DateTime                @default(now())
+
+  @@index([orderId, createdAt])
 }
 
 /// Type d'ajustement véto — seul substitute_ingredient est supporté par le moteur.
@@ -3936,6 +4013,7 @@ model MerchantProfile {
   subscriptionInvoices MerchantSubscriptionInvoice[]
   promoRedemptions     MerchantSubscriptionPromoRedemption[]
   millIngredientOffers MillIngredientOffer[]
+  compositionOrders    CompositionOrder[]
 
   @@index([subscriptionTier])
   @@index([subscriptionTier, nextBillingAt])
