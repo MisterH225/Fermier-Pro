@@ -69,6 +69,14 @@ export type MerchantMeDto = {
   }>;
   needsShopNudge: boolean;
   needsProductNudge: boolean;
+  /** Géolocalisation (même modèle que Farm / P-10). */
+  latitude?: number | null;
+  longitude?: number | null;
+  locationCity?: string | null;
+  departmentCode?: string | null;
+  geoResolutionSource?: "gps" | "locality" | "manual" | "unresolved";
+  /** Moulin non localisé — rappel discret (invisible au rayon P-J4-A). */
+  needsLocationNudge?: boolean;
 };
 
 export type MerchantProductDto = {
@@ -216,11 +224,16 @@ export function patchMerchantOnboarding(
   );
 }
 
-/** Paramètres profil commerçant (ex. passage standard→mill si flag mills actif). */
+/** Paramètres profil commerçant (type + géolocalisation P-10). */
 export function patchMerchantProfile(
   accessToken: string,
   profileId: string,
-  body: { merchantKind?: MerchantKind }
+  body: {
+    merchantKind?: MerchantKind;
+    latitude?: number | null;
+    longitude?: number | null;
+    locationCity?: string | null;
+  }
 ): Promise<MerchantMeDto> {
   return apiPatchJson<MerchantMeDto>(
     "/merchant/me",

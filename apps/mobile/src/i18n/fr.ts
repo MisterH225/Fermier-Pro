@@ -4931,7 +4931,20 @@ export const fr = {
       cancelPhoto: "Annuler",
       save: "Enregistrer",
       photoUploadError: "Impossible d'envoyer la photo. Réessaie plus tard.",
-      saveError: "Enregistrement impossible. Réessaie dans un instant."
+      saveError: "Enregistrement impossible. Réessaie dans un instant.",
+      locationSection: "Localisation",
+      locationSaved: "Localisation enregistrée.",
+      locationError: "Impossible d'enregistrer la localisation. Réessaie.",
+      locationSave: "Enregistrer la localisation"
+    },
+    location: {
+      title: "Où se trouve votre activité ?",
+      hint: "Indiquez une ville/localité, ou utilisez le GPS / l’épingle sur la carte. Le département est déterminé automatiquement.",
+      cityPlaceholder: "Ville ou localité (ex. Abidjan, Bouaké…)",
+      coordsSet: "Épingle : {{lat}}, {{lng}}",
+      clearCoords: "Retirer l’épingle GPS",
+      millNudge:
+        "Ajoutez votre localisation pour que les producteurs vous trouvent."
     },
     purchase: {
       quantity: "Quantité",

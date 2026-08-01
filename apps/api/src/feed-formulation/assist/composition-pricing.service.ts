@@ -7,7 +7,6 @@ import {
 import { MerchantKind, type User } from "@prisma/client";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { FARM_SCOPE } from "../../common/farm-scopes.constants";
-import { normalizeLocalityName } from "../../farms/geo/normalize-locality-name";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   compareMillPriceEntries,
@@ -94,11 +93,13 @@ export class CompositionPricingService {
       },
       select: {
         id: true,
+        latitude: true,
+        longitude: true,
+        departmentCode: true,
+        geoResolutionSource: true,
         user: {
           select: {
-            fullName: true,
-            homeLatitude: true,
-            homeLongitude: true
+            fullName: true
           }
         },
         shops: {
@@ -124,16 +125,10 @@ export class CompositionPricingService {
       }
     });
 
-    const departmentByMill = await this.resolveMillDepartments(
-      mills.map((m) => ({
-        millId: m.id,
-        locationLabel: m.shops[0]?.locationLabel ?? null
-      }))
-    );
-
     const farmLat = decimalToNumber(farm.latitude);
     const farmLng = decimalToNumber(farm.longitude);
 
+    // Géoloc MerchantProfile (P-10) — moulin unresolved sans coords/département exclu du rayon.
     const geoFiltered = filterMillsByRadius(
       {
         latitude: farmLat,
@@ -142,13 +137,12 @@ export class CompositionPricingService {
       },
       mills.map((m) => ({
         millId: m.id,
-        latitude: decimalToNumber(m.user.homeLatitude),
-        longitude: decimalToNumber(m.user.homeLongitude),
-        departmentCode: departmentByMill.get(m.id) ?? null
+        latitude: decimalToNumber(m.latitude),
+        longitude: decimalToNumber(m.longitude),
+        departmentCode: m.departmentCode
       })),
       radius
     ).filter((g) => g.inRadius);
-
     const byId = new Map(mills.map((m) => [m.id, m]));
     const entries: MillCompositionPriceDto[] = [];
 
@@ -231,50 +225,6 @@ export class CompositionPricingService {
       throw err;
     }
     return row;
-  }
-
-  /**
-   * Dégradé département : matching localité sur le libellé boutique du moulin.
-   */
-  private async resolveMillDepartments(
-    mills: Array<{ millId: string; locationLabel: string | null }>
-  ): Promise<Map<string, string>> {
-    const out = new Map<string, string>();
-    const tokens = new Set<string>();
-    const millTokens = new Map<string, string[]>();
-
-    for (const m of mills) {
-      const label = m.locationLabel?.trim();
-      if (!label) continue;
-      const parts = label
-        .split(/[,/|]/)
-        .map((p) => normalizeLocalityName(p))
-        .filter(Boolean);
-      if (parts.length === 0) continue;
-      millTokens.set(m.millId, parts);
-      for (const p of parts) tokens.add(p);
-    }
-
-    if (tokens.size === 0) return out;
-
-    const localities = await this.prisma.localityRef.findMany({
-      where: { nameNormalized: { in: [...tokens] } },
-      select: { nameNormalized: true, departmentCode: true }
-    });
-    const deptByName = new Map(
-      localities.map((l) => [l.nameNormalized, l.departmentCode])
-    );
-
-    for (const [millId, parts] of millTokens) {
-      for (const p of parts) {
-        const dept = deptByName.get(p);
-        if (dept) {
-          out.set(millId, dept);
-          break;
-        }
-      }
-    }
-    return out;
   }
 }
 

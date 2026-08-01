@@ -2,6 +2,7 @@ import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { ChatModule } from "../chat/chat.module";
 import { ConfigClientModule } from "../config-client/config-client.module";
+import { GeoModule } from "../farms/geo/geo.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.module";
 import { MobileMoneyModule } from "../marketplace/escrow";
@@ -38,7 +39,8 @@ import { MillIngredientOffersService } from "./mill-ingredient-offers.service";
     PlatformSettingsModule,
     UserNotificationsModule,
     ChatModule,
-    FeedIngredientsModule
+    FeedIngredientsModule,
+    GeoModule
   ],
   controllers: [
     MerchantShopController,

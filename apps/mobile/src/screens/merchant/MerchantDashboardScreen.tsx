@@ -159,6 +159,17 @@ export function MerchantDashboardScreen() {
             }
           />
         ) : null}
+        {me?.needsLocationNudge ? (
+          <Pressable
+            style={[styles.locNudge, merchantShadow.card]}
+            onPress={() => navigation.navigate("ProducerFarmSettings")}
+            testID="merchant-dashboard-location-nudge"
+          >
+            <Text style={styles.locNudgeTx}>
+              {t("merchant.location.millNudge")}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <ShopOrdersTrackingCard
           accentColor={merchantColors.primary}
@@ -328,5 +339,18 @@ const styles = StyleSheet.create({
   },
   moderationRow: { gap: 2 },
   moderationProduct: { fontWeight: "700" },
-  moderationReason: { color: merchantColors.textSecondary, fontSize: mobileFontSize.sm }
+  moderationReason: { color: merchantColors.textSecondary, fontSize: mobileFontSize.sm },
+  locNudge: {
+    marginBottom: mobileSpacing.sm,
+    backgroundColor: merchantColors.primaryLight,
+    borderRadius: merchantRadius.card,
+    padding: mobileSpacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: merchantColors.primary
+  },
+  locNudgeTx: {
+    color: merchantColors.primary,
+    fontWeight: "700",
+    fontSize: mobileFontSize.sm
+  }
 });

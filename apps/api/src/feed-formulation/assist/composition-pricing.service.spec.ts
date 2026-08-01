@@ -94,11 +94,11 @@ describe("CompositionPricingService", () => {
     const mills = [
       {
         id: "mill-expensive-complete",
-        user: {
-          fullName: "Moulin Cher",
-          homeLatitude: 5.31,
-          homeLongitude: -4.01
-        },
+        user: { fullName: "Moulin Cher" },
+        latitude: 5.31,
+        longitude: -4.01,
+        departmentCode: "CI-AB",
+        geoResolutionSource: "gps",
         shops: [{ name: "Moulin Cher", locationLabel: "Abidjan" }],
         millIngredientOffers: [
           {
@@ -123,11 +123,11 @@ describe("CompositionPricingService", () => {
       },
       {
         id: "mill-cheap-complete",
-        user: {
-          fullName: "Moulin Bon",
-          homeLatitude: 5.32,
-          homeLongitude: -4.02
-        },
+        user: { fullName: "Moulin Bon" },
+        latitude: 5.32,
+        longitude: -4.02,
+        departmentCode: "CI-AB",
+        geoResolutionSource: "gps",
         shops: [{ name: "Moulin Bon", locationLabel: "Abidjan" }],
         millIngredientOffers: [
           {
@@ -152,11 +152,11 @@ describe("CompositionPricingService", () => {
       },
       {
         id: "mill-incomplete",
-        user: {
-          fullName: "Moulin Partiel",
-          homeLatitude: 5.33,
-          homeLongitude: -4.0
-        },
+        user: { fullName: "Moulin Partiel" },
+        latitude: 5.33,
+        longitude: -4.0,
+        departmentCode: "CI-AB",
+        geoResolutionSource: "gps",
         shops: [{ name: "Moulin Partiel", locationLabel: "Abidjan" }],
         millIngredientOffers: [
           {
@@ -172,11 +172,11 @@ describe("CompositionPricingService", () => {
       },
       {
         id: "mill-far",
-        user: {
-          fullName: "Moulin Loin",
-          homeLatitude: 9.5,
-          homeLongitude: -5.5
-        },
+        user: { fullName: "Moulin Loin" },
+        latitude: 9.5,
+        longitude: -5.5,
+        departmentCode: "CI-KO",
+        geoResolutionSource: "gps",
         shops: [{ name: "Moulin Loin", locationLabel: "Korhogo" }],
         millIngredientOffers: [
           {
@@ -258,11 +258,11 @@ describe("CompositionPricingService", () => {
     const mills = [
       {
         id: "mill-abidjan",
-        user: {
-          fullName: "Moulin AB",
-          homeLatitude: null,
-          homeLongitude: null
-        },
+        user: { fullName: "Moulin AB" },
+        latitude: null,
+        longitude: null,
+        departmentCode: "CI-AB",
+        geoResolutionSource: "locality",
         shops: [{ name: "Moulin AB", locationLabel: "Abidjan" }],
         millIngredientOffers: [
           {
@@ -287,11 +287,11 @@ describe("CompositionPricingService", () => {
       },
       {
         id: "mill-bouake",
-        user: {
-          fullName: "Moulin BK",
-          homeLatitude: null,
-          homeLongitude: null
-        },
+        user: { fullName: "Moulin BK" },
+        latitude: null,
+        longitude: null,
+        departmentCode: "CI-BK",
+        geoResolutionSource: "locality",
         shops: [{ name: "Moulin BK", locationLabel: "Bouaké" }],
         millIngredientOffers: [
           {
@@ -316,7 +316,7 @@ describe("CompositionPricingService", () => {
       }
     ];
 
-    const { service, prisma } = build({
+    const { service } = build({
       mills,
       farm: {
         id: "farm-1",
@@ -325,11 +325,6 @@ describe("CompositionPricingService", () => {
         departmentCode: "CI-AB"
       }
     });
-    prisma.localityRef.findMany.mockResolvedValue([
-      { nameNormalized: "abidjan", departmentCode: "CI-AB" },
-      { nameNormalized: "bouake", departmentCode: "CI-BK" }
-    ]);
-
     const res = await service.priceForMills(producer, "comp-1", 50);
     expect(res.mills.map((m) => m.millId)).toEqual(["mill-abidjan"]);
     expect(res.mills[0].distanceKm).toBeNull();
@@ -346,5 +341,71 @@ describe("CompositionPricingService", () => {
         })
       })
     );
+  });
+
+  it("moulin unresolved (sans coords ni département) exclu du rayon", async () => {
+    const mills = [
+      {
+        id: "mill-ok",
+        user: { fullName: "Moulin OK" },
+        latitude: 5.31,
+        longitude: -4.01,
+        departmentCode: "CI-AB",
+        geoResolutionSource: "gps",
+        shops: [{ name: "OK", locationLabel: "Abidjan" }],
+        millIngredientOffers: [
+          {
+            feedIngredientId: "corn",
+            pricePerUnit: 200,
+            packaging: MillIngredientPackaging.kg,
+            unitToKg: 1,
+            stockQuantity: 200,
+            mixingCostPerKg: null,
+            feedIngredient: { canonicalName: "Maïs", isActive: true }
+          },
+          {
+            feedIngredientId: "soy",
+            pricePerUnit: 400,
+            packaging: MillIngredientPackaging.kg,
+            unitToKg: 1,
+            stockQuantity: 200,
+            mixingCostPerKg: null,
+            feedIngredient: { canonicalName: "Soja", isActive: true }
+          }
+        ]
+      },
+      {
+        id: "mill-unresolved",
+        user: { fullName: "Moulin Sans Géoloc" },
+        latitude: null,
+        longitude: null,
+        departmentCode: null,
+        geoResolutionSource: "unresolved",
+        shops: [{ name: "Sans géo", locationLabel: null }],
+        millIngredientOffers: [
+          {
+            feedIngredientId: "corn",
+            pricePerUnit: 50,
+            packaging: MillIngredientPackaging.kg,
+            unitToKg: 1,
+            stockQuantity: 999,
+            mixingCostPerKg: null,
+            feedIngredient: { canonicalName: "Maïs", isActive: true }
+          },
+          {
+            feedIngredientId: "soy",
+            pricePerUnit: 50,
+            packaging: MillIngredientPackaging.kg,
+            unitToKg: 1,
+            stockQuantity: 999,
+            mixingCostPerKg: null,
+            feedIngredient: { canonicalName: "Soja", isActive: true }
+          }
+        ]
+      }
+    ];
+    const { service } = build({ mills });
+    const res = await service.priceForMills(producer, "comp-1", 50);
+    expect(res.mills.map((m) => m.millId)).toEqual(["mill-ok"]);
   });
 });
