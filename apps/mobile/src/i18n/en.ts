@@ -4665,7 +4665,7 @@ export const en = {
       sellWholesale: "Sell wholesale on the market",
       sellWholesaleHint:
         "Single price source: the offer also feeds composition. Private offers stay off the market.",
-      save: "Save offer",
+      save: "Save ingredient",
       myOffers: "My offers",
       empty: "No offers yet.",
       stockLabel: "Stock: {{qty}}",
