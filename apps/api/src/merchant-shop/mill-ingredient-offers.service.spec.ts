@@ -178,7 +178,9 @@ describe("MillIngredientOffersService", () => {
     expect(prisma.merchantProduct.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          photoUrls: ["fermier-icon:cereal"]
+          photoUrls: [
+            "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/mais.jpg"
+          ]
         })
       })
     );

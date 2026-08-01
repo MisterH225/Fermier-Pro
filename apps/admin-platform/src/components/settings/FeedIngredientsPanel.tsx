@@ -412,19 +412,69 @@ export function FeedIngredientsPanel() {
                                 )}
                               >
                                 <TableCell>
-                                  <div className="font-medium">
-                                    {row.canonicalName}
-                                  </div>
-                                  {row.aliases.length > 0 ? (
-                                    <div className="text-xs text-muted-foreground">
-                                      {row.aliases.join(", ")}
+                                  <div className="flex items-start gap-2">
+                                    {row.imageUrl ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={row.imageUrl}
+                                        alt=""
+                                        className="mt-0.5 size-10 shrink-0 rounded-md object-cover bg-muted"
+                                      />
+                                    ) : (
+                                      <div className="mt-0.5 size-10 shrink-0 rounded-md bg-muted" />
+                                    )}
+                                    <div className="min-w-0">
+                                      <div className="font-medium">
+                                        {row.canonicalName}
+                                      </div>
+                                      {row.aliases.length > 0 ? (
+                                        <div className="text-xs text-muted-foreground">
+                                          {row.aliases.join(", ")}
+                                        </div>
+                                      ) : null}
+                                      <Input
+                                        className="mt-1 h-7 text-xs"
+                                        placeholder="https://… image"
+                                        defaultValue={row.imageUrl ?? ""}
+                                        onBlur={(e) => {
+                                          const next = e.target.value.trim();
+                                          const prev = (row.imageUrl ?? "").trim();
+                                          if (next === prev || !token) return;
+                                          void (async () => {
+                                            setBusyId(row.id);
+                                            try {
+                                              const updated =
+                                                await patchAdminFeedIngredient(
+                                                  token,
+                                                  row.id,
+                                                  { imageUrl: next || null }
+                                                );
+                                              setRows((r) =>
+                                                r.map((x) =>
+                                                  x.id === row.id ? updated : x
+                                                )
+                                              );
+                                            } catch (err) {
+                                              setRowErrors((er) => ({
+                                                ...er,
+                                                [row.id]:
+                                                  err instanceof Error
+                                                    ? err.message
+                                                    : t("saveError")
+                                              }));
+                                            } finally {
+                                              setBusyId(null);
+                                            }
+                                          })();
+                                        }}
+                                      />
+                                      {rowErrors[row.id] ? (
+                                        <p className="mt-1 text-xs text-destructive">
+                                          {rowErrors[row.id]}
+                                        </p>
+                                      ) : null}
                                     </div>
-                                  ) : null}
-                                  {rowErrors[row.id] ? (
-                                    <p className="mt-1 text-xs text-destructive">
-                                      {rowErrors[row.id]}
-                                    </p>
-                                  ) : null}
+                                  </div>
                                 </TableCell>
                                 {NUTRITION_KEYS.map((key) => (
                                   <TableCell key={key} className="p-1">

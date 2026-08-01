@@ -13,19 +13,37 @@ describe("FeedIngredientIcon helpers", () => {
     const v = resolveIngredientVisual({
       imageUrl: "https://cdn/mais.jpg",
       iconKey: "cereal",
-      category: "cereal"
+      category: "cereal",
+      canonicalName: "Maïs jaune"
     });
-    expect(v.imageUrl).toBe("https://cdn/mais.jpg");
+    expect(v.kind).toBe("remote");
+    if (v.kind === "remote") {
+      expect(v.uri).toBe("https://cdn/mais.jpg");
+    }
   });
 
-  it("fallback pictogramme si pas d'image", () => {
+  it("fallback photo locale catalogue si pas d'URL (plus d'initiales)", () => {
     const v = resolveIngredientVisual({
       imageUrl: null,
       iconKey: null,
       category: "mineral",
-      photoUrls: ["fermier-icon:mineral"]
+      photoUrls: ["fermier-icon:mineral"],
+      canonicalName: "Sel"
     });
-    expect(v.imageUrl).toBeNull();
-    expect(v.iconKey).toBe("mineral");
+    expect(v.kind).toBe("local");
+    if (v.kind === "local") {
+      expect(v.source).toBeTruthy();
+    }
+  });
+
+  it("ignore les marqueurs fermier-icon dans photoUrls au profit de l'URL HTTP", () => {
+    const v = resolveIngredientVisual({
+      photoUrls: ["fermier-icon:cereal", "https://cdn/mais.jpg"],
+      canonicalName: "Maïs jaune"
+    });
+    expect(v.kind).toBe("remote");
+    if (v.kind === "remote") {
+      expect(v.uri).toBe("https://cdn/mais.jpg");
+    }
   });
 });

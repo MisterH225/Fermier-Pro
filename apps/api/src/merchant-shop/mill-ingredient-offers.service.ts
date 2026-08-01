@@ -22,6 +22,10 @@ import {
   pricePerKg,
   resolveUnitToKg
 } from "./mill-ingredient-packaging.util";
+import {
+  FEED_INGREDIENT_DEFAULT_IMAGE_URL,
+  feedIngredientCatalogImageUrl
+} from "../feed-ingredients/feed-ingredient-images";
 
 /**
  * Offres d'intrants moulin.
@@ -249,7 +253,7 @@ export class MillIngredientOffersService {
       offer.isPubliclyListed &&
       Number(offer.stockQuantity) > 0;
 
-    /** Photo réelle si dispo, sinon marqueur pictogramme pour l'UI mobile/marketplace. */
+    /** Photo catalogue réelle (imageUrl ou CDN seed) — jamais d'initiales. */
     const photoUrls = resolveIngredientPhotoUrls(offer.feedIngredient);
 
     if (!shouldList) {
@@ -446,15 +450,18 @@ export class MillIngredientOffersService {
   }
 }
 
-/** URL photo ou marqueur `fermier-icon:<key>` pour pictogramme de catégorie. */
+/** URL photo catalogue (jamais de marqueur `fermier-icon:` / initiales). */
 export function resolveIngredientPhotoUrls(ing: {
   imageUrl?: string | null;
   iconKey?: string | null;
   category?: string | null;
+  canonicalName?: string | null;
 }): string[] {
   const image = ing.imageUrl?.trim();
   if (image) return [image];
-  const key = ing.iconKey?.trim() || ing.category?.trim();
-  if (key) return [`fermier-icon:${key}`];
-  return [];
+  const name = ing.canonicalName?.trim();
+  if (name) {
+    return [feedIngredientCatalogImageUrl(name)];
+  }
+  return [FEED_INGREDIENT_DEFAULT_IMAGE_URL];
 }

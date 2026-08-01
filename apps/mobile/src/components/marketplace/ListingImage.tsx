@@ -81,7 +81,10 @@ export function ListingImage({
           style
         ]}
       >
-        <FeedIngredientIcon photoUrls={iconPhotos} size={Math.min(72, height * 0.45)} />
+        <FeedIngredientIcon
+          photoUrls={iconPhotos}
+          size={Math.min(72, height * 0.45)}
+        />
       </View>
     );
   }

@@ -127,6 +127,7 @@ export function MillIngredientOfferForm({ onSuccess, onCancel }: Props) {
               imageUrl={ing.imageUrl}
               iconKey={ing.iconKey}
               category={ing.category}
+              canonicalName={ing.canonicalName}
               size={36}
             />
             <Text style={[styles.hitTx, on && styles.hitTxActive]}>

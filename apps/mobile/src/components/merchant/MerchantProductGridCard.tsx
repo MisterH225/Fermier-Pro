@@ -62,13 +62,13 @@ export function MerchantProductGridCard({
         <View style={styles.imageWrap}>
           {photo && !isIconMarker ? (
             <Image source={{ uri: photo }} style={styles.image} resizeMode="cover" />
-          ) : photo && isIconMarker ? (
-            <View style={styles.placeholder}>
-              <FeedIngredientIcon photoUrls={product.photoUrls} size={48} />
-            </View>
           ) : (
             <View style={styles.placeholder}>
-              <Ionicons name="cube-outline" size={36} color={merchantColors.textMuted} />
+              <FeedIngredientIcon
+                photoUrls={product.photoUrls}
+                canonicalName={product.name}
+                size={48}
+              />
             </View>
           )}
           <View style={styles.statusPill}>

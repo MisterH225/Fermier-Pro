@@ -66,6 +66,14 @@ async function seedLocalities() {
 
 async function seedFeedIngredients() {
   for (const row of FEED_INGREDIENTS_SEED) {
+    const catalogImage =
+      typeof row.imageUrl === "string" && row.imageUrl.trim()
+        ? row.imageUrl.trim()
+        : null;
+    const existing = await prisma.feedIngredient.findUnique({
+      where: { canonicalName: row.canonicalName },
+      select: { imageUrl: true }
+    });
     await prisma.feedIngredient.upsert({
       where: { canonicalName: row.canonicalName },
       create: {
@@ -83,13 +91,21 @@ async function seedFeedIngredients() {
         dryMatterPct: row.dryMatterPct,
         isPremix: Boolean(row.isPremix),
         notes: row.notes ?? null,
+        iconKey: row.iconKey ?? row.category ?? null,
+        imageUrl: catalogImage,
         isActive: true
       },
-      update: row.isPremix ? { isPremix: true } : {}
+      update: {
+        ...(row.isPremix ? { isPremix: true } : {}),
+        ...(row.iconKey ? { iconKey: row.iconKey } : {}),
+        ...(catalogImage && !existing?.imageUrl?.trim()
+          ? { imageUrl: catalogImage }
+          : {})
+      }
     });
   }
   console.log(
-    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix seed)`
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix/imageUrl seed)`
   );
 }
 

@@ -1,4 +1,8 @@
 import { resolveIngredientPhotoUrls } from "./mill-ingredient-offers.service";
+import {
+  FEED_INGREDIENT_DEFAULT_IMAGE_URL,
+  feedIngredientCatalogImageUrl
+} from "../feed-ingredients/feed-ingredient-images";
 
 describe("resolveIngredientPhotoUrls", () => {
   it("privilégie imageUrl réelle", () => {
@@ -6,28 +10,30 @@ describe("resolveIngredientPhotoUrls", () => {
       resolveIngredientPhotoUrls({
         imageUrl: "https://cdn.example/mais.jpg",
         iconKey: "cereal",
-        category: "cereal"
+        category: "cereal",
+        canonicalName: "Maïs jaune"
       })
     ).toEqual(["https://cdn.example/mais.jpg"]);
   });
 
-  it("fallback pictogramme de catégorie", () => {
+  it("fallback URL catalogue par canonicalName (pas de pictogramme)", () => {
     expect(
       resolveIngredientPhotoUrls({
         imageUrl: null,
         iconKey: "plant_protein",
-        category: "plant_protein"
+        category: "plant_protein",
+        canonicalName: "Tourteau de soja"
       })
-    ).toEqual(["fermier-icon:plant_protein"]);
+    ).toEqual([feedIngredientCatalogImageUrl("Tourteau de soja")]);
   });
 
-  it("fallback category si iconKey absent", () => {
+  it("fallback image générique si aucun nom", () => {
     expect(
       resolveIngredientPhotoUrls({
         imageUrl: null,
         iconKey: null,
         category: "mineral"
       })
-    ).toEqual(["fermier-icon:mineral"]);
+    ).toEqual([FEED_INGREDIENT_DEFAULT_IMAGE_URL]);
   });
 });
