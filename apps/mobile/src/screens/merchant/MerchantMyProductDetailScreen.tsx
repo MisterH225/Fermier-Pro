@@ -19,9 +19,13 @@ import {
   DetailRow,
   DetailSectionLabel
 } from "../../components/marketplace/listingDetailUi";
+import { MerchantProductsSalesSection } from "../../components/merchant/MerchantProductsSalesSection";
 import { useSession } from "../../context/SessionContext";
 import { useBottomChromePad } from "../../hooks/useBottomInset";
-import { fetchMerchantProduct } from "../../lib/api";
+import {
+  fetchMerchantProduct,
+  fetchMerchantSellerOrders
+} from "../../lib/api";
 import { formatMarketMoney } from "../../lib/formatMoney";
 import type { RootStackParamList } from "../../types/navigation";
 import { mobileColors, mobileRadius, mobileSpacing, mobileTypography, mobileFontSize } from "../../theme/mobileTheme";
@@ -48,6 +52,12 @@ export function MerchantMyProductDetailScreen({ route, navigation }: Props) {
     queryKey: ["merchant-product-mine", activeProfileId, productId],
     queryFn: () =>
       fetchMerchantProduct(accessToken!, activeProfileId!, productId),
+    enabled: Boolean(accessToken && activeProfileId && productId)
+  });
+
+  const ordersQ = useQuery({
+    queryKey: ["merchant-seller-orders", activeProfileId],
+    queryFn: () => fetchMerchantSellerOrders(accessToken!, activeProfileId!),
     enabled: Boolean(accessToken && activeProfileId && productId)
   });
 
@@ -154,6 +164,16 @@ export function MerchantMyProductDetailScreen({ route, navigation }: Props) {
           </View>
           <Text style={styles.statsHint}>{t("merchant.products.stats.hint")}</Text>
         </DetailCard>
+
+        <View style={styles.salesPad}>
+          <MerchantProductsSalesSection
+            orders={ordersQ.data}
+            loading={ordersQ.isLoading}
+            productId={productId}
+            showRecentSales
+            subtitle={t("merchant.products.sales.productSubtitle")}
+          />
+        </View>
 
         <DetailCard>
           <DetailSectionLabel>{t("merchant.catalog.description")}</DetailSectionLabel>
@@ -266,6 +286,9 @@ const styles = StyleSheet.create({
     color: mobileColors.textSecondary,
     marginTop: mobileSpacing.sm,
     lineHeight: 16
+  },
+  salesPad: {
+    paddingHorizontal: mobileSpacing.lg
   },
   editBtn: {
     marginHorizontal: mobileSpacing.lg,

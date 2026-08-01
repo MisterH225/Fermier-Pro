@@ -44,3 +44,4 @@ export { MerchantShopScreen } from "../../screens/merchant/MerchantShopScreen";
 export { MerchantProductFormScreen } from "../../screens/merchant/MerchantProductFormScreen";
 export { MerchantProductDetailScreen } from "../../screens/merchant/MerchantProductDetailScreen";
 export { MerchantMyProductDetailScreen } from "../../screens/merchant/MerchantMyProductDetailScreen";
+export { MillIngredientOfferDetailScreen } from "../../screens/merchant/MillIngredientOfferDetailScreen";

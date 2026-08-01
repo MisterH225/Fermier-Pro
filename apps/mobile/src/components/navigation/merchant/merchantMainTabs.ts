@@ -25,6 +25,7 @@ export function merchantMainTabFromRoute(
   }
   if (
     routeName === "MerchantMyProductDetail" ||
+    routeName === "MillIngredientOfferDetail" ||
     routeName === "MerchantProductForm"
   ) {
     return "products";

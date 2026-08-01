@@ -2591,6 +2591,8 @@ export const fr = {
     settingsButton: "Paramètres",
     projects: {
       title: "Mes projets",
+      currentLabel: "Projet actif",
+      switchA11y: "Changer de projet — {{name}}",
       activeCountLimited: "{{count}} actif(s) / {{max}} max",
       activeCountUnlimited: "{{count}} actif(s)",
       limitReached:
@@ -4523,7 +4525,10 @@ export const fr = {
         title: "Ventes dans le temps",
         subtitle: "Revenus nets de vos commandes marketplace, mois par mois.",
         seriesLabel: "Revenus",
-        empty: "Aucune vente comptabilisée pour le moment."
+        empty: "Aucune vente comptabilisée pour le moment.",
+        recentTitle: "Dernières ventes",
+        unnamedProduct: "Produit",
+        productSubtitle: "Historique des ventes marketplace pour cet article."
       },
       restock: {
         title: "Recommandations de réassort",
@@ -4706,7 +4711,13 @@ export const fr = {
       privateBadge: "Privé (composition)",
       listPublic: "Mettre en vente",
       unlist: "Retirer du marché",
-      deactivate: "Désactiver"
+      deactivate: "Désactiver",
+      sectionInAll: "Intrants",
+      detailTitle: "Détail intrant",
+      statsPrivateHint:
+        "Statistiques marketplace disponibles une fois l’intrant mis en vente.",
+      editOffer: "Modifier l’offre",
+      openLinkedProduct: "Voir la fiche marché"
     },
     subscription: {
       title: "Choisis ton abonnement",

@@ -127,9 +127,28 @@ export function MerchantProductsScreen() {
     return ids;
   }, [offersQ.data]);
 
+  const filteredOffers = useMemo(() => {
+    const offers = (offersQ.data ?? []).filter((o) => o.isActive);
+    if (filter === "all") return offers;
+    return offers.filter((o) => {
+      const status = o.merchantProductStatus;
+      if (filter === "published") {
+        return o.isPubliclyListed && (status === "published" || status == null);
+      }
+      if (filter === "draft") {
+        return !o.isPubliclyListed || status === "draft";
+      }
+      if (filter === "disabled") {
+        return status === "disabled";
+      }
+      return status === filter;
+    });
+  }, [offersQ.data, filter]);
+
   const filtered = useMemo(() => {
     let items = productsQ.data ?? [];
-    if (millOk && kindFilter === "other") {
+    if (millOk && (kindFilter === "other" || kindFilter === "all")) {
+      // Évite le double affichage : les intrants publics liés passent par les cartes offre.
       items = items.filter((p) => !linkedProductIds.has(p.id));
     }
     if (millOk && kindFilter === "ingredients") {
@@ -247,30 +266,11 @@ export function MerchantProductsScreen() {
     [navigation]
   );
 
-  const listHeader = useMemo(
-    () => (
-      <View>
-        <MerchantProductsSalesSection
-          orders={ordersQ.data}
-          loading={ordersQ.isLoading}
-        />
-        <MerchantProductsRestockSection
-          products={productsQ.data}
-          orders={ordersQ.data}
-          loading={productsQ.isLoading || ordersQ.isLoading}
-          onProductPress={openProduct}
-        />
-        <Text style={styles.catalogTitle}>{t("merchant.products.catalogTitle")}</Text>
-      </View>
-    ),
-    [
-      ordersQ.data,
-      ordersQ.isLoading,
-      productsQ.data,
-      productsQ.isLoading,
-      openProduct,
-      t
-    ]
+  const openOffer = useCallback(
+    (offerId: string) => {
+      navigation.navigate("MillIngredientOfferDetail", { offerId });
+    },
+    [navigation]
   );
 
   const openCreate = useCallback(() => {
@@ -295,6 +295,97 @@ export function MerchantProductsScreen() {
     onSuccess: () => void invalidate(),
     onError: (e) => Alert.alert(formatApiError(e))
   });
+
+  const renderOfferCard = useCallback(
+    (item: MillIngredientOfferDto) => (
+      <Pressable
+        style={styles.offerCard}
+        onPress={() => openOffer(item.id)}
+        testID={`mill-offer-card-${item.id}`}
+      >
+        <FeedIngredientIcon
+          imageUrl={item.feedIngredientImageUrl}
+          iconKey={item.feedIngredientIconKey}
+          category={item.feedIngredientCategory}
+          canonicalName={item.feedIngredientName}
+          size={44}
+        />
+        <View style={styles.offerBody}>
+          <Text style={styles.offerName}>
+            {item.feedIngredientName ?? item.feedIngredientId}
+          </Text>
+          <Text style={styles.offerMeta}>
+            {Number(item.pricePerUnit).toLocaleString("fr-FR")} XOF ·{" "}
+            {t("merchant.millIngredients.stockLabel", {
+              qty: item.stockQuantity
+            })}
+          </Text>
+          <Text style={styles.offerBadge}>
+            {item.isPubliclyListed
+              ? t("merchant.millIngredients.publicBadge")
+              : t("merchant.millIngredients.privateBadge")}
+          </Text>
+          <View style={styles.offerActions}>
+            <Pressable onPress={() => toggleOfferPublic.mutate(item)}>
+              <Text style={styles.offerActionTx}>
+                {item.isPubliclyListed
+                  ? t("merchant.millIngredients.unlist")
+                  : t("merchant.millIngredients.listPublic")}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => deactivateOffer.mutate(item.id)}>
+              <Text style={styles.offerActionDanger}>
+                {t("merchant.millIngredients.deactivate")}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
+    ),
+    [openOffer, t, toggleOfferPublic, deactivateOffer]
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View>
+        <MerchantProductsSalesSection
+          orders={ordersQ.data}
+          loading={ordersQ.isLoading}
+        />
+        <MerchantProductsRestockSection
+          products={productsQ.data}
+          orders={ordersQ.data}
+          loading={productsQ.isLoading || ordersQ.isLoading}
+          onProductPress={openProduct}
+        />
+        {millOk && kindFilter === "all" && filteredOffers.length > 0 ? (
+          <View style={styles.offersInAll}>
+            <Text style={styles.catalogTitle}>
+              {t("merchant.millIngredients.sectionInAll")}
+            </Text>
+            <View style={styles.offersInAllList}>
+              {filteredOffers.map((item) => (
+                <View key={item.id}>{renderOfferCard(item)}</View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+        <Text style={styles.catalogTitle}>{t("merchant.products.catalogTitle")}</Text>
+      </View>
+    ),
+    [
+      ordersQ.data,
+      ordersQ.isLoading,
+      productsQ.data,
+      productsQ.isLoading,
+      openProduct,
+      millOk,
+      kindFilter,
+      filteredOffers,
+      renderOfferCard,
+      t
+    ]
+  );
 
   const header = (
     <View style={styles.topBar}>
@@ -367,30 +458,28 @@ export function MerchantProductsScreen() {
             </View>
           ) : null}
 
-          {kindFilter !== "ingredients" ? (
-            <View style={styles.filters}>
-              {FILTERS.map((f) => (
-                <Pressable
-                  key={f}
-                  style={[styles.filterChip, filter === f && styles.filterChipOn]}
-                  onPress={() => setFilter(f)}
+          <View style={styles.filters}>
+            {FILTERS.map((f) => (
+              <Pressable
+                key={f}
+                style={[styles.filterChip, filter === f && styles.filterChipOn]}
+                onPress={() => setFilter(f)}
+              >
+                <Text
+                  style={[styles.filterTx, filter === f && styles.filterTxOn]}
                 >
-                  <Text
-                    style={[styles.filterTx, filter === f && styles.filterTxOn]}
-                  >
-                    {t(`merchant.products.filter.${f}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
+                  {t(`merchant.products.filter.${f}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
           {millOk && kindFilter === "ingredients" ? (
             <FlatList
               // Remount distinct du grid 2 colonnes : RN interdit de changer numColumns à chaud.
               key="mill-ingredient-offers"
               testID="mill-ingredients-in-products"
-              data={offersQ.data ?? []}
+              data={filteredOffers}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{
                 padding: H_PAD,
@@ -423,51 +512,7 @@ export function MerchantProductsScreen() {
                   </Text>
                 )
               }
-              renderItem={({ item }) => (
-                <View style={styles.offerCard}>
-                  <FeedIngredientIcon
-                    imageUrl={item.feedIngredientImageUrl}
-                    iconKey={item.feedIngredientIconKey}
-                    category={item.feedIngredientCategory}
-                    canonicalName={item.feedIngredientName}
-                    size={44}
-                  />
-                  <View style={styles.offerBody}>
-                    <Text style={styles.offerName}>
-                      {item.feedIngredientName ?? item.feedIngredientId}
-                    </Text>
-                    <Text style={styles.offerMeta}>
-                      {Number(item.pricePerUnit).toLocaleString("fr-FR")} XOF ·{" "}
-                      {t("merchant.millIngredients.stockLabel", {
-                        qty: item.stockQuantity
-                      })}
-                    </Text>
-                    <Text style={styles.offerBadge}>
-                      {item.isPubliclyListed
-                        ? t("merchant.millIngredients.publicBadge")
-                        : t("merchant.millIngredients.privateBadge")}
-                    </Text>
-                    <View style={styles.offerActions}>
-                      <Pressable
-                        onPress={() => toggleOfferPublic.mutate(item)}
-                      >
-                        <Text style={styles.offerActionTx}>
-                          {item.isPubliclyListed
-                            ? t("merchant.millIngredients.unlist")
-                            : t("merchant.millIngredients.listPublic")}
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => deactivateOffer.mutate(item.id)}
-                      >
-                        <Text style={styles.offerActionDanger}>
-                          {t("merchant.millIngredients.deactivate")}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                </View>
-              )}
+              renderItem={({ item }) => renderOfferCard(item)}
             />
           ) : (
             <FlatList
@@ -497,9 +542,16 @@ export function MerchantProductsScreen() {
                 />
               }
               ListEmptyComponent={
-                <Text style={styles.empty}>
-                  {t("merchant.dashboard.noProducts")}
-                </Text>
+                millOk && kindFilter === "all" && filteredOffers.length > 0 ? (
+                  <Text style={styles.emptyMuted}>
+                    {t("merchant.products.kindFilterOther")} —{" "}
+                    {t("merchant.dashboard.noProducts")}
+                  </Text>
+                ) : (
+                  <Text style={styles.empty}>
+                    {t("merchant.dashboard.noProducts")}
+                  </Text>
+                )
               }
               renderItem={({ item }) => (
                 <MerchantProductGridCard
@@ -607,6 +659,20 @@ const styles = StyleSheet.create({
     marginTop: mobileSpacing.xs
   },
   empty: { textAlign: "center", color: merchantColors.textSecondary, marginTop: 24 },
+  emptyMuted: {
+    textAlign: "center",
+    color: merchantColors.textSecondary,
+    marginTop: 8,
+    marginBottom: 16,
+    fontSize: mobileFontSize.sm
+  },
+  offersInAll: {
+    marginBottom: mobileSpacing.md
+  },
+  offersInAllList: {
+    gap: 10,
+    marginBottom: mobileSpacing.sm
+  },
   offerCard: {
     flexDirection: "row",
     gap: 12,
