@@ -1,4 +1,9 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute
+} from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
@@ -67,11 +72,17 @@ export function MerchantProductsScreen() {
   const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "MerchantProducts">>();
   const bottomInset = useBottomInset();
   const queryClient = useQueryClient();
   const { accessToken, activeProfileId, platformModules } = useSession();
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
+  const initialKind = route.params?.kindFilter;
+  const [kindFilter, setKindFilter] = useState<KindFilter>(
+    initialKind === "ingredients" || initialKind === "other"
+      ? initialKind
+      : "all"
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const cardWidth = useMemo(() => {
@@ -196,6 +207,16 @@ export function MerchantProductsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      const requested = route.params?.kindFilter;
+      if (
+        requested === "ingredients" ||
+        requested === "other" ||
+        requested === "all"
+      ) {
+        setKindFilter(requested);
+        // Consommer le param pour ne pas réimposer le filtre à chaque focus.
+        navigation.setParams({ kindFilter: undefined });
+      }
       if (!activeProfileId) return;
       void queryClient.invalidateQueries({
         queryKey: ["merchant-me", activeProfileId]
@@ -204,9 +225,12 @@ export function MerchantProductsScreen() {
         queryKey: ["merchant-products", activeProfileId]
       });
       void queryClient.invalidateQueries({
+        queryKey: ["mill-offers", activeProfileId]
+      });
+      void queryClient.invalidateQueries({
         queryKey: ["merchant-seller-orders", activeProfileId]
       });
-    }, [queryClient, activeProfileId])
+    }, [queryClient, activeProfileId, route.params?.kindFilter, navigation])
   );
 
   const me = meQ.data;
@@ -363,6 +387,8 @@ export function MerchantProductsScreen() {
 
           {millOk && kindFilter === "ingredients" ? (
             <FlatList
+              // Remount distinct du grid 2 colonnes : RN interdit de changer numColumns à chaud.
+              key="mill-ingredient-offers"
               testID="mill-ingredients-in-products"
               data={offersQ.data ?? []}
               keyExtractor={(item) => item.id}
@@ -386,9 +412,16 @@ export function MerchantProductsScreen() {
                 />
               }
               ListEmptyComponent={
-                <Text style={styles.empty}>
-                  {t("merchant.millIngredients.empty")}
-                </Text>
+                offersQ.isLoading ? (
+                  <ActivityIndicator
+                    style={{ marginTop: 24 }}
+                    color={merchantColors.primary}
+                  />
+                ) : (
+                  <Text style={styles.empty}>
+                    {t("merchant.millIngredients.empty")}
+                  </Text>
+                )
               }
               renderItem={({ item }) => (
                 <View style={styles.offerCard}>
@@ -403,7 +436,7 @@ export function MerchantProductsScreen() {
                       {item.feedIngredientName ?? item.feedIngredientId}
                     </Text>
                     <Text style={styles.offerMeta}>
-                      {item.pricePerUnit.toLocaleString("fr-FR")} XOF ·{" "}
+                      {Number(item.pricePerUnit).toLocaleString("fr-FR")} XOF ·{" "}
                       {t("merchant.millIngredients.stockLabel", {
                         qty: item.stockQuantity
                       })}
@@ -437,6 +470,7 @@ export function MerchantProductsScreen() {
             />
           ) : (
             <FlatList
+              key="merchant-products-grid"
               data={filtered}
               keyExtractor={(item) => item.id}
               numColumns={2}

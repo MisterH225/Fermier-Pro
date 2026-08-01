@@ -11,7 +11,12 @@ export type RootStackParamList = {
   MerchantDashboard: undefined;
   MerchantShops: undefined;
   MerchantShopDetail: { shopId: string };
-  MerchantProducts: undefined;
+  MerchantProducts:
+    | {
+        /** Moulin : ouvrir le catalogue sur Intrants / Autres / Tous. */
+        kindFilter?: "all" | "ingredients" | "other";
+      }
+    | undefined;
   /** Offres d'intrants moulin (flag mills + merchantKind=mill). */
   MerchantMarket:
     | {
