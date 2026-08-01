@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (869c6f89) — J4 composition commande + escrow + hub #318 #323",
-  "updatedAt": "2026-08-01T00:28Z",
+  "message": "OTA preview (8fe5ab6e) — photos réelles catalogue intrants #325",
+  "updatedAt": "2026-08-01T00:57Z",
   "channels": ["preview"],
-  "updateGroupId": "3bd13b05-026e-45fd-a7c5-1522d03c08b9",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/3bd13b05-026e-45fd-a7c5-1522d03c08b9"
+  "updateGroupId": "9c12e352-74e9-4128-ba37-6848b36aee07",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/9c12e352-74e9-4128-ba37-6848b36aee07"
 }

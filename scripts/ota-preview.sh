@@ -1,3 +1,4 @@
+# Dernière release OTA preview : 2026-08-01T00:57Z — photos réelles catalogue intrants #325
 # Dernière release OTA preview : 2026-08-01T00:28Z — J4 composition commande + escrow + hub #318 #323
 # Dernière release OTA preview : 2026-07-31T04:30Z — UX composition aliment #301
 # Dernière release OTA preview : 2026-07-31T03:58Z — composition aliments #297–#300 + type moulin paramètres #296
