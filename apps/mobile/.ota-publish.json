@@ -1,7 +1,7 @@
 {
-  "message": "OTA preview (8fe5ab6e) — photos réelles catalogue intrants #325",
-  "updatedAt": "2026-08-01T00:57Z",
+  "message": "OTA preview (a95f85c2) — géo moulin #327 + sélecteur projet/détail intrants #328",
+  "updatedAt": "2026-08-01T12:00Z",
   "channels": ["preview"],
-  "updateGroupId": "9c12e352-74e9-4128-ba37-6848b36aee07",
-  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/9c12e352-74e9-4128-ba37-6848b36aee07"
+  "updateGroupId": "74d28592-50f4-44e9-8612-9ae0e3933235",
+  "dashboardUrl": "https://expo.dev/accounts/misterh225/projects/fermier-pro/updates/74d28592-50f4-44e9-8612-9ae0e3933235"
 }

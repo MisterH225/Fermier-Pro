@@ -1,3 +1,4 @@
+# Dernière release OTA preview : 2026-08-01T12:00Z — géo moulin #327 + sélecteur projet/détail intrants #328
 # Dernière release OTA preview : 2026-08-01T00:57Z — photos réelles catalogue intrants #325
 # Dernière release OTA preview : 2026-08-01T00:28Z — J4 composition commande + escrow + hub #318 #323
 # Dernière release OTA preview : 2026-07-31T04:30Z — UX composition aliment #301
