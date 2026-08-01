@@ -19,6 +19,7 @@ import { FormulationResultCard } from "../../components/feed-composition/Formula
 import { useSession } from "../../context/SessionContext";
 import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import {
+  fetchFarm,
   getFeedComposition,
   listFarmCompositionVeterinarians,
   postFeedCompositionExplain,
@@ -42,6 +43,7 @@ import {
   stageLabelFr,
   statusLabelFr
 } from "../../lib/feedCompositionFormat";
+import { canOrderFeedComposition } from "../../lib/feedComposition";
 import type { RootStackParamList } from "../../types/navigation";
 import {
   compositionDiscussLabel,
@@ -89,6 +91,12 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
     queryFn: () =>
       getFeedComposition(accessToken!, compositionId, activeProfileId),
     enabled: Boolean(accessToken)
+  });
+
+  const farmQ = useQuery({
+    queryKey: ["farm", farmId, activeProfileId],
+    queryFn: () => fetchFarm(accessToken!, farmId, activeProfileId),
+    enabled: Boolean(accessToken && !isVetProfile)
   });
 
   const vetsQ = useQuery({
@@ -338,6 +346,15 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
   const discussTone: CompositionUiTone =
     isVetProfile || isAssociatedVet ? "vet" : "producer";
 
+  const showOrderButton =
+    !isVetProfile &&
+    row.status === "validated" &&
+    canOrderFeedComposition({
+      profileType,
+      effectiveScopes: farmQ.data?.effectiveScopes,
+      writeLocked: Boolean(farmQ.data?.writeLockedAt)
+    });
+
   const onSendToVet = () => {
     if (!hasVets) {
       Alert.alert(
@@ -526,19 +543,20 @@ export function FeedCompositionDetailScreen({ navigation, route }: Props) {
             </View>
           ) : null}
 
-          {row.status === "validated" ? (
+          {showOrderButton ? (
             <Pressable
-              style={[
-                styles.primaryBtn,
-                styles.disabledBtn,
-                { backgroundColor: ui.accent }
-              ]}
-              disabled
-              testID="order-composition-disabled"
-              accessibilityState={{ disabled: true }}
+              style={[styles.primaryBtn, { backgroundColor: ui.accent }]}
+              testID="order-composition"
+              onPress={() =>
+                navigation.navigate("MillPricesCompare", {
+                  compositionId,
+                  farmId,
+                  farmName
+                })
+              }
             >
               <Text style={[styles.primaryBtnLabel, { color: ui.onAccent }]}>
-                Commander — bientôt
+                Commander
               </Text>
             </Pressable>
           ) : null}

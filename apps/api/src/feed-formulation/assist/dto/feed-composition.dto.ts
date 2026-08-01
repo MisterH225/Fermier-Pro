@@ -345,3 +345,13 @@ export class ExplainFeedCompositionDto {
   @IsBoolean()
   forceRefresh?: boolean;
 }
+
+/** Query GET …/mill-prices (P-J4-A). */
+export class MillPricesQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(500)
+  radiusKm?: number;
+}

@@ -158,6 +158,7 @@ describe("OrdersProjectionService — isolation + agrégation", () => {
   const prisma = {
     marketplaceTransaction: { findMany: jest.fn() },
     merchantOrder: { findMany: jest.fn() },
+    compositionOrder: { findMany: jest.fn() },
     marketplaceOffer: { count: jest.fn() }
   };
 
@@ -171,6 +172,7 @@ describe("OrdersProjectionService — isolation + agrégation", () => {
   it("n’interroge que les transactions où l’utilisateur est partie (buyer)", async () => {
     prisma.marketplaceTransaction.findMany.mockResolvedValue([]);
     prisma.merchantOrder.findMany.mockResolvedValue([]);
+    prisma.compositionOrder.findMany.mockResolvedValue([]);
 
     await service.listOrders(
       { id: "user-buyer" } as never,
@@ -187,11 +189,17 @@ describe("OrdersProjectionService — isolation + agrégation", () => {
         where: { buyerUserId: "user-buyer" }
       })
     );
+    expect(prisma.compositionOrder.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { producerUserId: "user-buyer" }
+      })
+    );
   });
 
   it("n’interroge que les transactions où l’utilisateur est partie (seller)", async () => {
     prisma.marketplaceTransaction.findMany.mockResolvedValue([]);
     prisma.merchantOrder.findMany.mockResolvedValue([]);
+    prisma.compositionOrder.findMany.mockResolvedValue([]);
 
     await service.listOrders(
       { id: "user-seller" } as never,
@@ -206,6 +214,11 @@ describe("OrdersProjectionService — isolation + agrégation", () => {
     expect(prisma.merchantOrder.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { sellerUserId: "user-seller" }
+      })
+    );
+    expect(prisma.compositionOrder.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { millProfile: { userId: "user-seller" } }
       })
     );
   });
@@ -254,6 +267,7 @@ describe("OrdersProjectionService — isolation + agrégation", () => {
         seller: { fullName: "Boutique", firstName: null, lastName: null }
       }
     ]);
+    prisma.compositionOrder.findMany.mockResolvedValue([]);
 
     const result = await service.listOrders(
       { id: "user-buyer" } as never,
@@ -272,6 +286,7 @@ describe("OrdersProjectionService — isolation + agrégation", () => {
   it("counters : pendingProposals selon le rôle (source offres)", async () => {
     prisma.marketplaceTransaction.findMany.mockResolvedValue([]);
     prisma.merchantOrder.findMany.mockResolvedValue([]);
+    prisma.compositionOrder.findMany.mockResolvedValue([]);
     prisma.marketplaceOffer.count.mockResolvedValue(3);
 
     const asBuyer = await service.counters({ id: "u1" } as never, "buyer");

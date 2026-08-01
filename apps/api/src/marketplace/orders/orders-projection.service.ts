@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import {
+  CompositionOrderStatus,
   MarketplaceTransactionStatus,
   MerchantOrderStatus,
   OfferStatus,
@@ -14,19 +15,23 @@ import {
 } from "../../common/deadline-outcome";
 import {
   deriveActionRequired,
+  deriveCompositionActionRequired,
   deriveShopActionRequired,
   type OrderViewerRole
 } from "./order-action-required";
 import {
+  isCompositionDisputed,
   isEscrowDisputed,
   isShopDisputed,
   stageIndexOf,
+  stageOfComposition,
   stageOfEscrow,
   stageOfShop
 } from "./order-stage";
 import {
   type OrderListSegment,
   type OrderProjectionCard,
+  type OrderProjectionType,
   type OrdersCountersResponse,
   type OrdersListResponse
 } from "./order-projection.types";
@@ -34,7 +39,7 @@ import {
 type CursorPayload = {
   updatedAt: string;
   id: string;
-  type: "escrow" | "shop";
+  type: OrderProjectionType;
 };
 
 function displayNameOf(user: {
@@ -64,7 +69,9 @@ function decodeCursor(raw: string): CursorPayload {
     if (
       typeof parsed?.updatedAt !== "string" ||
       typeof parsed?.id !== "string" ||
-      (parsed.type !== "escrow" && parsed.type !== "shop")
+      parsed.type !== "escrow" &&
+        parsed.type !== "shop" &&
+        parsed.type !== "composition"
     ) {
       throw new Error("invalid");
     }
@@ -213,7 +220,12 @@ export class OrdersProjectionService {
         ? { buyerUserId: userId }
         : { sellerUserId: userId };
 
-    const [escrowRows, shopRows] = await Promise.all([
+    const compositionWhere =
+      role === "buyer"
+        ? { producerUserId: userId }
+        : { millProfile: { userId } };
+
+    const [escrowRows, shopRows, compositionRows] = await Promise.all([
       this.prisma.marketplaceTransaction.findMany({
         where: escrowWhere,
         orderBy: { updatedAt: "desc" },
@@ -241,6 +253,30 @@ export class OrdersProjectionService {
             select: { fullName: true, firstName: true, lastName: true }
           }
         }
+      }),
+      this.prisma.compositionOrder.findMany({
+        where: compositionWhere,
+        orderBy: { updatedAt: "desc" },
+        take: 200,
+        include: {
+          farm: { select: { name: true } },
+          producer: {
+            select: { fullName: true, firstName: true, lastName: true }
+          },
+          millProfile: {
+            select: {
+              user: {
+                select: { fullName: true, firstName: true, lastName: true }
+              },
+              shops: {
+                where: { archivedAt: null },
+                orderBy: { createdAt: "asc" },
+                take: 1,
+                select: { name: true }
+              }
+            }
+          }
+        }
       })
     ]);
 
@@ -250,7 +286,10 @@ export class OrdersProjectionService {
     const shopCards = shopRows.map((order) =>
       this.mapShopCard(order, role)
     );
-    return [...escrowCards, ...shopCards];
+    const compositionCards = compositionRows.map((order) =>
+      this.mapCompositionCard(order, role)
+    );
+    return [...escrowCards, ...shopCards, ...compositionCards];
   }
 
   private mapEscrowCard(
@@ -358,6 +397,76 @@ export class OrdersProjectionService {
       amount,
       currency: order.product?.currency || "XOF",
       updatedAt: order.updatedAt.toISOString()
+    };
+  }
+
+  private mapCompositionCard(
+    order: {
+      id: string;
+      status: CompositionOrderStatus;
+      quotedPriceXof: { toNumber(): number } | number;
+      finalPriceXof: { toNumber(): number } | number | null;
+      deadlineAt: Date | null;
+      productionStartEstimate: Date | null;
+      readyEstimate: Date | null;
+      readyActual: Date | null;
+      updatedAt: Date;
+      farm: { name: string } | null;
+      producer: {
+        fullName: string | null;
+        firstName: string | null;
+        lastName: string | null;
+      };
+      millProfile: {
+        user: {
+          fullName: string | null;
+          firstName: string | null;
+          lastName: string | null;
+        };
+        shops: Array<{ name: string }>;
+      };
+    },
+    role: OrderViewerRole
+  ): OrderProjectionCard {
+    const stage = stageOfComposition(order.status);
+    const action = deriveCompositionActionRequired(order.status, role);
+    const amountRaw = order.finalPriceXof ?? order.quotedPriceXof;
+    const amount =
+      typeof amountRaw === "number" ? amountRaw : amountRaw.toNumber();
+    const millName =
+      order.millProfile.shops[0]?.name?.trim() ||
+      displayNameOf(order.millProfile.user);
+    const counterparty =
+      role === "buyer" ? order.millProfile.user : order.producer;
+    const deadline =
+      order.status === CompositionOrderStatus.SENT_TO_MILL
+        ? order.deadlineAt
+        : order.status === CompositionOrderStatus.PAID ||
+            order.status === CompositionOrderStatus.IN_PRODUCTION
+          ? order.readyEstimate
+          : null;
+
+    return {
+      id: order.id,
+      type: "composition",
+      reference: order.id,
+      status: order.status,
+      stage,
+      stageIndex: stageIndexOf(stage),
+      disputed: isCompositionDisputed(order.status),
+      actionRequiredBy: action.actionRequiredBy,
+      nextActionKey: action.nextActionKey,
+      deadlineAt: deadline?.toISOString() ?? null,
+      timeoutOutcomeKey: null,
+      counterparty: { displayName: displayNameOf(counterparty) },
+      itemSummary: `Composition — ${order.farm?.name?.trim() || millName}`,
+      amount,
+      currency: "XOF",
+      updatedAt: order.updatedAt.toISOString(),
+      productionStartEstimate:
+        order.productionStartEstimate?.toISOString() ?? null,
+      readyEstimate: order.readyEstimate?.toISOString() ?? null,
+      readyActual: order.readyActual?.toISOString() ?? null
     };
   }
 }

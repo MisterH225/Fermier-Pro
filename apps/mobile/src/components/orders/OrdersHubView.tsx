@@ -273,6 +273,10 @@ export function OrdersHubView({
                   navigation.navigate("MerchantOrderDetail", route.params);
                   return;
                 }
+                if (route.screen === "CompositionOrderDetail") {
+                  navigation.navigate("CompositionOrderDetail", route.params);
+                  return;
+                }
                 navigation.navigate("MarketplaceTransaction", route.params);
               }}
             />

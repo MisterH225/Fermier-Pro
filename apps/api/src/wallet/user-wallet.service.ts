@@ -18,6 +18,7 @@ const TOPUP_PENDING_PREFIX = "wallet:topup-pending:";
 const WITHDRAW_PENDING_PREFIX = "wallet:withdraw-pending:";
 const VET_PENDING_PREFIX = "wallet:vet-pending:";
 const MERCHANT_PENDING_PREFIX = "wallet:merchant-pending:";
+const COMPOSITION_PENDING_PREFIX = "wallet:composition-pending:";
 
 export type WalletSummary = {
   balance: number;
@@ -646,6 +647,14 @@ export class UserWalletService {
     return Boolean(providerRef?.startsWith(MERCHANT_PENDING_PREFIX));
   }
 
+  compositionPendingRef(orderId: string): string {
+    return `${COMPOSITION_PENDING_PREFIX}${orderId}`;
+  }
+
+  isCompositionWalletPendingRef(providerRef: string | null | undefined): boolean {
+    return Boolean(providerRef?.startsWith(COMPOSITION_PENDING_PREFIX));
+  }
+
   async debitForMerchantHold(
     userId: string,
     amount: number,
@@ -884,6 +893,105 @@ export class UserWalletService {
     return hold.providerRef;
   }
 
+  async debitForCompositionHold(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string
+  ): Promise<{ providerRef: string; entryId: string }> {
+    const idempotencyKey = `composition-hold:${orderId}`;
+    const existing = await this.prisma.userWalletEntry.findUnique({
+      where: { idempotencyKey }
+    });
+    if (existing) {
+      return {
+        providerRef: this.walletProviderRef(existing.id),
+        entryId: existing.id
+      };
+    }
+    const entry = await this.debit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.debit_escrow_hold,
+      note,
+      idempotencyKey,
+      { compositionOrderId: orderId }
+    );
+    return {
+      providerRef: this.walletProviderRef(entry.id),
+      entryId: entry.id
+    };
+  }
+
+  async confirmCompositionPendingHold(
+    providerRef: string,
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string
+  ): Promise<string> {
+    if (!this.isCompositionWalletPendingRef(providerRef)) {
+      throw new BadRequestException(
+        "Référence portefeuille composition invalide"
+      );
+    }
+    const pendingOrderId = providerRef.slice(COMPOSITION_PENDING_PREFIX.length);
+    if (pendingOrderId !== orderId) {
+      throw new BadRequestException(
+        "Référence portefeuille invalide pour cette commande composition"
+      );
+    }
+    const hold = await this.debitForCompositionHold(
+      userId,
+      amount,
+      currency,
+      orderId,
+      note
+    );
+    return hold.providerRef;
+  }
+
+  async creditCompositionRefund(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string,
+    idempotencyKey: string
+  ): Promise<WalletEntryDto> {
+    return this.credit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.credit_refund,
+      note,
+      idempotencyKey,
+      { compositionOrderId: orderId }
+    );
+  }
+
+  async creditCompositionPayout(
+    userId: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+    note: string,
+    idempotencyKey: string
+  ): Promise<WalletEntryDto> {
+    return this.credit(
+      userId,
+      amount,
+      currency,
+      UserWalletEntryKind.credit_escrow_release,
+      note,
+      idempotencyKey,
+      { compositionOrderId: orderId }
+    );
+  }
+
   async creditVetRefund(
     userId: string,
     amount: number,
@@ -978,6 +1086,7 @@ export class UserWalletService {
       transactionId?: string;
       vetAppointmentId?: string;
       merchantOrderId?: string;
+      compositionOrderId?: string;
       counterpartyUserId?: string;
       providerRef?: string;
     } = {}
@@ -1013,6 +1122,7 @@ export class UserWalletService {
             transactionId: extra.transactionId,
             vetAppointmentId: extra.vetAppointmentId,
             merchantOrderId: extra.merchantOrderId,
+            compositionOrderId: extra.compositionOrderId,
             counterpartyUserId: extra.counterpartyUserId,
             providerRef: extra.providerRef,
             note,
@@ -1048,6 +1158,7 @@ export class UserWalletService {
       transactionId?: string;
       vetAppointmentId?: string;
       merchantOrderId?: string;
+      compositionOrderId?: string;
       counterpartyUserId?: string;
       providerRef?: string;
     } = {}
@@ -1091,6 +1202,7 @@ export class UserWalletService {
             transactionId: extra.transactionId,
             vetAppointmentId: extra.vetAppointmentId,
             merchantOrderId: extra.merchantOrderId,
+            compositionOrderId: extra.compositionOrderId,
             counterpartyUserId: extra.counterpartyUserId,
             providerRef: extra.providerRef,
             note,

@@ -8,7 +8,7 @@ export type MarketplaceOrderSegment =
   | "closed"
   | "disputed";
 
-export type MarketplaceOrderProjectionType = "escrow" | "shop";
+export type MarketplaceOrderProjectionType = "escrow" | "shop" | "composition";
 
 export type MarketplaceOrderProjectionCard = {
   id: string;
@@ -27,6 +27,9 @@ export type MarketplaceOrderProjectionCard = {
   amount: number;
   currency: string;
   updatedAt: string;
+  productionStartEstimate?: string | null;
+  readyEstimate?: string | null;
+  readyActual?: string | null;
 };
 
 export type MarketplaceOrdersListResponse = {

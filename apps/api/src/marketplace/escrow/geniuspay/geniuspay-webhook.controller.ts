@@ -22,9 +22,11 @@ import {
   isProducerSubscriptionWebhookMetadata
 } from "../../../producer-subscription/producer-subscription-webhook.util";
 import { ProducerSubscriptionBillingService } from "../../../producer-subscription/producer-subscription-billing.service";
+import { CompositionOrdersService } from "../../../feed-formulation/composition-orders/composition-orders.service";
 import { MarketplaceTransactionService } from "../marketplace-transaction.service";
 import { parsePayoutMetadata } from "./geniuspay-payout.util";
 import {
+  GENIUSPAY_KIND_COMPOSITION_ORDER,
   GENIUSPAY_KIND_MARKETPLACE_ESCROW,
   GENIUSPAY_KIND_MERCHANT_ORDER,
   GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
@@ -51,7 +53,8 @@ export class GeniusPayWebhookController {
     private readonly withdrawals: WithdrawalOrchestratorService,
     private readonly merchantBilling: MerchantSubscriptionBillingService,
     private readonly producerBilling: ProducerSubscriptionBillingService,
-    private readonly merchantOrders: MerchantOrdersService
+    private readonly merchantOrders: MerchantOrdersService,
+    private readonly compositionOrders: CompositionOrdersService
   ) {}
 
   @Post()
@@ -205,6 +208,25 @@ export class GeniusPayWebhookController {
         }
         await this.merchantOrders.confirmPaymentFromWebhook(
           orderId,
+          reference,
+          Number.isFinite(amount) ? amount : undefined,
+          body.data.currency
+        );
+        return { ok: true };
+      }
+
+      if (kind === GENIUSPAY_KIND_COMPOSITION_ORDER) {
+        const compositionOrderId =
+          typeof metadata.composition_order_id === "string"
+            ? metadata.composition_order_id.trim()
+            : "";
+        if (!compositionOrderId) {
+          throw new BadRequestException(
+            "composition_order_id metadata manquant"
+          );
+        }
+        await this.compositionOrders.confirmPaymentFromWebhook(
+          compositionOrderId,
           reference,
           Number.isFinite(amount) ? amount : undefined,
           body.data.currency

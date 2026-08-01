@@ -10,6 +10,7 @@ import {
 import { Throttle } from "@nestjs/throttler";
 import type { User } from "@prisma/client";
 import { CurrentUser } from "../../auth/decorators/current-user.decorator";
+import { ProducerProfileGuard } from "../../auth/guards/producer-profile.guard";
 import { SupabaseJwtGuard } from "../../auth/guards/supabase-jwt.guard";
 import { RequirePlatformModule } from "../../feature-flags/require-platform-module.decorator";
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
@@ -18,12 +19,14 @@ import {
   AssistFeedCompositionDto,
   ExplainFeedCompositionDto,
   FormulateFeedCompositionDto,
+  MillPricesQueryDto,
   ProposeCompositionAdjustmentDto,
   RejectCompositionAdjustmentDto,
   RequestVetReviewDto,
   SaveCompositionDto,
   VetReviewCompositionDto
 } from "./dto/feed-composition.dto";
+import { CompositionPricingService } from "./composition-pricing.service";
 import { FeedCompositionAssistService } from "./feed-composition-assist.service";
 import { FeedCompositionExplainService } from "./explain/feed-composition-explain.service";
 import { SavedCompositionsService } from "./saved-compositions.service";
@@ -39,7 +42,8 @@ export class FeedCompositionController {
   constructor(
     private readonly assist: FeedCompositionAssistService,
     private readonly explainService: FeedCompositionExplainService,
-    private readonly saved: SavedCompositionsService
+    private readonly saved: SavedCompositionsService,
+    private readonly pricing: CompositionPricingService
   ) {}
 
   /** File d'attente véto : compositions en revue sur ses fermes. */
@@ -106,9 +110,34 @@ export class FeedCompositionController {
     return this.saved.listForFarm(user, farmId);
   }
 
+  /**
+   * Comparaison de prix multi-moulins (P-J4-A).
+   * Réservé au producteur propriétaire / membre autorisé (finance.write).
+   */
+  @Get("compositions/:id/mill-prices")
+  @UseGuards(ProducerProfileGuard)
+  listMillPrices(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Query() query: MillPricesQueryDto
+  ) {
+    return this.pricing.priceForMills(user, id, query.radiusKm);
+  }
+
   @Get("compositions/:id")
   getOne(@CurrentUser() user: User, @Param("id") id: string) {
     return this.saved.getOne(user, id);
+  }
+
+  /** Alias chemin court spec P-J4-A : GET /feed-composition/:id/mill-prices */
+  @Get(":id/mill-prices")
+  @UseGuards(ProducerProfileGuard)
+  listMillPricesAlias(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Query() query: MillPricesQueryDto
+  ) {
+    return this.pricing.priceForMills(user, id, query.radiusKm);
   }
 
   /** Véto associés (si vide → UI guide vers l'équipe ferme, bouton toujours visible). */

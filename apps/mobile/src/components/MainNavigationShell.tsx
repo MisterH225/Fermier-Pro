@@ -72,6 +72,8 @@ import {
   FeedCompositionScreen,
   FeedCompositionsListScreen,
   FeedCompositionDetailScreen,
+  MillPricesCompareScreen,
+  CompositionOrderDetailScreen,
   FarmGestationScreen,
   FarmFinanceScreen,
   HistoricalRecordsScreen,
@@ -707,6 +709,16 @@ function MainStack() {
         name="FeedCompositionDetail"
         component={FeedCompositionDetailScreen}
         options={{ title: st("feedCompositionDetail") }}
+      />
+      <Stack.Screen
+        name="MillPricesCompare"
+        component={MillPricesCompareScreen}
+        options={{ title: "Comparer les moulins" }}
+      />
+      <Stack.Screen
+        name="CompositionOrderDetail"
+        component={CompositionOrderDetailScreen}
+        options={{ title: "Commande composition" }}
       />
       <Stack.Screen
         name="FarmGestation"

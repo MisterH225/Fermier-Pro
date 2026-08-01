@@ -39,6 +39,7 @@ import { ProducerSubscriptionModule } from "../producer-subscription/producer-su
 import { WalletModule } from "../wallet/wallet.module";
 import { ListingAnimalSyncService } from "./listing-animal-sync.service";
 import { OrdersController, OrdersProjectionService } from "./orders";
+import { FeedFormulationModule } from "../feed-formulation/feed-formulation.module";
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { OrdersController, OrdersProjectionService } from "./orders";
     forwardRef(() => WalletModule),
     forwardRef(() => MarketModule),
     forwardRef(() => MerchantShopModule),
+    forwardRef(() => FeedFormulationModule),
     MobileMoneyModule,
     ChatModule,
     ConfigClientModule,

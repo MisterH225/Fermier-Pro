@@ -1,9 +1,13 @@
-import { MarketplaceTransactionStatus } from "@prisma/client";
+import {
+  CompositionOrderStatus,
+  MarketplaceTransactionStatus,
+  MerchantOrderStatus
+} from "@prisma/client";
 import {
   deriveActionRequired,
+  deriveCompositionActionRequired,
   deriveShopActionRequired
 } from "./order-action-required";
-import { MerchantOrderStatus } from "@prisma/client";
 
 const ALL_ESCROW = Object.values(MarketplaceTransactionStatus);
 const ROLES = ["buyer", "seller"] as const;
@@ -166,6 +170,41 @@ describe("deriveShopActionRequired", () => {
   it("couvre tous les MerchantOrderStatus", () => {
     for (const status of Object.values(MerchantOrderStatus)) {
       expect(deriveShopActionRequired(status, "seller")).toBeDefined();
+    }
+  });
+});
+
+describe("deriveCompositionActionRequired", () => {
+  it("SENT_TO_MILL → seller (moulin), MILL_REVISED → buyer, ACCEPTED → buyer pay", () => {
+    expect(
+      deriveCompositionActionRequired(
+        CompositionOrderStatus.SENT_TO_MILL,
+        "seller"
+      )
+    ).toEqual({
+      actionRequiredBy: "seller",
+      nextActionKey: "orders.action.reviseComposition"
+    });
+    expect(
+      deriveCompositionActionRequired(
+        CompositionOrderStatus.MILL_REVISED,
+        "buyer"
+      )
+    ).toEqual({
+      actionRequiredBy: "buyer",
+      nextActionKey: "orders.action.acceptComposition"
+    });
+    expect(
+      deriveCompositionActionRequired(CompositionOrderStatus.ACCEPTED, "buyer")
+    ).toEqual({
+      actionRequiredBy: "buyer",
+      nextActionKey: "orders.action.pay"
+    });
+  });
+
+  it("couvre tous les CompositionOrderStatus", () => {
+    for (const status of Object.values(CompositionOrderStatus)) {
+      expect(deriveCompositionActionRequired(status, "buyer")).toBeDefined();
     }
   });
 });
