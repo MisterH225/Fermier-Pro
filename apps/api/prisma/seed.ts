@@ -72,6 +72,11 @@ async function seedLocalities() {
 async function seedFeedIngredients() {
   for (const row of FEED_INGREDIENTS_SEED) {
     const iconKey = row.iconKey ?? defaultIconKeyForCategory(row.category);
+    const catalogImage = row.imageUrl?.trim() || null;
+    const existing = await prisma.feedIngredient.findUnique({
+      where: { canonicalName: row.canonicalName },
+      select: { id: true, imageUrl: true }
+    });
     await prisma.feedIngredient.upsert({
       where: { canonicalName: row.canonicalName },
       create: {
@@ -90,18 +95,22 @@ async function seedFeedIngredients() {
         isPremix: row.isPremix ?? false,
         notes: row.notes ?? null,
         iconKey,
-        imageUrl: row.imageUrl ?? null,
+        imageUrl: catalogImage,
         isActive: true
       },
       update: {
-        // Structurelle : propager isPremix + pictogramme catégorie (sans écraser imageUrl admin).
+        // Structurelle : propager isPremix + pictogramme catégorie.
+        // imageUrl catalogue seulement si encore vide (ne pas écraser une URL admin).
         ...(row.isPremix ? { isPremix: true } : {}),
-        iconKey
+        iconKey,
+        ...(catalogImage && !existing?.imageUrl?.trim()
+          ? { imageUrl: catalogImage }
+          : {})
       }
     });
   }
   console.log(
-    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix/iconKey seed)`
+    `[seed] FeedIngredient : ${FEED_INGREDIENTS_SEED.length} entrées (upsert canonicalName, isPremix/iconKey/imageUrl seed)`
   );
 }
 

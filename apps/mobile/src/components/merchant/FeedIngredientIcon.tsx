@@ -1,50 +1,54 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Image, type ImageSourcePropType } from "react-native";
+import { localFeedIngredientImage } from "../../lib/feedIngredientImages";
 import { merchantColors } from "../../theme/merchantTheme";
-import { mobileFontSize, mobileRadius } from "../../theme/mobileTheme";
 
-/** Marqueur API pour pictogramme sans photo réelle. */
+/** Marqueur API historique pour pictogramme sans photo réelle. */
 export const FERMIER_ICON_PREFIX = "fermier-icon:";
-
-/** Pictogrammes texte (pas d'emoji) — fallback catégorie. */
-const ICON_GLYPH: Record<string, string> = {
-  cereal: "Cé",
-  plant_protein: "PV",
-  animal_protein: "PA",
-  byproduct: "SP",
-  mineral: "Mi",
-  additive: "Ad"
-};
 
 export function parseFermierIconKey(url: string | null | undefined): string | null {
   if (!url?.startsWith(FERMIER_ICON_PREFIX)) return null;
   return url.slice(FERMIER_ICON_PREFIX.length).trim() || null;
 }
 
+export type IngredientVisual =
+  | { kind: "remote"; uri: string; iconKey: string }
+  | { kind: "local"; source: ImageSourcePropType; iconKey: string };
+
+/**
+ * Visuel d'intrant : URL HTTP réelle si dispo, sinon photo catalogue locale.
+ * Plus jamais d'initiales / pictogrammes texte.
+ */
 export function resolveIngredientVisual(opts: {
   imageUrl?: string | null;
   iconKey?: string | null;
   category?: string | null;
   photoUrls?: string[] | null;
-}): { imageUrl: string | null; iconKey: string } {
-  const fromPhotos = (opts.photoUrls ?? []).find(
-    (u) => typeof u === "string" && u.length > 0
-  );
-  if (fromPhotos && !fromPhotos.startsWith(FERMIER_ICON_PREFIX)) {
-    return { imageUrl: fromPhotos, iconKey: opts.iconKey || opts.category || "byproduct" };
-  }
-  if (opts.imageUrl?.trim()) {
-    return {
-      imageUrl: opts.imageUrl.trim(),
-      iconKey: opts.iconKey || opts.category || "byproduct"
-    };
-  }
-  const fromMarker = parseFermierIconKey(fromPhotos);
-  const key =
-    fromMarker ||
+  canonicalName?: string | null;
+}): IngredientVisual {
+  const iconKey =
     opts.iconKey?.trim() ||
     opts.category?.trim() ||
     "byproduct";
-  return { imageUrl: null, iconKey: key };
+
+  const fromPhotos = (opts.photoUrls ?? []).find(
+    (u) =>
+      typeof u === "string" &&
+      u.length > 0 &&
+      !u.startsWith(FERMIER_ICON_PREFIX)
+  );
+  if (fromPhotos) {
+    return { kind: "remote", uri: fromPhotos, iconKey };
+  }
+  if (opts.imageUrl?.trim()) {
+    return { kind: "remote", uri: opts.imageUrl.trim(), iconKey };
+  }
+
+  return {
+    kind: "local",
+    source: localFeedIngredientImage(opts.canonicalName),
+    iconKey
+  };
 }
 
 type Props = {
@@ -52,18 +56,22 @@ type Props = {
   iconKey?: string | null;
   category?: string | null;
   photoUrls?: string[] | null;
+  /** Nom canonique pour résoudre la photo catalogue locale. */
+  canonicalName?: string | null;
   size?: number;
   testID?: string;
 };
 
 /**
- * Visuel d'intrant : photo réelle si dispo, sinon pictogramme de catégorie.
+ * Visuel d'intrant : toujours une vraie image (remote ou catalogue bundlé).
+ * Si l'URL remote échoue → fallback photo locale catalogue.
  */
 export function FeedIngredientIcon({
   imageUrl,
   iconKey,
   category,
   photoUrls,
+  canonicalName,
   size = 40,
   testID
 }: Props) {
@@ -71,58 +79,38 @@ export function FeedIngredientIcon({
     imageUrl,
     iconKey,
     category,
-    photoUrls
+    photoUrls,
+    canonicalName
   });
+  const [remoteFailed, setRemoteFailed] = useState(false);
   const radius = Math.max(8, Math.round(size * 0.22));
+  const style = {
+    width: size,
+    height: size,
+    borderRadius: radius,
+    backgroundColor: merchantColors.primaryLight
+  };
+  const localSource = localFeedIngredientImage(canonicalName);
+  const label = canonicalName ?? visual.iconKey;
 
-  if (visual.imageUrl) {
+  if (visual.kind === "remote" && !remoteFailed) {
     return (
       <Image
         testID={testID ?? "feed-ingredient-image"}
-        source={{ uri: visual.imageUrl }}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: radius,
-          backgroundColor: merchantColors.primaryLight
-        }}
+        source={{ uri: visual.uri }}
+        style={style}
+        accessibilityLabel={label}
+        onError={() => setRemoteFailed(true)}
       />
     );
   }
 
-  const glyph = ICON_GLYPH[visual.iconKey] ?? visual.iconKey.slice(0, 2).toUpperCase();
-
   return (
-    <View
-      testID={testID ?? "feed-ingredient-icon"}
-      style={[
-        styles.fallback,
-        {
-          width: size,
-          height: size,
-          borderRadius: radius
-        }
-      ]}
-      accessibilityLabel={visual.iconKey}
-    >
-      <Text style={[styles.glyph, { fontSize: Math.max(11, size * 0.32) }]}>
-        {glyph}
-      </Text>
-    </View>
+    <Image
+      testID={testID ?? "feed-ingredient-image"}
+      source={visual.kind === "local" ? visual.source : localSource}
+      style={style}
+      accessibilityLabel={label}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  fallback: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: merchantColors.primaryLight,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: merchantColors.primary
-  },
-  glyph: {
-    fontWeight: "800",
-    color: merchantColors.primary,
-    fontSize: mobileFontSize.sm
-  }
-});

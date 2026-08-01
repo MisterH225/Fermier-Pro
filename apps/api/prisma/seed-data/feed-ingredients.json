@@ -18,7 +18,9 @@
     "crudeFiberPct": 2.2,
     "fatPct": 3.8,
     "dryMatterPct": 86,
-    "notes": "Feedipedia / INRAE — grain maïs jaune (indicatif)"
+    "notes": "Feedipedia / INRAE — grain maïs jaune (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/mais-jaune.jpg",
+    "iconKey": "cereal"
   },
   {
     "canonicalName": "Son de riz",
@@ -36,7 +38,9 @@
     "crudeFiberPct": 12,
     "fatPct": 14,
     "dryMatterPct": 90,
-    "notes": "Feedipedia — son de riz complet (indicatif)"
+    "notes": "Feedipedia — son de riz complet (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/son-de-riz.jpg",
+    "iconKey": "byproduct"
   },
   {
     "canonicalName": "Son de blé",
@@ -55,7 +59,9 @@
     "crudeFiberPct": 10,
     "fatPct": 4,
     "dryMatterPct": 87,
-    "notes": "Feedipedia / INRAE — son de blé (indicatif)"
+    "notes": "Feedipedia / INRAE — son de blé (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/son-de-ble.jpg",
+    "iconKey": "byproduct"
   },
   {
     "canonicalName": "Cossettes de manioc",
@@ -75,7 +81,9 @@
     "crudeFiberPct": 4.5,
     "fatPct": 0.8,
     "dryMatterPct": 88,
-    "notes": "Feedipedia — cossettes / chips manioc séché (indicatif)"
+    "notes": "Feedipedia — cossettes / chips manioc séché (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/cossettes-de-manioc.jpg",
+    "iconKey": "byproduct"
   },
   {
     "canonicalName": "Mélasse",
@@ -94,7 +102,9 @@
     "crudeFiberPct": 0,
     "fatPct": 0.1,
     "dryMatterPct": 75,
-    "notes": "Feedipedia — mélasse de canne (indicatif)"
+    "notes": "Feedipedia — mélasse de canne (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/melasse.jpg",
+    "iconKey": "byproduct"
   },
   {
     "canonicalName": "Huile de palme",
@@ -116,7 +126,9 @@
     "crudeFiberPct": 0,
     "fatPct": 99.5,
     "dryMatterPct": 99.5,
-    "notes": "Feedipedia — huile de palme (indicatif, à valider). Source concentrée de matière grasse pour densifier l'énergie (truie allaitante, etc.)."
+    "notes": "Feedipedia — huile de palme (indicatif, à valider). Source concentrée de matière grasse pour densifier l'énergie (truie allaitante, etc.).",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/huile-de-palme.jpg",
+    "iconKey": "byproduct"
   },
   {
     "canonicalName": "Son de riz gras",
@@ -136,7 +148,9 @@
     "crudeFiberPct": 8,
     "fatPct": 18,
     "dryMatterPct": 90,
-    "notes": "Feedipedia — son de riz gras / non dégraissé (indicatif, à valider). Distinct du son de riz standard (plus gras, plus énergétique)."
+    "notes": "Feedipedia — son de riz gras / non dégraissé (indicatif, à valider). Distinct du son de riz standard (plus gras, plus énergétique).",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/son-de-riz-gras.jpg",
+    "iconKey": "byproduct"
   },
   {
     "canonicalName": "Tourteau de soja",
@@ -155,7 +169,9 @@
     "crudeFiberPct": 6,
     "fatPct": 1.5,
     "dryMatterPct": 88,
-    "notes": "Feedipedia / INRAE — tourteau soja 44 % (indicatif)"
+    "notes": "Feedipedia / INRAE — tourteau soja 44 % (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/tourteau-de-soja.jpg",
+    "iconKey": "plant_protein"
   },
   {
     "canonicalName": "Tourteau de coton",
@@ -173,7 +189,9 @@
     "crudeFiberPct": 12,
     "fatPct": 1.5,
     "dryMatterPct": 90,
-    "notes": "Feedipedia — tourteau coton décortiqué (indicatif)"
+    "notes": "Feedipedia — tourteau coton décortiqué (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/tourteau-de-coton.jpg",
+    "iconKey": "plant_protein"
   },
   {
     "canonicalName": "Tourteau de palmiste",
@@ -192,7 +210,9 @@
     "crudeFiberPct": 15,
     "fatPct": 8,
     "dryMatterPct": 90,
-    "notes": "Feedipedia — tourteau palmiste (indicatif)"
+    "notes": "Feedipedia — tourteau palmiste (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/tourteau-de-palmiste.jpg",
+    "iconKey": "plant_protein"
   },
   {
     "canonicalName": "Tourteau d'arachide",
@@ -211,7 +231,9 @@
     "crudeFiberPct": 8,
     "fatPct": 6,
     "dryMatterPct": 90,
-    "notes": "Feedipedia — tourteau arachide (indicatif)"
+    "notes": "Feedipedia — tourteau arachide (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/tourteau-d-arachide.jpg",
+    "iconKey": "plant_protein"
   },
   {
     "canonicalName": "Drèche de brasserie séchée",
@@ -231,7 +253,9 @@
     "crudeFiberPct": 15,
     "fatPct": 7,
     "dryMatterPct": 92,
-    "notes": "Feedipedia — drêches de brasserie séchées (indicatif)"
+    "notes": "Feedipedia — drêches de brasserie séchées (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/dreche-de-brasserie-sechee.jpg",
+    "iconKey": "plant_protein"
   },
   {
     "canonicalName": "Feuilles de manioc séchées",
@@ -250,7 +274,9 @@
     "crudeFiberPct": 18,
     "fatPct": 5,
     "dryMatterPct": 90,
-    "notes": "Feedipedia — feuilles de manioc séchées (indicatif)"
+    "notes": "Feedipedia — feuilles de manioc séchées (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/feuilles-de-manioc-sechees.jpg",
+    "iconKey": "plant_protein"
   },
   {
     "canonicalName": "Farine de poisson",
@@ -268,7 +294,9 @@
     "crudeFiberPct": 1,
     "fatPct": 8,
     "dryMatterPct": 92,
-    "notes": "Feedipedia / INRAE — farine de poisson 60 % (indicatif)"
+    "notes": "Feedipedia / INRAE — farine de poisson 60 % (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/farine-de-poisson.jpg",
+    "iconKey": "animal_protein"
   },
   {
     "canonicalName": "Farine de sang",
@@ -286,7 +314,9 @@
     "crudeFiberPct": 1,
     "fatPct": 1.5,
     "dryMatterPct": 92,
-    "notes": "Feedipedia — farine de sang (indicatif)"
+    "notes": "Feedipedia — farine de sang (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/farine-de-sang.jpg",
+    "iconKey": "animal_protein"
   },
   {
     "canonicalName": "Farine de viande et d'os",
@@ -305,7 +335,9 @@
     "crudeFiberPct": 2,
     "fatPct": 10,
     "dryMatterPct": 93,
-    "notes": "Feedipedia — farine de viande et d'os (indicatif)"
+    "notes": "Feedipedia — farine de viande et d'os (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/farine-de-viande-et-d-os.jpg",
+    "iconKey": "animal_protein"
   },
   {
     "canonicalName": "Coquilles d'huître",
@@ -325,7 +357,9 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 99,
-    "notes": "Feedipedia — coquilles d'huître / calcaire (indicatif)"
+    "notes": "Feedipedia — coquilles d'huître / calcaire (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/coquilles-d-huitre.jpg",
+    "iconKey": "mineral"
   },
   {
     "canonicalName": "Phosphate bicalcique",
@@ -344,7 +378,9 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 99,
-    "notes": "Tables minéraux — phosphate bicalcique (indicatif)"
+    "notes": "Tables minéraux — phosphate bicalcique (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/phosphate-bicalcique.jpg",
+    "iconKey": "mineral"
   },
   {
     "canonicalName": "Sel",
@@ -363,8 +399,10 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 99,
-    "notes": "Chlorure de sodium alimentaire (indicatif)",
-    "isPremix": true
+    "isPremix": true,
+    "notes": "Chlorure de sodium alimentaire (indicatif) — taux fixe par stade",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/sel.jpg",
+    "iconKey": "mineral"
   },
   {
     "canonicalName": "Complément minéral vitaminé (CMV)",
@@ -384,8 +422,10 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 95,
-    "notes": "Prémix CMV — composition variable selon fabricant (indicatif)",
-    "isPremix": true
+    "isPremix": true,
+    "notes": "Prémix CMV — composition variable selon fabricant (indicatif). Taux fixe par stade ; apports Ca/P comptent dans le bilan.",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/complement-mineral-vitamine-cmv.jpg",
+    "iconKey": "additive"
   },
   {
     "canonicalName": "Lysine",
@@ -404,7 +444,9 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 99,
-    "notes": "L-lysine HCl synthétique — teneur en lysine ~78 % (indicatif)"
+    "notes": "L-lysine HCl synthétique — teneur en lysine ~78 % (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/lysine.jpg",
+    "iconKey": "additive"
   },
   {
     "canonicalName": "Méthionine",
@@ -424,6 +466,8 @@
     "crudeFiberPct": 0,
     "fatPct": 0,
     "dryMatterPct": 99,
-    "notes": "DL-méthionine synthétique (indicatif)"
+    "notes": "DL-méthionine synthétique (indicatif)",
+    "imageUrl": "https://cdn.jsdelivr.net/gh/MisterH225/Fermier-Pro@main/apps/mobile/assets/images/feed-ingredients/methionine.jpg",
+    "iconKey": "additive"
   }
 ]

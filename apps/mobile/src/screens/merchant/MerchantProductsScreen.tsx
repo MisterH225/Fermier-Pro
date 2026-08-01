@@ -429,6 +429,7 @@ export function MerchantProductsScreen() {
                     imageUrl={item.feedIngredientImageUrl}
                     iconKey={item.feedIngredientIconKey}
                     category={item.feedIngredientCategory}
+                    canonicalName={item.feedIngredientName}
                     size={44}
                   />
                   <View style={styles.offerBody}>

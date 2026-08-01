@@ -8,6 +8,8 @@
  *
  * Le superadmin peut corriger toutes ces valeurs via la console admin.
  */
+import { feedIngredientCatalogImageUrl } from "../../src/feed-ingredients/feed-ingredient-images";
+
 export type FeedIngredientCategorySeed =
   | "cereal"
   | "plant_protein"
@@ -416,3 +418,13 @@ export const FEED_INGREDIENTS_SEED: FeedIngredientSeed[] = [
     notes: "DL-méthionine synthétique (indicatif)"
   }
 ];
+
+/** Photos catalogue — renseignées pour chaque intrant seed (pas d'initiales / pictos). */
+for (const row of FEED_INGREDIENTS_SEED) {
+  if (!row.imageUrl?.trim()) {
+    row.imageUrl = feedIngredientCatalogImageUrl(row.canonicalName);
+  }
+  if (!row.iconKey?.trim()) {
+    row.iconKey = defaultIconKeyForCategory(row.category);
+  }
+}
