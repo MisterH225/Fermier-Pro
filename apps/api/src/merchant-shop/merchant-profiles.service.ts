@@ -12,6 +12,7 @@ import {
   MerchantSubscriptionTier,
   Prisma
 } from "@prisma/client";
+import { GeoRollupService } from "../farms/geo/geo-rollup.service";
 import { PlatformFeatureFlagsService } from "../feature-flags/platform-feature-flags.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionLimitsService } from "../subscription-limits/subscription-limits.service";
@@ -23,12 +24,21 @@ import { resolveMerchantPremiumBillingConfig } from "./merchant-premium-billing-
 import { shouldExposePendingSubscription } from "./merchant-pending-subscription.util";
 import { applyPromoPercent } from "./merchant-subscription.constants";
 
+function decimalToNumber(
+  value: Prisma.Decimal | number | null | undefined
+): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 @Injectable()
 export class MerchantProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptionLimits: SubscriptionLimitsService,
-    private readonly platformFlags: PlatformFeatureFlagsService
+    private readonly platformFlags: PlatformFeatureFlagsService,
+    private readonly geoRollup: GeoRollupService
   ) {}
 
   async ensureProfile(userId: string) {
@@ -113,6 +123,65 @@ export class MerchantProfilesService {
     }
   }
 
+  /**
+   * Résout departmentCode via GeoRollupService (P-10) — aucune logique dupliquée.
+   * GPS/épingle → resolveDepartmentFromPoint ; sinon locationCity → localité.
+   */
+  async resolveAndPersistGeo(
+    profileId: string,
+    input: {
+      latitude?: number | null;
+      longitude?: number | null;
+      locationCity?: string | null;
+    }
+  ) {
+    const existing = await this.prisma.merchantProfile.findUnique({
+      where: { id: profileId },
+      select: {
+        latitude: true,
+        longitude: true,
+        locationCity: true
+      }
+    });
+    if (!existing) {
+      throw new NotFoundException("Profil commerçant introuvable");
+    }
+
+    const latitude =
+      input.latitude !== undefined
+        ? input.latitude
+        : decimalToNumber(existing.latitude);
+    const longitude =
+      input.longitude !== undefined
+        ? input.longitude
+        : decimalToNumber(existing.longitude);
+    const locationCity =
+      input.locationCity !== undefined
+        ? input.locationCity?.trim() || null
+        : existing.locationCity?.trim() || null;
+
+    const geo = await this.geoRollup.resolveFarmDepartment({
+      latitude,
+      longitude,
+      locationCity,
+      locationSector: null,
+      address: null
+    });
+
+    return this.prisma.merchantProfile.update({
+      where: { id: profileId },
+      data: {
+        latitude:
+          latitude != null ? new Prisma.Decimal(latitude) : null,
+        longitude:
+          longitude != null ? new Prisma.Decimal(longitude) : null,
+        locationCity,
+        departmentCode: geo.departmentCode,
+        geoResolutionSource: geo.source
+      }
+    });
+  }
+
   async getMe(user: User) {
     await this.ensureProfile(user.id);
     let profile = await this.requireProfile(user.id);
@@ -173,6 +242,15 @@ export class MerchantProfilesService {
     const trialAvailable =
       billing.trialEnabled &&
       profile.subscriptionTier !== MerchantSubscriptionTier.premium;
+
+    const lat = decimalToNumber(profile.latitude);
+    const lng = decimalToNumber(profile.longitude);
+    const needsLocationNudge =
+      profile.merchantKind === MerchantKind.mill &&
+      profile.geoResolutionSource === "unresolved" &&
+      lat == null &&
+      lng == null &&
+      !profile.departmentCode;
 
     return {
       merchantKind: profile.merchantKind,
@@ -235,7 +313,14 @@ export class MerchantProfilesService {
       needsProductNudge:
         activeShops.length > 0 &&
         profile.productSkipped &&
-        allProducts.length === 0
+        allProducts.length === 0,
+      latitude: lat,
+      longitude: lng,
+      locationCity: profile.locationCity,
+      departmentCode: profile.departmentCode,
+      geoResolutionSource: profile.geoResolutionSource,
+      /** Rappel discret : moulin non localisé → invisible au rayon P-J4-A. */
+      needsLocationNudge
     };
   }
 
@@ -261,19 +346,40 @@ export class MerchantProfilesService {
   }
 
   /**
-   * Paramètres profil/boutique.
+   * Paramètres profil/boutique (+ géolocalisation P-10).
    * Passage standard→mill autorisé si flag `mills` actif — aucune donnée effacée.
    */
   async patchProfile(user: User, dto: PatchMerchantProfileDto) {
     await this.ensureProfile(user.id);
-    if (dto.merchantKind === undefined) {
-      return this.getMe(user);
-    }
-    await this.assertMerchantKindAllowed(user.id, dto.merchantKind);
-    await this.prisma.merchantProfile.update({
+    const profile = await this.prisma.merchantProfile.findUnique({
       where: { userId: user.id },
-      data: { merchantKind: dto.merchantKind }
+      select: { id: true }
     });
+    if (!profile) {
+      throw new NotFoundException("Profil commerçant introuvable");
+    }
+
+    if (dto.merchantKind !== undefined) {
+      await this.assertMerchantKindAllowed(user.id, dto.merchantKind);
+      await this.prisma.merchantProfile.update({
+        where: { userId: user.id },
+        data: { merchantKind: dto.merchantKind }
+      });
+    }
+
+    const geoTouched =
+      dto.latitude !== undefined ||
+      dto.longitude !== undefined ||
+      dto.locationCity !== undefined;
+
+    if (geoTouched) {
+      await this.resolveAndPersistGeo(profile.id, {
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        locationCity: dto.locationCity
+      });
+    }
+
     return this.getMe(user);
   }
 

@@ -3,6 +3,7 @@ import {
   MerchantKind,
   MerchantSubscriptionTier
 } from "@prisma/client";
+import { Type } from "class-transformer";
 import {
   IsArray,
   IsEnum,
@@ -11,9 +12,11 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
-  MinLength
+  MinLength,
+  ValidateIf
 } from "class-validator";
 
 export class PatchMerchantOnboardingDto {
@@ -38,13 +41,35 @@ export class PatchMerchantOnboardingDto {
 /**
  * Mise à jour du profil commerçant (paramètres boutique / profil).
  * Le passage standard→mill n'efface aucune donnée existante.
+ * Géolocalisation : mêmes champs que Farm (P-10) — résolution via GeoRollupService.
  */
 export class PatchMerchantProfileDto {
   @IsOptional()
   @IsEnum(MerchantKind)
   merchantKind?: MerchantKind;
-}
 
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  @MaxLength(120)
+  locationCity?: string | null;
+}
 export class ChooseMerchantSubscriptionDto {
   @IsEnum(MerchantSubscriptionTier)
   tier!: MerchantSubscriptionTier;

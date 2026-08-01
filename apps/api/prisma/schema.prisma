@@ -506,6 +506,7 @@ model AdminRegionRef {
   children   AdminRegionRef[] @relation("AdminRegionTree")
   localities LocalityRef[]
   farms      Farm[]           @relation("FarmDepartment")
+  merchantProfiles MerchantProfile[] @relation("MerchantDepartment")
 
   @@index([level])
   @@index([parentCode])
@@ -4017,12 +4018,22 @@ model MerchantProfile {
   /// standard (défaut) | mill — le passage standard→mill n'efface aucune donnée.
   /// Le choix `mill` n'est accepté que si le flag plateforme `mills` est actif pour l'utilisateur.
   merchantKind         MerchantKind              @default(standard)
+  /// Localisation (même modèle que Farm / P-10) — optionnelle ; un moulin non localisé
+  /// n'apparaît pas dans les résultats de rayon P-J4-A.
+  latitude             Decimal?
+  longitude            Decimal?
+  /// Ville / localité texte libre (saisie commerçant).
+  locationCity         String?
+  /// Département ivoirien résolu via GeoRollupService.
+  departmentCode       String?
+  geoResolutionSource  GeoResolutionSource       @default(unresolved)
   shopSkipped          Boolean                   @default(false)
   productSkipped       Boolean                   @default(false)
   onboardingComplete   Boolean                   @default(false)
   isActive             Boolean                   @default(true)
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
+  department           AdminRegionRef?           @relation("MerchantDepartment", fields: [departmentCode], references: [code], onDelete: SetNull)
   shops                MerchantShop[]
   subscriptionInvoices MerchantSubscriptionInvoice[]
   promoRedemptions     MerchantSubscriptionPromoRedemption[]
@@ -4033,6 +4044,8 @@ model MerchantProfile {
   @@index([subscriptionTier, nextBillingAt])
   @@index([subscriptionStatus])
   @@index([merchantKind])
+  @@index([departmentCode])
+  @@index([geoResolutionSource])
 }
 
 /// Facture mensuelle Premium commerçant (lien mobile money).

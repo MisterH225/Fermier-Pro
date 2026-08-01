@@ -4917,7 +4917,19 @@ export const en = {
       cancelPhoto: "Cancel",
       save: "Save",
       photoUploadError: "Could not upload the photo. Try again later.",
-      saveError: "Could not save. Try again in a moment."
+      saveError: "Could not save. Try again in a moment.",
+      locationSection: "Location",
+      locationSaved: "Location saved.",
+      locationError: "Could not save location. Try again.",
+      locationSave: "Save location"
+    },
+    location: {
+      title: "Where is your business?",
+      hint: "Enter a city/locality, or use GPS / a map pin. The department is resolved automatically.",
+      cityPlaceholder: "City or locality (e.g. Abidjan, Bouaké…)",
+      coordsSet: "Pin: {{lat}}, {{lng}}",
+      clearCoords: "Clear GPS pin",
+      millNudge: "Add your location so producers can find you."
     },
     purchase: {
       quantity: "Quantity",

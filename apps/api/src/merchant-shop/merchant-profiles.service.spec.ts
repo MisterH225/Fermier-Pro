@@ -24,6 +24,11 @@ describe("MerchantProfilesService — merchantKind / flag mills", () => {
       shopSkipped: false,
       productSkipped: false,
       onboardingComplete: false,
+      latitude: null,
+      longitude: null,
+      locationCity: null,
+      departmentCode: null,
+      geoResolutionSource: "unresolved" as const,
       shops: []
     };
     let currentKind = profile.merchantKind;
@@ -64,12 +69,19 @@ describe("MerchantProfilesService — merchantKind / flag mills", () => {
         .fn()
         .mockResolvedValue(opts.millsActive ?? false)
     };
+    const geoRollup = {
+      resolveFarmDepartment: jest.fn().mockResolvedValue({
+        departmentCode: null,
+        source: "unresolved"
+      })
+    };
     const service = new MerchantProfilesService(
       prisma as never,
       subscriptionLimits as never,
-      platformFlags as never
+      platformFlags as never,
+      geoRollup as never
     );
-    return { service, prisma, platformFlags, getKind: () => currentKind };
+    return { service, prisma, platformFlags, geoRollup, getKind: () => currentKind };
   }
 
   it("getMe expose merchantKind (défaut standard)", async () => {

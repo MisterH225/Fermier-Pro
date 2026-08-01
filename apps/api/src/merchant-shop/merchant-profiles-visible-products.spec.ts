@@ -9,7 +9,8 @@ describe("MerchantProfilesService.visibleProducts", () => {
       resolveMaxShops: jest.fn(),
       resolveMaxProductsPerShop: jest.fn()
     } as never,
-    { isModuleActiveForUser: jest.fn() } as never
+    { isModuleActiveForUser: jest.fn() } as never,
+    { resolveFarmDepartment: jest.fn() } as never
   );
 
   it("conserve les produits non soft-supprimés (y compris disabledReason null)", () => {

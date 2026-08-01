@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { MerchantLocationFields } from "../../../components/merchant/MerchantLocationFields";
 import { MerchantProductForm } from "../../../components/merchant/MerchantProductForm";
 import { OnboardingPlanChoiceStep } from "../../../components/subscription/OnboardingPlanChoiceStep";
 import { useModal } from "../../../components/modals/useModal";
@@ -23,6 +24,7 @@ import {
   fetchMerchantMe,
   isSubscriptionLimitError,
   patchMerchantOnboarding,
+  patchMerchantProfile,
   type MerchantKind,
   type MerchantMeDto,
   type MerchantProductDto
@@ -56,6 +58,11 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
   const [me, setMe] = useState<MerchantMeDto | null>(null);
   const [shopName, setShopName] = useState("");
   const [merchantKind, setMerchantKind] = useState<MerchantKind>("standard");
+  const [location, setLocation] = useState({
+    locationCity: "",
+    latitude: null as number | null,
+    longitude: null as number | null
+  });
 
   const loadMe = async () => {
     if (!accessToken || !activeProfileId) return;
@@ -193,6 +200,16 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
     setError(null);
     try {
       await persistMerchantKindIfNeeded();
+      const hasGeo =
+        Boolean(location.locationCity.trim()) ||
+        (location.latitude != null && location.longitude != null);
+      if (hasGeo) {
+        await patchMerchantProfile(accessToken, activeProfileId, {
+          locationCity: location.locationCity.trim() || null,
+          latitude: location.latitude,
+          longitude: location.longitude
+        });
+      }
       await createMerchantShop(accessToken, activeProfileId, {
         name: shopName.trim()
       });
@@ -331,6 +348,12 @@ export function MerchantOnboardingScreen({ onFinished, onCancel }: Props) {
             onChangeText={setShopName}
             placeholder={t("merchant.onboarding.shopName")}
             testID="merchant-onboarding-shop-name"
+          />
+          <MerchantLocationFields
+            value={location}
+            onChange={setLocation}
+            showMillNudge={merchantKind === "mill"}
+            testID="merchant-onboarding-location"
           />
           <Pressable
             style={styles.primary}
