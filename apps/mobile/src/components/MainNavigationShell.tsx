@@ -53,6 +53,7 @@ import {
   MerchantProductFormScreen,
   MerchantProductDetailScreen,
   MerchantMyProductDetailScreen,
+  MillIngredientOfferDetailScreen,
   ChatPickFarmScreen,
   ChatPickPeerScreen,
   ChatRoomScreen,
@@ -330,6 +331,11 @@ function MainStack() {
       <Stack.Screen
         name="MerchantMyProductDetail"
         component={MerchantMyProductDetailScreen}
+        options={{ title: st("merchantProduct") }}
+      />
+      <Stack.Screen
+        name="MillIngredientOfferDetail"
+        component={MillIngredientOfferDetailScreen}
         options={{ title: st("merchantProduct") }}
       />
       <Stack.Screen

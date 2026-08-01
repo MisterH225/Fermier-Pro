@@ -2589,6 +2589,8 @@ export const en = {
     settingsButton: "Settings",
     projects: {
       title: "My projects",
+      currentLabel: "Active project",
+      switchA11y: "Switch project — {{name}}",
       activeCountLimited: "{{count}} active / {{max}} max",
       activeCountUnlimited: "{{count}} active",
       limitReached:
@@ -4520,7 +4522,10 @@ export const en = {
         title: "Sales over time",
         subtitle: "Net revenue from your marketplace orders, month by month.",
         seriesLabel: "Revenue",
-        empty: "No counted sales yet."
+        empty: "No counted sales yet.",
+        recentTitle: "Recent sales",
+        unnamedProduct: "Product",
+        productSubtitle: "Marketplace sales history for this item."
       },
       restock: {
         title: "Restock recommendations",
@@ -4703,7 +4708,13 @@ export const en = {
       privateBadge: "Private (composition)",
       listPublic: "List publicly",
       unlist: "Remove from market",
-      deactivate: "Deactivate"
+      deactivate: "Deactivate",
+      sectionInAll: "Ingredients",
+      detailTitle: "Ingredient detail",
+      statsPrivateHint:
+        "Marketplace stats appear once the ingredient is listed for sale.",
+      editOffer: "Edit offer",
+      openLinkedProduct: "Open market listing"
     },
     subscription: {
       title: "Choose your plan",

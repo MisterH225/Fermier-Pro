@@ -4,3 +4,4 @@ export { DeleteProjectModal } from "./DeleteProjectModal";
 export { NoActiveProjectScreen } from "./NoActiveProjectScreen";
 export { ProjectIndicator } from "./ProjectIndicator";
 export { ProjectSwitcher } from "./ProjectSwitcher";
+export { ProjectSwitcherModal } from "./ProjectSwitcherModal";

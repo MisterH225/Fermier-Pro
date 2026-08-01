@@ -35,7 +35,7 @@ import { ProducerProfileModal } from "../components/producer/ProducerProfileModa
 import { ProducerWelcomeHeader } from "../components/producer/ProducerWelcomeHeader";
 import { WalletDashboardCard } from "../components/wallet/WalletDashboardCard";
 import { SupportHeaderButton } from "../components/support/SupportHeaderButton";
-import { ProjectIndicator } from "../components/projects";
+import { ProjectIndicator, ProjectSwitcherModal } from "../components/projects";
 import { useOnboardingResume } from "../context/OnboardingResumeContext";
 import { useActiveProject, useActiveFarm } from "../context/ActiveProjectContext";
 import { getProducerOnboardingState } from "../lib/onboardingState";
@@ -108,6 +108,7 @@ export function ProducerDashboardScreen() {
   const onboardingState = getProducerOnboardingState(authMe, activeProfileId);
   const showOnboardingBanner = onboardingState === "skipped";
   const [profileOpen, setProfileOpen] = useState(false);
+  const [projectSwitcherOpen, setProjectSwitcherOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [profitabilityPeriod, setProfitabilityPeriod] = useState<
     "current_month" | "current_quarter" | "current_year"
@@ -261,9 +262,6 @@ export function ProducerDashboardScreen() {
             avatarUrl={resolveActiveProfileAvatarUrl(authMe, activeProfileId)}
             onPressAvatar={() => setProfileOpen(true)}
           />
-          {showMultiProjectIndicator ? (
-            <ProjectIndicator onPress={() => setProfileOpen(true)} />
-          ) : null}
         </View>
         <View style={styles.heroActions}>
           <MeteoHeaderButton
@@ -305,6 +303,9 @@ export function ProducerDashboardScreen() {
           </Pressable>
         </View>
       </View>
+      {showMultiProjectIndicator ? (
+        <ProjectIndicator onPress={() => setProjectSwitcherOpen(true)} />
+      ) : null}
       {accessToken ? <WalletDashboardCard variant="producer" /> : null}
     </View>
   );
@@ -494,6 +495,10 @@ export function ProducerDashboardScreen() {
       <ProducerProfileModal
         visible={profileOpen}
         onClose={() => setProfileOpen(false)}
+      />
+      <ProjectSwitcherModal
+        visible={projectSwitcherOpen}
+        onClose={() => setProjectSwitcherOpen(false)}
       />
     </>
   );

@@ -50,6 +50,8 @@ export type RootStackParamList = {
   MerchantProductDetail: { productId: string };
   /** Détail produit côté commerçant propriétaire. */
   MerchantMyProductDetail: { productId: string };
+  /** Détail offre d'intrant moulin (stats + historique si lié au marché). */
+  MillIngredientOfferDetail: { offerId: string };
   BuyerMarket:
     | {
         /** Segment interne Marché : annonces / favoris / alertes. */
