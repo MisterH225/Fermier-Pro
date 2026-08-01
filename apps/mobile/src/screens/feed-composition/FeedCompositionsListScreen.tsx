@@ -12,6 +12,7 @@ import {
 import { EmptyStateCard } from "../../components/common/EmptyStateCard";
 import { CompositionDisclaimer } from "../../components/feed-composition/CompositionDisclaimer";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { listFeedCompositions } from "../../lib/api";
 import { isFeedCompositionModuleActive } from "../../lib/feedComposition";
 import {
@@ -34,6 +35,7 @@ export function FeedCompositionsListScreen({ navigation, route }: Props) {
   const { farmId, farmName } = route.params;
   const { accessToken, activeProfileId, platformModules } = useSession();
   const on = isFeedCompositionModuleActive(platformModules);
+  const scrollPad = useScrollBottomPad();
 
   const listQ = useQuery({
     queryKey: ["feed-compositions", farmId, activeProfileId],
@@ -78,7 +80,7 @@ export function FeedCompositionsListScreen({ navigation, route }: Props) {
               onRefresh={() => void listQ.refetch()}
             />
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: scrollPad }]}
           ListEmptyComponent={
             <EmptyStateCard
               icon="flask-outline"
@@ -164,7 +166,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: mobileSpacing.lg,
-    paddingBottom: 40,
     gap: mobileSpacing.sm
   },
   row: {

@@ -22,7 +22,7 @@ import type { PatchVetConsultationPayload } from "../lib/api";
 import { fetchVetConsultation, patchVetConsultation } from "../lib/api";
 import type { RootStackParamList } from "../types/navigation";
 import { getQueryErrorMessage, getUserFacingError } from "../lib/userFacingError";
-import { useBottomInset } from "../hooks/useBottomInset";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import { vetColors, vetStackScreenOptions } from "../theme/vetTheme";
 
 type Props = NativeStackScreenProps<
@@ -38,7 +38,8 @@ const STATUS_FR: Record<string, string> = {
 };
 
 export function VetConsultationDetailScreen({ route, navigation }: Props) {
-  const bottomInset = useBottomInset();
+  /** Zone d’actions (Clôturer / Annuler) au-dessus de la navbar flottante. */
+  const scrollPad = useScrollBottomPad({ extra: 32 });
   const { t } = useTranslation();
   const { farmId, farmName, consultationId } = route.params;
   const { accessToken, activeProfileId, clientFeatures } = useSession();
@@ -159,7 +160,7 @@ export function VetConsultationDetailScreen({ route, navigation }: Props) {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >

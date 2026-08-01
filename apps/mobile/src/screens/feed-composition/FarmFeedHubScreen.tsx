@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSession } from "../../context/SessionContext";
+import { useScrollBottomPad } from "../../hooks/useScrollBottomPad";
 import { isFeedCompositionModuleActive } from "../../lib/feedComposition";
 import type { RootStackParamList } from "../../types/navigation";
 import {
@@ -18,11 +19,12 @@ export function FarmFeedHubScreen({ navigation, route }: Props) {
   const { platformModules, clientFeatures } = useSession();
   const compositionOn = isFeedCompositionModuleActive(platformModules);
   const stockOn = clientFeatures.feedStock;
+  const scrollPad = useScrollBottomPad();
 
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: scrollPad }]}
       keyboardShouldPersistTaps="handled"
       testID="farm-feed-hub"
     >
@@ -117,8 +119,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: mobileSpacing.lg,
-    gap: mobileSpacing.md,
-    paddingBottom: 48
+    gap: mobileSpacing.md
   },
   intro: {
     fontSize: mobileFontSize.md,

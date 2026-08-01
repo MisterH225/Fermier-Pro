@@ -42,6 +42,7 @@ import { TabContent, TabSelector } from "../components/tabs";
 import { invalidateAIInsights } from "../services/ai/AIRecommendationService";
 import { useModal } from "../components/modals/useModal";
 import { useSession } from "../context/SessionContext";
+import { useScrollBottomPad } from "../hooks/useScrollBottomPad";
 import type { FeedStockMovementDto } from "../lib/api";
 import {
   deleteFarmFeedMovement,
@@ -101,6 +102,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const clientFeatures = session?.clientFeatures ?? { feedStock: false };
   const { t, i18n } = useTranslation();
   const { open } = useModal();
+  const scrollPad = useScrollBottomPad();
   const [period, setPeriod] = useState<"3m" | "6m" | "12m">("6m");
   const [stockOpen, setStockOpen] = useState(false);
   const [stockModalDefaultTab, setStockModalDefaultTab] = useState<
@@ -541,7 +543,10 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
   const tabScroll = (children: ReactNode) => (
     <ScrollView
       style={styles.tabScroll}
-      contentContainerStyle={styles.tabScrollGrow}
+      contentContainerStyle={[
+        styles.tabScrollGrow,
+        { paddingBottom: scrollPad }
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -550,6 +555,7 @@ export function FarmFeedStockScreen({ route, navigation }: Props) {
         />
       }
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       <TabContent>{children}</TabContent>
     </ScrollView>
