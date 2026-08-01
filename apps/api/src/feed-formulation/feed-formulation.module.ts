@@ -6,8 +6,11 @@ import { ChatModule } from "../chat/chat.module";
 import { CommonModule } from "../common/common.module";
 import { FeatureFlagsModule } from "../feature-flags/feature-flags.module";
 import { FeedIngredientsModule } from "../feed-ingredients/feed-ingredients.module";
+import { MobileMoneyModule } from "../marketplace/escrow";
+import { MarketplaceModule } from "../marketplace/marketplace.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { UserNotificationsModule } from "../user-notifications/user-notifications.module";
+import { WalletModule } from "../wallet/wallet.module";
 import { AdminFeedRequirementProfilesController } from "./admin-feed-requirement-profiles.controller";
 import { CompositionPricingService } from "./assist/composition-pricing.service";
 import { FeedCompositionAssistService } from "./assist/feed-composition-assist.service";
@@ -37,7 +40,10 @@ import { SOLVER_PORT } from "./solver/solver.port";
     FeedIngredientsModule,
     UserNotificationsModule,
     AiModule,
-    forwardRef(() => ChatModule)
+    forwardRef(() => ChatModule),
+    WalletModule,
+    MobileMoneyModule,
+    forwardRef(() => MarketplaceModule)
   ],
   controllers: [
     AdminFeedRequirementProfilesController,

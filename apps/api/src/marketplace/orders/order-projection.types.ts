@@ -1,7 +1,7 @@
 import type { OrderActionActor } from "./order-action-required";
 import type { OrderStage } from "./order-stage";
 
-export type OrderProjectionType = "escrow" | "shop";
+export type OrderProjectionType = "escrow" | "shop" | "composition";
 
 export type OrderListSegment =
   | "action_required"
@@ -26,6 +26,10 @@ export interface OrderProjectionCard {
   amount: number;
   currency: string;
   updatedAt: string;
+  /** Dates commande composition (estimations moulin / réel). */
+  productionStartEstimate?: string | null;
+  readyEstimate?: string | null;
+  readyActual?: string | null;
 }
 
 export interface OrdersListResponse {

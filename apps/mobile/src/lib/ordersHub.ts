@@ -21,13 +21,17 @@ export function ordersHubSegmentToQuery(
 
 export type OrderDetailRoute =
   | { screen: "MarketplaceTransaction"; params: { transactionId: string } }
-  | { screen: "MerchantOrderDetail"; params: { orderId: string } };
+  | { screen: "MerchantOrderDetail"; params: { orderId: string } }
+  | { screen: "CompositionOrderDetail"; params: { orderId: string; farmId?: string; farmName?: string } };
 
 export function orderDetailRoute(
   card: Pick<MarketplaceOrderProjectionCard, "id" | "type">
 ): OrderDetailRoute {
   if (card.type === "shop") {
     return { screen: "MerchantOrderDetail", params: { orderId: card.id } };
+  }
+  if (card.type === "composition") {
+    return { screen: "CompositionOrderDetail", params: { orderId: card.id } };
   }
   return {
     screen: "MarketplaceTransaction",
@@ -38,7 +42,13 @@ export function orderDetailRoute(
 export function orderTypeLabelKey(
   type: MarketplaceOrderProjectionType
 ): string {
-  return type === "shop" ? "orders.hub.type.shop" : "orders.hub.type.escrow";
+  if (type === "shop") {
+    return "orders.hub.type.shop";
+  }
+  if (type === "composition") {
+    return "orders.hub.type.composition";
+  }
+  return "orders.hub.type.escrow";
 }
 
 export function orderStatusLabelKey(
@@ -49,6 +59,9 @@ export function orderStatusLabelKey(
       return "merchant.orders.status.paidBuyer";
     }
     return `merchant.orders.status.${card.status}`;
+  }
+  if (card.type === "composition") {
+    return `orders.hub.compositionStatus.${card.status}`;
   }
   return `orders.hub.escrowStatus.${card.status}`;
 }
@@ -65,6 +78,8 @@ export function orderStatusTone(
   if (
     card.stage === "cancelled" ||
     card.status === "rejected" ||
+    card.status === "REJECTED" ||
+    card.status === "CANCELLED" ||
     card.status === "failed" ||
     card.status === "PAYMENT_FAILED" ||
     card.status === "OFFER_EXPIRED" ||
@@ -76,6 +91,7 @@ export function orderStatusTone(
     card.status === "payment_pending" ||
     card.status === "PAYMENT_PENDING" ||
     card.status === "paid" ||
+    card.status === "PAID" ||
     card.status === "PAYMENT_HELD"
   ) {
     return "pending";

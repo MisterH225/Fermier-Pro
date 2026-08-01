@@ -4366,11 +4366,13 @@ export const fr = {
       counterpartyFallback: "Utilisateur",
       type: {
         escrow: "Marketplace",
-        shop: "Boutique"
+        shop: "Boutique",
+        composition: "Composition"
       },
       itemSummary: {
         escrow: "Commande marketplace",
-        shop: "Commande boutique"
+        shop: "Commande boutique",
+        composition: "Commande composition"
       },
       segments: {
         action_required: "À agir",
@@ -4403,6 +4405,29 @@ export const fr = {
         CANCELLED_SOLD_TO_OTHER: "Vendue ailleurs",
         PAYMENT_FAILED: "Paiement échoué",
         OFFER_EXPIRED: "Offre expirée"
+      },
+      compositionStatus: {
+        SENT_TO_MILL: "Envoyée au moulin",
+        MILL_REVISED: "Révisée par le moulin",
+        ACCEPTED: "Acceptée",
+        REJECTED: "Refusée",
+        CANCELLED: "Annulée",
+        PAID: "Payée",
+        IN_PRODUCTION: "En production",
+        READY_FOR_PICKUP: "Prête au retrait",
+        OUT_FOR_DELIVERY: "En livraison",
+        COMPLETED: "Terminée"
+      }
+    },
+    composition: {
+      readyBy: "Disponible vers {{when}}",
+      steps: {
+        sent: "Envoyée",
+        revised: "Révisée",
+        accepted: "Acceptée",
+        paid: "Payée",
+        production: "Production",
+        ready: "Prête"
       }
     },
     action: {
@@ -4417,6 +4442,11 @@ export const fr = {
       confirmShopOrder: "Confirmer la commande",
       shipShopOrder: "Lancer la livraison",
       markShopDelivered: "Marquer comme livré",
+      reviseComposition: "Réviser la commande",
+      acceptComposition: "Accepter la révision",
+      payComposition: "Payer la composition",
+      startCompositionProduction: "Lancer la production",
+      markCompositionReady: "Marquer comme prête",
       generic: "Ouvrir la commande"
     }
   },

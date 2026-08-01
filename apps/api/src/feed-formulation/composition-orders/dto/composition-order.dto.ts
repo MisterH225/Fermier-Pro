@@ -1,6 +1,8 @@
+import { MarketplacePaymentMethod } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
   IsDateString,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -58,4 +60,17 @@ export class ReviseCompositionOrderDto {
 export class UpdateReadyEstimateDto {
   @IsDateString()
   readyEstimate!: string;
+}
+
+export class PayCompositionOrderDto {
+  @IsOptional()
+  @IsEnum(MarketplacePaymentMethod)
+  paymentMethod?: MarketplacePaymentMethod;
+}
+
+export class ConfirmCompositionPaymentDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  providerRef?: string;
 }

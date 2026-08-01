@@ -4363,11 +4363,13 @@ export const en = {
       counterpartyFallback: "User",
       type: {
         escrow: "Marketplace",
-        shop: "Shop"
+        shop: "Shop",
+        composition: "Feed mix"
       },
       itemSummary: {
         escrow: "Marketplace order",
-        shop: "Shop order"
+        shop: "Shop order",
+        composition: "Feed composition order"
       },
       segments: {
         action_required: "Action needed",
@@ -4400,6 +4402,29 @@ export const en = {
         CANCELLED_SOLD_TO_OTHER: "Sold elsewhere",
         PAYMENT_FAILED: "Payment failed",
         OFFER_EXPIRED: "Offer expired"
+      },
+      compositionStatus: {
+        SENT_TO_MILL: "Sent to mill",
+        MILL_REVISED: "Revised by mill",
+        ACCEPTED: "Accepted",
+        REJECTED: "Rejected",
+        CANCELLED: "Cancelled",
+        PAID: "Paid",
+        IN_PRODUCTION: "In production",
+        READY_FOR_PICKUP: "Ready for pickup",
+        OUT_FOR_DELIVERY: "Out for delivery",
+        COMPLETED: "Completed"
+      }
+    },
+    composition: {
+      readyBy: "Ready by {{when}}",
+      steps: {
+        sent: "Sent",
+        revised: "Revised",
+        accepted: "Accepted",
+        paid: "Paid",
+        production: "Production",
+        ready: "Ready"
       }
     },
     action: {
@@ -4414,6 +4439,11 @@ export const en = {
       confirmShopOrder: "Confirm order",
       shipShopOrder: "Start shipping",
       markShopDelivered: "Mark as delivered",
+      reviseComposition: "Revise order",
+      acceptComposition: "Accept revision",
+      payComposition: "Pay composition",
+      startCompositionProduction: "Start production",
+      markCompositionReady: "Mark as ready",
       generic: "Open order"
     }
   },

@@ -1,4 +1,5 @@
 import {
+  CompositionOrderStatus,
   MarketplaceTransactionStatus,
   MerchantOrderStatus
 } from "@prisma/client";
@@ -72,6 +73,31 @@ export function stageOfEscrow(
 
 export function stageOfShop(status: MerchantOrderStatus): OrderStage {
   return SHOP_STAGE_BY_STATUS[status];
+}
+
+const COMPOSITION_STAGE_BY_STATUS: Readonly<
+  Record<CompositionOrderStatus, OrderStage>
+> = {
+  [CompositionOrderStatus.SENT_TO_MILL]: "order",
+  [CompositionOrderStatus.MILL_REVISED]: "order",
+  [CompositionOrderStatus.ACCEPTED]: "payment",
+  [CompositionOrderStatus.PAID]: "delivery",
+  [CompositionOrderStatus.IN_PRODUCTION]: "delivery",
+  [CompositionOrderStatus.READY_FOR_PICKUP]: "receipt_weighing",
+  [CompositionOrderStatus.OUT_FOR_DELIVERY]: "receipt_weighing",
+  [CompositionOrderStatus.COMPLETED]: "closed",
+  [CompositionOrderStatus.REJECTED]: "cancelled",
+  [CompositionOrderStatus.CANCELLED]: "cancelled"
+};
+
+export function stageOfComposition(
+  status: CompositionOrderStatus
+): OrderStage {
+  return COMPOSITION_STAGE_BY_STATUS[status];
+}
+
+export function isCompositionDisputed(_status: CompositionOrderStatus): boolean {
+  return false; // litige = J5
 }
 
 export function stageIndexOf(stage: OrderStage): number {

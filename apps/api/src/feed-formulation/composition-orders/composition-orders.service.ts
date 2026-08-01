@@ -1,11 +1,15 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  Optional
 } from "@nestjs/common";
 import {
   CompositionOrderStatus,
+  MarketplacePaymentMethod,
   MerchantKind,
   type CompositionOrder,
   type Prisma,
@@ -13,6 +17,12 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { FARM_SCOPE } from "../../common/farm-scopes.constants";
+import { EscrowService } from "../../marketplace/escrow/escrow.service";
+import { GeniusPayMobileMoneyGateway } from "../../marketplace/escrow/geniuspay/geniuspay-mobile-money.gateway";
+import {
+  MOBILE_MONEY_GATEWAY,
+  type MobileMoneyGateway
+} from "../../marketplace/escrow/mobile-money.gateway";
 import { PrismaService } from "../../prisma/prisma.service";
 import { UserNotificationsService } from "../../user-notifications/user-notifications.service";
 import { CompositionPricingService } from "../assist/composition-pricing.service";
@@ -24,17 +34,26 @@ import {
 import { FeedFormulationService } from "../feed-formulation.service";
 import { FeedRequirementProfilesService } from "../feed-requirement-profiles.service";
 import type { AvailableIngredientInput } from "../engine/feed-formulation.types";
-import { refuseCompositionEscrowUntilAdapterReady } from "./composition-escrow.adapter";
+import { assertEscrowAmountEqualsFinalPrice } from "./composition-escrow.adapter";
 import {
   canTransitionCompositionOrder,
   type CompositionOrderActor,
   type CompositionOrderEvent
 } from "./composition-order-state-machine";
 import type {
+  ConfirmCompositionPaymentDto,
   CreateCompositionOrderDto,
+  PayCompositionOrderDto,
   ReviseCompositionOrderDto,
   UpdateReadyEstimateDto
 } from "./dto/composition-order.dto";
+
+function usesGeniusPayProvider(): boolean {
+  return (
+    (process.env.MOBILE_MONEY_PROVIDER ?? "dev").trim().toLowerCase() ===
+    "geniuspay"
+  );
+}
 
 const MILL_RESPONSE_DEADLINE_HOURS = 48;
 
@@ -55,7 +74,11 @@ export class CompositionOrdersService {
     private readonly formulation: FeedFormulationService,
     private readonly availability: IngredientAvailabilityService,
     private readonly profiles: FeedRequirementProfilesService,
-    private readonly notifications: UserNotificationsService
+    private readonly notifications: UserNotificationsService,
+    private readonly escrow: EscrowService,
+    @Inject(MOBILE_MONEY_GATEWAY)
+    private readonly gateway: MobileMoneyGateway,
+    @Optional() private readonly geniusPay?: GeniusPayMobileMoneyGateway
   ) {}
 
   /** Producteur : envoie une composition validée à un moulin (SENT_TO_MILL). */
@@ -356,19 +379,210 @@ export class CompositionOrdersService {
   }
 
   /**
-   * Paiement — STOP escrow (voir composition-escrow.adapter.ts).
-   * Ne duplique aucun circuit ; refuse jusqu'à extension du schéma.
+   * Initie le séquestre = finalPriceXof via EscrowService (pas de duplication).
    */
-  async initiatePayment(user: User, orderId: string) {
+  async initiatePayment(
+    user: User,
+    orderId: string,
+    dto: PayCompositionOrderDto = {}
+  ) {
     const order = await this.requireProducerOrder(user, orderId);
     this.assertTransition(order.status, "PAYMENT_CONFIRMED", "producer");
     if (order.finalPriceXof == null) {
       throw new BadRequestException("Prix final manquant.");
     }
-    refuseCompositionEscrowUntilAdapterReady({
-      compositionOrderId: order.id,
-      finalPriceXof: Number(order.finalPriceXof)
+    const amount = Number(order.finalPriceXof);
+    // Invariant J4 : séquestre = prix final validé (pas le devis initial).
+    assertEscrowAmountEqualsFinalPrice(amount, Number(order.finalPriceXof));
+
+    const paymentMethod =
+      dto.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
+    const label = `Composition aliment ${order.id}`;
+
+    let hold: {
+      providerRef: string;
+      paymentMethod: MarketplacePaymentMethod;
+      paymentUrl?: string | null;
+    };
+
+    if (paymentMethod === MarketplacePaymentMethod.wallet) {
+      hold = await this.escrow.holdCompositionFunds(
+        order.id,
+        user.id,
+        amount,
+        "XOF",
+        label,
+        { paymentMethod: MarketplacePaymentMethod.wallet }
+      );
+    } else if (usesGeniusPayProvider() && this.geniusPay) {
+      const init = await this.geniusPay.initiateCompositionOrderPayment({
+        amount,
+        currency: "XOF",
+        buyerUserId: user.id,
+        compositionOrderId: order.id,
+        label
+      });
+      hold = {
+        providerRef: init.providerRef,
+        paymentMethod: MarketplacePaymentMethod.mobile_money,
+        paymentUrl: init.paymentUrl ?? null
+      };
+    } else {
+      hold = await this.escrow.holdCompositionFunds(
+        order.id,
+        user.id,
+        amount,
+        "XOF",
+        label,
+        { paymentMethod: MarketplacePaymentMethod.mobile_money }
+      );
+    }
+
+    if (
+      hold.paymentMethod === MarketplacePaymentMethod.mobile_money &&
+      !hold.paymentUrl?.trim() &&
+      usesGeniusPayProvider()
+    ) {
+      throw new BadGatewayException(
+        "GeniusPay n'a pas renvoyé d'URL de checkout pour ce paiement"
+      );
+    }
+
+    await this.prisma.compositionOrder.update({
+      where: { id: order.id },
+      data: {
+        escrowTransactionRef: hold.providerRef,
+        paymentMethod: hold.paymentMethod,
+        paymentInitiatedAt: new Date()
+      }
     });
+
+    return {
+      orderId: order.id,
+      providerRef: hold.providerRef,
+      amount,
+      currency: "XOF",
+      paymentMethod: hold.paymentMethod,
+      paymentUrl: hold.paymentUrl ?? null
+    };
+  }
+
+  /** Confirmation client (wallet / polling) après initiatePayment. */
+  async confirmPayment(
+    user: User,
+    orderId: string,
+    dto: ConfirmCompositionPaymentDto = {}
+  ) {
+    const order = await this.requireProducerOrder(user, orderId);
+    if (order.status !== CompositionOrderStatus.ACCEPTED) {
+      throw new BadRequestException("Commande non en attente de paiement.");
+    }
+    const providerRef =
+      dto.providerRef?.trim() || order.escrowTransactionRef || "";
+    if (!providerRef) {
+      throw new BadRequestException("Référence de paiement manquante.");
+    }
+    return this.finalizePayment(order, providerRef);
+  }
+
+  /** Webhook GeniusPay — confirm + notify les DEUX parties (fix J0). */
+  async confirmPaymentFromWebhook(
+    compositionOrderId: string,
+    providerRef: string,
+    amount?: number,
+    _currency?: string
+  ) {
+    const order = await this.prisma.compositionOrder.findUnique({
+      where: { id: compositionOrderId }
+    });
+    if (!order) {
+      throw new NotFoundException("Commande composition introuvable");
+    }
+    if (order.status === CompositionOrderStatus.PAID) {
+      return { ok: true, alreadyPaid: true };
+    }
+    if (order.status !== CompositionOrderStatus.ACCEPTED) {
+      throw new BadRequestException("Statut commande incompatible avec paiement");
+    }
+    if (amount != null && order.finalPriceXof != null) {
+      assertEscrowAmountEqualsFinalPrice(amount, Number(order.finalPriceXof));
+    }
+    if (usesGeniusPayProvider() && this.geniusPay) {
+      const res = await this.geniusPay.confirmCompositionOrderPayment(
+        providerRef,
+        compositionOrderId
+      );
+      if (!res.success) {
+        throw new BadRequestException(
+          res.failureReason ?? "Paiement GeniusPay non confirmé"
+        );
+      }
+    }
+    return this.finalizePayment(order, providerRef);
+  }
+
+  private async finalizePayment(order: CompositionOrder, providerRef: string) {
+    if (order.finalPriceXof == null) {
+      throw new BadRequestException("Prix final manquant.");
+    }
+    const amount = Number(order.finalPriceXof);
+    assertEscrowAmountEqualsFinalPrice(amount, Number(order.finalPriceXof));
+
+    const confirmed = await this.escrow.confirmCompositionHold(
+      providerRef,
+      order.id,
+      {
+        buyerUserId: order.producerUserId,
+        amount,
+        currency: "XOF",
+        label: `Composition aliment ${order.id}`
+      }
+    );
+    if (!confirmed.success) {
+      throw new BadRequestException(
+        confirmed.failureReason ?? "Confirmation de paiement échouée"
+      );
+    }
+
+    const updated = await this.claimTransition(
+      order.id,
+      CompositionOrderStatus.ACCEPTED,
+      CompositionOrderStatus.PAID,
+      {
+        escrowTransactionRef: confirmed.providerRef ?? providerRef,
+        paymentConfirmedAt: new Date()
+      }
+    );
+    await this.audit(
+      updated,
+      CompositionOrderStatus.ACCEPTED,
+      "PAYMENT_CONFIRMED",
+      order.producerUserId,
+      "system",
+      { amount, providerRef: confirmed.providerRef ?? providerRef }
+    );
+
+    const millUserId = await this.millUserId(order.millProfileId);
+    // Fix J0 : les DEUX parties notifiées du séquestre
+    await this.notifications.notify(
+      order.producerUserId,
+      "Paiement sécurisé",
+      `Votre paiement de ${amount} XOF est séquestré. Le moulin peut démarrer la production.`,
+      {
+        type: "composition_order_paid",
+        compositionOrderId: order.id
+      }
+    );
+    await this.notifications.notify(
+      millUserId,
+      "Paiement sécurisé reçu",
+      `Le producteur a payé ${amount} XOF (séquestre). Vous pouvez démarrer la production.`,
+      {
+        type: "composition_order_paid_mill",
+        compositionOrderId: order.id
+      }
+    );
+    return this.toDto(updated);
   }
 
   async startProduction(user: User, orderId: string) {

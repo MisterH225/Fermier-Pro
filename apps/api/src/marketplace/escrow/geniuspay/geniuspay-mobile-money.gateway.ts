@@ -21,6 +21,7 @@ import {
   GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION,
   GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION,
   GENIUSPAY_KIND_MERCHANT_ORDER,
+  GENIUSPAY_KIND_COMPOSITION_ORDER,
   GENIUSPAY_KIND_WALLET_TOPUP,
   GENIUSPAY_KIND_WALLET_WITHDRAW,
   type GeniusPayPaymentMetadata,
@@ -209,6 +210,50 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       }
       if (metadata.order_id !== orderId) {
         return "Commande boutique non liée à ce paiement";
+      }
+      return null;
+    });
+  }
+
+  async initiateCompositionOrderPayment(params: {
+    amount: number;
+    currency: string;
+    buyerUserId: string;
+    compositionOrderId: string;
+    label: string;
+  }): Promise<MobileMoneyInitResult> {
+    const customer = await this.loadCustomer(params.buyerUserId);
+    const data = await this.client.createPayment({
+      amount: params.amount,
+      currency: params.currency,
+      description: params.label,
+      customer,
+      metadata: {
+        kind: GENIUSPAY_KIND_COMPOSITION_ORDER,
+        user_id: params.buyerUserId,
+        composition_order_id: params.compositionOrderId,
+        transaction_id: `composition-order:${params.compositionOrderId}`,
+        amount: String(Math.round(params.amount))
+      },
+      successUrl: process.env.GENIUSPAY_SUCCESS_URL,
+      errorUrl: process.env.GENIUSPAY_ERROR_URL
+    });
+    return {
+      providerRef: data.reference,
+      paymentUrl: resolveGeniusPayCheckoutUrl(data)
+    };
+  }
+
+  async confirmCompositionOrderPayment(
+    providerRef: string,
+    compositionOrderId: string
+  ): Promise<MobileMoneyConfirmResult> {
+    return this.confirmByReference(providerRef, (metadata) => {
+      if (metadata.kind !== GENIUSPAY_KIND_COMPOSITION_ORDER) {
+        return "Type de paiement GeniusPay inattendu";
+      }
+      if (metadata.composition_order_id !== compositionOrderId) {
+        return "Commande composition non liée à ce paiement";
       }
       return null;
     });
@@ -662,7 +707,8 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       kind === GENIUSPAY_KIND_WALLET_TOPUP ||
       kind === GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION ||
       kind === GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION ||
-      kind === GENIUSPAY_KIND_MERCHANT_ORDER;
+      kind === GENIUSPAY_KIND_MERCHANT_ORDER ||
+      kind === GENIUSPAY_KIND_COMPOSITION_ORDER;
     if (!validKind || typeof userId !== "string" || !userId.trim()) {
       return null;
     }
@@ -672,6 +718,10 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       typeof raw.invoice_id === "string" ? raw.invoice_id : undefined;
     const orderId =
       typeof raw.order_id === "string" ? raw.order_id : undefined;
+    const compositionOrderId =
+      typeof raw.composition_order_id === "string"
+        ? raw.composition_order_id
+        : undefined;
     const amount =
       raw.amount !== undefined && raw.amount !== null
         ? String(raw.amount)
@@ -682,6 +732,7 @@ export class GeniusPayMobileMoneyGateway implements MobileMoneyGateway {
       transaction_id: transactionId,
       invoice_id: invoiceId,
       order_id: orderId,
+      composition_order_id: compositionOrderId,
       amount
     };
   }

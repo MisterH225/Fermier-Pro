@@ -57,12 +57,22 @@ describe("orderDetailRoute", () => {
       params: { orderId: "mo-1" }
     });
   });
+
+  it("route composition → CompositionOrderDetail", () => {
+    expect(orderDetailRoute({ id: "co-1", type: "composition" })).toEqual({
+      screen: "CompositionOrderDetail",
+      params: { orderId: "co-1" }
+    });
+  });
 });
 
 describe("orderTypeLabelKey / status", () => {
-  it("étiquette type escrow vs boutique", () => {
+  it("étiquette type escrow vs boutique vs composition", () => {
     expect(orderTypeLabelKey("escrow")).toBe("orders.hub.type.escrow");
     expect(orderTypeLabelKey("shop")).toBe("orders.hub.type.shop");
+    expect(orderTypeLabelKey("composition")).toBe(
+      "orders.hub.type.composition"
+    );
   });
 
   it("statut boutique paid → clé acheteur", () => {
@@ -75,6 +85,12 @@ describe("orderTypeLabelKey / status", () => {
     expect(
       orderStatusLabelKey({ type: "escrow", status: "PAYMENT_PENDING" })
     ).toBe("orders.hub.escrowStatus.PAYMENT_PENDING");
+  });
+
+  it("statut composition → clé hub", () => {
+    expect(
+      orderStatusLabelKey({ type: "composition", status: "MILL_REVISED" })
+    ).toBe("orders.hub.compositionStatus.MILL_REVISED");
   });
 });
 

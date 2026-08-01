@@ -1,7 +1,12 @@
 import {
+  CompositionOrderStatus,
   MarketplaceTransactionStatus,
   MerchantOrderStatus
 } from "@prisma/client";
+import {
+  getAllowedCompositionOrderTransitions,
+  type CompositionOrderActor
+} from "../../feed-formulation/composition-orders/composition-order-state-machine";
 import {
   getAllowedTransitions,
   type MarketplaceTransactionActor,
@@ -202,4 +207,70 @@ export function deriveShopActionRequired(
   _role: OrderViewerRole
 ): ActionRequiredProjection {
   return SHOP_ACTION_BY_STATUS[status];
+}
+
+const COMPOSITION_ACTION_KEY: Partial<
+  Record<CompositionOrderStatus, string>
+> = {
+  [CompositionOrderStatus.SENT_TO_MILL]: "orders.action.reviseComposition",
+  [CompositionOrderStatus.MILL_REVISED]: "orders.action.acceptComposition",
+  [CompositionOrderStatus.ACCEPTED]: "orders.action.pay",
+  [CompositionOrderStatus.PAID]: "orders.action.startCompositionProduction",
+  [CompositionOrderStatus.IN_PRODUCTION]: "orders.action.markCompositionReady",
+  [CompositionOrderStatus.READY_FOR_PICKUP]: "orders.action.confirmReceipt"
+};
+
+function compositionActorToOrderActor(
+  actor: CompositionOrderActor
+): OrderActionActor {
+  if (actor === "producer") return "buyer";
+  if (actor === "mill") return "seller";
+  return "system";
+}
+
+/**
+ * Dérive actionRequiredBy depuis composition-order-state-machine
+ * (pas de table d'action parallèle).
+ */
+export function deriveCompositionActionRequired(
+  status: CompositionOrderStatus,
+  _role: OrderViewerRole
+): ActionRequiredProjection {
+  const transitions = getAllowedCompositionOrderTransitions(status);
+  if (transitions.length === 0) {
+    return { actionRequiredBy: "none", nextActionKey: null };
+  }
+  /** Événement nominal prioritaire par statut (qui fait avancer le flux). */
+  const NOMINAL: Partial<
+    Record<CompositionOrderStatus, (typeof transitions)[number]["event"]>
+  > = {
+    [CompositionOrderStatus.SENT_TO_MILL]: "MILL_REVISE",
+    [CompositionOrderStatus.MILL_REVISED]: "PRODUCER_ACCEPT",
+    [CompositionOrderStatus.ACCEPTED]: "PAYMENT_CONFIRMED",
+    [CompositionOrderStatus.PAID]: "START_PRODUCTION",
+    [CompositionOrderStatus.IN_PRODUCTION]: "MARK_READY",
+    [CompositionOrderStatus.READY_FOR_PICKUP]: "COMPLETE",
+    [CompositionOrderStatus.OUT_FOR_DELIVERY]: "COMPLETE"
+  };
+  const preferredEvent = NOMINAL[status];
+  const preferred =
+    (preferredEvent
+      ? transitions.find((t) => t.event === preferredEvent)
+      : null) ??
+    transitions.find(
+      (t) =>
+        t.event !== "PRODUCER_CANCEL" &&
+        t.event !== "PRODUCER_REJECT" &&
+        t.event !== "MILL_REVISE" &&
+        t.event !== "MARK_OUT_FOR_DELIVERY"
+    ) ??
+    transitions[0];
+  const human = preferred.actors.find((a) => a === "producer" || a === "mill");
+  if (!human) {
+    return { actionRequiredBy: "system", nextActionKey: null };
+  }
+  return {
+    actionRequiredBy: compositionActorToOrderActor(human),
+    nextActionKey: COMPOSITION_ACTION_KEY[status] ?? null
+  };
 }

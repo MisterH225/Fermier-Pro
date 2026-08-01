@@ -1,10 +1,6 @@
-import {
-  BadRequestException,
-  ServiceUnavailableException
-} from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 import { CompositionOrderStatus } from "@prisma/client";
 import { CompositionOrdersService } from "./composition-orders.service";
-import { ESCROW_COMPOSITION_ADAPTER_CODE } from "./composition-escrow.adapter";
 
 describe("CompositionOrdersService", () => {
   const producer = { id: "prod-1" } as never;
@@ -205,6 +201,21 @@ describe("CompositionOrdersService", () => {
     const notifications = {
       notify: jest.fn().mockResolvedValue(undefined)
     };
+    const escrow = {
+      holdCompositionFunds: jest.fn().mockResolvedValue({
+        providerRef: "wallet:composition-pending:ord-1",
+        paymentMethod: "wallet",
+        paymentUrl: null
+      }),
+      confirmCompositionHold: jest.fn().mockResolvedValue({
+        success: true,
+        providerRef: "wallet:entry-1"
+      })
+    };
+    const gateway = {
+      initiatePayment: jest.fn(),
+      confirmPayment: jest.fn()
+    };
 
     const service = new CompositionOrdersService(
       prisma as never,
@@ -213,7 +224,9 @@ describe("CompositionOrdersService", () => {
       formulation as never,
       availability as never,
       profiles as never,
-      notifications as never
+      notifications as never,
+      escrow as never,
+      gateway as never
     );
 
     return {
@@ -349,27 +362,64 @@ describe("CompositionOrdersService", () => {
     expect(getOrder().status).toBe(CompositionOrderStatus.CANCELLED);
   });
 
-  it("paiement STOP escrow (pas de duplication) — montant = finalPriceXof documenté", async () => {
-    const { service, setOrder } = build();
+  it("paiement escrow : montant = finalPriceXof + notifie les deux parties", async () => {
+    const { service, setOrder, notifications, prisma, getOrder } = build();
     setOrder({
       ...baseOrder,
       status: CompositionOrderStatus.ACCEPTED,
       finalPriceXof: 30500,
       productionStartEstimate: new Date(),
-      readyEstimate: new Date()
+      readyEstimate: new Date(),
+      escrowTransactionRef: "wallet:composition-pending:ord-1"
     });
-    try {
-      await service.initiatePayment(producer, "ord-1");
-      fail("devait STOP");
-    } catch (e) {
-      expect(e).toBeInstanceOf(ServiceUnavailableException);
-      const body = (e as ServiceUnavailableException).getResponse() as {
-        code: string;
-        finalPriceXof: number;
-      };
-      expect(body.code).toBe(ESCROW_COMPOSITION_ADAPTER_CODE);
-      expect(body.finalPriceXof).toBe(30500);
-    }
+    // expose escrow mock via re-build internals — confirm via finalize
+    const escrow = {
+      holdCompositionFunds: jest.fn().mockResolvedValue({
+        providerRef: "wallet:composition-pending:ord-1",
+        paymentMethod: "wallet",
+        paymentUrl: null
+      }),
+      confirmCompositionHold: jest.fn().mockResolvedValue({
+        success: true,
+        providerRef: "wallet:entry-1"
+      })
+    };
+    (service as unknown as { escrow: typeof escrow }).escrow = escrow;
+
+    const init = await service.initiatePayment(producer, "ord-1", {
+      paymentMethod: "wallet" as never
+    });
+    expect(init.amount).toBe(30500);
+    expect(escrow.holdCompositionFunds).toHaveBeenCalledWith(
+      "ord-1",
+      "prod-1",
+      30500,
+      "XOF",
+      expect.any(String),
+      { paymentMethod: "wallet" }
+    );
+    expect(prisma.compositionOrder.update).toHaveBeenCalled();
+
+    setOrder({
+      ...getOrder(),
+      status: CompositionOrderStatus.ACCEPTED,
+      finalPriceXof: 30500,
+      escrowTransactionRef: init.providerRef
+    });
+    await service.confirmPayment(producer, "ord-1", {});
+    expect(getOrder().status).toBe(CompositionOrderStatus.PAID);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      "prod-1",
+      expect.stringMatching(/sécurisé/i),
+      expect.any(String),
+      expect.objectContaining({ type: "composition_order_paid" })
+    );
+    expect(notifications.notify).toHaveBeenCalledWith(
+      "mill-user",
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ type: "composition_order_paid_mill" })
+    );
   });
 
   it("readyActual distinct de readyEstimate à MARK_READY", async () => {

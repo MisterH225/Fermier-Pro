@@ -1,4 +1,4 @@
-import { isFeedCompositionModuleActive } from "../feedComposition";
+import { isFeedCompositionModuleActive, canOrderFeedComposition } from "../feedComposition";
 import type { PlatformModuleDto } from "../api/config";
 import {
   buildInfeasibilityMessage,
@@ -104,6 +104,63 @@ describe("isFeedCompositionModuleActive", () => {
 
   it("modules absents → false", () => {
     expect(isFeedCompositionModuleActive(undefined)).toBe(false);
+  });
+});
+
+describe("canOrderFeedComposition", () => {
+  it("véto → false", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "veterinarian",
+        effectiveScopes: ["finance.write"]
+      })
+    ).toBe(false);
+  });
+
+  it("technicien → false", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "technician",
+        effectiveScopes: ["finance.write"]
+      })
+    ).toBe(false);
+  });
+
+  it("producteur avec finance.write → true", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["finance.write"]
+      })
+    ).toBe(true);
+  });
+
+  it("producteur sans finance.write → false", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["finance.read"]
+      })
+    ).toBe(false);
+  });
+
+  it("producteur avec scope * → true", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["*"]
+      })
+    ).toBe(true);
+  });
+
+  it("ferme verrouillée → false", () => {
+    expect(
+      canOrderFeedComposition({
+        profileType: "producer",
+        effectiveScopes: ["finance.write"],
+        writeLocked: true
+      })
+    ).toBe(false);
   });
 });
 

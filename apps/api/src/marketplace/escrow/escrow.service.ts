@@ -313,4 +313,185 @@ export class EscrowService {
     });
     this.log.log(`[${kind}] tx=${transactionId} amount=${amount} ${currency}`);
   }
+
+  /**
+   * Séquestre commande composition — réutilise wallet + gateway, journalise
+   * sur MarketplaceFundMovement.compositionOrderId (pas de MarketplaceTransaction).
+   */
+  async holdCompositionFunds(
+    compositionOrderId: string,
+    buyerUserId: string,
+    amount: number,
+    currency: string,
+    label: string,
+    options?: HoldFundsOptions
+  ): Promise<{
+    providerRef: string;
+    paymentMethod: MarketplacePaymentMethod;
+    paymentUrl?: string | null;
+  }> {
+    const method = options?.paymentMethod ?? MarketplacePaymentMethod.mobile_money;
+
+    if (method === MarketplacePaymentMethod.wallet) {
+      const walletEnabled = await this.featureFlags.isEnabled("wallet");
+      if (!walletEnabled) {
+        const { moduleId, message } =
+          await this.featureFlags.resolveInactiveContext("wallet");
+        throw new ServiceUnavailableException({
+          statusCode: 503,
+          code: "MODULE_INACTIVE",
+          moduleId,
+          feature: "wallet",
+          message: message ?? "Portefeuille désactivé",
+          error: "Service Unavailable"
+        });
+      }
+      await this.userWallet.assertSufficientBalance(buyerUserId, amount);
+      const providerRef =
+        this.userWallet.compositionPendingRef(compositionOrderId);
+      return { providerRef, paymentMethod: method, paymentUrl: null };
+    }
+
+    const init = await this.gateway.initiatePayment({
+      amount,
+      currency,
+      buyerUserId,
+      transactionId: `composition-order:${compositionOrderId}`,
+      label
+    });
+    await this.logCompositionMovement(
+      compositionOrderId,
+      MarketplaceFundMovementKind.HOLD,
+      amount,
+      currency,
+      init.providerRef,
+      "Initiation blocage fonds composition"
+    );
+    return {
+      providerRef: init.providerRef,
+      paymentMethod: MarketplacePaymentMethod.mobile_money,
+      paymentUrl: init.paymentUrl ?? null
+    };
+  }
+
+  async confirmCompositionHold(
+    providerRef: string,
+    compositionOrderId: string,
+    walletContext?: {
+      buyerUserId: string;
+      amount: number;
+      currency: string;
+      label: string;
+    }
+  ): Promise<{
+    success: boolean;
+    providerRef?: string;
+    failureReason?: string;
+  }> {
+    if (this.userWallet.isCompositionWalletPendingRef(providerRef)) {
+      if (!walletContext) {
+        throw new Error("Contexte portefeuille manquant pour confirmer le paiement");
+      }
+      const confirmedRef = await this.userWallet.confirmCompositionPendingHold(
+        providerRef,
+        walletContext.buyerUserId,
+        walletContext.amount,
+        walletContext.currency,
+        compositionOrderId,
+        walletContext.label
+      );
+      await this.logCompositionMovement(
+        compositionOrderId,
+        MarketplaceFundMovementKind.HOLD,
+        walletContext.amount,
+        walletContext.currency,
+        confirmedRef,
+        "Blocage fonds composition via portefeuille"
+      );
+      return { success: true, providerRef: confirmedRef };
+    }
+    if (this.userWallet.isWalletProviderRef(providerRef)) {
+      return { success: true, providerRef };
+    }
+    const res = await this.gateway.confirmPayment(
+      providerRef,
+      `composition-order:${compositionOrderId}`
+    );
+    return {
+      success: res.success,
+      providerRef: res.providerRef,
+      failureReason: res.failureReason
+    };
+  }
+
+  async releaseCompositionFundsToMill(
+    compositionOrderId: string,
+    millUserId: string,
+    amount: number,
+    currency: string
+  ): Promise<void> {
+    const entry = await this.userWallet.creditCompositionPayout(
+      millUserId,
+      amount,
+      currency,
+      compositionOrderId,
+      "Versement moulin commande composition",
+      `composition-release:${compositionOrderId}:${amount}`
+    );
+    await this.logCompositionMovement(
+      compositionOrderId,
+      MarketplaceFundMovementKind.RELEASE_TO_SELLER,
+      amount,
+      currency,
+      this.userWallet.walletProviderRef(entry.id),
+      "Versement moulin (portefeuille)"
+    );
+  }
+
+  async refundCompositionBuyer(
+    compositionOrderId: string,
+    buyerUserId: string,
+    amount: number,
+    currency: string
+  ): Promise<void> {
+    const entry = await this.userWallet.creditCompositionRefund(
+      buyerUserId,
+      amount,
+      currency,
+      compositionOrderId,
+      "Remboursement commande composition",
+      `composition-refund:${compositionOrderId}:${amount}`
+    );
+    await this.logCompositionMovement(
+      compositionOrderId,
+      MarketplaceFundMovementKind.REFUND_BUYER,
+      amount,
+      currency,
+      this.userWallet.walletProviderRef(entry.id),
+      "Remboursement producteur (portefeuille)"
+    );
+  }
+
+  private async logCompositionMovement(
+    compositionOrderId: string,
+    kind: MarketplaceFundMovementKind,
+    amount: number,
+    currency: string,
+    providerRef: string | null,
+    note: string
+  ): Promise<void> {
+    await this.prisma.marketplaceFundMovement.create({
+      data: {
+        compositionOrderId,
+        kind,
+        amount: new Prisma.Decimal(amount),
+        currency,
+        providerRef,
+        note
+      }
+    });
+    this.log.log(
+      `[${kind}] composition=${compositionOrderId} amount=${amount} ${currency}`
+    );
+  }
 }

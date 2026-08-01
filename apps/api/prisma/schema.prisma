@@ -2166,17 +2166,22 @@ model MarketplacePendingTransfer {
 }
 
 model MarketplaceFundMovement {
-  id            String                      @id @default(cuid())
-  transactionId String
-  transaction   MarketplaceTransaction      @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  kind          MarketplaceFundMovementKind
-  amount        Decimal                     @db.Decimal(14, 2)
-  currency      String                      @default("XOF")
-  providerRef   String?
-  note          String?
-  createdAt     DateTime                    @default(now())
+  id                 String                      @id @default(cuid())
+  /// Escrow marketplace livestock — XOR compositionOrderId.
+  transactionId      String?
+  transaction        MarketplaceTransaction?     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  /// Escrow commande composition (P-J4) — XOR transactionId.
+  compositionOrderId String?
+  compositionOrder   CompositionOrder?           @relation(fields: [compositionOrderId], references: [id], onDelete: Cascade)
+  kind               MarketplaceFundMovementKind
+  amount             Decimal                     @db.Decimal(14, 2)
+  currency           String                      @default("XOF")
+  providerRef        String?
+  note               String?
+  createdAt          DateTime                    @default(now())
 
   @@index([transactionId])
+  @@index([compositionOrderId])
 }
 
 model MarketplaceTransactionReceipt {
@@ -3291,6 +3296,8 @@ model UserWalletEntry {
   merchantOrder      MerchantOrder?         @relation(fields: [merchantOrderId], references: [id], onDelete: SetNull)
   vetAppointmentId   String?
   vetAppointment     VetAppointment?        @relation(fields: [vetAppointmentId], references: [id], onDelete: SetNull)
+  compositionOrderId String?
+  compositionOrder   CompositionOrder?      @relation(fields: [compositionOrderId], references: [id], onDelete: SetNull)
   counterpartyUserId String?
   counterparty       User?                @relation("WalletEntryCounterparty", fields: [counterpartyUserId], references: [id], onDelete: SetNull)
   providerRef        String?
@@ -3300,6 +3307,7 @@ model UserWalletEntry {
 
   @@index([walletId, createdAt])
   @@index([transactionId])
+  @@index([compositionOrderId])
   @@index([counterpartyUserId])
 }
 
@@ -3737,19 +3745,25 @@ model CompositionOrder {
   productionStartedAt      DateTime?
   /// Référence litige J5 — PAS readyEstimate.
   readyActual              DateTime?
-  /// Lien vers une transaction escrow quand l'adaptateur composition sera branché.
+  /// Réf. provider (wallet pending / GeniusPay) — séquestre composition.
   escrowTransactionRef     String?
+  paymentMethod            MarketplacePaymentMethod?
+  paymentInitiatedAt       DateTime?
+  paymentConfirmedAt       DateTime?
   /// Échéance de réponse moulin (SENT_TO_MILL).
   deadlineAt               DateTime?
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
   transitions              CompositionOrderTransition[]
+  fundMovements            MarketplaceFundMovement[]
+  walletEntries            UserWalletEntry[]
 
   @@index([farmId, status, createdAt(sort: Desc)])
   @@index([producerUserId, status])
   @@index([millProfileId, status])
   @@index([savedCompositionId])
   @@index([status, deadlineAt])
+  @@index([escrowTransactionRef])
 }
 
 /// Audit des transitions de commande composition.

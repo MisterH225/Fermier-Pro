@@ -330,6 +330,16 @@ export type RootStackParamList = {
     farmName: string;
     compositionId: string;
   };
+  MillPricesCompare: {
+    compositionId: string;
+    farmId: string;
+    farmName: string;
+  };
+  CompositionOrderDetail: {
+    orderId: string;
+    farmId?: string;
+    farmName?: string;
+  };
   FarmGestation: {
     farmId: string;
     farmName: string;

@@ -1,4 +1,4 @@
-import { apiGetJson, apiPostJson } from "./http";
+import { apiGetJson, apiPatchJson, apiPostJson } from "./http";
 
 export type ProductionStage =
   | "piglet_weaning"
@@ -396,6 +396,253 @@ export function postFeedCompositionExplain(
   return apiPostJson<ExplainCompositionResponse>(
     "/feed-composition/explain",
     body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+// ─── Mill prices & composition orders (P-J4-C) ───────────────────────────────
+
+export type CompositionOrderStatus =
+  | "SENT_TO_MILL"
+  | "MILL_REVISED"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "PAID"
+  | "IN_PRODUCTION"
+  | "READY_FOR_PICKUP"
+  | "OUT_FOR_DELIVERY"
+  | "COMPLETED";
+
+export type MillCompositionMissingIngredientDto = {
+  feedIngredientId: string;
+  canonicalName: string | null;
+  requiredKg: number;
+  reason: "no_offer" | "insufficient_stock";
+  availableKg: number | null;
+};
+
+export type MillCompositionPriceDto = {
+  millId: string;
+  millName: string;
+  distanceKm: number | null;
+  totalPriceXof: number;
+  missingIngredients: MillCompositionMissingIngredientDto[];
+  availabilityComplete: boolean;
+  mixingCost: number;
+};
+
+export type MillPricesResponseDto = {
+  compositionId: string;
+  farmId: string;
+  radiusKm: number;
+  mills: MillCompositionPriceDto[];
+};
+
+export type CompositionOrderDto = {
+  id: string;
+  savedCompositionId: string;
+  farmId: string;
+  producerUserId: string;
+  millProfileId: string;
+  status: CompositionOrderStatus;
+  snapshotRation: FeedRationLineDto[] | Record<string, unknown>;
+  quotedPriceXof: number;
+  finalPriceXof: number | null;
+  millNote: string | null;
+  productionStartEstimate: string | null;
+  readyEstimate: string | null;
+  productionStartedAt: string | null;
+  readyActual: string | null;
+  escrowTransactionRef: string | null;
+  deadlineAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateCompositionOrderBody = {
+  millProfileId: string;
+  radiusKm?: number;
+};
+
+export type ReviseCompositionOrderBody = {
+  millNote?: string;
+  removeIngredientId?: string;
+  addIngredientId?: string;
+  addPricePerKg?: number;
+  productionStartEstimate: string;
+  readyEstimate: string;
+};
+
+export type PayCompositionOrderResponse = {
+  orderId: string;
+  providerRef: string;
+  amount: number;
+  currency: string;
+  paymentMethod: "wallet" | "mobile_money";
+  paymentUrl: string | null;
+};
+
+export function fetchCompositionMillPrices(
+  accessToken: string,
+  compositionId: string,
+  radiusKm?: number,
+  activeProfileId?: string | null
+): Promise<MillPricesResponseDto> {
+  const q =
+    radiusKm != null && radiusKm > 0
+      ? `?radiusKm=${encodeURIComponent(String(radiusKm))}`
+      : "";
+  return apiGetJson<MillPricesResponseDto>(
+    `/feed-composition/compositions/${compositionId}/mill-prices${q}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function createCompositionOrder(
+  accessToken: string,
+  compositionId: string,
+  body: CreateCompositionOrderBody,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/compositions/${compositionId}/orders`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function fetchCompositionOrder(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiGetJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}`,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function acceptCompositionOrder(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/accept`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function rejectCompositionOrder(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/reject`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function cancelCompositionOrder(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/cancel`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function payCompositionOrder(
+  accessToken: string,
+  orderId: string,
+  body: { paymentMethod?: "wallet" | "mobile_money" } = {},
+  activeProfileId?: string | null
+): Promise<PayCompositionOrderResponse> {
+  return apiPostJson<PayCompositionOrderResponse>(
+    `/feed-composition/orders/${orderId}/pay`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmCompositionOrderPayment(
+  accessToken: string,
+  orderId: string,
+  providerRef?: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/confirm-payment`,
+    providerRef ? { providerRef } : {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function reviseCompositionOrder(
+  accessToken: string,
+  orderId: string,
+  body: ReviseCompositionOrderBody,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/mill-revise`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function updateCompositionReadyEstimate(
+  accessToken: string,
+  orderId: string,
+  readyEstimate: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPatchJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/ready-estimate`,
+    { readyEstimate },
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function startCompositionProduction(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/start-production`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function markCompositionReady(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/mark-ready`,
+    {},
     accessToken,
     activeProfileId
   );

@@ -3,6 +3,7 @@ export const GENIUSPAY_KIND_WALLET_TOPUP = "wallet_topup" as const;
 export const GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION = "producer_subscription" as const;
 export const GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION = "merchant_subscription" as const;
 export const GENIUSPAY_KIND_MERCHANT_ORDER = "merchant_order" as const;
+export const GENIUSPAY_KIND_COMPOSITION_ORDER = "composition_order" as const;
 export const GENIUSPAY_KIND_WALLET_WITHDRAW = "wallet_withdraw" as const;
 export const GENIUSPAY_KIND_MARKETPLACE_SELLER_PAYOUT =
   "marketplace_seller_payout" as const;
@@ -13,7 +14,8 @@ export type GeniusPayPaymentKind =
   | typeof GENIUSPAY_KIND_WALLET_TOPUP
   | typeof GENIUSPAY_KIND_MERCHANT_SUBSCRIPTION
   | typeof GENIUSPAY_KIND_PRODUCER_SUBSCRIPTION
-  | typeof GENIUSPAY_KIND_MERCHANT_ORDER;
+  | typeof GENIUSPAY_KIND_MERCHANT_ORDER
+  | typeof GENIUSPAY_KIND_COMPOSITION_ORDER;
 
 export type GeniusPayPayoutKind =
   | typeof GENIUSPAY_KIND_WALLET_WITHDRAW
@@ -26,6 +28,7 @@ export type GeniusPayPaymentMetadata = {
   transaction_id?: string;
   invoice_id?: string;
   order_id?: string;
+  composition_order_id?: string;
   amount?: string;
 };
 

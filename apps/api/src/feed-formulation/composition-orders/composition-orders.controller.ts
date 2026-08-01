@@ -17,7 +17,9 @@ import { RequirePlatformModule } from "../../feature-flags/require-platform-modu
 import { PlatformModuleEnabledGuard } from "../../feature-flags/platform-module-enabled.guard";
 import { CompositionOrdersService } from "./composition-orders.service";
 import {
+  ConfirmCompositionPaymentDto,
   CreateCompositionOrderDto,
+  PayCompositionOrderDto,
   ReviseCompositionOrderDto,
   UpdateReadyEstimateDto
 } from "./dto/composition-order.dto";
@@ -63,11 +65,24 @@ export class CompositionOrdersController {
     return this.orders.cancel(user, orderId);
   }
 
-  /** STOP escrow tant que l’adaptateur n’est pas prêt. */
   @Post("orders/:orderId/pay")
   @UseGuards(ProducerProfileGuard)
-  pay(@CurrentUser() user: User, @Param("orderId") orderId: string) {
-    return this.orders.initiatePayment(user, orderId);
+  pay(
+    @CurrentUser() user: User,
+    @Param("orderId") orderId: string,
+    @Body() dto: PayCompositionOrderDto
+  ) {
+    return this.orders.initiatePayment(user, orderId, dto);
+  }
+
+  @Post("orders/:orderId/confirm-payment")
+  @UseGuards(ProducerProfileGuard)
+  confirmPayment(
+    @CurrentUser() user: User,
+    @Param("orderId") orderId: string,
+    @Body() dto: ConfirmCompositionPaymentDto
+  ) {
+    return this.orders.confirmPayment(user, orderId, dto);
   }
 
   @Post("orders/:orderId/mill-revise")

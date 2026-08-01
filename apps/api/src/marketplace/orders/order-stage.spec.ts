@@ -1,12 +1,15 @@
 import {
+  CompositionOrderStatus,
   MarketplaceTransactionStatus,
   MerchantOrderStatus
 } from "@prisma/client";
 import {
+  isCompositionDisputed,
   isEscrowDisputed,
   isShopDisputed,
   ORDER_STAGE_INDEX,
   stageIndexOf,
+  stageOfComposition,
   stageOfEscrow,
   stageOfShop
 } from "./order-stage";
@@ -69,5 +72,27 @@ describe("stageOfShop", () => {
   it("disputed boutique → delivery + flag", () => {
     expect(stageOfShop(MerchantOrderStatus.disputed)).toBe("delivery");
     expect(isShopDisputed(MerchantOrderStatus.disputed)).toBe(true);
+  });
+});
+
+describe("stageOfComposition", () => {
+  it("mappe les statuts clés producteur/moulin", () => {
+    expect(stageOfComposition(CompositionOrderStatus.SENT_TO_MILL)).toBe(
+      "order"
+    );
+    expect(stageOfComposition(CompositionOrderStatus.MILL_REVISED)).toBe(
+      "order"
+    );
+    expect(stageOfComposition(CompositionOrderStatus.ACCEPTED)).toBe(
+      "payment"
+    );
+    expect(stageOfComposition(CompositionOrderStatus.PAID)).toBe("delivery");
+    expect(stageOfComposition(CompositionOrderStatus.READY_FOR_PICKUP)).toBe(
+      "receipt_weighing"
+    );
+    expect(stageOfComposition(CompositionOrderStatus.COMPLETED)).toBe(
+      "closed"
+    );
+    expect(isCompositionDisputed(CompositionOrderStatus.PAID)).toBe(false);
   });
 });
