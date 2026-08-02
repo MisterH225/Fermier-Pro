@@ -1,5 +1,11 @@
-import { BadRequestException } from "@nestjs/common";
-import { CompositionOrderStatus } from "@prisma/client";
+import { BadRequestException, ConflictException } from "@nestjs/common";
+import {
+  CompositionFulfillmentMode,
+  CompositionOrderDisputeStatus,
+  CompositionOrderStatus,
+  DeliveryStatus
+} from "@prisma/client";
+import { COMPOSITION_ORDER_DISPUTE_WINDOW_MS } from "./composition-orders.constants";
 import { CompositionOrdersService } from "./composition-orders.service";
 
 describe("CompositionOrdersService", () => {
@@ -27,6 +33,12 @@ describe("CompositionOrdersService", () => {
     readyEstimate: Date | null;
     productionStartedAt: Date | null;
     readyActual: Date | null;
+    fulfillmentMode: CompositionFulfillmentMode;
+    confirmedReceivedAt: Date | null;
+    disputeWindowEndsAt: Date | null;
+    escrowReleasedAt: Date | null;
+    completedAt: Date | null;
+    disputeOpenedAt: Date | null;
     escrowTransactionRef: string | null;
     deadlineAt: Date;
     createdAt: Date;
@@ -56,6 +68,12 @@ describe("CompositionOrdersService", () => {
     readyEstimate: null,
     productionStartedAt: null,
     readyActual: null,
+    fulfillmentMode: CompositionFulfillmentMode.PICKUP,
+    confirmedReceivedAt: null,
+    disputeWindowEndsAt: null,
+    escrowReleasedAt: null,
+    completedAt: null,
+    disputeOpenedAt: null,
     escrowTransactionRef: null,
     deadlineAt: new Date("2026-08-02T00:00:00Z"),
     createdAt: new Date("2026-08-01T00:00:00Z"),
@@ -64,9 +82,46 @@ describe("CompositionOrdersService", () => {
 
   function build(order: OrderRow = baseOrder) {
     let current: OrderRow = { ...order };
+    let deliveryRow: {
+      id: string;
+      compositionOrderId: string;
+      status: DeliveryStatus;
+      feeXof: number;
+      note: string | null;
+      scheduledAt: Date | null;
+      deliveredAt: Date | null;
+    } | null = null;
+    let disputeRow: {
+      id: string;
+      orderId: string;
+      openedByUserId: string;
+      reason: string;
+      status: CompositionOrderDisputeStatus;
+      resolvedAt: Date | null;
+      resolvedByUserId: string | null;
+      resolutionNote: string | null;
+      createdAt: Date;
+    } | null = null;
+
     const prisma = {
       compositionOrder: {
-        findUnique: jest.fn().mockImplementation(async () => ({ ...current })),
+        findUnique: jest.fn().mockImplementation(async (args?: {
+          include?: { delivery?: boolean; dispute?: boolean };
+        }) => {
+          const row: Record<string, unknown> = { ...current };
+          if (args?.include?.delivery) row.delivery = deliveryRow;
+          if (args?.include?.dispute) row.dispute = disputeRow;
+          return row;
+        }),
+        findUniqueOrThrow: jest.fn().mockImplementation(async (args?: {
+          include?: { delivery?: boolean; dispute?: boolean };
+        }) => {
+          const row: Record<string, unknown> = { ...current };
+          if (args?.include?.delivery) row.delivery = deliveryRow;
+          if (args?.include?.dispute) row.dispute = disputeRow;
+          return row;
+        }),
+        findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
         update: jest.fn().mockImplementation(async ({ data }) => {
           current = { ...current, ...data };
@@ -76,6 +131,12 @@ describe("CompositionOrdersService", () => {
           if (where.status && where.status !== current.status) {
             return { count: 0 };
           }
+          if (
+            where.escrowReleasedAt === null &&
+            current.escrowReleasedAt != null
+          ) {
+            return { count: 0 };
+          }
           current = { ...current, ...data };
           return { count: 1 };
         })
@@ -83,6 +144,52 @@ describe("CompositionOrdersService", () => {
       compositionOrderTransition: {
         create: jest.fn().mockResolvedValue({})
       },
+      compositionOrderDispute: {
+        findUnique: jest.fn().mockImplementation(async () => disputeRow),
+        create: jest.fn().mockImplementation(async ({ data }) => {
+          disputeRow = {
+            id: "disp-1",
+            orderId: data.orderId,
+            openedByUserId: data.openedByUserId,
+            reason: data.reason,
+            status: CompositionOrderDisputeStatus.open,
+            resolvedAt: null,
+            resolvedByUserId: null,
+            resolutionNote: null,
+            createdAt: new Date()
+          };
+          return disputeRow;
+        }),
+        update: jest.fn().mockImplementation(async ({ data }) => {
+          disputeRow = { ...disputeRow!, ...data };
+          return disputeRow;
+        })
+      },
+      delivery: {
+        findUnique: jest.fn().mockImplementation(async () => deliveryRow),
+        create: jest.fn().mockImplementation(async ({ data }) => {
+          deliveryRow = {
+            id: "del-1",
+            compositionOrderId: data.compositionOrderId,
+            status: data.status,
+            feeXof: Number(data.feeXof),
+            note: data.note ?? null,
+            scheduledAt: data.scheduledAt ?? null,
+            deliveredAt: data.deliveredAt ?? null
+          };
+          return deliveryRow;
+        }),
+        update: jest.fn().mockImplementation(async ({ data }) => {
+          deliveryRow = { ...deliveryRow!, ...data };
+          return deliveryRow;
+        })
+      },
+      $transaction: jest.fn().mockImplementation(async (arg) => {
+        if (typeof arg === "function") {
+          return arg(prisma);
+        }
+        return Promise.all(arg);
+      }),
       savedComposition: {
         findUnique: jest.fn().mockResolvedValue({
           id: "comp-1",
@@ -210,11 +317,17 @@ describe("CompositionOrdersService", () => {
       confirmCompositionHold: jest.fn().mockResolvedValue({
         success: true,
         providerRef: "wallet:entry-1"
-      })
+      }),
+      releaseCompositionFundsToMill: jest.fn().mockResolvedValue(undefined),
+      refundCompositionBuyer: jest.fn().mockResolvedValue(undefined)
     };
     const gateway = {
       initiatePayment: jest.fn(),
       confirmPayment: jest.fn()
+    };
+    const platformFlags = {
+      isModuleActiveForUser: jest.fn().mockResolvedValue(true),
+      getInactiveMessage: jest.fn().mockResolvedValue(null)
     };
 
     const service = new CompositionOrdersService(
@@ -226,7 +339,8 @@ describe("CompositionOrdersService", () => {
       profiles as never,
       notifications as never,
       escrow as never,
-      gateway as never
+      gateway as never,
+      platformFlags as never
     );
 
     return {
@@ -234,10 +348,19 @@ describe("CompositionOrdersService", () => {
       prisma,
       formulation,
       notifications,
+      escrow,
+      platformFlags,
       setOrder: (next: OrderRow) => {
         current = { ...next };
       },
-      getOrder: () => current
+      getOrder: () => current,
+      setDelivery: (
+        next: typeof deliveryRow
+      ) => {
+        deliveryRow = next;
+      },
+      getDelivery: () => deliveryRow,
+      getDispute: () => disputeRow
     };
   }
 
@@ -422,7 +545,7 @@ describe("CompositionOrdersService", () => {
     );
   });
 
-  it("readyActual distinct de readyEstimate à MARK_READY", async () => {
+  it("readyActual distinct de readyEstimate à MARK_READY + arme fenêtre litige", async () => {
     const estimate = new Date("2026-08-14T00:00:00Z");
     const { service, setOrder, getOrder } = build();
     setOrder({
@@ -436,10 +559,19 @@ describe("CompositionOrdersService", () => {
     await service.markReady(millUser, "ord-1");
     const order = getOrder();
     expect(order.status).toBe(CompositionOrderStatus.READY_FOR_PICKUP);
+    expect(order.fulfillmentMode).toBe(CompositionFulfillmentMode.PICKUP);
     expect(order.readyActual).toBeInstanceOf(Date);
     expect(order.readyActual!.getTime()).toBeGreaterThanOrEqual(before);
     expect(order.readyEstimate!.toISOString()).toBe(estimate.toISOString());
     expect(order.readyActual!.toISOString()).not.toBe(estimate.toISOString());
+    expect(order.disputeWindowEndsAt).toBeInstanceOf(Date);
+    expect(
+      order.disputeWindowEndsAt!.getTime() - order.readyActual!.getTime()
+    ).toBe(COMPOSITION_ORDER_DISPUTE_WINDOW_MS);
+    // Fenêtre armée sur readyActual, PAS readyEstimate
+    expect(
+      order.disputeWindowEndsAt!.getTime() - estimate.getTime()
+    ).not.toBe(COMPOSITION_ORDER_DISPUTE_WINDOW_MS);
   });
 
   it("non-retour : cancel interdit après IN_PRODUCTION", async () => {
@@ -452,5 +584,194 @@ describe("CompositionOrdersService", () => {
     await expect(service.cancel(producer, "ord-1")).rejects.toThrow(
       /Transition interdite/
     );
+  });
+
+  it("retrait → confirmation → libération via releaseCompositionFundsToMill", async () => {
+    const readyActual = new Date();
+    const { service, setOrder, getOrder, escrow, notifications } = build();
+    setOrder({
+      ...baseOrder,
+      status: CompositionOrderStatus.READY_FOR_PICKUP,
+      finalPriceXof: 30500,
+      readyActual,
+      disputeWindowEndsAt: new Date(
+        readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      ),
+      fulfillmentMode: CompositionFulfillmentMode.PICKUP
+    });
+    await service.confirmReceipt(producer, "ord-1");
+    expect(escrow.releaseCompositionFundsToMill).toHaveBeenCalledWith(
+      "ord-1",
+      "mill-user",
+      30500,
+      "XOF"
+    );
+    expect(getOrder().status).toBe(CompositionOrderStatus.COMPLETED);
+    expect(getOrder().escrowReleasedAt).toBeInstanceOf(Date);
+    expect(getOrder().confirmedReceivedAt).toBeInstanceOf(Date);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      "mill-user",
+      expect.stringMatching(/versé/i),
+      expect.any(String),
+      expect.objectContaining({ type: "composition_order_completed_mill" })
+    );
+  });
+
+  it("livraison → deliveredAt arme la fenêtre (pas readyEstimate) puis confirmation", async () => {
+    const estimate = new Date("2026-08-12T00:00:00Z");
+    const { service, setOrder, getOrder, setDelivery, escrow, platformFlags } =
+      build();
+    setOrder({
+      ...baseOrder,
+      status: CompositionOrderStatus.IN_PRODUCTION,
+      finalPriceXof: 27000,
+      readyEstimate: estimate
+    });
+    await service.markOutForDelivery(millUser, "ord-1", { feeXof: 1500 });
+    expect(platformFlags.isModuleActiveForUser).toHaveBeenCalledWith(
+      "delivery",
+      "mill-user"
+    );
+    expect(getOrder().status).toBe(CompositionOrderStatus.OUT_FOR_DELIVERY);
+    expect(getOrder().disputeWindowEndsAt).toBeNull();
+
+    setDelivery({
+      id: "del-1",
+      compositionOrderId: "ord-1",
+      status: DeliveryStatus.out,
+      feeXof: 1500,
+      note: null,
+      scheduledAt: new Date(),
+      deliveredAt: null
+    });
+    const before = Date.now();
+    await service.markDelivered(millUser, "ord-1");
+    const windowEnd = getOrder().disputeWindowEndsAt!;
+    expect(windowEnd.getTime()).toBeGreaterThanOrEqual(
+      before + COMPOSITION_ORDER_DISPUTE_WINDOW_MS - 50
+    );
+    // PAS armé sur readyEstimate
+    expect(windowEnd.getTime() - estimate.getTime()).not.toBe(
+      COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+    );
+
+    setOrder({
+      ...getOrder(),
+      status: CompositionOrderStatus.OUT_FOR_DELIVERY
+    });
+    setDelivery({
+      id: "del-1",
+      compositionOrderId: "ord-1",
+      status: DeliveryStatus.delivered,
+      feeXof: 1500,
+      note: null,
+      scheduledAt: new Date(),
+      deliveredAt: new Date()
+    });
+    await service.confirmReceipt(producer, "ord-1");
+    expect(escrow.releaseCompositionFundsToMill).toHaveBeenCalled();
+    expect(getOrder().status).toBe(CompositionOrderStatus.COMPLETED);
+  });
+
+  it("litige pendant la fenêtre suspend la libération ; résolution moulin libère", async () => {
+    const readyActual = new Date();
+    const { service, setOrder, getOrder, escrow } = build();
+    setOrder({
+      ...baseOrder,
+      status: CompositionOrderStatus.READY_FOR_PICKUP,
+      finalPriceXof: 27000,
+      readyActual,
+      disputeWindowEndsAt: new Date(
+        readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      )
+    });
+    await service.openDispute(producer, "ord-1", {
+      reason: "Sac manquant"
+    });
+    expect(getOrder().status).toBe(CompositionOrderStatus.DISPUTED);
+    expect(escrow.releaseCompositionFundsToMill).not.toHaveBeenCalled();
+
+    // Cron ne libère pas les commandes disputées
+    const released = await service.runTrackingCycle(
+      new Date(readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS + 1)
+    );
+    expect(released).toBe(0);
+
+    await service.resolveDispute("admin-1", "ord-1", "mill", "OK moulin");
+    expect(escrow.releaseCompositionFundsToMill).toHaveBeenCalledWith(
+      "ord-1",
+      "mill-user",
+      27000,
+      "XOF"
+    );
+    expect(getOrder().status).toBe(CompositionOrderStatus.COMPLETED);
+  });
+
+  it("libération auto à fin de fenêtre sans réponse", async () => {
+    const readyActual = new Date("2026-08-01T00:00:00Z");
+    const windowEnd = new Date(
+      readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+    );
+    const { service, setOrder, prisma, escrow, getOrder } = build();
+    const due = {
+      ...baseOrder,
+      status: CompositionOrderStatus.READY_FOR_PICKUP,
+      finalPriceXof: 27000,
+      readyActual,
+      disputeWindowEndsAt: windowEnd,
+      escrowReleasedAt: null
+    };
+    setOrder(due);
+    prisma.compositionOrder.findMany.mockResolvedValue([due]);
+    const n = await service.runTrackingCycle(
+      new Date(windowEnd.getTime() + 1000)
+    );
+    expect(n).toBe(1);
+    expect(escrow.releaseCompositionFundsToMill).toHaveBeenCalled();
+    expect(getOrder().status).toBe(CompositionOrderStatus.COMPLETED);
+  });
+
+  it("pas de double libération (claim atomique)", async () => {
+    const readyActual = new Date();
+    const { service, setOrder, escrow } = build();
+    setOrder({
+      ...baseOrder,
+      status: CompositionOrderStatus.READY_FOR_PICKUP,
+      finalPriceXof: 27000,
+      readyActual,
+      disputeWindowEndsAt: new Date(
+        readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      ),
+      escrowReleasedAt: new Date()
+    });
+    await expect(service.confirmReceipt(producer, "ord-1")).rejects.toBeInstanceOf(
+      ConflictException
+    );
+    expect(escrow.releaseCompositionFundsToMill).not.toHaveBeenCalled();
+  });
+
+  it("résolution litige producteur → refundCompositionBuyer", async () => {
+    const readyActual = new Date();
+    const { service, setOrder, escrow, getOrder } = build();
+    setOrder({
+      ...baseOrder,
+      status: CompositionOrderStatus.READY_FOR_PICKUP,
+      finalPriceXof: 27000,
+      readyActual,
+      disputeWindowEndsAt: new Date(
+        readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      )
+    });
+    await service.openDispute(producer, "ord-1", { reason: "Mauvais intrant" });
+    expect(getOrder().status).toBe(CompositionOrderStatus.DISPUTED);
+
+    await service.resolveDispute("admin-1", "ord-1", "producer", "défaut");
+    expect(escrow.refundCompositionBuyer).toHaveBeenCalledWith(
+      "ord-1",
+      "prod-1",
+      27000,
+      "XOF"
+    );
+    expect(getOrder().status).toBe(CompositionOrderStatus.REFUNDED);
   });
 });

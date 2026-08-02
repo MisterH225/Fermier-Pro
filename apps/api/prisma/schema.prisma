@@ -219,6 +219,7 @@ model User {
   memberships           FarmMembership[]
   ownedFarms            Farm[]               @relation("FarmOwner")
   compositionOrdersAsProducer CompositionOrder[] @relation("CompositionOrderProducer")
+  compositionOrderDisputesOpened CompositionOrderDispute[] @relation("CompositionOrderDisputeOpener")
   farmInvitesCreated    FarmInvitation[]     @relation("InvitationCreator")
   farmInvitesScanned    FarmInvitation[]     @relation("InvitationScanner")
   farmInvitesReceived   FarmInvitation[]     @relation("InvitationInvitee")
@@ -3705,8 +3706,8 @@ model SavedComposition {
   @@index([createdByUserId])
 }
 
-/// Statuts commande composition chez un moulin (P-J4-B).
-/// OUT_FOR_DELIVERY / fenêtre litige COMPLETED = J5.
+/// Statuts commande composition chez un moulin (P-J4-B / P-J5).
+/// DISPUTED / REFUNDED / fenêtre litige / Delivery = J5.
 enum CompositionOrderStatus {
   SENT_TO_MILL
   MILL_REVISED
@@ -3717,34 +3718,57 @@ enum CompositionOrderStatus {
   IN_PRODUCTION
   READY_FOR_PICKUP
   OUT_FOR_DELIVERY
+  DISPUTED
   COMPLETED
+  REFUNDED
+}
+
+/// Mode de remise (P-J5). RETRAIT = nominal ; LIVRAISON = option flag delivery.
+enum CompositionFulfillmentMode {
+  PICKUP
+  DELIVERY
+}
+
+/// Statut d'une livraison autogérée (moulin) — pas d'app livreur.
+enum DeliveryStatus {
+  scheduled
+  out
+  delivered
+}
+
+/// Statut litige commande composition — miroir MerchantOrderDisputeStatus.
+enum CompositionOrderDisputeStatus {
+  open
+  resolved_seller
+  resolved_buyer
+  closed
 }
 
 /// Commande d'une SavedComposition validée chez un moulin (P-J4-B).
 model CompositionOrder {
-  id                       String                 @id @default(cuid())
+  id                       String                     @id @default(cuid())
   savedCompositionId       String
-  savedComposition         SavedComposition       @relation(fields: [savedCompositionId], references: [id], onDelete: Restrict)
+  savedComposition         SavedComposition           @relation(fields: [savedCompositionId], references: [id], onDelete: Restrict)
   farmId                   String
-  farm                     Farm                   @relation(fields: [farmId], references: [id], onDelete: Restrict)
+  farm                     Farm                       @relation(fields: [farmId], references: [id], onDelete: Restrict)
   producerUserId           String
-  producer                 User                   @relation("CompositionOrderProducer", fields: [producerUserId], references: [id], onDelete: Restrict)
+  producer                 User                       @relation("CompositionOrderProducer", fields: [producerUserId], references: [id], onDelete: Restrict)
   millProfileId            String
-  millProfile              MerchantProfile        @relation(fields: [millProfileId], references: [id], onDelete: Restrict)
-  status                   CompositionOrderStatus @default(SENT_TO_MILL)
+  millProfile              MerchantProfile            @relation(fields: [millProfileId], references: [id], onDelete: Restrict)
+  status                   CompositionOrderStatus     @default(SENT_TO_MILL)
   /// Ration figée à l'envoi — le moulin travaille dessus, pas sur la SavedComposition live.
   snapshotRation           Json
   /// Prix P-J4-A chez ce moulin au moment de l'envoi.
-  quotedPriceXof           Decimal                @db.Decimal(14, 2)
+  quotedPriceXof           Decimal                    @db.Decimal(14, 2)
   /// Prix ferme après révision moulin (accepté par le producteur).
-  finalPriceXof            Decimal?               @db.Decimal(14, 2)
+  finalPriceXof            Decimal?                   @db.Decimal(14, 2)
   millNote                 String?
   /// Dates estimées annoncées par le moulin à MILL_REVISED (pas un engagement plateforme).
   productionStartEstimate  DateTime?
   readyEstimate            DateTime?
   /// Dates réelles.
   productionStartedAt      DateTime?
-  /// Référence litige J5 — PAS readyEstimate.
+  /// Référence litige J5 — PAS readyEstimate. Arme la fenêtre au retrait.
   readyActual              DateTime?
   /// Réf. provider (wallet pending / GeniusPay) — séquestre composition.
   escrowTransactionRef     String?
@@ -3753,18 +3777,75 @@ model CompositionOrder {
   paymentConfirmedAt       DateTime?
   /// Échéance de réponse moulin (SENT_TO_MILL).
   deadlineAt               DateTime?
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
+  /// PICKUP (défaut) ou DELIVERY (flag delivery).
+  fulfillmentMode          CompositionFulfillmentMode @default(PICKUP)
+  /// Confirmation explicite producteur (« J'ai bien reçu »).
+  confirmedReceivedAt      DateTime?
+  /// Fin de fenêtre litige — armée sur readyActual (retrait) ou deliveredAt (livraison).
+  disputeWindowEndsAt      DateTime?
+  escrowReleasedAt         DateTime?
+  completedAt              DateTime?
+  disputeOpenedAt          DateTime?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
   transitions              CompositionOrderTransition[]
   fundMovements            MarketplaceFundMovement[]
   walletEntries            UserWalletEntry[]
+  /// Présent uniquement si fulfillmentMode = DELIVERY (chemin retrait sans Delivery).
+  delivery                 Delivery?
+  dispute                  CompositionOrderDispute?
 
   @@index([farmId, status, createdAt(sort: Desc)])
   @@index([producerUserId, status])
   @@index([millProfileId, status])
   @@index([savedCompositionId])
   @@index([status, deadlineAt])
+  @@index([status, disputeWindowEndsAt])
   @@index([escrowTransactionRef])
+}
+
+/// Livraison légère autogérée par le moulin (P-J5).
+/// Conçue pour s'étendre : FK optionnelles vers boutique / escrow porc (non câblées ici).
+/// Un seul sujet non-null à la fois. Chemin retrait = PAS de ligne Delivery.
+model Delivery {
+  id                       String           @id @default(cuid())
+  compositionOrderId       String?          @unique
+  compositionOrder         CompositionOrder? @relation(fields: [compositionOrderId], references: [id], onDelete: Cascade)
+  /// Futur : rattachement commande boutique (non implémenté J5).
+  merchantOrderId          String?          @unique
+  /// Futur : rattachement transaction escrow porc (non implémenté J5).
+  marketplaceTransactionId String?          @unique
+  status                   DeliveryStatus   @default(scheduled)
+  feeXof                   Decimal          @db.Decimal(14, 2)
+  note                     String?
+  scheduledAt              DateTime?
+  /// Date EFFECTIVE de remise — arme la fenêtre litige (jamais readyEstimate).
+  deliveredAt              DateTime?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  @@index([status])
+}
+
+/// Litige commande composition — mécanique calquée sur MerchantOrderDispute.
+model CompositionOrderDispute {
+  id               String                         @id @default(cuid())
+  orderId          String                         @unique
+  order            CompositionOrder               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  openedByUserId   String
+  openedBy         User                           @relation("CompositionOrderDisputeOpener", fields: [openedByUserId], references: [id], onDelete: Restrict)
+  reason           String
+  millNote         String?
+  producerNote     String?
+  status           CompositionOrderDisputeStatus  @default(open)
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolutionNote   String?
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  @@index([openedByUserId, createdAt(sort: Desc)])
+  @@index([status])
 }
 
 /// Audit des transitions de commande composition.

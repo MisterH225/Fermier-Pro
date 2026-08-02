@@ -12,6 +12,16 @@ export function isFeedCompositionModuleActive(
   );
 }
 
+/** True si le module plateforme `delivery` est actif (livraison autogérée moulin). */
+export function isDeliveryModuleActive(
+  platformModules: PlatformModuleDto[] | null | undefined
+): boolean {
+  return (
+    platformModules?.some((m) => m.moduleId === "delivery" && m.isActive) ??
+    false
+  );
+}
+
 export type CanOrderFeedCompositionParams = {
   profileType?: string | null;
   effectiveScopes?: string[];

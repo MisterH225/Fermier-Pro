@@ -217,7 +217,8 @@ const COMPOSITION_ACTION_KEY: Partial<
   [CompositionOrderStatus.ACCEPTED]: "orders.action.pay",
   [CompositionOrderStatus.PAID]: "orders.action.startCompositionProduction",
   [CompositionOrderStatus.IN_PRODUCTION]: "orders.action.markCompositionReady",
-  [CompositionOrderStatus.READY_FOR_PICKUP]: "orders.action.confirmReceipt"
+  [CompositionOrderStatus.READY_FOR_PICKUP]: "orders.action.confirmReceipt",
+  [CompositionOrderStatus.OUT_FOR_DELIVERY]: "orders.action.confirmReceipt"
 };
 
 function compositionActorToOrderActor(
@@ -241,6 +242,9 @@ export function deriveCompositionActionRequired(
     return { actionRequiredBy: "none", nextActionKey: null };
   }
   /** Événement nominal prioritaire par statut (qui fait avancer le flux). */
+  if (status === CompositionOrderStatus.DISPUTED) {
+    return { actionRequiredBy: "system", nextActionKey: null };
+  }
   const NOMINAL: Partial<
     Record<CompositionOrderStatus, (typeof transitions)[number]["event"]>
   > = {

@@ -1,8 +1,10 @@
 import {
+  CompositionOrderStatus,
   MarketplaceTransactionStatus,
   MerchantOrderStatus,
   OfferStatus
 } from "@prisma/client";
+import { COMPOSITION_ORDER_DISPUTE_WINDOW_MS } from "../feed-formulation/composition-orders/composition-orders.constants";
 import { MERCHANT_ORDER_DISPUTE_WINDOW_MS } from "../merchant-shop/merchant-shop.constants";
 import {
   DELIVERY_DISPUTE_AUTO_MS,
@@ -15,7 +17,7 @@ import {
  * IMPORTANT (contrainte morale du prompt) : chaque clé décrit le comportement
  * RÉEL du cron correspondant, pas une promesse marketing. Voir l'inventaire
  * P-43 et les crons dans marketplace-transaction.service.ts,
- * merchant-orders.service.ts et credit-offers.service.ts.
+ * merchant-orders.service.ts, composition-orders.service.ts et credit-offers.service.ts.
  *
  * - offerPaymentExpire : PAYMENT_PENDING → OFFER_EXPIRED à offerExpiresAt (48h).
  *   Rien n'est bloqué → aucun remboursement, l'annonce est remise en vente.
@@ -27,6 +29,9 @@ import {
  *   remboursé à l'acheteur.
  * - shopAutoComplete : commande boutique delivered → completed (48h). Le
  *   vendeur est payé (release escrow).
+ * - compositionAutoComplete : READY_FOR_PICKUP / OUT_FOR_DELIVERY → COMPLETED
+ *   à disputeWindowEndsAt (48h après readyActual ou deliveredAt). Le moulin
+ *   est payé (releaseCompositionFundsToMill). Un litige suspend cette auto.
  * - creditBalanceArbitration : solde crédit → arbitration (J+2 après échéance).
  *   Fermier Pro examine, pas de remboursement automatique.
  * - offerProposalExpire : offre pending/countered → rejected (7j). Pas de
@@ -38,6 +43,7 @@ export const DEADLINE_OUTCOME_KEY = {
   deliveryAutoDispute: "deadline.outcome.deliveryAutoDispute",
   shopConfirmRefund: "deadline.outcome.shopConfirmRefund",
   shopAutoComplete: "deadline.outcome.shopAutoComplete",
+  compositionAutoComplete: "deadline.outcome.compositionAutoComplete",
   creditBalanceArbitration: "deadline.outcome.creditBalanceArbitration",
   offerProposalExpire: "deadline.outcome.offerProposalExpire"
 } as const;
@@ -137,6 +143,48 @@ export function shopDeadlineAt(order: {
   if (order.status === MerchantOrderStatus.delivered && order.deliveredAt) {
     return new Date(
       order.deliveredAt.getTime() + MERCHANT_ORDER_DISPUTE_WINDOW_MS
+    );
+  }
+  return null;
+}
+
+/** Conséquence d'un timeout commande composition (fenêtre litige), ou null. */
+export function compositionTimeoutOutcomeKey(
+  status: CompositionOrderStatus
+): DeadlineOutcomeKey | null {
+  if (
+    status === CompositionOrderStatus.READY_FOR_PICKUP ||
+    status === CompositionOrderStatus.OUT_FOR_DELIVERY
+  ) {
+    return DEADLINE_OUTCOME_KEY.compositionAutoComplete;
+  }
+  return null;
+}
+
+/**
+ * Échéance fenêtre litige composition.
+ * Utilise disputeWindowEndsAt (armé sur readyActual / deliveredAt), jamais readyEstimate.
+ */
+export function compositionDeadlineAt(order: {
+  status: CompositionOrderStatus;
+  disputeWindowEndsAt: Date | null;
+  readyActual?: Date | null;
+  readyEstimate?: Date | null;
+}): Date | null {
+  if (
+    (order.status === CompositionOrderStatus.READY_FOR_PICKUP ||
+      order.status === CompositionOrderStatus.OUT_FOR_DELIVERY) &&
+    order.disputeWindowEndsAt
+  ) {
+    return order.disputeWindowEndsAt;
+  }
+  // Garde-fou : si disputeWindowEndsAt manquant mais readyActual présent (legacy).
+  if (
+    order.status === CompositionOrderStatus.READY_FOR_PICKUP &&
+    order.readyActual
+  ) {
+    return new Date(
+      order.readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
     );
   }
   return null;

@@ -19,6 +19,7 @@ import { FeedCompositionExplainService } from "./assist/explain/feed-composition
 import { IngredientAvailabilityService } from "./assist/ingredient-availability.service";
 import { SavedCompositionsService } from "./assist/saved-compositions.service";
 import { CompositionOrdersController } from "./composition-orders/composition-orders.controller";
+import { CompositionOrdersCronService } from "./composition-orders/composition-orders.cron";
 import { CompositionOrdersService } from "./composition-orders/composition-orders.service";
 import { FeedFormulationService } from "./feed-formulation.service";
 import { FeedRequirementProfilesService } from "./feed-requirement-profiles.service";
@@ -61,7 +62,8 @@ import { SOLVER_PORT } from "./solver/solver.port";
     FeedCompositionExplainService,
     SavedCompositionsService,
     CompositionPricingService,
-    CompositionOrdersService
+    CompositionOrdersService,
+    CompositionOrdersCronService
   ],
   exports: [
     FeedFormulationService,

@@ -4341,6 +4341,8 @@ export const fr = {
       deliveryAutoDispute: "Sans confirmation de réception avant l'échéance, un problème sera ouvert et Fermier Pro examinera le dossier.",
       shopConfirmRefund: "Sans accord du vendeur avant l'échéance, la commande sera annulée et votre argent remboursé.",
       shopAutoComplete: "Sans signalement de problème avant l'échéance, la commande sera clôturée et le vendeur payé.",
+      compositionAutoComplete:
+        "Sans réponse avant l'échéance, la commande sera validée et le moulin payé.",
       creditBalanceArbitration: "Sans paiement du solde dans les 2 jours suivant l'échéance, Fermier Pro examinera le dossier.",
       offerProposalExpire: "Sans réponse avant l'échéance, votre offre expirera."
     }
@@ -4418,7 +4420,9 @@ export const fr = {
         IN_PRODUCTION: "En production",
         READY_FOR_PICKUP: "Prête au retrait",
         OUT_FOR_DELIVERY: "En livraison",
-        COMPLETED: "Terminée"
+        DISPUTED: "Litige",
+        COMPLETED: "Terminée",
+        REFUNDED: "Remboursée"
       }
     },
     composition: {

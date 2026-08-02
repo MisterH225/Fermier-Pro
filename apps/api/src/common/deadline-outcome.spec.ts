@@ -1,8 +1,10 @@
 import {
+  CompositionOrderStatus,
   MarketplaceTransactionStatus,
   MerchantOrderStatus,
   OfferStatus
 } from "@prisma/client";
+import { COMPOSITION_ORDER_DISPUTE_WINDOW_MS } from "../feed-formulation/composition-orders/composition-orders.constants";
 import { MERCHANT_ORDER_DISPUTE_WINDOW_MS } from "../merchant-shop/merchant-shop.constants";
 import {
   WEIGHT_AUTO_VALIDATE_MS,
@@ -10,6 +12,8 @@ import {
 } from "../marketplace/orders/order-projection.types";
 import {
   DEADLINE_OUTCOME_KEY,
+  compositionDeadlineAt,
+  compositionTimeoutOutcomeKey,
   creditBalanceTimeoutOutcomeKey,
   escrowDeadlineAt,
   escrowTimeoutOutcomeKey,
@@ -127,6 +131,41 @@ describe("deadline-outcome — échéance + conséquence par état (P-43)", () =
       };
       expect(shopDeadlineAt(order)).toBeNull();
       expect(shopTimeoutOutcomeKey(order.status)).toBeNull();
+    });
+  });
+
+  describe("commandes composition (P-J5)", () => {
+    it("READY_FOR_PICKUP → disputeWindowEndsAt + auto-complete moulin payé", () => {
+      const readyActual = new Date("2026-08-14T10:00:00.000Z");
+      const disputeWindowEndsAt = new Date(
+        readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      );
+      const order = {
+        status: CompositionOrderStatus.READY_FOR_PICKUP,
+        disputeWindowEndsAt,
+        readyActual,
+        readyEstimate: new Date("2026-08-12T10:00:00.000Z")
+      };
+      expect(compositionDeadlineAt(order)).toEqual(disputeWindowEndsAt);
+      expect(compositionTimeoutOutcomeKey(order.status)).toBe(
+        DEADLINE_OUTCOME_KEY.compositionAutoComplete
+      );
+      // Jamais readyEstimate comme échéance
+      expect(compositionDeadlineAt(order)?.getTime()).not.toBe(
+        order.readyEstimate!.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      );
+    });
+
+    it("PAID → aucune échéance litige", () => {
+      expect(
+        compositionDeadlineAt({
+          status: CompositionOrderStatus.PAID,
+          disputeWindowEndsAt: null
+        })
+      ).toBeNull();
+      expect(
+        compositionTimeoutOutcomeKey(CompositionOrderStatus.PAID)
+      ).toBeNull();
     });
   });
 

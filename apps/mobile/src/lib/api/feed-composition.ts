@@ -413,7 +413,29 @@ export type CompositionOrderStatus =
   | "IN_PRODUCTION"
   | "READY_FOR_PICKUP"
   | "OUT_FOR_DELIVERY"
-  | "COMPLETED";
+  | "DISPUTED"
+  | "COMPLETED"
+  | "REFUNDED";
+
+export type CompositionFulfillmentMode = "PICKUP" | "DELIVERY";
+
+export type CompositionDeliveryDto = {
+  id: string;
+  status: "scheduled" | "out" | "delivered";
+  feeXof: number;
+  note: string | null;
+  scheduledAt: string | null;
+  deliveredAt: string | null;
+};
+
+export type CompositionOrderDisputeDto = {
+  id: string;
+  reason: string;
+  status: "open" | "resolved_seller" | "resolved_buyer" | "closed";
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+  createdAt: string;
+};
 
 export type MillCompositionMissingIngredientDto = {
   feedIngredientId: string;
@@ -455,10 +477,17 @@ export type CompositionOrderDto = {
   readyEstimate: string | null;
   productionStartedAt: string | null;
   readyActual: string | null;
+  fulfillmentMode?: CompositionFulfillmentMode;
+  confirmedReceivedAt?: string | null;
+  disputeWindowEndsAt?: string | null;
+  escrowReleasedAt?: string | null;
+  completedAt?: string | null;
   escrowTransactionRef: string | null;
   deadlineAt: string | null;
   createdAt: string;
   updatedAt: string;
+  delivery?: CompositionDeliveryDto | null;
+  dispute?: CompositionOrderDisputeDto | null;
 };
 
 export type CreateCompositionOrderBody = {
@@ -643,6 +672,60 @@ export function markCompositionReady(
   return apiPostJson<CompositionOrderDto>(
     `/feed-composition/orders/${orderId}/mark-ready`,
     {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function markCompositionOutForDelivery(
+  accessToken: string,
+  orderId: string,
+  body: { feeXof: number; note?: string; scheduledAt?: string },
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/mark-out-for-delivery`,
+    body,
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function markCompositionDelivered(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/mark-delivered`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function confirmCompositionReceipt(
+  accessToken: string,
+  orderId: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/confirm-receipt`,
+    {},
+    accessToken,
+    activeProfileId
+  );
+}
+
+export function openCompositionOrderDispute(
+  accessToken: string,
+  orderId: string,
+  reason: string,
+  activeProfileId?: string | null
+): Promise<CompositionOrderDto> {
+  return apiPostJson<CompositionOrderDto>(
+    `/feed-composition/orders/${orderId}/dispute`,
+    { reason },
     accessToken,
     activeProfileId
   );
