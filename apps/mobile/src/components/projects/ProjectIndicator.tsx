@@ -40,7 +40,7 @@ export function ProjectIndicator({ onPress }: ProjectIndicatorProps) {
       testID="dashboard-project-indicator"
     >
       <View style={styles.iconWrap}>
-        <Ionicons name="leaf" size={16} color={producerColors.primaryDark} />
+        <Ionicons name="leaf" size={14} color={producerColors.primaryDark} />
       </View>
       <View style={styles.textCol}>
         <Text style={styles.label}>{t("producer.projects.currentLabel")}</Text>
@@ -70,16 +70,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: producerColors.oliveBorder,
     borderRadius: mobileRadius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 12
+    paddingVertical: 6,
+    paddingHorizontal: 10
   },
   pressed: {
     opacity: 0.9,
     backgroundColor: producerColors.oliveWashSoft
   },
   iconWrap: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: mobileRadius.sm,
     backgroundColor: producerColors.primaryMuted,
     alignItems: "center",
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   textCol: {
     flex: 1,
     minWidth: 0,
-    gap: 1
+    gap: 0
   },
   label: {
     ...mobileTypography.meta,
@@ -96,13 +96,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: producerColors.oliveMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.4
+    letterSpacing: 0.4,
+    lineHeight: 14
   },
   name: {
     ...mobileTypography.body,
-    fontSize: mobileFontSize.md,
+    fontSize: mobileFontSize.sm,
     fontWeight: "700",
-    color: mobileColors.textPrimary
+    color: mobileColors.textPrimary,
+    lineHeight: 18
   },
   meta: {
     flexDirection: "row",

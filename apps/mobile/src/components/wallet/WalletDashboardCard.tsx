@@ -123,13 +123,13 @@ export function WalletDashboardCard({
         >
           <Ionicons
             name={balanceHidden ? "eye-off-outline" : "eye-outline"}
-            size={20}
+            size={18}
             color={mobileColors.textSecondary}
           />
         </Pressable>
 
         <View style={styles.currencyPill}>
-          <Ionicons name="cash-outline" size={14} color={mobileColors.background} />
+          <Ionicons name="cash-outline" size={12} color={mobileColors.background} />
           <Text style={styles.currencyPillText}>{currency}</Text>
         </View>
 
@@ -181,7 +181,7 @@ export function WalletDashboardCard({
         >
           <Text style={styles.dockBtnLabel}>{t("wallet.dashboard.transfer")}</Text>
           <View style={styles.dockIconCircle}>
-            <Ionicons name="arrow-up-outline" size={18} color={mobileColors.background} />
+            <Ionicons name="arrow-up-outline" size={16} color={mobileColors.background} />
           </View>
         </Pressable>
 
@@ -194,7 +194,7 @@ export function WalletDashboardCard({
             pressed && styles.dockBtnPressed
           ]}
         >
-          <Ionicons name="add" size={22} color={mobileColors.textPrimary} />
+          <Ionicons name="add" size={20} color={mobileColors.textPrimary} />
         </Pressable>
 
         <Pressable
@@ -207,7 +207,7 @@ export function WalletDashboardCard({
           ]}
         >
           <View style={styles.dockIconCircle}>
-            <Ionicons name="arrow-down-outline" size={18} color={mobileColors.background} />
+            <Ionicons name="arrow-down-outline" size={16} color={mobileColors.background} />
           </View>
           <Text style={[styles.dockBtnLabel, styles.dockBtnLabelRight]}>
             {t("wallet.dashboard.withdraw")}
@@ -231,16 +231,16 @@ const styles = StyleSheet.create({
   balanceCard: {
     backgroundColor: CARD_BG,
     borderRadius: mobileRadius.xl,
-    paddingTop: mobileSpacing.md,
+    paddingTop: mobileSpacing.sm,
     paddingHorizontal: mobileSpacing.md,
-    paddingBottom: mobileSpacing.lg,
+    paddingBottom: mobileSpacing.md,
     alignItems: "center",
     position: "relative",
     ...mobileShadows.card
   },
   eyeBtn: {
     position: "absolute",
-    top: mobileSpacing.md,
+    top: mobileSpacing.sm,
     right: mobileSpacing.md,
     padding: mobileSpacing.xs,
     zIndex: 2
@@ -248,21 +248,22 @@ const styles = StyleSheet.create({
   currencyPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
     backgroundColor: uiNamedColors.c1A1A1A,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
     borderRadius: mobileRadius.pill,
-    marginBottom: mobileSpacing.sm
+    marginBottom: mobileSpacing.xs
   },
   currencyPillText: {
     ...mobileTypography.meta,
+    fontSize: mobileFontSize.xs,
     color: mobileColors.background,
     fontWeight: "700",
     letterSpacing: 0.4
   },
   balanceCenter: {
-    minHeight: 40,
+    minHeight: 32,
     justifyContent: "center",
     alignItems: "center"
   },
@@ -272,18 +273,18 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   balanceMain: {
-    fontSize: mobileFontSize.xxl,
-    lineHeight: 36,
+    fontSize: mobileFontSize.xl,
+    lineHeight: 30,
     fontWeight: "700",
     color: mobileColors.textPrimary,
     letterSpacing: -1
   },
   balanceDecimal: {
-    fontSize: mobileFontSize.lg,
-    lineHeight: 24,
+    fontSize: mobileFontSize.md,
+    lineHeight: 22,
     fontWeight: "500",
     color: mobileColors.textSecondary,
-    marginBottom: 2,
+    marginBottom: 1,
     marginLeft: 2
   },
   growthBadge: {
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    marginTop: mobileSpacing.md
+    marginTop: mobileSpacing.sm
   },
   detailsLinkText: {
     ...mobileTypography.meta,
@@ -328,17 +329,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: DOCK_BTN,
     borderRadius: mobileRadius.lg,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: mobileSpacing.sm,
-    minHeight: 48
+    minHeight: 42
   },
   dockBtnWithdraw: {
     justifyContent: "flex-start",
     gap: mobileSpacing.sm
   },
   dockBtnSquare: {
-    width: 48,
-    height: 48,
+    width: 42,
+    height: 42,
     borderRadius: mobileRadius.lg,
     backgroundColor: DOCK_SQUARE,
     alignItems: "center",
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
   },
   dockBtnLabel: {
     ...mobileTypography.cardTitle,
-    fontSize: mobileFontSize.md,
+    fontSize: mobileFontSize.sm,
     fontWeight: "600",
     color: mobileColors.background
   },
@@ -358,9 +359,9 @@ const styles = StyleSheet.create({
     textAlign: "right"
   },
   dockIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: mobileRadius.lg,
+    width: 24,
+    height: 24,
+    borderRadius: mobileRadius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.35)",
     alignItems: "center",
