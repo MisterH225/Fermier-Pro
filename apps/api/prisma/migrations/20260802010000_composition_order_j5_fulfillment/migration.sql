@@ -93,3 +93,9 @@ DO $$ BEGIN
     ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Aligné revoke_postgrest_table_access : API Nest uniquement
+REVOKE ALL ON TABLE "Delivery" FROM anon, authenticated;
+REVOKE ALL ON TABLE "CompositionOrderDispute" FROM anon, authenticated;
+ALTER TABLE "Delivery" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "CompositionOrderDispute" ENABLE ROW LEVEL SECURITY;
