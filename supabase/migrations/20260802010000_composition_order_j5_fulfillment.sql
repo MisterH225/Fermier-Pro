@@ -1,9 +1,113 @@
--- Already applied on remote (Supabase MCP apply_migration / Prisma).
--- No-op for Supabase Preview cold replay:
--- CompositionOrder / CompositionOrderStatus are créés via Prisma
--- (voir 20260801002523_composition_order_escrow — également no-op ici).
--- Le DDL J5 complet reste dans
--- apps/api/prisma/migrations/20260802010000_composition_order_j5_fulfillment.
+-- P-J5 : remise / litige / Delivery — conditionnel.
+-- Cold replay Preview : CompositionOrder est créé via Prisma
+-- (supabase 20260801002523_composition_order_escrow = no-op) → ce bloc saute.
+-- Environnements où CompositionOrder existe déjà (prod / prisma migrate) → DDL appliqué.
 
--- 20260802010000_composition_order_j5_fulfillment
-SELECT 1;
+DO $$
+BEGIN
+  IF to_regclass('public."CompositionOrder"') IS NULL THEN
+    RAISE NOTICE 'J5 fulfillment skipped: CompositionOrder absent';
+    RETURN;
+  END IF;
+
+  ALTER TYPE "CompositionOrderStatus" ADD VALUE IF NOT EXISTS 'DISPUTED';
+  ALTER TYPE "CompositionOrderStatus" ADD VALUE IF NOT EXISTS 'REFUNDED';
+
+  BEGIN
+    CREATE TYPE "CompositionFulfillmentMode" AS ENUM ('PICKUP', 'DELIVERY');
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    CREATE TYPE "DeliveryStatus" AS ENUM ('scheduled', 'out', 'delivered');
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    CREATE TYPE "CompositionOrderDisputeStatus" AS ENUM (
+      'open', 'resolved_seller', 'resolved_buyer', 'closed'
+    );
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  ALTER TABLE "CompositionOrder"
+    ADD COLUMN IF NOT EXISTS "fulfillmentMode" "CompositionFulfillmentMode" NOT NULL DEFAULT 'PICKUP',
+    ADD COLUMN IF NOT EXISTS "confirmedReceivedAt" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "disputeWindowEndsAt" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "escrowReleasedAt" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "completedAt" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "disputeOpenedAt" TIMESTAMP(3);
+
+  CREATE INDEX IF NOT EXISTS "CompositionOrder_status_disputeWindowEndsAt_idx"
+    ON "CompositionOrder"("status", "disputeWindowEndsAt");
+
+  CREATE TABLE IF NOT EXISTS "Delivery" (
+    "id" TEXT NOT NULL,
+    "compositionOrderId" TEXT,
+    "merchantOrderId" TEXT,
+    "marketplaceTransactionId" TEXT,
+    "status" "DeliveryStatus" NOT NULL DEFAULT 'scheduled',
+    "feeXof" DECIMAL(14,2) NOT NULL,
+    "note" TEXT,
+    "scheduledAt" TIMESTAMP(3),
+    "deliveredAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "Delivery_pkey" PRIMARY KEY ("id")
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS "Delivery_compositionOrderId_key" ON "Delivery"("compositionOrderId");
+  CREATE UNIQUE INDEX IF NOT EXISTS "Delivery_merchantOrderId_key" ON "Delivery"("merchantOrderId");
+  CREATE UNIQUE INDEX IF NOT EXISTS "Delivery_marketplaceTransactionId_key" ON "Delivery"("marketplaceTransactionId");
+  CREATE INDEX IF NOT EXISTS "Delivery_status_idx" ON "Delivery"("status");
+
+  BEGIN
+    ALTER TABLE "Delivery"
+      ADD CONSTRAINT "Delivery_compositionOrderId_fkey"
+      FOREIGN KEY ("compositionOrderId") REFERENCES "CompositionOrder"("id")
+      ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  CREATE TABLE IF NOT EXISTS "CompositionOrderDispute" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "openedByUserId" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "millNote" TEXT,
+    "producerNote" TEXT,
+    "status" "CompositionOrderDisputeStatus" NOT NULL DEFAULT 'open',
+    "resolvedAt" TIMESTAMP(3),
+    "resolvedByUserId" TEXT,
+    "resolutionNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "CompositionOrderDispute_pkey" PRIMARY KEY ("id")
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS "CompositionOrderDispute_orderId_key" ON "CompositionOrderDispute"("orderId");
+  CREATE INDEX IF NOT EXISTS "CompositionOrderDispute_openedByUserId_createdAt_idx"
+    ON "CompositionOrderDispute"("openedByUserId", "createdAt" DESC);
+  CREATE INDEX IF NOT EXISTS "CompositionOrderDispute_status_idx" ON "CompositionOrderDispute"("status");
+
+  BEGIN
+    ALTER TABLE "CompositionOrderDispute"
+      ADD CONSTRAINT "CompositionOrderDispute_orderId_fkey"
+      FOREIGN KEY ("orderId") REFERENCES "CompositionOrder"("id")
+      ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  BEGIN
+    ALTER TABLE "CompositionOrderDispute"
+      ADD CONSTRAINT "CompositionOrderDispute_openedByUserId_fkey"
+      FOREIGN KEY ("openedByUserId") REFERENCES "User"("id")
+      ON DELETE RESTRICT ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  REVOKE ALL ON TABLE "Delivery" FROM anon, authenticated;
+  REVOKE ALL ON TABLE "CompositionOrderDispute" FROM anon, authenticated;
+  ALTER TABLE "Delivery" ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE "CompositionOrderDispute" ENABLE ROW LEVEL SECURITY;
+END $$;

@@ -221,6 +221,11 @@ const COMPOSITION_ACTION_KEY: Partial<
   [CompositionOrderStatus.OUT_FOR_DELIVERY]: "orders.action.confirmReceipt"
 };
 
+export type CompositionActionContext = {
+  /** Date effective de remise livraison — requis avant confirm / litige. */
+  deliveredAt?: Date | null;
+};
+
 function compositionActorToOrderActor(
   actor: CompositionOrderActor
 ): OrderActionActor {
@@ -232,10 +237,12 @@ function compositionActorToOrderActor(
 /**
  * Dérive actionRequiredBy depuis composition-order-state-machine
  * (pas de table d'action parallèle).
+ * OUT_FOR_DELIVERY : CTA moulin tant que deliveredAt est null.
  */
 export function deriveCompositionActionRequired(
   status: CompositionOrderStatus,
-  _role: OrderViewerRole
+  _role: OrderViewerRole,
+  ctx: CompositionActionContext = {}
 ): ActionRequiredProjection {
   const transitions = getAllowedCompositionOrderTransitions(status);
   if (transitions.length === 0) {
@@ -244,6 +251,12 @@ export function deriveCompositionActionRequired(
   /** Événement nominal prioritaire par statut (qui fait avancer le flux). */
   if (status === CompositionOrderStatus.DISPUTED) {
     return { actionRequiredBy: "system", nextActionKey: null };
+  }
+  if (status === CompositionOrderStatus.OUT_FOR_DELIVERY && !ctx.deliveredAt) {
+    return {
+      actionRequiredBy: "seller",
+      nextActionKey: "orders.action.markCompositionDelivered"
+    };
   }
   const NOMINAL: Partial<
     Record<CompositionOrderStatus, (typeof transitions)[number]["event"]>

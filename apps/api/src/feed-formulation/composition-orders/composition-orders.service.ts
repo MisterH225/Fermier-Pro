@@ -865,7 +865,11 @@ export class CompositionOrdersService {
         }
       });
       const claimed = await tx.compositionOrder.updateMany({
-        where: { id: order.id, status: order.status },
+        where: {
+          id: order.id,
+          status: order.status,
+          escrowReleasedAt: null
+        },
         data: {
           status: CompositionOrderStatus.DISPUTED,
           disputeOpenedAt: now
@@ -933,14 +937,6 @@ export class CompositionOrdersService {
 
     if (decision === "mill") {
       this.assertTransition(order.status, "RESOLVE_MILL", "system");
-      if (!order.escrowReleasedAt) {
-        await this.escrow.releaseCompositionFundsToMill(
-          order.id,
-          millUserId,
-          amount,
-          "XOF"
-        );
-      }
       await this.prisma.compositionOrderDispute.update({
         where: { id: order.dispute.id },
         data: {
@@ -959,6 +955,14 @@ export class CompositionOrdersService {
           escrowReleasedAt: order.escrowReleasedAt ?? new Date()
         }
       );
+      if (!order.escrowReleasedAt) {
+        await this.escrow.releaseCompositionFundsToMill(
+          order.id,
+          millUserId,
+          amount,
+          "XOF"
+        );
+      }
       await this.audit(
         completed,
         CompositionOrderStatus.DISPUTED,
@@ -972,14 +976,6 @@ export class CompositionOrdersService {
     }
 
     this.assertTransition(order.status, "RESOLVE_PRODUCER", "system");
-    if (!order.escrowReleasedAt) {
-      await this.escrow.refundCompositionBuyer(
-        order.id,
-        order.producerUserId,
-        amount,
-        "XOF"
-      );
-    }
     await this.prisma.compositionOrderDispute.update({
       where: { id: order.dispute.id },
       data: {
@@ -995,6 +991,14 @@ export class CompositionOrdersService {
       CompositionOrderStatus.REFUNDED,
       { escrowReleasedAt: order.escrowReleasedAt ?? new Date() }
     );
+    if (!order.escrowReleasedAt) {
+      await this.escrow.refundCompositionBuyer(
+        order.id,
+        order.producerUserId,
+        amount,
+        "XOF"
+      );
+    }
     await this.audit(
       refunded,
       CompositionOrderStatus.DISPUTED,
@@ -1308,8 +1312,9 @@ export class CompositionOrdersService {
   }
 
   /**
-   * Libération escrow via chemin EXISTANT puis COMPLETED (claim atomique).
-   * Idempotence : wallet `composition-release:…` + claim sur escrowReleasedAt null.
+   * Claim atomique (COMPLETED + escrowReleasedAt) PUIS libération escrow
+   * via chemin EXISTANT. Empêche release-then-claim (course confirm/cron/litige).
+   * Wallet `composition-release:…` reste idempotent si retry après claim.
    */
   private async releaseAndComplete(
     order: CompositionOrder,
@@ -1326,12 +1331,6 @@ export class CompositionOrdersService {
       throw new BadRequestException("Montant commande invalide pour libération");
     }
     const millUserId = await this.millUserId(order.millProfileId);
-    await this.escrow.releaseCompositionFundsToMill(
-      order.id,
-      millUserId,
-      amount,
-      "XOF"
-    );
     const now = new Date();
     const claimed = await this.prisma.compositionOrder.updateMany({
       where: {
@@ -1351,6 +1350,12 @@ export class CompositionOrdersService {
         "Libération concurrente détectée — commande déjà clôturée."
       );
     }
+    await this.escrow.releaseCompositionFundsToMill(
+      order.id,
+      millUserId,
+      amount,
+      "XOF"
+    );
     const updated = await this.prisma.compositionOrder.findUniqueOrThrow({
       where: { id: order.id },
       include: { delivery: true, dispute: true }

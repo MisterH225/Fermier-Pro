@@ -4450,6 +4450,7 @@ export const en = {
       payComposition: "Pay composition",
       startCompositionProduction: "Start production",
       markCompositionReady: "Mark as ready",
+      markCompositionDelivered: "Mark as delivered",
       generic: "Open order"
     }
   },

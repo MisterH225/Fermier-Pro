@@ -262,6 +262,7 @@ export class OrdersProjectionService {
         take: 200,
         include: {
           farm: { select: { name: true } },
+          delivery: { select: { deliveredAt: true } },
           producer: {
             select: { fullName: true, firstName: true, lastName: true }
           },
@@ -415,6 +416,7 @@ export class OrdersProjectionService {
       readyActual: Date | null;
       updatedAt: Date;
       farm: { name: string } | null;
+      delivery?: { deliveredAt: Date | null } | null;
       producer: {
         fullName: string | null;
         firstName: string | null;
@@ -432,7 +434,9 @@ export class OrdersProjectionService {
     role: OrderViewerRole
   ): OrderProjectionCard {
     const stage = stageOfComposition(order.status);
-    const action = deriveCompositionActionRequired(order.status, role);
+    const action = deriveCompositionActionRequired(order.status, role, {
+      deliveredAt: order.delivery?.deliveredAt ?? null
+    });
     const amountRaw = order.finalPriceXof ?? order.quotedPriceXof;
     const amount =
       typeof amountRaw === "number" ? amountRaw : amountRaw.toNumber();

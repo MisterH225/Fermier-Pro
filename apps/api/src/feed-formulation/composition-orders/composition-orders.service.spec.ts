@@ -750,6 +750,44 @@ describe("CompositionOrdersService", () => {
     expect(escrow.releaseCompositionFundsToMill).not.toHaveBeenCalled();
   });
 
+  it("claim avant release (confirmReceipt)", async () => {
+    const readyActual = new Date();
+    const { service, setOrder, escrow, prisma, getOrder } = build();
+    setOrder({
+      ...baseOrder,
+      status: CompositionOrderStatus.READY_FOR_PICKUP,
+      finalPriceXof: 27000,
+      readyActual,
+      disputeWindowEndsAt: new Date(
+        readyActual.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+      )
+    });
+    const callOrder: string[] = [];
+    prisma.compositionOrder.updateMany.mockImplementation(
+      async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        callOrder.push("claim");
+        if (where.status && where.status !== getOrder().status) {
+          return { count: 0 };
+        }
+        if (
+          where.escrowReleasedAt === null &&
+          getOrder().escrowReleasedAt != null
+        ) {
+          return { count: 0 };
+        }
+        setOrder({ ...getOrder(), ...data } as never);
+        return { count: 1 };
+      }
+    );
+    escrow.releaseCompositionFundsToMill.mockImplementation(async () => {
+      callOrder.push("release");
+      expect(getOrder().status).toBe(CompositionOrderStatus.COMPLETED);
+      expect(getOrder().escrowReleasedAt).toBeInstanceOf(Date);
+    });
+    await service.confirmReceipt(producer, "ord-1");
+    expect(callOrder).toEqual(["claim", "release"]);
+  });
+
   it("résolution litige producteur → refundCompositionBuyer", async () => {
     const readyActual = new Date();
     const { service, setOrder, escrow, getOrder } = build();

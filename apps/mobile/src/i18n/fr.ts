@@ -4453,6 +4453,7 @@ export const fr = {
       payComposition: "Payer la composition",
       startCompositionProduction: "Lancer la production",
       markCompositionReady: "Marquer comme prête",
+      markCompositionDelivered: "Marquer comme livrée",
       generic: "Ouvrir la commande"
     }
   },

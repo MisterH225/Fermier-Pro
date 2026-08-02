@@ -207,4 +207,30 @@ describe("deriveCompositionActionRequired", () => {
       expect(deriveCompositionActionRequired(status, "buyer")).toBeDefined();
     }
   });
+
+  it("OUT_FOR_DELIVERY sans deliveredAt → seller markCompositionDelivered", () => {
+    expect(
+      deriveCompositionActionRequired(
+        CompositionOrderStatus.OUT_FOR_DELIVERY,
+        "seller",
+        { deliveredAt: null }
+      )
+    ).toEqual({
+      actionRequiredBy: "seller",
+      nextActionKey: "orders.action.markCompositionDelivered"
+    });
+  });
+
+  it("OUT_FOR_DELIVERY avec deliveredAt → buyer confirmReceipt", () => {
+    expect(
+      deriveCompositionActionRequired(
+        CompositionOrderStatus.OUT_FOR_DELIVERY,
+        "buyer",
+        { deliveredAt: new Date() }
+      )
+    ).toEqual({
+      actionRequiredBy: "buyer",
+      nextActionKey: "orders.action.confirmReceipt"
+    });
+  });
 });
