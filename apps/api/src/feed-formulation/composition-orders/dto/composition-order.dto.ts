@@ -3,6 +3,7 @@ import { Type } from "class-transformer";
 import {
   IsDateString,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -73,4 +74,38 @@ export class ConfirmCompositionPaymentDto {
   @IsString()
   @MinLength(1)
   providerRef?: string;
+}
+
+/** Moulin : démarre une livraison autogérée (flag delivery). */
+export class MarkOutForDeliveryDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  feeXof!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string;
+}
+
+export class OpenCompositionOrderDisputeDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(2000)
+  reason!: string;
+}
+
+export class ResolveCompositionOrderDisputeDto {
+  @IsIn(["mill", "producer"])
+  decision!: "mill" | "producer";
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
 }

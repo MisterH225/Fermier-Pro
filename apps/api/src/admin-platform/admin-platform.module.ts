@@ -15,6 +15,7 @@ import { VetAppointmentsModule } from "../vet-appointments/vet-appointments.modu
 import { ProducerScoreModule } from "../producer-score/producer-score.module";
 import { MerchantShopModule } from "../merchant-shop/merchant-shop.module";
 import { ProducerSubscriptionModule } from "../producer-subscription/producer-subscription.module";
+import { FeedFormulationModule } from "../feed-formulation/feed-formulation.module";
 import { MobileMoneyModule } from "../marketplace/escrow";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
@@ -42,7 +43,8 @@ import { StatsQueryService } from "./stats-query.service";
     VetAppointmentsModule,
     ProducerScoreModule,
     MerchantShopModule,
-    ProducerSubscriptionModule
+    ProducerSubscriptionModule,
+    FeedFormulationModule
   ],
   controllers: [AdminPlatformController],
   providers: [

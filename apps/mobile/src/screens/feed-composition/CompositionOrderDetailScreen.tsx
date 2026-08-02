@@ -23,8 +23,12 @@ import { useOrderPalette } from "../../hooks/useOrderPalette";
 import {
   acceptCompositionOrder,
   confirmCompositionOrderPayment,
+  confirmCompositionReceipt,
   fetchCompositionOrder,
+  markCompositionDelivered,
+  markCompositionOutForDelivery,
   markCompositionReady,
+  openCompositionOrderDispute,
   payCompositionOrder,
   rejectCompositionOrder,
   reviseCompositionOrder,
@@ -32,6 +36,7 @@ import {
   type CompositionOrderStatus
 } from "../../lib/api";
 import { formatApiError } from "../../lib/apiErrors";
+import { isDeliveryModuleActive } from "../../lib/feedComposition";
 import { formatXof } from "../../lib/feedCompositionFormat";
 import { openPaymentCheckout } from "../../lib/paymentCheckout";
 import type { RootStackParamList } from "../../types/navigation";
@@ -83,7 +88,9 @@ function statusLabelFr(status: CompositionOrderStatus): string {
     IN_PRODUCTION: "En production",
     READY_FOR_PICKUP: "Prête au retrait",
     OUT_FOR_DELIVERY: "En livraison",
-    COMPLETED: "Terminée"
+    DISPUTED: "Litige ouvert",
+    COMPLETED: "Terminée",
+    REFUNDED: "Remboursée"
   };
   return labels[status] ?? status;
 }
@@ -105,11 +112,13 @@ function trackingIndex(status: CompositionOrderStatus): {
       return { activeIndex: 4, completedThroughIndex: 3 };
     case "READY_FOR_PICKUP":
     case "OUT_FOR_DELIVERY":
+    case "DISPUTED":
       return { activeIndex: 5, completedThroughIndex: 4 };
     case "COMPLETED":
       return { activeIndex: 5, completedThroughIndex: 5 };
     case "REJECTED":
     case "CANCELLED":
+    case "REFUNDED":
       return { activeIndex: 1, completedThroughIndex: 0 };
     default:
       return { activeIndex: 0, completedThroughIndex: -1 };
@@ -140,10 +149,12 @@ function defaultFutureIso(daysAhead: number): string {
 
 export function CompositionOrderDetailScreen({ route }: Props) {
   const { orderId } = route.params;
-  const { accessToken, activeProfileId, authMe } = useSession();
+  const { accessToken, activeProfileId, authMe, platformModules } =
+    useSession();
   const qc = useQueryClient();
   const bottomPad = useBottomInset();
   const palette = useOrderPalette();
+  const deliveryEnabled = isDeliveryModuleActive(platformModules);
   const [productionStartDraft, setProductionStartDraft] = useState(
     defaultFutureIso(3)
   );
@@ -151,6 +162,8 @@ export function CompositionOrderDetailScreen({ route }: Props) {
     defaultFutureIso(7)
   );
   const [millNoteDraft, setMillNoteDraft] = useState("");
+  const [deliveryFeeDraft, setDeliveryFeeDraft] = useState("0");
+  const [deliveryNoteDraft, setDeliveryNoteDraft] = useState("");
   const [pendingPayment, setPendingPayment] = useState<{
     providerRef: string;
     paymentUrl: string | null;
@@ -237,6 +250,65 @@ export function CompositionOrderDetailScreen({ route }: Props) {
     onSuccess: () => {
       invalidate();
       Alert.alert("Prête", "Le producteur peut venir récupérer le mélange.");
+    },
+    onError: (err) => Alert.alert("Erreur", formatApiError(err))
+  });
+
+  const outForDeliveryMut = useMutation({
+    mutationFn: () =>
+      markCompositionOutForDelivery(
+        accessToken!,
+        orderId,
+        {
+          feeXof: Math.max(0, Number(deliveryFeeDraft) || 0),
+          note: deliveryNoteDraft.trim() || undefined
+        },
+        activeProfileId
+      ),
+    onSuccess: () => {
+      invalidate();
+      Alert.alert("Livraison", "Livraison démarrée — marquez livré à la remise.");
+    },
+    onError: (err) => Alert.alert("Erreur", formatApiError(err))
+  });
+
+  const markDeliveredMut = useMutation({
+    mutationFn: () =>
+      markCompositionDelivered(accessToken!, orderId, activeProfileId),
+    onSuccess: () => {
+      invalidate();
+      Alert.alert("Livré", "Le producteur peut confirmer la réception.");
+    },
+    onError: (err) => Alert.alert("Erreur", formatApiError(err))
+  });
+
+  const confirmReceiptMut = useMutation({
+    mutationFn: () =>
+      confirmCompositionReceipt(accessToken!, orderId, activeProfileId),
+    onSuccess: () => {
+      invalidate();
+      Alert.alert(
+        "Merci",
+        "Réception confirmée — le paiement du moulin est libéré."
+      );
+    },
+    onError: (err) => Alert.alert("Erreur", formatApiError(err))
+  });
+
+  const disputeMut = useMutation({
+    mutationFn: (reason: string) =>
+      openCompositionOrderDispute(
+        accessToken!,
+        orderId,
+        reason,
+        activeProfileId
+      ),
+    onSuccess: () => {
+      invalidate();
+      Alert.alert(
+        "Litige ouvert",
+        "La libération du paiement est suspendue le temps de l'examen."
+      );
     },
     onError: (err) => Alert.alert("Erreur", formatApiError(err))
   });
@@ -341,7 +413,23 @@ export function CompositionOrderDetailScreen({ route }: Props) {
   }
 
   const terminalNegative =
-    order.status === "REJECTED" || order.status === "CANCELLED";
+    order.status === "REJECTED" ||
+    order.status === "CANCELLED" ||
+    order.status === "REFUNDED";
+
+  const canConfirmPickup =
+    isProducerForOrder && order.status === "READY_FOR_PICKUP";
+  const canConfirmDelivery =
+    isProducerForOrder &&
+    order.status === "OUT_FOR_DELIVERY" &&
+    Boolean(order.delivery?.deliveredAt);
+  const canDispute =
+    isProducerForOrder &&
+    (order.status === "READY_FOR_PICKUP" ||
+      (order.status === "OUT_FOR_DELIVERY" &&
+        Boolean(order.delivery?.deliveredAt))) &&
+    Boolean(order.disputeWindowEndsAt) &&
+    !order.dispute;
 
   return (
     <ScrollView
@@ -413,6 +501,55 @@ export function CompositionOrderDetailScreen({ route }: Props) {
           labelKey="orders.composition.readyBy"
           palette={palette}
         />
+      ) : null}
+
+      {(order.status === "READY_FOR_PICKUP" ||
+        order.status === "OUT_FOR_DELIVERY") &&
+      order.disputeWindowEndsAt ? (
+        <DeadlineNotice
+          deadlineAt={order.disputeWindowEndsAt}
+          outcomeKey="deadline.outcome.compositionAutoComplete"
+          palette={palette}
+        />
+      ) : null}
+
+      {order.status === "DISPUTED" ? (
+        <View
+          style={[
+            styles.bannerDanger,
+            { backgroundColor: mobileStatusSurfaces.errorBg }
+          ]}
+        >
+          <Text style={[styles.bannerDangerText, { color: palette.danger }]}>
+            Litige ouvert
+            {order.dispute?.reason ? ` — ${order.dispute.reason}` : ""}. Le
+            paiement est suspendu.
+          </Text>
+        </View>
+      ) : null}
+
+      {order.delivery ? (
+        <View style={[styles.datesCard, { borderColor: palette.border }]}>
+          <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
+            Livraison
+          </Text>
+          <Text style={[styles.dateRow, { color: palette.textSecondary }]}>
+            Statut : {order.delivery.status}
+          </Text>
+          <Text style={[styles.dateRow, { color: palette.textSecondary }]}>
+            Frais : {formatXof(order.delivery.feeXof)}
+          </Text>
+          {order.delivery.deliveredAt ? (
+            <Text style={[styles.dateRow, { color: palette.textSecondary }]}>
+              Remise le : {formatDateFr(order.delivery.deliveredAt)}
+            </Text>
+          ) : null}
+          {order.delivery.note ? (
+            <Text style={[styles.dateRow, { color: palette.textSecondary }]}>
+              Note : {order.delivery.note}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
 
       {isProducerForOrder && order.status === "MILL_REVISED" ? (
@@ -559,17 +696,130 @@ export function CompositionOrderDetailScreen({ route }: Props) {
       ) : null}
 
       {isMillForOrder && order.status === "IN_PRODUCTION" ? (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.primaryBtn, { backgroundColor: palette.primary }]}
+            onPress={() => markReadyMut.mutate()}
+            disabled={markReadyMut.isPending}
+            testID="mark-composition-ready"
+          >
+            <Text style={[styles.btnLabel, { color: palette.onPrimary }]}>
+              Marquer comme prête (retrait)
+            </Text>
+          </Pressable>
+          {deliveryEnabled ? (
+            <View style={styles.actions}>
+              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
+                Ou livrer (autogéré)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: palette.textPrimary,
+                    borderColor: palette.border,
+                    backgroundColor: palette.cardBg
+                  }
+                ]}
+                value={deliveryFeeDraft}
+                onChangeText={setDeliveryFeeDraft}
+                keyboardType="numeric"
+                placeholder="Frais de livraison (XOF)"
+                placeholderTextColor={palette.textSecondary}
+                testID="delivery-fee-input"
+              />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: palette.textPrimary,
+                    borderColor: palette.border,
+                    backgroundColor: palette.cardBg
+                  }
+                ]}
+                value={deliveryNoteDraft}
+                onChangeText={setDeliveryNoteDraft}
+                placeholder="Note de remise (optionnel)"
+                placeholderTextColor={palette.textSecondary}
+              />
+              <Pressable
+                style={[styles.secondaryBtn, { borderColor: palette.primary }]}
+                onPress={() => outForDeliveryMut.mutate()}
+                disabled={outForDeliveryMut.isPending}
+                testID="mark-composition-out-for-delivery"
+              >
+                <Text style={[styles.secondaryLabel, { color: palette.primary }]}>
+                  Marquer en livraison
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {isMillForOrder &&
+      order.status === "OUT_FOR_DELIVERY" &&
+      !order.delivery?.deliveredAt ? (
         <Pressable
           style={[styles.primaryBtn, { backgroundColor: palette.primary }]}
-          onPress={() => markReadyMut.mutate()}
-          disabled={markReadyMut.isPending}
-          testID="mark-composition-ready"
+          onPress={() => markDeliveredMut.mutate()}
+          disabled={markDeliveredMut.isPending}
+          testID="mark-composition-delivered"
         >
           <Text style={[styles.btnLabel, { color: palette.onPrimary }]}>
-            Marquer comme prête
+            Marquer livré
           </Text>
         </Pressable>
       ) : null}
+
+      {(canConfirmPickup || canConfirmDelivery) && (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.primaryBtn, { backgroundColor: palette.primary }]}
+            onPress={() => confirmReceiptMut.mutate()}
+            disabled={confirmReceiptMut.isPending}
+            testID="confirm-composition-receipt"
+          >
+            <Text style={[styles.btnLabel, { color: palette.onPrimary }]}>
+              J'ai bien reçu ma commande
+            </Text>
+          </Pressable>
+          {canDispute ? (
+            <Pressable
+              style={[styles.secondaryBtn, { borderColor: palette.danger }]}
+              onPress={() =>
+                Alert.alert(
+                  "Signaler un problème",
+                  "Décrivez le problème (sac manquant, mauvais intrant, quantité…).",
+                  [
+                    { text: "Annuler", style: "cancel" },
+                    {
+                      text: "Sac manquant",
+                      onPress: () => disputeMut.mutate("Sac manquant")
+                    },
+                    {
+                      text: "Quantité incorrecte",
+                      onPress: () =>
+                        disputeMut.mutate("Quantité incorrecte")
+                    },
+                    {
+                      text: "Mauvais intrant",
+                      style: "destructive",
+                      onPress: () => disputeMut.mutate("Mauvais intrant")
+                    }
+                  ]
+                )
+              }
+              disabled={disputeMut.isPending}
+              testID="open-composition-dispute"
+            >
+              <Text style={[styles.secondaryLabel, { color: palette.danger }]}>
+                Signaler un problème
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
     </ScrollView>
   );
 }

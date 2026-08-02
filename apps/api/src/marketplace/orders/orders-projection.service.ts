@@ -8,6 +8,8 @@ import {
 } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
+  compositionDeadlineAt,
+  compositionTimeoutOutcomeKey,
   escrowDeadlineAt,
   escrowTimeoutOutcomeKey,
   shopDeadlineAt,
@@ -407,6 +409,7 @@ export class OrdersProjectionService {
       quotedPriceXof: { toNumber(): number } | number;
       finalPriceXof: { toNumber(): number } | number | null;
       deadlineAt: Date | null;
+      disputeWindowEndsAt: Date | null;
       productionStartEstimate: Date | null;
       readyEstimate: Date | null;
       readyActual: Date | null;
@@ -438,13 +441,18 @@ export class OrdersProjectionService {
       displayNameOf(order.millProfile.user);
     const counterparty =
       role === "buyer" ? order.millProfile.user : order.producer;
+    const disputeDeadline = compositionDeadlineAt(order);
     const deadline =
-      order.status === CompositionOrderStatus.SENT_TO_MILL
+      disputeDeadline ??
+      (order.status === CompositionOrderStatus.SENT_TO_MILL
         ? order.deadlineAt
         : order.status === CompositionOrderStatus.PAID ||
             order.status === CompositionOrderStatus.IN_PRODUCTION
           ? order.readyEstimate
-          : null;
+          : null);
+    const timeoutOutcomeKey = disputeDeadline
+      ? compositionTimeoutOutcomeKey(order.status)
+      : null;
 
     return {
       id: order.id,
@@ -457,7 +465,7 @@ export class OrdersProjectionService {
       actionRequiredBy: action.actionRequiredBy,
       nextActionKey: action.nextActionKey,
       deadlineAt: deadline?.toISOString() ?? null,
-      timeoutOutcomeKey: null,
+      timeoutOutcomeKey,
       counterparty: { displayName: displayNameOf(counterparty) },
       itemSummary: `Composition — ${order.farm?.name?.trim() || millName}`,
       amount,

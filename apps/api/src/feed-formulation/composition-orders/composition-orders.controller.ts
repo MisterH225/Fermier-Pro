@@ -19,6 +19,8 @@ import { CompositionOrdersService } from "./composition-orders.service";
 import {
   ConfirmCompositionPaymentDto,
   CreateCompositionOrderDto,
+  MarkOutForDeliveryDto,
+  OpenCompositionOrderDisputeDto,
   PayCompositionOrderDto,
   ReviseCompositionOrderDto,
   UpdateReadyEstimateDto
@@ -119,5 +121,48 @@ export class CompositionOrdersController {
   @UseGuards(MerchantProfileGuard)
   markReady(@CurrentUser() user: User, @Param("orderId") orderId: string) {
     return this.orders.markReady(user, orderId);
+  }
+
+  /** Moulin : livraison autogérée (gated aussi par flag `delivery` côté service). */
+  @Post("orders/:orderId/mark-out-for-delivery")
+  @UseGuards(MerchantProfileGuard)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  markOutForDelivery(
+    @CurrentUser() user: User,
+    @Param("orderId") orderId: string,
+    @Body() dto: MarkOutForDeliveryDto
+  ) {
+    return this.orders.markOutForDelivery(user, orderId, dto);
+  }
+
+  @Post("orders/:orderId/mark-delivered")
+  @UseGuards(MerchantProfileGuard)
+  markDelivered(
+    @CurrentUser() user: User,
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.markDelivered(user, orderId);
+  }
+
+  /** Producteur : confirmation → libération escrow immédiate. */
+  @Post("orders/:orderId/confirm-receipt")
+  @UseGuards(ProducerProfileGuard)
+  confirmReceipt(
+    @CurrentUser() user: User,
+    @Param("orderId") orderId: string
+  ) {
+    return this.orders.confirmReceipt(user, orderId);
+  }
+
+  /** Producteur : litige pendant la fenêtre (suspend la libération). */
+  @Post("orders/:orderId/dispute")
+  @UseGuards(ProducerProfileGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  openDispute(
+    @CurrentUser() user: User,
+    @Param("orderId") orderId: string,
+    @Body() dto: OpenCompositionOrderDisputeDto
+  ) {
+    return this.orders.openDispute(user, orderId, dto);
   }
 }

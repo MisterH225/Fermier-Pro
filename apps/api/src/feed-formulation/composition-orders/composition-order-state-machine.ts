@@ -1,7 +1,7 @@
 import { CompositionOrderStatus } from "@prisma/client";
 
 /**
- * Événements de la machine à états commande composition (P-J4-B).
+ * Événements de la machine à états commande composition (P-J4-B / P-J5).
  * Modèle calqué sur transaction-state-machine.ts.
  */
 export const COMPOSITION_ORDER_EVENTS = [
@@ -13,7 +13,10 @@ export const COMPOSITION_ORDER_EVENTS = [
   "START_PRODUCTION",
   "MARK_READY",
   "MARK_OUT_FOR_DELIVERY",
-  "COMPLETE"
+  "OPEN_DISPUTE",
+  "COMPLETE",
+  "RESOLVE_MILL",
+  "RESOLVE_PRODUCER"
 ] as const;
 
 export type CompositionOrderEvent =
@@ -36,7 +39,7 @@ export interface CompositionOrderTransitionResult {
 /**
  * Table des transitions autorisées.
  * PAID → IN_PRODUCTION = point de non-retour (pas d'annulation libre).
- * COMPLETED / OUT_FOR_DELIVERY = J5 (présents pour forward-compat).
+ * COMPLETE / OPEN_DISPUTE / RESOLVE_* = J5 (remise + litige + libération).
  */
 export const COMPOSITION_ORDER_TRANSITIONS: readonly CompositionOrderTransitionDefinition[] =
   [
@@ -106,7 +109,7 @@ export const COMPOSITION_ORDER_TRANSITIONS: readonly CompositionOrderTransitionD
       to: CompositionOrderStatus.OUT_FOR_DELIVERY,
       actors: ["mill"]
     },
-    // J5 — placeholders pour ne pas bloquer le hub
+    // J5 — confirmation / litige / libération
     {
       from: CompositionOrderStatus.READY_FOR_PICKUP,
       event: "COMPLETE",
@@ -114,10 +117,34 @@ export const COMPOSITION_ORDER_TRANSITIONS: readonly CompositionOrderTransitionD
       actors: ["producer", "system"]
     },
     {
+      from: CompositionOrderStatus.READY_FOR_PICKUP,
+      event: "OPEN_DISPUTE",
+      to: CompositionOrderStatus.DISPUTED,
+      actors: ["producer"]
+    },
+    {
       from: CompositionOrderStatus.OUT_FOR_DELIVERY,
       event: "COMPLETE",
       to: CompositionOrderStatus.COMPLETED,
       actors: ["producer", "system"]
+    },
+    {
+      from: CompositionOrderStatus.OUT_FOR_DELIVERY,
+      event: "OPEN_DISPUTE",
+      to: CompositionOrderStatus.DISPUTED,
+      actors: ["producer"]
+    },
+    {
+      from: CompositionOrderStatus.DISPUTED,
+      event: "RESOLVE_MILL",
+      to: CompositionOrderStatus.COMPLETED,
+      actors: ["system"]
+    },
+    {
+      from: CompositionOrderStatus.DISPUTED,
+      event: "RESOLVE_PRODUCER",
+      to: CompositionOrderStatus.REFUNDED,
+      actors: ["system"]
     }
   ];
 
@@ -163,6 +190,8 @@ export function isCompositionOrderPastPointOfNoReturn(
     status === CompositionOrderStatus.IN_PRODUCTION ||
     status === CompositionOrderStatus.READY_FOR_PICKUP ||
     status === CompositionOrderStatus.OUT_FOR_DELIVERY ||
-    status === CompositionOrderStatus.COMPLETED
+    status === CompositionOrderStatus.DISPUTED ||
+    status === CompositionOrderStatus.COMPLETED ||
+    status === CompositionOrderStatus.REFUNDED
   );
 }

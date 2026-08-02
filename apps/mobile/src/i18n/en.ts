@@ -4338,6 +4338,8 @@ export const en = {
       deliveryAutoDispute: "Without receipt confirmation before the deadline, an issue will be opened and Fermier Pro will review it.",
       shopConfirmRefund: "Without the seller's agreement before the deadline, the order will be cancelled and your money refunded.",
       shopAutoComplete: "Without an issue reported before the deadline, the order will be closed and the seller paid.",
+      compositionAutoComplete:
+        "Without a reply before the deadline, the order will be validated and the mill paid.",
       creditBalanceArbitration: "Without balance payment within 2 days after the deadline, Fermier Pro will review the case.",
       offerProposalExpire: "Without a reply before the deadline, your offer will expire."
     }
@@ -4415,7 +4417,9 @@ export const en = {
         IN_PRODUCTION: "In production",
         READY_FOR_PICKUP: "Ready for pickup",
         OUT_FOR_DELIVERY: "Out for delivery",
-        COMPLETED: "Completed"
+        DISPUTED: "Disputed",
+        COMPLETED: "Completed",
+        REFUNDED: "Refunded"
       }
     },
     composition: {

@@ -67,6 +67,8 @@ import {
 } from "../merchant-shop/dto/merchant-shop.dto";
 import { MerchantProductStatus } from "@prisma/client";
 import { MerchantOrdersService } from "../merchant-shop/merchant-orders.service";
+import { CompositionOrdersService } from "../feed-formulation/composition-orders/composition-orders.service";
+import { ResolveCompositionOrderDisputeDto } from "../feed-formulation/composition-orders/dto/composition-order.dto";
 import { AdminMerchantSubscriptionsService } from "./admin-merchant-subscriptions.service";
 import { AdminProducerSubscriptionsService } from "./admin-producer-subscriptions.service";
 import {
@@ -101,6 +103,7 @@ export class AdminPlatformController {
     private readonly merchantModeration: MerchantModerationService,
     private readonly millIngredientOffers: MillIngredientOffersService,
     private readonly merchantOrders: MerchantOrdersService,
+    private readonly compositionOrders: CompositionOrdersService,
     private readonly merchantSubscriptions: AdminMerchantSubscriptionsService,
     private readonly producerSubscriptions: AdminProducerSubscriptionsService,
     private readonly regionStats: RegionStatsService,
@@ -1172,6 +1175,22 @@ export class AdminPlatformController {
     @Body() dto: ResolveMerchantOrderDisputeDto
   ) {
     return this.merchantOrders.resolveDispute(
+      admin.id,
+      orderId,
+      dto.decision,
+      dto.note
+    );
+  }
+
+  /** Arbitrage litige commande composition (chemins escrow existants). */
+  @Patch("composition/orders/:orderId/resolve")
+  @UseGuards(SuperAdminGuard)
+  adminResolveCompositionOrderDispute(
+    @CurrentUser() admin: User,
+    @Param("orderId") orderId: string,
+    @Body() dto: ResolveCompositionOrderDisputeDto
+  ) {
+    return this.compositionOrders.resolveDispute(
       admin.id,
       orderId,
       dto.decision,

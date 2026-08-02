@@ -1,14 +1,20 @@
 import {
   BadGatewayException,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
-  Optional
+  Optional,
+  ServiceUnavailableException
 } from "@nestjs/common";
 import {
+  CompositionFulfillmentMode,
+  CompositionOrderDisputeStatus,
   CompositionOrderStatus,
+  DeliveryStatus,
   MarketplacePaymentMethod,
   MerchantKind,
   type CompositionOrder,
@@ -17,6 +23,7 @@ import {
 } from "@prisma/client";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { FARM_SCOPE } from "../../common/farm-scopes.constants";
+import { PlatformFeatureFlagsService } from "../../feature-flags/platform-feature-flags.service";
 import { EscrowService } from "../../marketplace/escrow/escrow.service";
 import { GeniusPayMobileMoneyGateway } from "../../marketplace/escrow/geniuspay/geniuspay-mobile-money.gateway";
 import {
@@ -35,6 +42,7 @@ import { FeedFormulationService } from "../feed-formulation.service";
 import { FeedRequirementProfilesService } from "../feed-requirement-profiles.service";
 import type { AvailableIngredientInput } from "../engine/feed-formulation.types";
 import { assertEscrowAmountEqualsFinalPrice } from "./composition-escrow.adapter";
+import { COMPOSITION_ORDER_DISPUTE_WINDOW_MS } from "./composition-orders.constants";
 import {
   canTransitionCompositionOrder,
   type CompositionOrderActor,
@@ -43,6 +51,8 @@ import {
 import type {
   ConfirmCompositionPaymentDto,
   CreateCompositionOrderDto,
+  MarkOutForDeliveryDto,
+  OpenCompositionOrderDisputeDto,
   PayCompositionOrderDto,
   ReviseCompositionOrderDto,
   UpdateReadyEstimateDto
@@ -67,6 +77,8 @@ type SnapshotLine = {
 
 @Injectable()
 export class CompositionOrdersService {
+  private readonly log = new Logger(CompositionOrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly farmAccess: FarmAccessService,
@@ -78,6 +90,7 @@ export class CompositionOrdersService {
     private readonly escrow: EscrowService,
     @Inject(MOBILE_MONEY_GATEWAY)
     private readonly gateway: MobileMoneyGateway,
+    private readonly platformFlags: PlatformFeatureFlagsService,
     @Optional() private readonly geniusPay?: GeniusPayMobileMoneyGateway
   ) {}
 
@@ -618,20 +631,28 @@ export class CompositionOrdersService {
     const order = await this.requireMillOrder(user, orderId);
     this.assertTransition(order.status, "MARK_READY", "mill");
     const now = new Date();
+    const disputeWindowEndsAt = new Date(
+      now.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+    );
     const updated = await this.claimTransition(
       order.id,
       order.status,
       CompositionOrderStatus.READY_FOR_PICKUP,
-      { readyActual: now }
+      {
+        readyActual: now,
+        fulfillmentMode: CompositionFulfillmentMode.PICKUP,
+        disputeWindowEndsAt
+      }
     );
     await this.audit(updated, order.status, "MARK_READY", user.id, "mill", {
       readyActual: now.toISOString(),
-      readyEstimate: order.readyEstimate?.toISOString() ?? null
+      readyEstimate: order.readyEstimate?.toISOString() ?? null,
+      disputeWindowEndsAt: disputeWindowEndsAt.toISOString()
     });
     await this.notifications.notify(
       order.producerUserId,
       "Aliment prêt",
-      `Prêt — à récupérer depuis le ${now.toLocaleDateString("fr-FR")}.`,
+      `Aliment prêt — à récupérer depuis le ${now.toLocaleDateString("fr-FR")}.`,
       {
         type: "composition_order_ready",
         compositionOrderId: order.id,
@@ -641,9 +662,405 @@ export class CompositionOrdersService {
     return this.toDto(updated);
   }
 
+  /**
+   * Moulin : livraison autogérée (flag `delivery`). Crée un Delivery léger.
+   * La fenêtre litige s'arme seulement à markDelivered (deliveredAt), pas ici.
+   */
+  async markOutForDelivery(
+    user: User,
+    orderId: string,
+    dto: MarkOutForDeliveryDto
+  ) {
+    await this.assertDeliveryModuleActive(user.id);
+    const order = await this.requireMillOrder(user, orderId);
+    this.assertTransition(order.status, "MARK_OUT_FOR_DELIVERY", "mill");
+    const existing = await this.prisma.delivery.findUnique({
+      where: { compositionOrderId: order.id }
+    });
+    if (existing) {
+      throw new ConflictException("Une livraison existe déjà pour cette commande");
+    }
+    const now = new Date();
+    const scheduledAt = dto.scheduledAt ? new Date(dto.scheduledAt) : now;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.compositionOrder.updateMany({
+        where: { id: order.id, status: order.status },
+        data: {
+          status: CompositionOrderStatus.OUT_FOR_DELIVERY,
+          fulfillmentMode: CompositionFulfillmentMode.DELIVERY
+        }
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException(
+          "La commande a déjà changé d’état — réessayez."
+        );
+      }
+      await tx.delivery.create({
+        data: {
+          compositionOrderId: order.id,
+          status: DeliveryStatus.out,
+          feeXof: dto.feeXof,
+          note: dto.note?.trim() || null,
+          scheduledAt
+        }
+      });
+      const row = await tx.compositionOrder.findUniqueOrThrow({
+        where: { id: order.id },
+        include: { delivery: true, dispute: true }
+      });
+      await tx.compositionOrderTransition.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: row.status,
+          event: "MARK_OUT_FOR_DELIVERY",
+          actorUserId: user.id,
+          actorRole: "mill",
+          meta: {
+            feeXof: dto.feeXof,
+            note: dto.note?.trim() ?? null
+          } as Prisma.InputJsonValue
+        }
+      });
+      return row;
+    });
+    await this.notifications.notify(
+      order.producerUserId,
+      "Livraison en cours",
+      "Le moulin livre votre aliment. Vous confirmez à la réception.",
+      {
+        type: "composition_order_out_for_delivery",
+        compositionOrderId: order.id
+      }
+    );
+    return this.toDto(updated, {
+      delivery: this.serializeDelivery(updated.delivery)
+    });
+  }
+
+  /**
+   * Moulin : marque livré — renseigne deliveredAt et arme la fenêtre litige.
+   * Statut commande reste OUT_FOR_DELIVERY jusqu'à confirmation / auto-complete.
+   */
+  async markDelivered(user: User, orderId: string) {
+    await this.assertDeliveryModuleActive(user.id);
+    const order = await this.requireMillOrder(user, orderId);
+    if (order.status !== CompositionOrderStatus.OUT_FOR_DELIVERY) {
+      throw new BadRequestException(
+        "Marquez livré uniquement pendant la livraison."
+      );
+    }
+    if (order.fulfillmentMode !== CompositionFulfillmentMode.DELIVERY) {
+      throw new BadRequestException("Cette commande n'est pas en livraison.");
+    }
+    const delivery = await this.prisma.delivery.findUnique({
+      where: { compositionOrderId: order.id }
+    });
+    if (!delivery) {
+      throw new NotFoundException("Livraison introuvable pour cette commande");
+    }
+    if (delivery.deliveredAt) {
+      throw new ConflictException("Livraison déjà marquée comme remise");
+    }
+    const now = new Date();
+    const disputeWindowEndsAt = new Date(
+      now.getTime() + COMPOSITION_ORDER_DISPUTE_WINDOW_MS
+    );
+    const [updatedDelivery] = await this.prisma.$transaction([
+      this.prisma.delivery.update({
+        where: { id: delivery.id },
+        data: { status: DeliveryStatus.delivered, deliveredAt: now }
+      }),
+      this.prisma.compositionOrder.update({
+        where: { id: order.id },
+        data: { disputeWindowEndsAt }
+      }),
+      this.prisma.compositionOrderTransition.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: order.status,
+          event: "MARK_DELIVERED",
+          actorUserId: user.id,
+          actorRole: "mill",
+          meta: {
+            deliveredAt: now.toISOString(),
+            disputeWindowEndsAt: disputeWindowEndsAt.toISOString()
+          } as Prisma.InputJsonValue
+        }
+      })
+    ]);
+    await this.notifications.notify(
+      order.producerUserId,
+      "Aliment livré",
+      "Confirmez la réception ou signalez un problème avant la fin du délai.",
+      {
+        type: "composition_order_delivered",
+        compositionOrderId: order.id,
+        deliveredAt: now.toISOString()
+      }
+    );
+    const fresh = await this.prisma.compositionOrder.findUniqueOrThrow({
+      where: { id: order.id },
+      include: { delivery: true, dispute: true }
+    });
+    return this.toDto(fresh, {
+      delivery: this.serializeDelivery(updatedDelivery)
+    });
+  }
+
+  /**
+   * Producteur : « J'ai bien reçu » → libération escrow immédiate via le chemin
+   * existant `EscrowService.releaseCompositionFundsToMill` + COMPLETED.
+   * Modèle aligné boutique (confirm → release), pas d'attente de fin de fenêtre.
+   */
+  async confirmReceipt(user: User, orderId: string) {
+    const order = await this.requireProducerOrder(user, orderId);
+    this.assertTransition(order.status, "COMPLETE", "producer");
+    await this.assertConfirmable(order);
+    return this.releaseAndComplete(order, user.id, "producer", {
+      confirmedReceivedAt: new Date()
+    });
+  }
+
+  /**
+   * Producteur : ouvre un litige pendant la fenêtre (suspend la libération).
+   * Réutilise la mécanique MerchantOrderDispute (table dédiée composition).
+   */
+  async openDispute(
+    user: User,
+    orderId: string,
+    dto: OpenCompositionOrderDisputeDto
+  ) {
+    const order = await this.requireProducerOrder(user, orderId);
+    this.assertTransition(order.status, "OPEN_DISPUTE", "producer");
+    const existing = await this.prisma.compositionOrderDispute.findUnique({
+      where: { orderId: order.id }
+    });
+    if (existing) {
+      throw new ConflictException("Un litige existe déjà pour cette commande");
+    }
+    if (!this.isWithinDisputeWindow(order)) {
+      throw new BadRequestException(
+        "La fenêtre de litige est fermée pour cette commande."
+      );
+    }
+    if (order.status === CompositionOrderStatus.OUT_FOR_DELIVERY) {
+      const delivery = await this.prisma.delivery.findUnique({
+        where: { compositionOrderId: order.id }
+      });
+      if (!delivery?.deliveredAt) {
+        throw new BadRequestException(
+          "Litige possible seulement après remise effective (deliveredAt)."
+        );
+      }
+    }
+    const now = new Date();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.compositionOrderDispute.create({
+        data: {
+          orderId: order.id,
+          openedByUserId: user.id,
+          reason: dto.reason.trim()
+        }
+      });
+      const claimed = await tx.compositionOrder.updateMany({
+        where: { id: order.id, status: order.status },
+        data: {
+          status: CompositionOrderStatus.DISPUTED,
+          disputeOpenedAt: now
+        }
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException(
+          "La commande a déjà changé d’état — réessayez."
+        );
+      }
+      const row = await tx.compositionOrder.findUniqueOrThrow({
+        where: { id: order.id },
+        include: { delivery: true, dispute: true }
+      });
+      await tx.compositionOrderTransition.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: row.status,
+          event: "OPEN_DISPUTE",
+          actorUserId: user.id,
+          actorRole: "producer",
+          meta: { reason: dto.reason.trim().slice(0, 500) } as Prisma.InputJsonValue
+        }
+      });
+      return row;
+    });
+    const millUserId = await this.millUserId(order.millProfileId);
+    await this.notifications.notify(
+      millUserId,
+      "Litige composition",
+      "Le producteur a signalé un problème sur la commande.",
+      { type: "composition_order_dispute", compositionOrderId: order.id }
+    );
+    return this.toDto(updated, {
+      delivery: this.serializeDelivery(updated.delivery),
+      dispute: this.serializeDispute(updated.dispute)
+    });
+  }
+
+  /**
+   * Arbitrage admin — chemins escrow existants uniquement :
+   * - mill → releaseCompositionFundsToMill + COMPLETED
+   * - producer → refundCompositionBuyer + REFUNDED
+   */
+  async resolveDispute(
+    adminUserId: string,
+    orderId: string,
+    decision: "mill" | "producer",
+    note?: string
+  ) {
+    const order = await this.prisma.compositionOrder.findUnique({
+      where: { id: orderId },
+      include: { dispute: true, delivery: true }
+    });
+    if (!order?.dispute || order.dispute.status !== CompositionOrderDisputeStatus.open) {
+      throw new NotFoundException("Litige introuvable ou déjà clos");
+    }
+    if (order.status !== CompositionOrderStatus.DISPUTED) {
+      throw new BadRequestException("La commande n'est pas en litige");
+    }
+    const resolutionNote = note?.trim() || null;
+    const amount = Number(order.finalPriceXof ?? order.quotedPriceXof);
+    const millUserId = await this.millUserId(order.millProfileId);
+
+    if (decision === "mill") {
+      this.assertTransition(order.status, "RESOLVE_MILL", "system");
+      if (!order.escrowReleasedAt) {
+        await this.escrow.releaseCompositionFundsToMill(
+          order.id,
+          millUserId,
+          amount,
+          "XOF"
+        );
+      }
+      await this.prisma.compositionOrderDispute.update({
+        where: { id: order.dispute.id },
+        data: {
+          status: CompositionOrderDisputeStatus.resolved_seller,
+          resolvedAt: new Date(),
+          resolvedByUserId: adminUserId,
+          resolutionNote
+        }
+      });
+      const completed = await this.claimTransition(
+        order.id,
+        CompositionOrderStatus.DISPUTED,
+        CompositionOrderStatus.COMPLETED,
+        {
+          completedAt: new Date(),
+          escrowReleasedAt: order.escrowReleasedAt ?? new Date()
+        }
+      );
+      await this.audit(
+        completed,
+        CompositionOrderStatus.DISPUTED,
+        "RESOLVE_MILL",
+        adminUserId,
+        "system",
+        { decision: "mill", resolutionNote }
+      );
+      await this.notifyCompleted(order.producerUserId, millUserId, order.id);
+      return this.toDto(completed);
+    }
+
+    this.assertTransition(order.status, "RESOLVE_PRODUCER", "system");
+    if (!order.escrowReleasedAt) {
+      await this.escrow.refundCompositionBuyer(
+        order.id,
+        order.producerUserId,
+        amount,
+        "XOF"
+      );
+    }
+    await this.prisma.compositionOrderDispute.update({
+      where: { id: order.dispute.id },
+      data: {
+        status: CompositionOrderDisputeStatus.resolved_buyer,
+        resolvedAt: new Date(),
+        resolvedByUserId: adminUserId,
+        resolutionNote
+      }
+    });
+    const refunded = await this.claimTransition(
+      order.id,
+      CompositionOrderStatus.DISPUTED,
+      CompositionOrderStatus.REFUNDED,
+      { escrowReleasedAt: order.escrowReleasedAt ?? new Date() }
+    );
+    await this.audit(
+      refunded,
+      CompositionOrderStatus.DISPUTED,
+      "RESOLVE_PRODUCER",
+      adminUserId,
+      "system",
+      { decision: "producer", resolutionNote }
+    );
+    await this.notifications.notify(
+      order.producerUserId,
+      "Litige résolu",
+      "Litige résolu — remboursement producteur.",
+      { type: "composition_order_dispute_resolved", compositionOrderId: order.id }
+    );
+    await this.notifications.notify(
+      millUserId,
+      "Litige résolu",
+      "Litige résolu — remboursement producteur.",
+      { type: "composition_order_dispute_resolved", compositionOrderId: order.id }
+    );
+    return this.toDto(refunded);
+  }
+
+  /**
+   * Cron : libération auto si fenêtre écoulée sans confirmation ni litige.
+   * Pattern timeout escrow + withLock Redis (appelant).
+   */
+  async runTrackingCycle(now = new Date()): Promise<number> {
+    const due = await this.prisma.compositionOrder.findMany({
+      where: {
+        status: {
+          in: [
+            CompositionOrderStatus.READY_FOR_PICKUP,
+            CompositionOrderStatus.OUT_FOR_DELIVERY
+          ]
+        },
+        escrowReleasedAt: null,
+        disputeWindowEndsAt: { lte: now },
+        dispute: { is: null }
+      },
+      take: 50
+    });
+    let released = 0;
+    for (const order of due) {
+      try {
+        if (order.status === CompositionOrderStatus.OUT_FOR_DELIVERY) {
+          const delivery = await this.prisma.delivery.findUnique({
+            where: { compositionOrderId: order.id }
+          });
+          if (!delivery?.deliveredAt) continue;
+        }
+        await this.releaseAndComplete(order, null, "system", {});
+        released += 1;
+      } catch (e) {
+        this.log.warn(
+          `auto-release composition ${order.id}: ${(e as Error).message}`
+        );
+      }
+    }
+    return released;
+  }
+
   async getOne(user: User, orderId: string) {
     const order = await this.prisma.compositionOrder.findUnique({
-      where: { id: orderId }
+      where: { id: orderId },
+      include: { delivery: true, dispute: true }
     });
     if (!order) throw new NotFoundException("Commande introuvable");
     const isProducer = order.producerUserId === user.id;
@@ -660,7 +1077,10 @@ export class CompositionOrdersService {
         throw new ForbiddenException("Accès refusé à cette commande");
       }
     }
-    return this.toDto(order);
+    return this.toDto(order, {
+      delivery: this.serializeDelivery(order.delivery),
+      dispute: this.serializeDispute(order.dispute)
+    });
   }
 
   // ─── helpers ───────────────────────────────────────────────
@@ -887,6 +1307,183 @@ export class CompositionOrdersService {
     return mill.userId;
   }
 
+  /**
+   * Libération escrow via chemin EXISTANT puis COMPLETED (claim atomique).
+   * Idempotence : wallet `composition-release:…` + claim sur escrowReleasedAt null.
+   */
+  private async releaseAndComplete(
+    order: CompositionOrder,
+    actorUserId: string | null,
+    actorRole: CompositionOrderActor,
+    extraData: Prisma.CompositionOrderUpdateManyMutationInput
+  ) {
+    if (order.escrowReleasedAt) {
+      throw new ConflictException("Escrow déjà libéré pour cette commande");
+    }
+    this.assertTransition(order.status, "COMPLETE", actorRole);
+    const amount = Number(order.finalPriceXof ?? order.quotedPriceXof);
+    if (!(amount > 0)) {
+      throw new BadRequestException("Montant commande invalide pour libération");
+    }
+    const millUserId = await this.millUserId(order.millProfileId);
+    await this.escrow.releaseCompositionFundsToMill(
+      order.id,
+      millUserId,
+      amount,
+      "XOF"
+    );
+    const now = new Date();
+    const claimed = await this.prisma.compositionOrder.updateMany({
+      where: {
+        id: order.id,
+        status: order.status,
+        escrowReleasedAt: null
+      },
+      data: {
+        ...extraData,
+        status: CompositionOrderStatus.COMPLETED,
+        completedAt: now,
+        escrowReleasedAt: now
+      }
+    });
+    if (claimed.count !== 1) {
+      throw new ConflictException(
+        "Libération concurrente détectée — commande déjà clôturée."
+      );
+    }
+    const updated = await this.prisma.compositionOrder.findUniqueOrThrow({
+      where: { id: order.id },
+      include: { delivery: true, dispute: true }
+    });
+    await this.audit(updated, order.status, "COMPLETE", actorUserId, actorRole, {
+      auto: actorRole === "system",
+      amount
+    });
+    await this.notifyCompleted(order.producerUserId, millUserId, order.id);
+    return this.toDto(updated, {
+      delivery: this.serializeDelivery(updated.delivery),
+      dispute: this.serializeDispute(updated.dispute)
+    });
+  }
+
+  private async notifyCompleted(
+    producerUserId: string,
+    millUserId: string,
+    orderId: string
+  ) {
+    await this.notifications.notify(
+      producerUserId,
+      "Commande terminée",
+      "Votre commande composition est terminée.",
+      { type: "composition_order_completed", compositionOrderId: orderId }
+    );
+    await this.notifications.notify(
+      millUserId,
+      "Paiement versé",
+      "Le paiement de la commande composition a été versé sur votre portefeuille.",
+      { type: "composition_order_completed_mill", compositionOrderId: orderId }
+    );
+  }
+
+  private async assertConfirmable(order: CompositionOrder) {
+    if (order.status === CompositionOrderStatus.READY_FOR_PICKUP) {
+      if (!order.readyActual) {
+        throw new BadRequestException(
+          "Confirmation impossible : readyActual manquant."
+        );
+      }
+      return;
+    }
+    if (order.status === CompositionOrderStatus.OUT_FOR_DELIVERY) {
+      const delivery = await this.prisma.delivery.findUnique({
+        where: { compositionOrderId: order.id }
+      });
+      if (!delivery?.deliveredAt) {
+        throw new BadRequestException(
+          "Confirmez la réception seulement après remise (deliveredAt)."
+        );
+      }
+      return;
+    }
+    throw new BadRequestException("Confirmation impossible dans cet état.");
+  }
+
+  private isWithinDisputeWindow(order: CompositionOrder, now = new Date()): boolean {
+    if (!order.disputeWindowEndsAt) return false;
+    return now.getTime() <= order.disputeWindowEndsAt.getTime();
+  }
+
+  private async assertDeliveryModuleActive(userId: string) {
+    const active = await this.platformFlags.isModuleActiveForUser(
+      "delivery",
+      userId
+    );
+    if (!active) {
+      const message =
+        (await this.platformFlags.getInactiveMessage("delivery", "fr")) ??
+        "Module delivery indisponible";
+      throw new ServiceUnavailableException({
+        statusCode: 503,
+        code: "MODULE_INACTIVE",
+        moduleId: "delivery",
+        message,
+        error: "Service Unavailable"
+      });
+    }
+  }
+
+  private serializeDelivery(
+    delivery:
+      | {
+          id: string;
+          status: DeliveryStatus;
+          feeXof: { toNumber?: () => number } | number;
+          note: string | null;
+          scheduledAt: Date | null;
+          deliveredAt: Date | null;
+        }
+      | null
+      | undefined
+  ) {
+    if (!delivery) return null;
+    const fee =
+      typeof delivery.feeXof === "number"
+        ? delivery.feeXof
+        : Number(delivery.feeXof);
+    return {
+      id: delivery.id,
+      status: delivery.status,
+      feeXof: fee,
+      note: delivery.note,
+      scheduledAt: delivery.scheduledAt?.toISOString() ?? null,
+      deliveredAt: delivery.deliveredAt?.toISOString() ?? null
+    };
+  }
+
+  private serializeDispute(
+    dispute:
+      | {
+          id: string;
+          reason: string;
+          status: CompositionOrderDisputeStatus;
+          resolvedAt: Date | null;
+          resolutionNote: string | null;
+          createdAt: Date;
+        }
+      | null
+      | undefined
+  ) {
+    if (!dispute) return null;
+    return {
+      id: dispute.id,
+      reason: dispute.reason,
+      status: dispute.status,
+      resolvedAt: dispute.resolvedAt?.toISOString() ?? null,
+      resolutionNote: dispute.resolutionNote,
+      createdAt: dispute.createdAt.toISOString()
+    };
+  }
+
   private toDto(
     order: CompositionOrder,
     extra?: Record<string, unknown>
@@ -907,6 +1504,11 @@ export class CompositionOrdersService {
       readyEstimate: order.readyEstimate?.toISOString() ?? null,
       productionStartedAt: order.productionStartedAt?.toISOString() ?? null,
       readyActual: order.readyActual?.toISOString() ?? null,
+      fulfillmentMode: order.fulfillmentMode,
+      confirmedReceivedAt: order.confirmedReceivedAt?.toISOString() ?? null,
+      disputeWindowEndsAt: order.disputeWindowEndsAt?.toISOString() ?? null,
+      escrowReleasedAt: order.escrowReleasedAt?.toISOString() ?? null,
+      completedAt: order.completedAt?.toISOString() ?? null,
       escrowTransactionRef: order.escrowTransactionRef,
       deadlineAt: order.deadlineAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),

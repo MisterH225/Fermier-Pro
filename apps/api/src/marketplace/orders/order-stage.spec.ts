@@ -94,5 +94,6 @@ describe("stageOfComposition", () => {
       "closed"
     );
     expect(isCompositionDisputed(CompositionOrderStatus.PAID)).toBe(false);
+    expect(isCompositionDisputed(CompositionOrderStatus.DISPUTED)).toBe(true);
   });
 });

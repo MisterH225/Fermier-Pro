@@ -85,9 +85,11 @@ const COMPOSITION_STAGE_BY_STATUS: Readonly<
   [CompositionOrderStatus.IN_PRODUCTION]: "delivery",
   [CompositionOrderStatus.READY_FOR_PICKUP]: "receipt_weighing",
   [CompositionOrderStatus.OUT_FOR_DELIVERY]: "receipt_weighing",
+  [CompositionOrderStatus.DISPUTED]: "receipt_weighing",
   [CompositionOrderStatus.COMPLETED]: "closed",
   [CompositionOrderStatus.REJECTED]: "cancelled",
-  [CompositionOrderStatus.CANCELLED]: "cancelled"
+  [CompositionOrderStatus.CANCELLED]: "cancelled",
+  [CompositionOrderStatus.REFUNDED]: "cancelled"
 };
 
 export function stageOfComposition(
@@ -96,8 +98,8 @@ export function stageOfComposition(
   return COMPOSITION_STAGE_BY_STATUS[status];
 }
 
-export function isCompositionDisputed(_status: CompositionOrderStatus): boolean {
-  return false; // litige = J5
+export function isCompositionDisputed(status: CompositionOrderStatus): boolean {
+  return status === CompositionOrderStatus.DISPUTED;
 }
 
 export function stageIndexOf(stage: OrderStage): number {
