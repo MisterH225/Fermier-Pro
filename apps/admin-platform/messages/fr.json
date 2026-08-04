@@ -1230,6 +1230,16 @@
       "colBuyer": "Acheteur",
       "colSeller": "Vendeur",
       "colAmount": "Montant bloqué",
+      "colBlocked": "Bloqué",
+      "colFinal": "Prix final",
+      "colSellerPaid": "Versé vendeur",
+      "colBuyerRefund": "Remb. acheteur",
+      "colCommission": "Commission",
+      "colWeights": "Poids",
+      "weightEst": "Estimé",
+      "weightReal": "Réel",
+      "weightArb": "Arbitré",
+      "creditBadge": "crédit",
       "colUpdated": "Mis à jour"
     },
     "status": {

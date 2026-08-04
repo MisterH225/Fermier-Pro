@@ -31,6 +31,7 @@ import {
   escrowDeadlineAt,
   escrowTimeoutOutcomeKey
 } from "../../common/deadline-outcome";
+import { DistributedLockService } from "../../common/distributed-lock.service";
 import { FarmAccessService } from "../../common/farm-access.service";
 import { capturePaymentError } from "../../common/sentry-payment.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -98,7 +99,8 @@ export class MarketplaceTransactionService {
     private readonly buyerProfiles: BuyerProfileDetectorService,
     private readonly farmAccess: FarmAccessService,
     @Inject(forwardRef(() => CreditOffersService))
-    private readonly creditOffers: CreditOffersService
+    private readonly creditOffers: CreditOffersService,
+    private readonly locks: DistributedLockService
   ) {}
 
   /** Transaction crédit — avance bloquée en escrow jusqu'à la livraison. */
@@ -484,6 +486,13 @@ export class MarketplaceTransactionService {
       ]);
       if (!tx.isCredit) {
         await this.settleTransaction(tx.id);
+      } else {
+        await this.trySettleCreditAfterReceipt({
+          transactionId: tx.id,
+          offerId: tx.offerId,
+          sellerUserId: tx.sellerUserId,
+          buyerUserId: tx.buyerUserId
+        });
       }
       void this.push.sendToUser(
         tx.buyerUserId,
@@ -1279,12 +1288,12 @@ export class MarketplaceTransactionService {
       })
     ]);
     if (tx.isCredit) {
-      void this.push.sendToUser(
-        tx.sellerUserId,
-        "Réception confirmée (crédit)",
-        "L'acheteur a confirmé la récupération des animaux.",
-        { type: "marketplace_credit_receipt_confirmed", transactionId: tx.id }
-      );
+      await this.trySettleCreditAfterReceipt({
+        transactionId: tx.id,
+        offerId: tx.offerId,
+        sellerUserId: tx.sellerUserId,
+        buyerUserId: tx.buyerUserId
+      });
     } else {
       await this.settleTransaction(tx.id);
       void this.push.sendToUser(
@@ -1301,6 +1310,81 @@ export class MarketplaceTransactionService {
       );
     }
     return this.getById(user, tx.id);
+  }
+
+  /**
+   * Après réception crédit : règle si solde déjà payé / nul, sinon notifie seulement.
+   */
+  private async trySettleCreditAfterReceipt(params: {
+    transactionId: string;
+    offerId: string;
+    sellerUserId: string;
+    buyerUserId: string;
+  }): Promise<void> {
+    const offer = await this.prisma.marketplaceOffer.findUnique({
+      where: { id: params.offerId }
+    });
+    if (!offer) {
+      return;
+    }
+    const balanceDue = Number(offer.balanceAmount ?? 0);
+    const balanceAlreadyPaid = offer.balancePaidDeclaredAt != null;
+
+    if (balanceDue <= 0) {
+      await this.prisma.marketplaceOffer.update({
+        where: { id: params.offerId },
+        data: {
+          balancePaidAmount: offer.balancePaidAmount ?? new Prisma.Decimal(0),
+          balanceConfirmedAt: offer.balanceConfirmedAt ?? new Date(),
+          status: OfferStatus.completed,
+          completedAt: offer.completedAt ?? new Date()
+        }
+      });
+      await this.settleCreditTransaction(params.transactionId);
+      void this.push.sendToUser(
+        params.sellerUserId,
+        "Réception confirmée (crédit)",
+        "Aucun solde restant — transaction en cours de clôture.",
+        {
+          type: "marketplace_credit_receipt_confirmed",
+          transactionId: params.transactionId
+        }
+      );
+      void this.push.sendToUser(
+        params.buyerUserId,
+        "Transaction crédit finalisée",
+        "Réception confirmée. Aucun solde restant — clôture en cours.",
+        {
+          type: "marketplace_credit_receipt_confirmed",
+          transactionId: params.transactionId
+        }
+      );
+      return;
+    }
+
+    if (balanceAlreadyPaid) {
+      await this.settleCreditTransaction(params.transactionId);
+      void this.push.sendToUser(
+        params.sellerUserId,
+        "Réception confirmée (crédit)",
+        "L'acheteur a confirmé la récupération. Solde déjà sécurisé — clôture en cours.",
+        {
+          type: "marketplace_credit_receipt_confirmed",
+          transactionId: params.transactionId
+        }
+      );
+      return;
+    }
+
+    void this.push.sendToUser(
+      params.sellerUserId,
+      "Réception confirmée (crédit)",
+      "L'acheteur a confirmé la récupération des animaux. En attente du solde.",
+      {
+        type: "marketplace_credit_receipt_confirmed",
+        transactionId: params.transactionId
+      }
+    );
   }
 
   async openDeliveryDispute(
@@ -1962,158 +2046,103 @@ export class MarketplaceTransactionService {
 
   /** Clôture escrow crédit après paiement du solde (avance + solde sur plateforme). */
   async settleCreditTransaction(transactionId: string): Promise<void> {
-    const lockKey = `settle-credit:${transactionId}`;
-    await this.prisma.$executeRaw`SELECT pg_advisory_lock(hashtext(${lockKey}))`;
-    try {
-      const tx = await this.prisma.marketplaceTransaction.findUnique({
-        where: { id: transactionId },
-        include: { listing: true, offer: true }
-      });
-      if (!tx?.isCredit || !tx.offer) {
-        return;
+    const acquired = await this.locks.withLock(
+      `settle-credit:${transactionId}`,
+      async () => {
+        await this.runSettleCreditTransaction(transactionId);
       }
-      if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
-        return;
-      }
-      if (!canTransition(tx.status, "CREDIT_TRANSACTION_SETTLED").allowed) {
-        return;
-      }
-      const SETTABLE_STATUSES: MarketplaceTransactionStatus[] = [
-        MarketplaceTransactionStatus.WEIGHT_VALIDATED,
-        MarketplaceTransactionStatus.BUYER_RECEIVED
-      ];
-
-      const priorRelease = await this.prisma.marketplaceFundMovement.findFirst({
-        where: {
-          transactionId,
-          kind: MarketplaceFundMovementKind.RELEASE_TO_SELLER
-        }
-      });
-      if (priorRelease) {
-        await this.prisma.marketplaceTransaction.updateMany({
-          where: {
-            id: transactionId,
-            status: { in: SETTABLE_STATUSES }
-          },
-          data: {
-            status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-            closedAt: new Date()
-          }
-        });
-        void this.receipts.generateReceipt(transactionId);
-        return;
-      }
-
-      const advanceHeld = Number(tx.blockedAmount);
-      const balancePaid = Number(tx.offer.balancePaidAmount ?? 0);
-      const totalHeld = advanceHeld + balancePaid;
-      const finalAmount =
-        tx.finalAmount != null
-          ? Number(tx.finalAmount)
-          : calculateFinalAmount(tx);
-      const rate = Number(tx.commissionRate);
-      const amounts = settlementAmounts({
-        blockedAmount: totalHeld,
-        finalAmount,
-        commissionRate: rate,
-        buyerPaysCommission: tx.buyerPaysCommission,
-        sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
-      });
-
-      const closed = await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: transactionId,
-          status: { in: SETTABLE_STATUSES }
-        },
-        data: {
-          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-          closedAt: new Date(),
-          finalAmount: new Prisma.Decimal(finalAmount),
-          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
-          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
-          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
-          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
-          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
-        }
-      });
-      if (closed.count === 0) {
-        return;
-      }
-
-      if (amounts.buyerRefundAmount > 0) {
-        await this.escrow.refundBuyer(
-          tx.id,
-          tx.buyerUserId,
-          amounts.buyerRefundAmount,
-          tx.currency,
-          tx.paymentProviderRef,
-          tx.paymentMethod
-        );
-      }
-
-      await this.escrow.releaseFundsToSeller(
-        tx.id,
-        tx.sellerUserId,
-        amounts.sellerReceivedAmount,
-        tx.currency,
-        tx.paymentMethod
+    );
+    if (!acquired) {
+      this.log.warn(
+        `settleCreditTransaction: verrou occupé pour ${transactionId}`
       );
-      await this.escrow.collectCommission(
-        tx.id,
-        amounts.totalCommissionAmount,
-        tx.currency
-      );
-
-      try {
-        await this.prisma.platformRevenue.create({
-          data: {
-            transactionId: tx.id,
-            sellerId: tx.sellerUserId,
-            buyerId: tx.buyerUserId,
-            grossAmount: new Prisma.Decimal(finalAmount),
-            commissionRate: tx.commissionRate,
-            commissionAmount: new Prisma.Decimal(amounts.totalCommissionAmount)
-          }
-        });
-      } catch (e) {
-        if (
-          !(
-            e instanceof Prisma.PrismaClientKnownRequestError &&
-            e.code === "P2002"
-          )
-        ) {
-          throw e;
-        }
-      }
-
-      void this.receipts.generateReceipt(transactionId);
-
-      const seller = await this.prisma.user.findUnique({
-        where: { id: tx.sellerUserId }
-      });
-      if (seller) {
-        const weightKg =
-          tx.arbitrationWeightKg?.toNumber() ??
-          tx.realWeightKg?.toNumber() ??
-          tx.estimatedWeightKg?.toNumber() ??
-          0;
-        try {
-          await this.listings.completeHandover(seller, tx.listingId, {
-            offerId: tx.offerId,
-            soldWeightKg: weightKg,
-            // Enregistrer le montant NET reçu par le vendeur (après déduction des frais vendeur)
-            totalPrice: amounts.sellerReceivedAmount,
-            soldAt: new Date().toISOString()
-          });
-        } catch (e) {
-          this.log.warn(
-            `handover after credit settle ${tx.id}: ${(e as Error).message}`
-          );
-        }
-      }
-    } finally {
-      await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
     }
+  }
+
+  private async runSettleCreditTransaction(
+    transactionId: string
+  ): Promise<void> {
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      include: { listing: true, offer: true }
+    });
+    if (!tx?.isCredit || !tx.offer) {
+      return;
+    }
+
+    const SETTABLE_STATUSES: MarketplaceTransactionStatus[] = [
+      MarketplaceTransactionStatus.WEIGHT_VALIDATED,
+      MarketplaceTransactionStatus.BUYER_RECEIVED
+    ];
+
+    const advanceHeld = Number(tx.blockedAmount);
+    const balancePaid = Number(tx.offer.balancePaidAmount ?? 0);
+    const totalHeld = advanceHeld + balancePaid;
+    const finalAmount =
+      tx.finalAmount != null
+        ? Number(tx.finalAmount)
+        : calculateFinalAmount(tx);
+    const rate = Number(tx.commissionRate);
+    const amounts = settlementAmounts({
+      blockedAmount: totalHeld,
+      finalAmount,
+      commissionRate: rate,
+      buyerPaysCommission: tx.buyerPaysCommission,
+      sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
+    });
+
+    if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      await this.finalizeSettlementSideEffects(tx, amounts, {
+        settlementFinalAmount: finalAmount,
+        skipNotifications: true
+      });
+      return;
+    }
+
+    if (!canTransition(tx.status, "CREDIT_TRANSACTION_SETTLED").allowed) {
+      this.log.warn(
+        `settleCreditTransaction: transition refusée depuis ${tx.status} (${transactionId})`
+      );
+      return;
+    }
+
+    await this.applySettlementFundMovements(tx, amounts);
+
+    const closed = await this.prisma.marketplaceTransaction.updateMany({
+      where: {
+        id: transactionId,
+        status: { in: SETTABLE_STATUSES }
+      },
+      data: {
+        status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+        closedAt: new Date(),
+        finalAmount: new Prisma.Decimal(finalAmount),
+        commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+        sellerCommissionAmount: new Prisma.Decimal(
+          amounts.sellerCommissionAmount
+        ),
+        sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+        buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+        buyerAdditionalCharge: new Prisma.Decimal(
+          amounts.buyerAdditionalCharge
+        )
+      }
+    });
+    if (closed.count === 0) {
+      this.log.warn(
+        `settleCreditTransaction: close concurrent échoué (${transactionId})`
+      );
+      return;
+    }
+
+    const closedTx = {
+      ...tx,
+      status: MarketplaceTransactionStatus.TRANSACTION_CLOSED
+    };
+    await this.finalizeSettlementSideEffects(closedTx, amounts, {
+      settlementFinalAmount: finalAmount,
+      skipNotifications: false
+    });
   }
 
   async cancelByBuyer(user: User, transactionId: string) {
@@ -2344,136 +2373,196 @@ export class MarketplaceTransactionService {
   }
 
   async settleTransaction(transactionId: string): Promise<void> {
-    const lockKey = `settle:${transactionId}`;
-    await this.prisma.$executeRaw`SELECT pg_advisory_lock(hashtext(${lockKey}))`;
-    try {
-      const tx = await this.prisma.marketplaceTransaction.findUnique({
-        where: { id: transactionId },
-        include: { listing: true, offer: true }
-      });
-      if (!tx) {
-        return;
+    const acquired = await this.locks.withLock(
+      `settle:${transactionId}`,
+      async () => {
+        await this.runSettleTransaction(transactionId);
       }
-      if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
-        return;
-      }
-      if (!canTransition(tx.status, "TRANSACTION_SETTLED").allowed) {
-        return;
-      }
-      if (tx.isCredit) {
-        return;
-      }
+    );
+    if (!acquired) {
+      this.log.warn(`settleTransaction: verrou occupé pour ${transactionId}`);
+    }
+  }
 
-      const priorRelease = await this.prisma.marketplaceFundMovement.findFirst({
-        where: {
-          transactionId,
-          kind: MarketplaceFundMovementKind.RELEASE_TO_SELLER
-        }
+  private async runSettleTransaction(transactionId: string): Promise<void> {
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      include: { listing: true, offer: true }
+    });
+    if (!tx) {
+      return;
+    }
+    if (tx.isCredit) {
+      return;
+    }
+
+    const blocked = Number(tx.blockedAmount);
+    const rate = Number(tx.commissionRate);
+    let settlementFinalAmount = calculateFinalAmount(tx);
+    let amounts = settlementAmounts({
+      blockedAmount: blocked,
+      finalAmount: settlementFinalAmount,
+      commissionRate: rate,
+      buyerPaysCommission: tx.buyerPaysCommission,
+      sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
+    });
+
+    if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      const storedFinal =
+        tx.finalAmount != null ? Number(tx.finalAmount) : settlementFinalAmount;
+      const recoveryAmounts =
+        tx.sellerReceivedAmount != null
+          ? settlementAmounts({
+              blockedAmount: blocked,
+              finalAmount: storedFinal,
+              commissionRate: rate,
+              buyerPaysCommission: tx.buyerPaysCommission,
+              sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
+            })
+          : amounts;
+      await this.finalizeSettlementSideEffects(tx, recoveryAmounts, {
+        settlementFinalAmount: storedFinal,
+        skipNotifications: true
       });
-      if (priorRelease) {
-        await this.prisma.marketplaceTransaction.updateMany({
-          where: {
-            id: transactionId,
-            status: MarketplaceTransactionStatus.BUYER_RECEIVED
-          },
-          data: {
-            status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-            closedAt: new Date()
-          }
+      return;
+    }
+
+    if (!canTransition(tx.status, "TRANSACTION_SETTLED").allowed) {
+      this.log.warn(
+        `settleTransaction: transition refusée depuis ${tx.status} (${transactionId})`
+      );
+      return;
+    }
+
+    if (amounts.buyerAdditionalCharge > 0) {
+      const charged = await this.escrow.chargeAdditional(
+        tx.id,
+        tx.buyerUserId,
+        amounts.buyerAdditionalCharge,
+        tx.currency
+      );
+      if (!charged) {
+        settlementFinalAmount = calculateFinalAmountAtEstimatedWeight(tx);
+        amounts = settlementAmounts({
+          blockedAmount: blocked,
+          finalAmount: settlementFinalAmount,
+          commissionRate: rate,
+          buyerPaysCommission: tx.buyerPaysCommission,
+          sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
         });
-        void this.receipts.generateReceipt(transactionId);
-        return;
-      }
-
-      const finalAmount = calculateFinalAmount(tx);
-      const blocked = Number(tx.blockedAmount);
-      const rate = Number(tx.commissionRate);
-      let settlementFinalAmount = finalAmount;
-      let amounts = settlementAmounts({
-        blockedAmount: blocked,
-        finalAmount: settlementFinalAmount,
-        commissionRate: rate,
-        buyerPaysCommission: tx.buyerPaysCommission,
-        sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
-      });
-
-      if (amounts.buyerAdditionalCharge > 0) {
-        const charged = await this.escrow.chargeAdditional(
-          tx.id,
+        const extraLabel = `${Math.round(
+          calculateFinalAmount(tx) - settlementFinalAmount
+        ).toLocaleString("fr-FR")} ${tx.currency}`;
+        void this.push.sendToUser(
           tx.buyerUserId,
-          amounts.buyerAdditionalCharge,
-          tx.currency
+          "Complément à régler au vendeur",
+          `Le poids réel dépasse l'estimation. Réglez ${extraLabel} au vendeur (espèces ou mobile money).`,
+          {
+            type: "marketplace_additional_charge_due",
+            transactionId: tx.id,
+            amount: String(calculateFinalAmount(tx) - settlementFinalAmount)
+          }
         );
-        if (!charged) {
-          settlementFinalAmount = calculateFinalAmountAtEstimatedWeight(tx);
-          amounts = settlementAmounts({
-            blockedAmount: blocked,
-            finalAmount: settlementFinalAmount,
-            commissionRate: rate,
-            buyerPaysCommission: tx.buyerPaysCommission,
-            sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
-          });
-          const extraLabel = `${Math.round(
-            calculateFinalAmount(tx) - settlementFinalAmount
-          ).toLocaleString("fr-FR")} ${tx.currency}`;
-          void this.push.sendToUser(
-            tx.buyerUserId,
-            "Complément à régler au vendeur",
-            `Le poids réel dépasse l'estimation. Réglez ${extraLabel} au vendeur (espèces ou mobile money).`,
-            {
-              type: "marketplace_additional_charge_due",
-              transactionId: tx.id,
-              amount: String(
-                calculateFinalAmount(tx) - settlementFinalAmount
-              )
-            }
-          );
-          void this.push.sendToUser(
-            tx.sellerUserId,
-            "Complément dû par l'acheteur",
-            `L'acheteur doit vous verser ${extraLabel} hors plateforme (poids réel supérieur).`,
-            {
-              type: "marketplace_additional_charge_due",
-              transactionId: tx.id,
-              amount: String(
-                calculateFinalAmount(tx) - settlementFinalAmount
-              )
-            }
-          );
-        }
-      }
-
-      const closed = await this.prisma.marketplaceTransaction.updateMany({
-        where: {
-          id: tx.id,
-          status: MarketplaceTransactionStatus.BUYER_RECEIVED
-        },
-        data: {
-          status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
-          closedAt: new Date(),
-          finalAmount: new Prisma.Decimal(settlementFinalAmount),
-          commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
-          sellerCommissionAmount: new Prisma.Decimal(amounts.sellerCommissionAmount),
-          sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
-          buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
-          buyerAdditionalCharge: new Prisma.Decimal(amounts.buyerAdditionalCharge)
-        }
-      });
-      if (closed.count === 0) {
-        return;
-      }
-
-      if (amounts.buyerRefundAmount > 0) {
-        await this.escrow.refundBuyer(
-          tx.id,
-          tx.buyerUserId,
-          amounts.buyerRefundAmount,
-          tx.currency,
-          tx.paymentProviderRef,
-          tx.paymentMethod
+        void this.push.sendToUser(
+          tx.sellerUserId,
+          "Complément dû par l'acheteur",
+          `L'acheteur doit vous verser ${extraLabel} hors plateforme (poids réel supérieur).`,
+          {
+            type: "marketplace_additional_charge_due",
+            transactionId: tx.id,
+            amount: String(calculateFinalAmount(tx) - settlementFinalAmount)
+          }
         );
       }
+    }
 
+    // Fonds d'abord (idempotents) — puis close — puis side-effects + facture.
+    // Évite le chemin priorRelease qui fermait + facturait sans finir le travail.
+    await this.applySettlementFundMovements(tx, amounts);
+
+    const closed = await this.prisma.marketplaceTransaction.updateMany({
+      where: {
+        id: tx.id,
+        status: MarketplaceTransactionStatus.BUYER_RECEIVED
+      },
+      data: {
+        status: MarketplaceTransactionStatus.TRANSACTION_CLOSED,
+        closedAt: new Date(),
+        finalAmount: new Prisma.Decimal(settlementFinalAmount),
+        commissionAmount: new Prisma.Decimal(amounts.commissionAmount),
+        sellerCommissionAmount: new Prisma.Decimal(
+          amounts.sellerCommissionAmount
+        ),
+        sellerReceivedAmount: new Prisma.Decimal(amounts.sellerReceivedAmount),
+        buyerRefundAmount: new Prisma.Decimal(amounts.buyerRefundAmount),
+        buyerAdditionalCharge: new Prisma.Decimal(
+          amounts.buyerAdditionalCharge
+        )
+      }
+    });
+    if (closed.count === 0) {
+      this.log.warn(
+        `settleTransaction: close concurrent échoué (${transactionId})`
+      );
+      return;
+    }
+
+    const closedTx = {
+      ...tx,
+      status: MarketplaceTransactionStatus.TRANSACTION_CLOSED
+    };
+    await this.finalizeSettlementSideEffects(closedTx, amounts, {
+      settlementFinalAmount,
+      skipNotifications: false
+    });
+  }
+
+  private async hasFundMovement(
+    transactionId: string,
+    kind: MarketplaceFundMovementKind
+  ): Promise<boolean> {
+    const row = await this.prisma.marketplaceFundMovement.findFirst({
+      where: { transactionId, kind },
+      select: { id: true }
+    });
+    return Boolean(row);
+  }
+
+  /** Refund / release / commission — idempotents via mouvements existants. */
+  private async applySettlementFundMovements(
+    tx: {
+      id: string;
+      buyerUserId: string;
+      sellerUserId: string;
+      currency: string;
+      paymentProviderRef: string | null;
+      paymentMethod: MarketplacePaymentMethod | null;
+    },
+    amounts: ReturnType<typeof settlementAmounts>
+  ): Promise<void> {
+    if (
+      amounts.buyerRefundAmount > 0 &&
+      !(await this.hasFundMovement(
+        tx.id,
+        MarketplaceFundMovementKind.REFUND_BUYER
+      ))
+    ) {
+      await this.escrow.refundBuyer(
+        tx.id,
+        tx.buyerUserId,
+        amounts.buyerRefundAmount,
+        tx.currency,
+        tx.paymentProviderRef,
+        tx.paymentMethod
+      );
+    }
+
+    if (
+      !(await this.hasFundMovement(
+        tx.id,
+        MarketplaceFundMovementKind.RELEASE_TO_SELLER
+      ))
+    ) {
       await this.escrow.releaseFundsToSeller(
         tx.id,
         tx.sellerUserId,
@@ -2481,74 +2570,136 @@ export class MarketplaceTransactionService {
         tx.currency,
         tx.paymentMethod
       );
+    }
+
+    if (
+      amounts.totalCommissionAmount > 0 &&
+      !(await this.hasFundMovement(
+        tx.id,
+        MarketplaceFundMovementKind.COMMISSION
+      ))
+    ) {
       await this.escrow.collectCommission(
         tx.id,
         amounts.totalCommissionAmount,
         tx.currency
       );
+    }
+  }
 
-      const seller = await this.prisma.user.findUnique({
-        where: { id: tx.sellerUserId }
-      });
-      if (seller) {
-        const weightKg =
-          tx.arbitrationWeightKg?.toNumber() ??
-          tx.realWeightKg?.toNumber() ??
-          tx.estimatedWeightKg?.toNumber() ??
-          0;
-        try {
-          await this.listings.completeHandover(seller, tx.listingId, {
-            offerId: tx.offerId,
-            soldWeightKg: weightKg,
-            // Enregistrer le montant NET reçu par le vendeur (après déduction des frais vendeur)
-            totalPrice: amounts.sellerReceivedAmount,
-            soldAt: new Date().toISOString()
-          });
-        } catch (e) {
-          this.log.warn(`handover after settle ${tx.id}: ${(e as Error).message}`);
+  private async isSettlementComplete(
+    transactionId: string,
+    listingId: string,
+    amounts: ReturnType<typeof settlementAmounts>
+  ): Promise<boolean> {
+    const [tx, listing, hasRelease, hasRefund] = await Promise.all([
+      this.prisma.marketplaceTransaction.findUnique({
+        where: { id: transactionId },
+        select: { status: true }
+      }),
+      this.prisma.marketplaceListing.findUnique({
+        where: { id: listingId },
+        select: { status: true }
+      }),
+      this.hasFundMovement(
+        transactionId,
+        MarketplaceFundMovementKind.RELEASE_TO_SELLER
+      ),
+      amounts.buyerRefundAmount > 0
+        ? this.hasFundMovement(
+            transactionId,
+            MarketplaceFundMovementKind.REFUND_BUYER
+          )
+        : Promise.resolve(true)
+    ]);
+    return (
+      tx?.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED &&
+      listing?.status === ListingStatus.sold &&
+      hasRelease &&
+      hasRefund
+    );
+  }
+
+  /**
+   * Délitage, offre, revenus, transfert, remboursements concurrents, notifs, facture.
+   * La facture n'est émise que si le règlement est vérifiable (release + refund + sold).
+   */
+  private async finalizeSettlementSideEffects(
+    tx: Prisma.MarketplaceTransactionGetPayload<{
+      include: { listing: true; offer: true };
+    }>,
+    amounts: ReturnType<typeof settlementAmounts>,
+    options: { settlementFinalAmount: number; skipNotifications: boolean }
+  ): Promise<void> {
+    try {
+      await this.prisma.platformRevenue.create({
+        data: {
+          transactionId: tx.id,
+          sellerId: tx.sellerUserId,
+          buyerId: tx.buyerUserId,
+          grossAmount: new Prisma.Decimal(options.settlementFinalAmount),
+          commissionRate: tx.commissionRate,
+          commissionAmount: new Prisma.Decimal(amounts.totalCommissionAmount)
         }
-      }
-
-      try {
-        await this.prisma.platformRevenue.create({
-          data: {
-            transactionId: tx.id,
-            sellerId: tx.sellerUserId,
-            buyerId: tx.buyerUserId,
-            grossAmount: new Prisma.Decimal(settlementFinalAmount),
-            commissionRate: tx.commissionRate,
-            commissionAmount: new Prisma.Decimal(amounts.totalCommissionAmount)
-          }
-        });
-      } catch (e) {
-        if (
+      });
+    } catch (e) {
+      if (
+        !(
           e instanceof Prisma.PrismaClientKnownRequestError &&
           e.code === "P2002"
-        ) {
-          // commission déjà enregistrée — idempotent
-        } else {
-          throw e;
-        }
+        )
+      ) {
+        throw e;
       }
+    }
 
-      await this.prisma.marketplaceOffer.update({
-        where: { id: tx.offerId },
-        data: { status: OfferStatus.completed, completedAt: new Date() }
-      });
+    await this.prisma.marketplaceOffer.updateMany({
+      where: {
+        id: tx.offerId,
+        status: { not: OfferStatus.completed }
+      },
+      data: { status: OfferStatus.completed, completedAt: new Date() }
+    });
 
-      await this.prisma.marketplaceListing.update({
-        where: { id: tx.listingId },
-        data: {
-          status: ListingStatus.sold,
-          activeOfferCount: 0,
-          reservedForBuyerUserId: null
-        }
-      });
+    const seller = await this.prisma.user.findUnique({
+      where: { id: tx.sellerUserId }
+    });
+    if (seller) {
+      const weightKg =
+        tx.arbitrationWeightKg?.toNumber() ??
+        tx.realWeightKg?.toNumber() ??
+        tx.estimatedWeightKg?.toNumber() ??
+        0;
+      try {
+        await this.listings.completeHandover(seller, tx.listingId, {
+          offerId: tx.offerId,
+          soldWeightKg: weightKg,
+          totalPrice: amounts.sellerReceivedAmount,
+          soldAt: new Date().toISOString()
+        });
+      } catch (e) {
+        this.log.warn(
+          `handover after settle ${tx.id}: ${(e as Error).message}`
+        );
+      }
+    }
 
-      await this.routePostCloseBuyerTransfer(tx);
+    await this.prisma.marketplaceListing.updateMany({
+      where: {
+        id: tx.listingId,
+        status: { not: ListingStatus.sold }
+      },
+      data: {
+        status: ListingStatus.sold,
+        activeOfferCount: 0,
+        reservedForBuyerUserId: null
+      }
+    });
 
-      await this.refundOtherHeldTransactions(tx.listingId, tx.id);
+    await this.routePostCloseBuyerTransfer(tx);
+    await this.refundOtherHeldTransactions(tx.listingId, tx.id);
 
+    if (!options.skipNotifications) {
       const sellerLabel = `${Math.round(amounts.sellerReceivedAmount).toLocaleString("fr-FR")} ${tx.currency}`;
       void this.push.sendToUser(
         tx.sellerUserId,
@@ -2566,10 +2717,19 @@ export class MarketplaceTransactionService {
         `Transaction finalisée.${refundNote}`,
         { type: "marketplace_transaction_closed", transactionId: tx.id }
       );
+    }
 
-      void this.receipts.generateReceipt(transactionId);
-    } finally {
-      await this.prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext(${lockKey}))`;
+    const complete = await this.isSettlementComplete(
+      tx.id,
+      tx.listingId,
+      amounts
+    );
+    if (complete) {
+      void this.receipts.generateReceipt(tx.id);
+    } else {
+      this.log.warn(
+        `settle: facture différée — règlement incomplet (${tx.id})`
+      );
     }
   }
 
@@ -2578,6 +2738,14 @@ export class MarketplaceTransactionService {
       include: { listing: true; offer: true };
     }>
   ): Promise<void> {
+    const existing = await this.prisma.marketplacePendingTransfer.findFirst({
+      where: { transactionId: tx.id },
+      select: { id: true }
+    });
+    if (existing) {
+      return;
+    }
+
     const profile = await this.buyerProfiles.detect(
       tx.buyerUserId,
       tx.offer.buyerFarmId
@@ -3224,13 +3392,33 @@ export class MarketplaceTransactionService {
     return rows.map((tx) => ({
       id: tx.id,
       status: tx.status,
+      isCredit: tx.isCredit,
       blockedAmount: Number(tx.blockedAmount),
       finalAmount: tx.finalAmount != null ? Number(tx.finalAmount) : null,
+      estimatedWeightKg:
+        tx.estimatedWeightKg != null ? Number(tx.estimatedWeightKg) : null,
       realWeightKg: tx.realWeightKg != null ? Number(tx.realWeightKg) : null,
       arbitrationWeightKg:
         tx.arbitrationWeightKg != null ? Number(tx.arbitrationWeightKg) : null,
+      sellerReceivedAmount:
+        tx.sellerReceivedAmount != null
+          ? Number(tx.sellerReceivedAmount)
+          : null,
+      buyerRefundAmount:
+        tx.buyerRefundAmount != null ? Number(tx.buyerRefundAmount) : null,
+      commissionAmount:
+        tx.commissionAmount != null ? Number(tx.commissionAmount) : null,
+      sellerCommissionAmount:
+        tx.sellerCommissionAmount != null
+          ? Number(tx.sellerCommissionAmount)
+          : null,
+      buyerAdditionalCharge:
+        tx.buyerAdditionalCharge != null
+          ? Number(tx.buyerAdditionalCharge)
+          : null,
       currency: tx.currency,
       updatedAt: tx.updatedAt.toISOString(),
+      closedAt: tx.closedAt?.toISOString() ?? null,
       weightDisputeOpenedAt: tx.weightDisputeOpenedAt?.toISOString() ?? null,
       weightDeclaredByBuyerAt: tx.weightDeclaredByBuyerAt?.toISOString() ?? null,
       listing: tx.listing,
