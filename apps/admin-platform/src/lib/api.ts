@@ -578,12 +578,20 @@ export type AdminMarketplaceListingRow = {
 export type AdminMarketplaceTransactionRow = {
   id: string;
   status: string;
+  isCredit?: boolean;
   blockedAmount: string | number;
   finalAmount?: string | number | null;
+  estimatedWeightKg?: string | number | null;
   realWeightKg?: string | number | null;
   arbitrationWeightKg?: string | number | null;
+  sellerReceivedAmount?: string | number | null;
+  buyerRefundAmount?: string | number | null;
+  commissionAmount?: string | number | null;
+  sellerCommissionAmount?: string | number | null;
+  buyerAdditionalCharge?: string | number | null;
   currency: string;
   updatedAt: string;
+  closedAt?: string | null;
   weightDisputeOpenedAt?: string | null;
   weightDeclaredByBuyerAt?: string | null;
   listing: { id: string; title: string };

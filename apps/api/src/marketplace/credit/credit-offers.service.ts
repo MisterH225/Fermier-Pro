@@ -12,6 +12,7 @@ import {
   ListingMarketCategory,
   ListingStatus,
   MarketplacePaymentMethod,
+  MarketplaceTransactionStatus,
   OfferStatus,
   OfferType,
   Prisma
@@ -325,10 +326,26 @@ export class CreditOffersService {
           balanceAmount: new Prisma.Decimal(balanceAmount),
           balanceDueAt: dueAt,
           deliveredAt: tx.buyerReceivedAt ?? new Date(),
-          balancePaymentRef: null
+          balancePaymentRef: null,
+          ...(balanceAmount <= 0
+            ? { balancePaidAmount: new Prisma.Decimal(0) }
+            : {})
         }
       })
     ]);
+    if (balanceAmount <= 0) {
+      void this.push.sendToUser(
+        tx.buyerUserId,
+        "Solde recalculé au poids réel",
+        `Prix réel : ${Math.round(finalAmount).toLocaleString("fr-FR")} ${tx.currency}. Aucun solde restant — confirmez la réception pour clôturer.`,
+        {
+          type: "marketplace_credit_balance_due",
+          offerId: tx.offerId,
+          transactionId
+        }
+      );
+      return;
+    }
     const amountLabel = `${Math.round(balanceAmount).toLocaleString("fr-FR")} ${tx.currency}`;
     void this.push.sendToUser(
       tx.buyerUserId,
@@ -517,8 +534,18 @@ export class CreditOffersService {
     const tx = await this.prisma.marketplaceTransaction.findUnique({
       where: { offerId }
     });
-    if (tx) {
-      await this.transactions.settleCreditTransaction(tx.id);
+    if (!tx) {
+      throw new BadRequestException("Transaction introuvable");
+    }
+    await this.transactions.settleCreditTransaction(tx.id);
+    const after = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: tx.id },
+      select: { status: true }
+    });
+    if (after?.status !== MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      throw new BadRequestException(
+        "Règlement crédit impossible à ce stade (réception ou état transaction invalide)"
+      );
     }
     await this.prisma.$transaction([
       this.prisma.marketplaceOffer.update({

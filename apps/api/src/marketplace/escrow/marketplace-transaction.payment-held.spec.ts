@@ -22,7 +22,11 @@ describe("MarketplaceTransactionService.onPaymentHeldSideEffects", () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never
+      {} as never,
+      { withLock: async (_k: string, fn: () => Promise<void>) => {
+        await fn();
+        return true;
+      } } as never
     );
   }
 
