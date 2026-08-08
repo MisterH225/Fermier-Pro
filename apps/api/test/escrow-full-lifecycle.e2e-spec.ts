@@ -228,6 +228,32 @@ describeOrSkip("Escrow porc — cycle financier complet (e2e P-44)", () => {
       }
     });
     expect(releaseMv.providerRef).toMatch(/^wallet:/);
+
+    // Délitage obligatoire avant de considérer le règlement terminé (bugs 1–2).
+    const listing = await ctx.prisma.marketplaceListing.findUniqueOrThrow({
+      where: { id: ctxDeal.listingId }
+    });
+    expect(listing.status).toBe("sold");
+    expect(listing.activeOfferCount).toBe(0);
+
+    // Un seul versement vendeur (idempotence settle).
+    const releaseCount = await ctx.prisma.marketplaceFundMovement.count({
+      where: {
+        transactionId: ctxDeal.transactionId,
+        kind: MarketplaceFundMovementKind.RELEASE_TO_SELLER
+      }
+    });
+    expect(releaseCount).toBe(1);
+
+    if (expected.buyerRefundAmount > 0) {
+      const refundCount = await ctx.prisma.marketplaceFundMovement.count({
+        where: {
+          transactionId: ctxDeal.transactionId,
+          kind: MarketplaceFundMovementKind.REFUND_BUYER
+        }
+      });
+      expect(refundCount).toBe(1);
+    }
   }
 
   async function freshDeal(): Promise<MarketplaceDeliveryCtx> {
