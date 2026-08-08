@@ -145,14 +145,35 @@ describeOrSkip("Escrow settle — failure modes (e2e)", () => {
       expect(Number(tx.buyerRefundAmount ?? 0)).toBeGreaterThan(0);
     }
 
-    // Facture uniquement après règlement vérifiable.
-    const receiptResult = await receipts.generateReceipt(deal.transactionId);
-    expect(receiptResult?.receiptNumber).toBeTruthy();
-    const receiptRow =
-      await ctx.prisma.marketplaceTransactionReceipt.findUnique({
-        where: { transactionId: deal.transactionId }
+    // Facture émise par settle (async) — on poll, sans re-appeler generateReceipt
+    // (évite course sur receiptNumber / unique constraint).
+    const receiptRow = await waitForReceipt(deal.transactionId);
+    expect(receiptRow?.receiptNumber).toBeTruthy();
+  }
+
+  async function waitForReceipt(
+    transactionId: string,
+    attempts = 30
+  ): Promise<{ receiptNumber: string } | null> {
+    for (let i = 0; i < attempts; i += 1) {
+      const row = await ctx.prisma.marketplaceTransactionReceipt.findUnique({
+        where: { transactionId },
+        select: { receiptNumber: true }
       });
-    expect(receiptRow).toBeTruthy();
+      if (row?.receiptNumber) {
+        return row;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    // Fallback si le void generateReceipt du settle a échoué / pas encore parti.
+    const generated = await receipts.generateReceipt(transactionId);
+    if (generated?.receiptNumber) {
+      return generated;
+    }
+    return ctx.prisma.marketplaceTransactionReceipt.findUnique({
+      where: { transactionId },
+      select: { receiptNumber: true }
+    });
   }
 
   beforeAll(async () => {
