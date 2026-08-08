@@ -414,7 +414,7 @@ describeOrSkip("Escrow settle — failure modes (e2e)", () => {
     });
     expect(releases).toBe(1);
 
-    const receiptResult = await receipts.generateReceipt(transactionId);
-    expect(receiptResult?.receiptNumber).toBeTruthy();
+    const receiptRow = await waitForReceipt(transactionId);
+    expect(receiptRow?.receiptNumber).toBeTruthy();
   });
 });
