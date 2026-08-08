@@ -2709,11 +2709,10 @@ export class MarketplaceTransactionService {
       }
     }
 
-    await this.prisma.marketplaceListing.updateMany({
-      where: {
-        id: tx.listingId,
-        status: { not: ListingStatus.sold }
-      },
+    // Toujours forcer sold + compteurs, même si completeHandover a déjà passé en sold
+    // sans remettre activeOfferCount à 0.
+    await this.prisma.marketplaceListing.update({
+      where: { id: tx.listingId },
       data: {
         status: ListingStatus.sold,
         activeOfferCount: 0,

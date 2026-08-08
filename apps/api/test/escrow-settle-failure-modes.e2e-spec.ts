@@ -48,8 +48,6 @@ describeOrSkip("Escrow settle — failure modes (e2e)", () => {
   let txService: MarketplaceTransactionService;
   let receipts: ReceiptService;
 
-  const TOP_UP = 300_000;
-
   async function freshDeal(): Promise<MarketplaceDeliveryCtx> {
     await cleanupBuyerMarketplaceState(ctx.prisma, [ctx.userId, ctx.peerUserId]);
     return setupMarketplaceDeliveryListing({
@@ -68,11 +66,6 @@ describeOrSkip("Escrow settle — failure modes (e2e)", () => {
     deal: MarketplaceDeliveryCtx,
     animalWeightKg: number
   ): Promise<void> {
-    await creditWalletViaDevTopUp({
-      app,
-      token: ctx.peerToken,
-      amount: TOP_UP
-    });
     await payMarketplaceWallet({
       app,
       buyerToken: ctx.peerToken,
@@ -175,12 +168,20 @@ describeOrSkip("Escrow settle — failure modes (e2e)", () => {
     app = await createTestApp();
     txService = app.get(MarketplaceTransactionService);
     receipts = app.get(ReceiptService);
+    // Une seule grosse recharge — évite le 429 Throttler sur les top-ups répétés.
+    await creditWalletViaDevTopUp({
+      app,
+      token: ctx.peerToken,
+      amount: 2_000_000
+    });
   });
 
   afterAll(async () => {
     if (app) await app.close();
     if (ctx?.prisma) {
       await purgeWalletE2eData(ctx.prisma, [ctx.userId, ctx.peerUserId]);
+      // Ferme acheteur créée hors seed principal.
+      await ctx.prisma.farm.deleteMany({ where: { id: buyerFarmId } });
       await cleanupE2eFixtures(ctx.prisma, {
         farmId: ctx.farmId,
         userId: ctx.userId,
@@ -348,11 +349,6 @@ describeOrSkip("Escrow settle — failure modes (e2e)", () => {
     expect(agree.status).toBe(200);
     const transactionId = agree.body.transactionId as string;
 
-    await creditWalletViaDevTopUp({
-      app,
-      token: ctx.peerToken,
-      amount: TOP_UP
-    });
     await payMarketplaceWallet({
       app,
       buyerToken: ctx.peerToken,
