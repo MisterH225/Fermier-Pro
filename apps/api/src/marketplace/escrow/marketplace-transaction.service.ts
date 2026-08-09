@@ -67,6 +67,7 @@ import {
   canTransition,
   type MarketplaceTransactionEvent
 } from "./transaction-state-machine";
+import { classifyIncompleteSettlement } from "./settlement-diagnostics.util";
 import {
   type BuyerAnimalWeightRow,
   averageRetainedWeightKg,
@@ -3427,6 +3428,171 @@ export class MarketplaceTransactionService {
     }));
   }
 
+  /**
+   * Diagnostic SuperAdmin : règlements incomplets (CLOSED partiel ou BUYER_RECEIVED bloqué).
+   * Lecture seule — utiliser retrySettlementForAdmin pour rejouer le settle.
+   */
+  async listIncompleteSettlementsForAdmin(take = 100) {
+    const limit = Math.min(Math.max(take, 1), 200);
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - 90);
+    const stuckBefore = new Date(Date.now() - 5 * 60 * 1000);
+
+    const candidates = await this.prisma.marketplaceTransaction.findMany({
+      where: {
+        updatedAt: { gte: since },
+        OR: [
+          { status: MarketplaceTransactionStatus.TRANSACTION_CLOSED },
+          {
+            status: MarketplaceTransactionStatus.BUYER_RECEIVED,
+            updatedAt: { lte: stuckBefore }
+          }
+        ]
+      },
+      orderBy: { updatedAt: "desc" },
+      take: Math.min(limit * 3, 400),
+      include: {
+        listing: { select: { id: true, title: true, status: true } },
+        offer: {
+          select: {
+            balanceAmount: true,
+            balancePaidDeclaredAt: true
+          }
+        },
+        buyer: { select: { id: true, fullName: true, email: true } },
+        seller: { select: { id: true, fullName: true, email: true } },
+        fundMovements: {
+          where: {
+            kind: {
+              in: [
+                MarketplaceFundMovementKind.RELEASE_TO_SELLER,
+                MarketplaceFundMovementKind.REFUND_BUYER
+              ]
+            }
+          },
+          select: { kind: true }
+        }
+      }
+    });
+
+    const rows: Array<{
+      id: string;
+      status: MarketplaceTransactionStatus;
+      isCredit: boolean;
+      issues: string[];
+      blockedAmount: number;
+      finalAmount: number | null;
+      sellerReceivedAmount: number | null;
+      buyerRefundAmount: number | null;
+      currency: string;
+      updatedAt: string;
+      closedAt: string | null;
+      listing: { id: string; title: string; status: string };
+      buyer: { id: string; fullName: string | null; email: string | null };
+      seller: { id: string; fullName: string | null; email: string | null };
+    }> = [];
+
+    for (const tx of candidates) {
+      const hasRelease = tx.fundMovements.some(
+        (m) => m.kind === MarketplaceFundMovementKind.RELEASE_TO_SELLER
+      );
+      const hasRefund = tx.fundMovements.some(
+        (m) => m.kind === MarketplaceFundMovementKind.REFUND_BUYER
+      );
+      const buyerRefundAmount = Number(tx.buyerRefundAmount ?? 0);
+      const balanceDue = Number(tx.offer?.balanceAmount ?? 0);
+      const creditReadyToSettle =
+        tx.isCredit &&
+        (balanceDue <= 0 || tx.offer?.balancePaidDeclaredAt != null);
+
+      const issues = classifyIncompleteSettlement({
+        status: tx.status,
+        isCredit: tx.isCredit,
+        listingStatus: tx.listing.status,
+        hasRelease,
+        hasRefund,
+        buyerRefundAmount,
+        creditReadyToSettle
+      });
+      if (issues.length === 0) {
+        continue;
+      }
+
+      rows.push({
+        id: tx.id,
+        status: tx.status,
+        isCredit: tx.isCredit,
+        issues,
+        blockedAmount: Number(tx.blockedAmount),
+        finalAmount: tx.finalAmount != null ? Number(tx.finalAmount) : null,
+        sellerReceivedAmount:
+          tx.sellerReceivedAmount != null
+            ? Number(tx.sellerReceivedAmount)
+            : null,
+        buyerRefundAmount:
+          tx.buyerRefundAmount != null ? Number(tx.buyerRefundAmount) : null,
+        currency: tx.currency,
+        updatedAt: tx.updatedAt.toISOString(),
+        closedAt: tx.closedAt?.toISOString() ?? null,
+        listing: {
+          id: tx.listing.id,
+          title: tx.listing.title,
+          status: tx.listing.status
+        },
+        buyer: tx.buyer,
+        seller: tx.seller
+      });
+      if (rows.length >= limit) {
+        break;
+      }
+    }
+
+    return rows;
+  }
+
+  /** Rejoue settle / settle crédit (idempotent) — recovery manuelle SuperAdmin. */
+  async retrySettlementForAdmin(
+    adminUserId: string,
+    transactionId: string
+  ): Promise<{ ok: true; status: MarketplaceTransactionStatus; isCredit: boolean }> {
+    const tx = await this.prisma.marketplaceTransaction.findUnique({
+      where: { id: transactionId },
+      select: { id: true, status: true, isCredit: true }
+    });
+    if (!tx) {
+      throw new NotFoundException("Transaction introuvable");
+    }
+
+    if (tx.isCredit) {
+      await this.settleCreditTransaction(tx.id);
+    } else {
+      await this.settleTransaction(tx.id);
+    }
+
+    const after = await this.prisma.marketplaceTransaction.findUniqueOrThrow({
+      where: { id: tx.id },
+      select: { status: true, isCredit: true }
+    });
+
+    await this.audit.record({
+      actorUserId: adminUserId,
+      action: AUDIT_ACTION.marketplaceSettlementRetry,
+      resourceType: "MarketplaceTransaction",
+      resourceId: tx.id,
+      metadata: {
+        previousStatus: tx.status,
+        status: after.status,
+        isCredit: after.isCredit
+      }
+    });
+
+    return {
+      ok: true,
+      status: after.status,
+      isCredit: after.isCredit
+    };
+  }
+
   async getOverviewForAdmin() {
     const closedStatuses: MarketplaceTransactionStatus[] = [
       MarketplaceTransactionStatus.TRANSACTION_CLOSED,
@@ -3442,7 +3608,8 @@ export class MarketplaceTransactionService {
       transactionByStatus,
       activeTransactions,
       openDisputes,
-      totalViews
+      totalViews,
+      incompleteSettlements
     ] = await Promise.all([
       this.prisma.marketplaceListing.groupBy({
         by: ["status"],
@@ -3462,7 +3629,8 @@ export class MarketplaceTransactionService {
       this.prisma.marketplaceListing.aggregate({
         where: { archived: false },
         _sum: { viewsCount: true }
-      })
+      }),
+      this.listIncompleteSettlementsForAdmin(50)
     ]);
 
     const listingCounts: Record<string, number> = {};
@@ -3486,6 +3654,7 @@ export class MarketplaceTransactionService {
       transactions: {
         active: activeTransactions,
         openDisputes,
+        incompleteSettlements: incompleteSettlements.length,
         byStatus: transactionCounts
       },
       totalViews: totalViews._sum.viewsCount ?? 0

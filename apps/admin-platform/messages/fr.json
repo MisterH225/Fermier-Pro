@@ -1129,6 +1129,7 @@
     "tabs": {
       "listings": "Annonces",
       "transactions": "Transactions",
+      "incompleteSettlements": "Règlements incomplets",
       "disputes": "Litiges poids",
       "revenue": "Commissions",
       "receipts": "Reçus PDF",
@@ -1141,7 +1142,24 @@
       "publishedListings": "Annonces publiées",
       "totalListings": "Annonces totales",
       "activeTransactions": "Transactions actives",
-      "openDisputes": "Litiges en cours"
+      "openDisputes": "Litiges en cours",
+      "incompleteSettlements": "Règlements incomplets"
+    },
+    "incompleteSettlements": {
+      "empty": "Aucun règlement incomplet détecté.",
+      "lead": "Transactions où le settle a été interrompu ou n'a jamais abouti (RELEASE / refund / délistage). Utilisez « Relancer » pour rejouer le règlement idempotent.",
+      "colIssues": "Anomalies",
+      "colActions": "Actions",
+      "listingStatus": "Annonce",
+      "retry": "Relancer",
+      "retrying": "Relance…",
+      "retryError": "Relance impossible.",
+      "issues": {
+        "LISTING_NOT_SOLD": "Annonce non sold",
+        "MISSING_RELEASE": "Versement vendeur manquant",
+        "MISSING_REFUND": "Remboursement acheteur manquant",
+        "STUCK_BUYER_RECEIVED": "Bloquée en réception"
+      }
     },
     "listingDetail": {
       "title": "Détail de l'annonce",

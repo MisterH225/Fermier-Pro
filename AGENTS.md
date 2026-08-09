@@ -62,3 +62,30 @@ The cloud VM uses a local Docker Postgres (via `docker-compose.yml`) instead of 
 - **E2e test type mismatches**: 2 of 40 e2e tests fail due to Prisma returning `Decimal` as string while tests expect number. This is a pre-existing issue, not caused by environment setup.
 - **JWT for local testing**: sign tokens with `jsonwebtoken` using the `SUPABASE_JWT_SECRET` from `.env`. The payload must include `{ sub: "<supabase-user-id>", role: "authenticated", aud: "authenticated" }`.
 - **Farm creation requires `X-Profile-Id`**: create a producer profile via `POST /api/v1/profiles` first, then pass its id as `X-Profile-Id` header when creating farms.
+
+### Marketplace escrow / settlement — agent protocol (mandatory)
+
+Any change that touches escrow settlement, fund release/refund, credit settle, or receipt timing after close **must** follow this protocol. Goal: stop fixes that introduce new money bugs.
+
+#### Invariants (validate with the human before coding)
+
+1. **No receipt without complete settlement** — do not emit/generate a marketplace receipt until close + listing `sold` + `RELEASE_TO_SELLER` (+ `REFUND_BUYER` when `buyerRefundAmount > 0`) are true.
+2. **Settlement is idempotent** — at most one `RELEASE_TO_SELLER` and one owed `REFUND_BUYER` per transaction; retries must finish missing side-effects, never double-pay.
+3. **`TRANSACTION_CLOSED` ≠ done** — a closed tx with listing not sold, missing release, or missing owed refund is **incomplete** and must be recoverable.
+4. **Credit has an explicit trigger** — `settleCreditTransaction` must run on a defined event (receipt when balance is 0 / already paid, or seller balance confirmation). Never leave credit stuck on `BUYER_RECEIVED` with only a notification.
+5. **Real mutual exclusion** — use `DistributedLockService` (Redis) for settle paths. Do **not** reintroduce session `pg_advisory_lock` via Prisma (broken behind transaction poolers).
+
+#### Workflow before a PR
+
+1. **Diagnose first** (Ask / read-only): status at failure, fund movements, which code path emitted the receipt — no code until the human OK.
+2. **List invariants + files/functions** to change — human OK; keep the diff minimal (prefer 1 critical bug per PR).
+3. **Implement** — no silent early `return` on financial guards without `log.warn` (or stronger).
+4. **Mandatory tests** — if the PR changes `settleTransaction` / `settleCreditTransaction` / prior-release recovery / receipt gating:
+   - extend or add cases in `apps/api/test/escrow-settle-failure-modes.e2e-spec.ts` (partial RELEASE recovery, double settle, weight↓ refund, credit balance 0, CLOSED incomplete);
+   - do not merge on happy-path e2e alone.
+5. **Done means** CI `e2e-api` green for those cases — not only lint/unit.
+
+#### Admin diagnostics
+
+- Incomplete settlements are exposed for SuperAdmin via `GET /api/v1/admin/marketplace/transactions/incomplete-settlements` and the marketplace admin tab **Règlements incomplets**.
+- Prefer diagnosing with that list before guessing; use retry settle only when recovery is intentional.

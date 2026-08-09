@@ -1101,6 +1101,7 @@
     "tabs": {
       "listings": "Listings",
       "transactions": "Transactions",
+      "incompleteSettlements": "Incomplete settlements",
       "disputes": "Weight disputes",
       "revenue": "Commissions",
       "receipts": "PDF receipts",
@@ -1113,7 +1114,24 @@
       "publishedListings": "Published listings",
       "totalListings": "Total listings",
       "activeTransactions": "Active transactions",
-      "openDisputes": "Open disputes"
+      "openDisputes": "Open disputes",
+      "incompleteSettlements": "Incomplete settlements"
+    },
+    "incompleteSettlements": {
+      "empty": "No incomplete settlements detected.",
+      "lead": "Transactions where settle was interrupted or never finished (RELEASE / refund / delist). Use Retry to re-run idempotent settlement.",
+      "colIssues": "Issues",
+      "colActions": "Actions",
+      "listingStatus": "Listing",
+      "retry": "Retry",
+      "retrying": "Retrying…",
+      "retryError": "Retry failed.",
+      "issues": {
+        "LISTING_NOT_SOLD": "Listing not sold",
+        "MISSING_RELEASE": "Missing seller release",
+        "MISSING_REFUND": "Missing buyer refund",
+        "STUCK_BUYER_RECEIVED": "Stuck after receipt"
+      }
     },
     "listingDetail": {
       "title": "Listing detail",
