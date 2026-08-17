@@ -2092,6 +2092,7 @@ export class MarketplaceTransactionService {
     });
 
     if (tx.status === MarketplaceTransactionStatus.TRANSACTION_CLOSED) {
+      await this.applySettlementFundMovements(tx, amounts);
       await this.finalizeSettlementSideEffects(tx, amounts, {
         settlementFinalAmount: finalAmount,
         skipNotifications: true
@@ -2420,6 +2421,30 @@ export class MarketplaceTransactionService {
               sellerCommissionRate: Number(tx.sellerCommissionRate ?? 0)
             })
           : amounts;
+      await this.applySettlementFundMovements(tx, recoveryAmounts);
+      if (tx.sellerReceivedAmount == null || tx.buyerRefundAmount == null) {
+        await this.prisma.marketplaceTransaction.update({
+          where: { id: tx.id },
+          data: {
+            finalAmount: new Prisma.Decimal(storedFinal),
+            commissionAmount: new Prisma.Decimal(
+              recoveryAmounts.commissionAmount
+            ),
+            sellerCommissionAmount: new Prisma.Decimal(
+              recoveryAmounts.sellerCommissionAmount
+            ),
+            sellerReceivedAmount: new Prisma.Decimal(
+              recoveryAmounts.sellerReceivedAmount
+            ),
+            buyerRefundAmount: new Prisma.Decimal(
+              recoveryAmounts.buyerRefundAmount
+            ),
+            buyerAdditionalCharge: new Prisma.Decimal(
+              recoveryAmounts.buyerAdditionalCharge
+            )
+          }
+        });
+      }
       await this.finalizeSettlementSideEffects(tx, recoveryAmounts, {
         settlementFinalAmount: storedFinal,
         skipNotifications: true
@@ -2684,11 +2709,10 @@ export class MarketplaceTransactionService {
       }
     }
 
-    await this.prisma.marketplaceListing.updateMany({
-      where: {
-        id: tx.listingId,
-        status: { not: ListingStatus.sold }
-      },
+    // Toujours forcer sold + compteurs, même si completeHandover a déjà passé en sold
+    // sans remettre activeOfferCount à 0.
+    await this.prisma.marketplaceListing.update({
+      where: { id: tx.listingId },
       data: {
         status: ListingStatus.sold,
         activeOfferCount: 0,
