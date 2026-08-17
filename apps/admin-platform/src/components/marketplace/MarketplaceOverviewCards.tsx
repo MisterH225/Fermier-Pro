@@ -13,7 +13,7 @@ export function MarketplaceOverviewCards({ overview }: Props) {
   const t = useTranslations("marketplace");
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       <KpiCard
         label={t("overview.publishedListings")}
         value={overview.listings.published}
@@ -35,6 +35,12 @@ export function MarketplaceOverviewCards({ overview }: Props) {
       <KpiCard
         label={t("overview.openDisputes")}
         value={overview.transactions.openDisputes}
+        variant="danger"
+        icon={<AlertTriangle className="size-4" />}
+      />
+      <KpiCard
+        label={t("overview.incompleteSettlements")}
+        value={overview.transactions.incompleteSettlements ?? 0}
         variant="danger"
         icon={<AlertTriangle className="size-4" />}
       />

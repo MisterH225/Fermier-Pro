@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
+  fetchAdminIncompleteSettlements,
   fetchAdminMarketplaceListings,
   fetchAdminMarketplaceOverview,
   fetchAdminMarketplaceTransactions,
@@ -10,6 +11,7 @@ import {
   fetchAdminMerchantOrders,
   fetchAdminMerchantProducts,
   fetchAdminMerchantShops,
+  type AdminIncompleteSettlementRow,
   type AdminMarketplaceListingRow,
   type AdminMarketplaceOverviewDto,
   type AdminMarketplaceTransactionRow,
@@ -27,6 +29,7 @@ import { Store } from "lucide-react";
 import { MarketplaceOverviewCards } from "@/components/marketplace/MarketplaceOverviewCards";
 import { MarketplaceListingsTable } from "@/components/marketplace/MarketplaceListingsTable";
 import { MarketplaceTransactionTable } from "@/components/marketplace/MarketplaceTransactionTable";
+import { IncompleteSettlementsPanel } from "@/components/marketplace/IncompleteSettlementsPanel";
 import { WeightDisputeQueue } from "@/components/marketplace/WeightDisputeQueue";
 import { PlatformRevenueSection } from "@/components/marketplace/PlatformRevenueSection";
 import { MarketplaceReceiptsSection } from "@/components/marketplace/MarketplaceReceiptsSection";
@@ -38,6 +41,7 @@ import { MerchantOrdersAdminPanel } from "@/components/marketplace/MerchantOrder
 const MAIN_TABS = [
   "listings",
   "transactions",
+  "incompleteSettlements",
   "disputes",
   "merchantOrders",
   "revenue",
@@ -88,6 +92,9 @@ export default function MarketplaceAdminPage() {
     []
   );
   const [disputes, setDisputes] = useState<AdminMarketplaceTransactionRow[]>([]);
+  const [incompleteSettlements, setIncompleteSettlements] = useState<
+    AdminIncompleteSettlementRow[]
+  >([]);
   const [merchantProducts, setMerchantProducts] = useState<AdminMerchantProductRow[]>(
     []
   );
@@ -127,6 +134,12 @@ export default function MarketplaceAdminPage() {
     if (!token) return;
     const rows = await fetchAdminMarketplaceTransactions(token, "WEIGHT_DISPUTED");
     setDisputes(rows ?? []);
+  }, [token]);
+
+  const loadIncompleteSettlements = useCallback(async () => {
+    if (!token) return;
+    const rows = await fetchAdminIncompleteSettlements(token);
+    setIncompleteSettlements(rows ?? []);
   }, [token]);
 
   const loadMerchantProducts = useCallback(async () => {
@@ -179,6 +192,8 @@ export default function MarketplaceAdminPage() {
           await loadListings();
         } else if (mainTab === "transactions") {
           await loadTransactions();
+        } else if (mainTab === "incompleteSettlements") {
+          await loadIncompleteSettlements();
         } else if (mainTab === "disputes") {
           await loadDisputes();
         } else if (mainTab === "merchantOrders") {
@@ -202,6 +217,7 @@ export default function MarketplaceAdminPage() {
     loadResubmissionBadge,
     loadListings,
     loadTransactions,
+    loadIncompleteSettlements,
     loadDisputes,
     loadMerchantOrders,
     loadMerchantProducts,
@@ -234,6 +250,12 @@ export default function MarketplaceAdminPage() {
           const base = t(`tabs.${id}`);
           if (id === "merchantProducts" && resubmissionQueueCount > 0) {
             return `${base} (${resubmissionQueueCount})`;
+          }
+          if (
+            id === "incompleteSettlements" &&
+            (overview?.transactions.incompleteSettlements ?? 0) > 0
+          ) {
+            return `${base} (${overview?.transactions.incompleteSettlements})`;
           }
           return base;
         }}
@@ -280,6 +302,21 @@ export default function MarketplaceAdminPage() {
             <MarketplaceTransactionTable rows={transactions} />
           )}
         </>
+      ) : null}
+
+      {mainTab === "incompleteSettlements" ? (
+        loading ? (
+          <p className="text-muted-foreground">{t("loading")}</p>
+        ) : (
+          <IncompleteSettlementsPanel
+            rows={incompleteSettlements}
+            token={token!}
+            onRetried={() => {
+              void loadIncompleteSettlements();
+              void loadOverview();
+            }}
+          />
+        )
       ) : null}
 
       {mainTab === "disputes" ? (

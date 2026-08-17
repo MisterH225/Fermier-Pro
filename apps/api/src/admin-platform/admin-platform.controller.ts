@@ -780,6 +780,22 @@ export class AdminPlatformController {
     return this.marketplaceTransactions.listForAdmin(status);
   }
 
+  @Get("marketplace/transactions/incomplete-settlements")
+  adminListIncompleteSettlements(@Query("take") take?: string) {
+    const n = take ? Number.parseInt(take, 10) : 100;
+    return this.marketplaceTransactions.listIncompleteSettlementsForAdmin(
+      Number.isFinite(n) ? n : 100
+    );
+  }
+
+  @Post("marketplace/transactions/:id/retry-settle")
+  adminRetrySettlement(
+    @CurrentUser() admin: User,
+    @Param("id") id: string
+  ) {
+    return this.marketplaceTransactions.retrySettlementForAdmin(admin.id, id);
+  }
+
   @Get("marketplace/disputes")
   adminListDisputes() {
     return this.marketplaceTransactions.listDisputesForAdmin();

@@ -17,6 +17,7 @@ export const AUDIT_ACTION = {
   batchDeleted: "livestock.batch.deleted",
   marketplaceOfferAccepted: "marketplace.offer.accepted",
   marketplaceWeightAutoTolerance: "marketplace.weight.auto_tolerance",
+  marketplaceSettlementRetry: "marketplace.settlement.retry",
   farmInvitationCreated: "farm.invitation.created",
   farmInvitationAccepted: "farm.invitation.accepted",
   farmInvitationRejected: "farm.invitation.rejected",

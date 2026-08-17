@@ -550,9 +550,27 @@ export type AdminMarketplaceOverviewDto = {
   transactions: {
     active: number;
     openDisputes: number;
+    incompleteSettlements?: number;
     byStatus: Record<string, number>;
   };
   totalViews: number;
+};
+
+export type AdminIncompleteSettlementRow = {
+  id: string;
+  status: string;
+  isCredit: boolean;
+  issues: string[];
+  blockedAmount: number;
+  finalAmount: number | null;
+  sellerReceivedAmount: number | null;
+  buyerRefundAmount: number | null;
+  currency: string;
+  updatedAt: string;
+  closedAt: string | null;
+  listing: { id: string; title: string; status: string };
+  buyer: { id: string; fullName: string | null; email: string | null };
+  seller: { id: string; fullName: string | null; email: string | null };
 };
 
 export type AdminMarketplaceListingRow = {
@@ -692,6 +710,21 @@ export function fetchAdminMarketplaceTransactions(
   return apiFetch<AdminMarketplaceTransactionRow[]>(
     `/admin/marketplace/transactions${q}`,
     token
+  );
+}
+
+export function fetchAdminIncompleteSettlements(token: string) {
+  return apiFetch<AdminIncompleteSettlementRow[]>(
+    "/admin/marketplace/transactions/incomplete-settlements",
+    token
+  );
+}
+
+export function adminRetrySettlement(token: string, transactionId: string) {
+  return apiFetch<{ ok: true; status: string; isCredit: boolean }>(
+    `/admin/marketplace/transactions/${transactionId}/retry-settle`,
+    token,
+    { method: "POST" }
   );
 }
 
