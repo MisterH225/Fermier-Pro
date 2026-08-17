@@ -48,7 +48,10 @@ export function ProducerActiveProposalsSection({ farmId }: Props) {
     enabled: Boolean(clientFeatures.marketplace && accessToken)
   });
 
-  const tracked = buildProducerTrackedOffers(offersQ.data ?? []).slice(0, 3);
+  const tracked = buildProducerTrackedOffers(
+    offersQ.data ?? [],
+    txQ.data ?? []
+  ).slice(0, 3);
   if (!clientFeatures.marketplace || tracked.length === 0) return null;
 
   return (

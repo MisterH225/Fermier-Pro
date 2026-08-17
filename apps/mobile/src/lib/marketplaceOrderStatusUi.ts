@@ -24,6 +24,20 @@ export const MARKETPLACE_TRANSACTION_STATUSES = [
 export type MarketplaceTransactionStatusUi =
   (typeof MARKETPLACE_TRANSACTION_STATUSES)[number];
 
+/**
+ * Aligné sur `TERMINAL_TRANSACTION_STATUSES` (API).
+ * Une offre liée à l'un de ces statuts ne doit plus apparaître dans
+ * « Propositions reçues / actives » du dashboard.
+ */
+export const TERMINAL_MARKETPLACE_TX_STATUSES = new Set<string>([
+  "TRANSACTION_CLOSED",
+  "CANCELLED_BY_BUYER",
+  "CANCELLED_BY_SELLER",
+  "CANCELLED_SOLD_TO_OTHER",
+  "OFFER_EXPIRED",
+  "PAYMENT_FAILED"
+]);
+
 export type MarketplaceTransactionRole = "buyer" | "seller";
 
 export type MarketplaceTransactionAction =

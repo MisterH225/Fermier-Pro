@@ -3,6 +3,7 @@ import type {
   MarketplaceOfferMineRow,
   MarketplaceTransactionDto
 } from "./api";
+import { TERMINAL_MARKETPLACE_TX_STATUSES } from "./marketplaceOrderStatusUi";
 import type { RootStackParamList } from "../types/navigation";
 
 const BUYER_TX_ACTION_STATUSES = new Set([
@@ -18,15 +19,6 @@ const INACTIVE_OFFER_STATUSES = new Set([
   "withdrawn",
   "completed",
   "cancelled"
-]);
-
-/** Statuts de transaction terminaux ou annulés — une offre liée à l'un d'eux est inactive. */
-const TERMINAL_TX_STATUSES = new Set([
-  "CANCELLED_BY_BUYER",
-  "CANCELLED_BY_SELLER",
-  "CANCELLED_SOLD_TO_OTHER",
-  "OFFER_EXPIRED",
-  "PAYMENT_FAILED"
 ]);
 
 export type BuyerPendingMarketplaceItem =
@@ -62,10 +54,15 @@ export function isBuyerActionableOffer(offer: MarketplaceOfferMineRow): boolean 
   }
 }
 
-export function isBuyerTrackedOffer(offer: MarketplaceOfferMineRow): boolean {
+export function isBuyerTrackedOffer(
+  offer: MarketplaceOfferMineRow,
+  linkedTxStatus?: string | null
+): boolean {
   if (INACTIVE_OFFER_STATUSES.has(offer.status)) return false;
-  // Masquer les offres dont la transaction est annulée (données historiques ou cas non couverts)
-  if (offer.transaction && TERMINAL_TX_STATUSES.has(offer.transaction.status)) return false;
+  // Masquer si la TX liée est terminale (clôturée OU annulée), y compris
+  // quand l'offre est restée « accepted » faute de finalizeSettlementSideEffects.
+  const txStatus = linkedTxStatus ?? offer.transaction?.status ?? null;
+  if (txStatus && TERMINAL_MARKETPLACE_TX_STATUSES.has(txStatus)) return false;
   return true;
 }
 
@@ -143,10 +140,16 @@ export function buildBuyerPendingMarketplaceItems(
 }
 
 export function buildBuyerTrackedOffers(
-  offers: MarketplaceOfferMineRow[]
+  offers: MarketplaceOfferMineRow[],
+  transactions: MarketplaceTransactionDto[] = []
 ): MarketplaceOfferMineRow[] {
+  const statusByOfferId = new Map(
+    transactions.map((tx) => [tx.offerId, tx.status] as const)
+  );
   return offers
-    .filter(isBuyerTrackedOffer)
+    .filter((offer) =>
+      isBuyerTrackedOffer(offer, statusByOfferId.get(offer.id) ?? null)
+    )
     .sort((a, b) => {
       const pa = isBuyerActionableOffer(a) ? 0 : 1;
       const pb = isBuyerActionableOffer(b) ? 0 : 1;

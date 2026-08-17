@@ -1,8 +1,21 @@
 import {
   MARKETPLACE_STATUS_UI,
   MARKETPLACE_TRANSACTION_STATUSES,
+  TERMINAL_MARKETPLACE_TX_STATUSES,
   marketplaceTransactionActions
 } from "../marketplaceOrderStatusUi";
+
+describe("TERMINAL_MARKETPLACE_TX_STATUSES", () => {
+  it("inclut TRANSACTION_CLOSED (dashboard propositions reçues)", () => {
+    expect(TERMINAL_MARKETPLACE_TX_STATUSES.has("TRANSACTION_CLOSED")).toBe(
+      true
+    );
+    expect(TERMINAL_MARKETPLACE_TX_STATUSES.has("CANCELLED_BY_BUYER")).toBe(
+      true
+    );
+    expect(TERMINAL_MARKETPLACE_TX_STATUSES.has("PAYMENT_HELD")).toBe(false);
+  });
+});
 
 describe("MARKETPLACE_STATUS_UI", () => {
   it("mappe exhaustivement les 18 statuts vers badge et macro-étape", () => {
