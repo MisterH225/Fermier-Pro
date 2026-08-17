@@ -3,6 +3,7 @@ import type {
   MarketplaceOfferReceivedRow,
   MarketplaceTransactionDto
 } from "./api";
+import { TERMINAL_MARKETPLACE_TX_STATUSES } from "./marketplaceOrderStatusUi";
 import type { RootStackParamList } from "../types/navigation";
 
 const SELLER_TX_ACTION_STATUSES = new Set([
@@ -16,15 +17,6 @@ const INACTIVE_OFFER_STATUSES = new Set([
   "withdrawn",
   "completed",
   "cancelled"
-]);
-
-/** Statuts de transaction terminaux ou annulés — une offre liée à l'un d'eux est inactive. */
-const TERMINAL_TX_STATUSES = new Set([
-  "CANCELLED_BY_BUYER",
-  "CANCELLED_BY_SELLER",
-  "CANCELLED_SOLD_TO_OTHER",
-  "OFFER_EXPIRED",
-  "PAYMENT_FAILED"
 ]);
 
 export type ProducerPendingMarketplaceItem =
@@ -63,11 +55,14 @@ export function isProducerActionableOffer(
 }
 
 export function isProducerTrackedOffer(
-  offer: MarketplaceOfferReceivedRow
+  offer: MarketplaceOfferReceivedRow,
+  linkedTxStatus?: string | null
 ): boolean {
   if (INACTIVE_OFFER_STATUSES.has(offer.status)) return false;
-  // Masquer les offres dont la transaction est annulée (données historiques ou cas non couverts)
-  if (offer.transaction && TERMINAL_TX_STATUSES.has(offer.transaction.status)) return false;
+  // Masquer si la TX liée est terminale (clôturée OU annulée), y compris
+  // quand l'offre est restée « accepted » faute de finalizeSettlementSideEffects.
+  const txStatus = linkedTxStatus ?? offer.transaction?.status ?? null;
+  if (txStatus && TERMINAL_MARKETPLACE_TX_STATUSES.has(txStatus)) return false;
   return true;
 }
 
@@ -141,10 +136,16 @@ export function buildProducerPendingMarketplaceItems(
 }
 
 export function buildProducerTrackedOffers(
-  offers: MarketplaceOfferReceivedRow[]
+  offers: MarketplaceOfferReceivedRow[],
+  transactions: MarketplaceTransactionDto[] = []
 ): MarketplaceOfferReceivedRow[] {
+  const statusByOfferId = new Map(
+    transactions.map((tx) => [tx.offerId, tx.status] as const)
+  );
   return offers
-    .filter(isProducerTrackedOffer)
+    .filter((offer) =>
+      isProducerTrackedOffer(offer, statusByOfferId.get(offer.id) ?? null)
+    )
     .sort((a, b) => {
       const pa = isProducerActionableOffer(a) ? 0 : 1;
       const pb = isProducerActionableOffer(b) ? 0 : 1;

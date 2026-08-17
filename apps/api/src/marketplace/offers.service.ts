@@ -31,6 +31,7 @@ import { CreditScoreService } from "./credit/credit-score.service";
 import { MarketplaceTransactionService } from "./escrow/marketplace-transaction.service";
 import { ACTIVE_DEAL_TRANSACTION_STATUSES } from "./escrow/transaction.utils";
 import { usesFlatListingPrice } from "./marketplace-listing-category.helper";
+import { staleOfferIdsAfterClosedTransaction } from "./offers-heal-closed.util";
 
 @Injectable()
 export class OffersService {
@@ -302,6 +303,7 @@ export class OffersService {
         }
       }
     });
+    await this.healOffersStuckAfterClosedTransaction(rows);
     return rows.map((row) => ({ ...row, ...this.offerDeadlineFields(row) }));
   }
 
@@ -335,6 +337,7 @@ export class OffersService {
         }
       }
     });
+    await this.healOffersStuckAfterClosedTransaction(rows);
     const buyerIds = [...new Set(rows.map((row) => row.buyerUserId))];
     const creditByUser = await this.creditScore.getForUsers(buyerIds);
 
@@ -357,6 +360,37 @@ export class OffersService {
         ...this.offerDeadlineFields(row)
       };
     });
+  }
+
+  /**
+   * Répare les offres restées « accepted » (ou crédit en cours) alors que la TX
+   * est déjà TRANSACTION_CLOSED — cas historique où finalizeSettlementSideEffects
+   * n'a pas pu mettre à jour l'offre. Idempotent.
+   */
+  private async healOffersStuckAfterClosedTransaction(
+    rows: Array<{
+      id: string;
+      status: OfferStatus;
+      transaction: { id: string; status: MarketplaceTransactionStatus } | null;
+    }>
+  ): Promise<void> {
+    const staleIds = staleOfferIdsAfterClosedTransaction(rows);
+    if (!staleIds.length) {
+      return;
+    }
+    const completedAt = new Date();
+    await this.prisma.marketplaceOffer.updateMany({
+      where: {
+        id: { in: staleIds },
+        status: { not: OfferStatus.completed }
+      },
+      data: { status: OfferStatus.completed, completedAt }
+    });
+    for (const row of rows) {
+      if (staleIds.includes(row.id)) {
+        row.status = OfferStatus.completed;
+      }
+    }
   }
 
   async counts(user: User, farmId?: string) {
